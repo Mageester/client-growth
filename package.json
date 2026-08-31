@@ -1,0 +1,37 @@
+{
+  "name": "client-growth",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.12.1",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "react-router dev",
+    "build": "react-router build",
+    "start": "wrangler dev",
+    "typecheck": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "eval:live": "vitest run --config vitest.live.config.ts"
+  },
+  "dependencies": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-router": "^7.18.3",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.54.2",
+    "@cloudflare/workers-types": "^5.20260830.1",
+    "@react-router/dev": "^7.18.3",
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "typescript": "^5.9.3",
+    "vite": "^6.4.3",
+    "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^3.2.7",
+    "wrangler": "^4.127.1"
+  }
+}

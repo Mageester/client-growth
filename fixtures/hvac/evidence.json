@@ -1,0 +1,74 @@
+{
+  "clientId": "client-coolbreeze",
+  "source": "fixture",
+  "capturedAt": "2026-08-01T12:00:00.000Z",
+  "site": {
+    "nav": [
+      "Home",
+      "Air Conditioning Repair",
+      "Furnace Installation",
+      "Duct Cleaning",
+      "About",
+      "Contact"
+    ],
+    "pages": [
+      {
+        "url": "https://coolbreezehvac.example/",
+        "title": "Cool Breeze HVAC | Heating & Cooling in Denver",
+        "h1s": ["Denver's Trusted Heating & Cooling Team"],
+        "headings": [
+          "Our Services",
+          "Emergency Repairs",
+          "Financing Available",
+          "What Our Customers Say"
+        ],
+        "textExcerpt": "Cool Breeze HVAC keeps Denver homes comfortable year round with fast repairs and clean installs. We service all major brands.",
+        "wordCount": 320
+      },
+      {
+        "url": "https://coolbreezehvac.example/air-conditioning-repair",
+        "title": "Air Conditioning Repair in Denver | Cool Breeze HVAC",
+        "h1s": ["Air Conditioning Repair"],
+        "headings": ["Same-Day AC Repair", "Common AC Problems", "Book a Technician"],
+        "textExcerpt": "Our technicians diagnose and repair air conditioning systems the same day in most cases.",
+        "wordCount": 210
+      },
+      {
+        "url": "https://coolbreezehvac.example/furnace-installation",
+        "title": "Furnace Installation in Denver | Cool Breeze HVAC",
+        "h1s": ["Furnace Installation"],
+        "headings": [
+          "New Furnace Installation",
+          "Furnace Brands We Install",
+          "Financing Your Furnace"
+        ],
+        "textExcerpt": "We install high-efficiency furnaces sized correctly for your home with upfront pricing.",
+        "wordCount": 240
+      },
+      {
+        "url": "https://coolbreezehvac.example/duct-cleaning",
+        "title": "Duct Cleaning Services | Cool Breeze HVAC",
+        "h1s": ["Duct Cleaning"],
+        "headings": ["Professional Duct Cleaning", "Why Clean Your Ducts", "Our Process"],
+        "textExcerpt": "Our duct cleaning removes dust and allergens to improve indoor air quality.",
+        "wordCount": 180
+      },
+      {
+        "url": "https://coolbreezehvac.example/about",
+        "title": "About Cool Breeze HVAC | Denver, CO",
+        "h1s": ["About Cool Breeze HVAC"],
+        "headings": ["Our Story", "Licensed & Insured", "Meet the Team"],
+        "textExcerpt": "Family owned and operated in Denver since 2009.",
+        "wordCount": 150
+      },
+      {
+        "url": "https://coolbreezehvac.example/contact",
+        "title": "Contact Cool Breeze HVAC | Denver, CO",
+        "h1s": ["Contact Us"],
+        "headings": ["Request Service", "Hours", "Service Area"],
+        "textExcerpt": "Call or book online. We serve Denver and the surrounding suburbs.",
+        "wordCount": 90
+      }
+    ]
+  }
+}

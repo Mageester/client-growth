@@ -1,0 +1,19 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "client-growth",
+  "compatibility_date": "2025-04-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "./workers/app.ts",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "client-growth-dev",
+      "database_id": "local-dev-placeholder",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "vars": {
+    "AI_PROVIDER": "mock",
+    "MAX_AI_CALLS_PER_RUN": "10"
+  }
+}

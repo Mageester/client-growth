@@ -1,0 +1,29 @@
+[
+  {
+    "id": "svc-landing-page",
+    "name": "Service Landing Page",
+    "description": "Design and build a dedicated, conversion-focused landing page for a single service line: copy, on-page SEO, and a primary lead-capture call to action.",
+    "priceMin": 900,
+    "priceMax": 1500,
+    "tags": ["landing-page"],
+    "active": true
+  },
+  {
+    "id": "svc-seo-retainer",
+    "name": "Monthly SEO Retainer",
+    "description": "Ongoing technical and content SEO work billed monthly.",
+    "priceMin": 800,
+    "priceMax": 2500,
+    "tags": ["seo", "retainer"],
+    "active": true
+  },
+  {
+    "id": "svc-brand-refresh",
+    "name": "Brand Refresh",
+    "description": "Visual identity refresh: logo, palette, typography, brand guidelines.",
+    "priceMin": 2500,
+    "priceMax": 6000,
+    "tags": ["brand"],
+    "active": true
+  }
+]

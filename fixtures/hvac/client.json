@@ -1,0 +1,12 @@
+{
+  "id": "client-coolbreeze",
+  "name": "Cool Breeze HVAC",
+  "domain": "coolbreezehvac.example",
+  "offerings": [
+    "heat pump installation",
+    "air conditioning repair",
+    "furnace installation",
+    "duct cleaning"
+  ],
+  "notes": "Denver residential HVAC. Owner wants more high-ticket install work."
+}
