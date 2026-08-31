@@ -17,12 +17,17 @@ import { DeepSeekEvaluator } from "../../src/adapters/evaluator/DeepSeekEvaluato
 import { runRules } from "../../src/core/rules";
 import { passesEvidenceThreshold } from "../../src/core/threshold";
 import { resolveBillability } from "../../src/core/billability";
+import { significantTokens } from "../../src/core/text";
 import { ClientSchema, type Candidate, type EvidenceBundle } from "../../src/core/schema";
 import { CATALOG } from "./catalog";
-import { CASES } from "./cases";
+import { CASES as CASES_FRANCHISE } from "./cases";
+import { CASES as CASES_LOCAL } from "./cases.local";
+
+const CASES = process.env.VAL_CASESET === "local" ? CASES_LOCAL : CASES_FRANCHISE;
+const OUT_FILE = process.env.VAL_OUT ?? "results.json";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const MAX_AI_CALLS = 70; // ~$0.03 hard ceiling
+const MAX_AI_CALLS = process.env.VAL_MAX_AI ? Number(process.env.VAL_MAX_AI) : 70;
 const MAX_PAGES = 8;
 const USD_IN = 0.27 / 1_000_000;
 const USD_OUT = 1.1 / 1_000_000;
@@ -64,6 +69,9 @@ interface SiteResult {
     pageTitles: string[];
     navLabels: string[];
   };
+  offeringsEvaluated: number;
+  suppressedOfferings: string[];
+  skippedOfferings: string[];
   candidates: CandidateResult[];
 }
 
@@ -164,6 +172,9 @@ async function runSite(testCase: (typeof CASES)[number]): Promise<SiteResult> {
       pageTitles: evidence?.site.pages.map((p) => p.title) ?? [],
       navLabels: evidence?.site.nav ?? [],
     },
+    offeringsEvaluated: 0,
+    suppressedOfferings: [],
+    skippedOfferings: [],
     candidates: [],
   };
 
@@ -180,6 +191,16 @@ async function runSite(testCase: (typeof CASES)[number]): Promise<SiteResult> {
     fetchPage: countedFetch,
     verifyBudget: { remaining: 12 },
   });
+
+  // Offerings the rule considered but did not surface: either no distinctive
+  // tokens (skipped) or verification found an existing page (suppressed).
+  const candidateSubjects = new Set(candidates.map((c) => c.subject));
+  for (const offering of testCase.offerings) {
+    result.offeringsEvaluated++;
+    if (candidateSubjects.has(offering)) continue;
+    if (significantTokens(offering).length === 0) result.skippedOfferings.push(offering);
+    else result.suppressedOfferings.push(offering);
+  }
 
   for (const candidate of candidates) {
     if (!passesEvidenceThreshold(candidate, evidence)) {
@@ -237,9 +258,14 @@ async function main() {
   const costUsd = promptTokens * USD_IN + completionTokens * USD_OUT;
   const summary = {
     generatedAt: new Date().toISOString(),
+    caseSet: process.env.VAL_CASESET === "local" ? "local" : "franchise",
     sites: results.length,
     crawlOk: results.filter((r) => r.crawl.ok).length,
     crawlFailed: results.filter((r) => !r.crawl.ok).length,
+    offeringsEvaluated: results.reduce((n, r) => n + r.offeringsEvaluated, 0),
+    suppressedOfferings: results.reduce((n, r) => n + r.suppressedOfferings.length, 0),
+    skippedOfferings: results.reduce((n, r) => n + r.skippedOfferings.length, 0),
+    candidates: results.reduce((n, r) => n + r.candidates.length, 0),
     verifyFetches,
     aiCalls,
     tokens: { prompt: promptTokens, completion: completionTokens },
@@ -257,13 +283,13 @@ async function main() {
   };
 
   writeFileSync(
-    join(HERE, "results.json"),
+    join(HERE, OUT_FILE),
     JSON.stringify({ summary, results }, null, 2),
   );
 
   console.log("\n\n==================== SUMMARY ====================");
   console.log(JSON.stringify(summary, null, 2));
-  console.log("\nWrote scripts/validation/results.json");
+  console.log(`\nWrote scripts/validation/${OUT_FILE}`);
 }
 
 main().catch((err) => {
