@@ -3,9 +3,16 @@
  * browser. Regex-based and fully deterministic so it is trivially testable with
  * saved HTML fixtures and cheap enough to run on a Worker.
  *
- * It extracts only what the V0 rule needs: title, headings, nav labels, a short
- * text excerpt, and same-origin links to continue a shallow crawl.
+ * It extracts what the rule and its absence-verification pass need: title,
+ * headings, and every same-origin link with its anchor text and whether it sat
+ * inside a navigation region.
  */
+
+export interface ParsedLink {
+  href: string;
+  label: string;
+  inNav: boolean;
+}
 
 export interface ParsedPage {
   page: {
@@ -17,6 +24,7 @@ export interface ParsedPage {
     wordCount: number;
   };
   nav: string[];
+  links: ParsedLink[];
   sameOriginLinks: string[];
 }
 
@@ -49,6 +57,17 @@ function captures(re: RegExp, input: string): string[] {
   return out;
 }
 
+/** [href, innerHtml] pairs for every <a> in the input. */
+function anchorPairs(input: string): Array<[string, string]> {
+  const out: Array<[string, string]> = [];
+  const re = /<a\b[^>]*\bhref=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(input)) !== null) {
+    if (m[1] !== undefined) out.push([m[1], m[2] ?? ""]);
+  }
+  return out;
+}
+
 export function parseHtml(html: string, url: string): ParsedPage {
   const body = html
     .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ")
@@ -58,13 +77,12 @@ export function parseHtml(html: string, url: string): ParsedPage {
     .replace(/<!--[\s\S]*?-->/g, " ");
 
   const title = clean(/<title[^>]*>([\s\S]*?)<\/title>/i.exec(body)?.[1] ?? "");
-
   const h1s = captures(/<h1\b[^>]*>([\s\S]*?)<\/h1>/gi, body).map(clean).filter(Boolean);
   const headings = captures(/<h[2-4]\b[^>]*>([\s\S]*?)<\/h[2-4]>/gi, body)
     .map(clean)
     .filter(Boolean);
 
-  // Nav labels: anchor text within <nav> blocks or role="navigation" containers.
+  // Navigation regions: <nav> blocks and role="navigation" containers.
   const navBlocks = [
     ...captures(/<nav\b[^>]*>([\s\S]*?)<\/nav>/gi, body),
     ...captures(
@@ -72,32 +90,48 @@ export function parseHtml(html: string, url: string): ParsedPage {
       body,
     ),
   ];
+  const navHrefs = new Set<string>();
   const navSet = new Set<string>();
   for (const block of navBlocks) {
+    for (const [href, inner] of anchorPairs(block)) {
+      const label = clean(inner);
+      if (label) navSet.add(label);
+      navHrefs.add(href);
+    }
     for (const anchor of captures(/<a\b[^>]*>([\s\S]*?)<\/a>/gi, block)) {
       const label = clean(anchor);
       if (label) navSet.add(label);
     }
   }
 
-  // Same-origin links only.
+  // Every same-origin link with its anchor text.
   const base = new URL(url);
-  const linkSet = new Set<string>();
-  for (const href of captures(/<a\b[^>]*\bhref=["']([^"']+)["']/gi, body)) {
-    const raw = href.split("#")[0]?.trim();
+  const byHref = new Map<string, ParsedLink>();
+  for (const [rawHref, inner] of anchorPairs(body)) {
+    const raw = rawHref.split("#")[0]?.trim();
     if (!raw) continue;
+    let resolved: URL;
     try {
-      const resolved = new URL(raw, base);
-      if (resolved.origin === base.origin && /^https?:$/.test(resolved.protocol)) {
-        linkSet.add(resolved.toString());
-      }
+      resolved = new URL(raw, base);
     } catch {
-      // ignore malformed href
+      continue;
+    }
+    if (resolved.origin !== base.origin || !/^https?:$/.test(resolved.protocol)) continue;
+    const key = resolved.toString();
+    const label = clean(inner);
+    const inNav = navHrefs.has(rawHref);
+    const existing = byHref.get(key);
+    if (!existing) {
+      byHref.set(key, { href: key, label, inNav });
+    } else {
+      if (!existing.label && label) existing.label = label;
+      if (inNav) existing.inNav = true;
     }
   }
 
   const text = clean(body);
   const wordCount = text ? text.split(/\s+/).length : 0;
+  const links = [...byHref.values()];
 
   return {
     page: {
@@ -109,6 +143,7 @@ export function parseHtml(html: string, url: string): ParsedPage {
       wordCount,
     },
     nav: [...navSet],
-    sameOriginLinks: [...linkSet],
+    links,
+    sameOriginLinks: links.map((l) => l.href),
   };
 }

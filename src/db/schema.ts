@@ -59,6 +59,7 @@ CREATE TABLE IF NOT EXISTS opportunities (
   status TEXT NOT NULL,
   snooze_until TEXT,
   proposal_md TEXT,
+  verification TEXT,
   updated_at TEXT NOT NULL,
   UNIQUE (client_id, dedupe_key)
 );

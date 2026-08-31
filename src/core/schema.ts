@@ -66,13 +66,27 @@ export const EvidencePageSchema = z.object({
 });
 export type EvidencePage = z.infer<typeof EvidencePageSchema>;
 
+/** A same-origin link discovered while crawling: its href and its anchor text. */
+export const EvidenceLinkSchema = z.object({
+  href: z.string().min(1),
+  label: z.string().default(""),
+  /** True when this link appeared inside a <nav> / role="navigation" region. */
+  inNav: z.boolean().default(false),
+});
+export type EvidenceLink = z.infer<typeof EvidenceLinkSchema>;
+
 export const EvidenceBundleSchema = z.object({
   clientId: z.string().min(1),
   source: z.enum(["fixture", "http"]),
   capturedAt: z.string().min(1), // ISO timestamp
   site: z.object({
     pages: z.array(EvidencePageSchema),
+    /** Navigation labels (kept for display / back-compat). */
     nav: z.array(z.string()).default([]),
+    /** All discovered same-origin links with anchor text. */
+    links: z.array(EvidenceLinkSchema).default([]),
+    /** URLs listed in /sitemap.xml when cheaply available. */
+    sitemapUrls: z.array(z.string()).default([]),
   }),
 });
 export type EvidenceBundle = z.infer<typeof EvidenceBundleSchema>;
@@ -82,6 +96,41 @@ export type EvidenceBundle = z.infer<typeof EvidenceBundleSchema>;
 // ---------------------------------------------------------------------------
 export const RuleIdSchema = z.enum(["missing-service-page"]);
 export type RuleId = z.infer<typeof RuleIdSchema>;
+
+/**
+ * Deterministic record of the targeted "does a page for this offering already
+ * exist?" check. Preserved on the candidate/opportunity so a human can audit
+ * exactly what was inspected before the absence was claimed.
+ */
+export const VerificationSchema = z.object({
+  conclusion: z.enum(["absent", "present", "weak"]),
+  /** URLs actually fetched during targeted verification. */
+  inspectedUrls: z.array(z.string()).default([]),
+  /** Near-matches considered, and why each did or did not satisfy the offering. */
+  closeMatches: z
+    .array(
+      z.object({
+        where: z.enum([
+          "crawled-page",
+          "page-title",
+          "heading",
+          "nav-label",
+          "link-label",
+          "link-href",
+          "sitemap-url",
+          "fetched-page",
+        ]),
+        value: z.string(),
+        url: z.string().optional(),
+        score: z.number().min(0).max(1),
+        satisfied: z.boolean(),
+        reason: z.string(),
+      }),
+    )
+    .default([]),
+  reason: z.string().default(""),
+});
+export type Verification = z.infer<typeof VerificationSchema>;
 
 export const CandidateSchema = z.object({
   ruleId: RuleIdSchema,
@@ -94,6 +143,7 @@ export const CandidateSchema = z.object({
   /** Deterministic pre-AI signal strength, 0..1. */
   rawConfidence: z.number().min(0).max(1),
   suggestedServiceId: z.string().min(1),
+  verification: VerificationSchema.optional(),
 });
 export type Candidate = z.infer<typeof CandidateSchema>;
 
@@ -135,6 +185,7 @@ export const OpportunitySchema = z.object({
   rationale: z.string().min(1),
   suggestedServiceId: z.string().min(1),
   suggestedScope: z.array(z.string()).default([]),
+  verification: VerificationSchema.optional(),
   priceMin: z.number().nonnegative(),
   priceMax: z.number().nonnegative(),
   confidence: z.number().min(0).max(1),

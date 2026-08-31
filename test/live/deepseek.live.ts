@@ -26,7 +26,7 @@ const OUTPUT_PER_MTOK = Number(process.env.DEEPSEEK_USD_PER_MTOK_OUT ?? "1.10");
 describe.skipIf(!apiKey)("LIVE DeepSeek evaluation", () => {
   it("judges the HVAC heat-pump candidate and returns a contract-valid Evaluation", async () => {
     const client = hvacClient();
-    const candidates = runRules({
+    const candidates = await runRules({
       client,
       catalog: hvacCatalog(),
       evidence: hvacEvidence(),

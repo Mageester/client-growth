@@ -39,6 +39,8 @@ export interface AnalyzeClientInput {
   existing?: Opportunity[];
   now?: Date;
   maxAiCalls?: number;
+  /** Cap on targeted GETs across absence verification for this run. Default 12. */
+  maxVerifyFetches?: number;
 }
 
 export interface AnalyzeClientStats {
@@ -101,12 +103,16 @@ export async function analyzeClient(
     aiCalls: 0,
   };
 
-  // 1. deterministic rules
+  // 1. deterministic rules (+ deterministic absence verification, incl. a few
+  //    targeted GETs — never AI)
   const evidence = await input.evidenceProvider.getEvidence(input.client);
-  const candidates = runRules({
+  const fetchPage = input.evidenceProvider.fetchPage?.bind(input.evidenceProvider);
+  const candidates = await runRules({
     client: input.client,
     catalog: input.catalog,
     evidence,
+    fetchPage,
+    verifyBudget: { remaining: input.maxVerifyFetches ?? 12 },
   });
   stats.candidates = candidates.length;
 

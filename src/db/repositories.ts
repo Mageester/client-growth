@@ -244,6 +244,7 @@ interface OpportunityRow {
   status: string;
   snooze_until: string | null;
   proposal_md: string | null;
+  verification: string | null;
   updated_at: string;
 }
 
@@ -259,6 +260,7 @@ function toOpportunity(row: OpportunityRow): Opportunity {
     rationale: row.rationale,
     suggestedServiceId: row.suggested_service_id,
     suggestedScope: JSON.parse(row.suggested_scope) as string[],
+    verification: row.verification ? JSON.parse(row.verification) : undefined,
     priceMin: row.price_min,
     priceMax: row.price_max,
     confidence: row.confidence,
@@ -285,8 +287,8 @@ async function upsertOpportunity(db: SqlDb, opp: Opportunity): Promise<void> {
       `INSERT INTO opportunities (
          id, dedupe_key, client_id, rule_id, title, detected, evidence_refs, rationale,
          suggested_service_id, suggested_scope, price_min, price_max, confidence,
-         billable_status, status, snooze_until, proposal_md, updated_at
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         billable_status, status, snooze_until, proposal_md, verification, updated_at
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(client_id, dedupe_key) DO UPDATE SET
          title = excluded.title,
          detected = excluded.detected,
@@ -301,6 +303,7 @@ async function upsertOpportunity(db: SqlDb, opp: Opportunity): Promise<void> {
          status = excluded.status,
          snooze_until = excluded.snooze_until,
          proposal_md = excluded.proposal_md,
+         verification = excluded.verification,
          updated_at = excluded.updated_at`,
     )
     .bind(
@@ -321,6 +324,7 @@ async function upsertOpportunity(db: SqlDb, opp: Opportunity): Promise<void> {
       o.status,
       o.snoozeUntil ?? null,
       o.proposalMd ?? null,
+      o.verification ? JSON.stringify(o.verification) : null,
       o.updatedAt,
     )
     .run();
