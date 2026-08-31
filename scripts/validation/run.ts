@@ -18,6 +18,7 @@ import { runRules } from "../../src/core/rules";
 import { passesEvidenceThreshold } from "../../src/core/threshold";
 import { resolveBillability } from "../../src/core/billability";
 import { significantTokens } from "../../src/core/text";
+import { assessServiceCoverage } from "../../src/core/absenceVerification";
 import { ClientSchema, type Candidate, type EvidenceBundle } from "../../src/core/schema";
 import { CATALOG } from "./catalog";
 import { CASES as CASES_FRANCHISE } from "./cases";
@@ -69,6 +70,8 @@ interface SiteResult {
     pageTitles: string[];
     navLabels: string[];
   };
+  analyzable: boolean;
+  coverageReason: string;
   offeringsEvaluated: number;
   suppressedOfferings: string[];
   skippedOfferings: string[];
@@ -172,13 +175,24 @@ async function runSite(testCase: (typeof CASES)[number]): Promise<SiteResult> {
       pageTitles: evidence?.site.pages.map((p) => p.title) ?? [],
       navLabels: evidence?.site.nav ?? [],
     },
+    analyzable: true,
+    coverageReason: "",
     offeringsEvaluated: 0,
     suppressedOfferings: [],
     skippedOfferings: [],
     candidates: [],
   };
 
-  if (!evidence || evidence.site.pages.length === 0) return result;
+  if (!evidence || evidence.site.pages.length === 0) {
+    result.analyzable = false;
+    result.coverageReason = crawlError ? `crawl failed: ${crawlError}` : "no pages crawled";
+    return result;
+  }
+
+  const cov = assessServiceCoverage({ client, evidence });
+  result.analyzable = cov.analyzable;
+  result.coverageReason = cov.reason;
+  if (!cov.analyzable) return result;
 
   const countedFetch = async (url: string) => {
     verifyFetches++;
@@ -241,12 +255,14 @@ async function main() {
     results.push(r);
     if (!r.crawl.ok) {
       process.stdout.write(`crawl FAILED (${r.crawl.error ?? "0 pages"})`);
+    } else if (!r.analyzable) {
+      process.stdout.write(`${r.crawl.pages} pages, nav ${r.crawl.navCount} | NOT ANALYZABLE — ${r.coverageReason}`);
     } else {
       const surfaced = r.candidates.filter((c) => c.outcome === "surfaced").length;
       const rejected = r.candidates.filter((c) => c.outcome === "rejected").length;
       const below = r.candidates.filter((c) => c.outcome === "below-threshold").length;
       process.stdout.write(
-        `${r.crawl.pages} pages, nav ${r.crawl.navCount} | candidates: ${r.candidates.length} (surfaced ${surfaced}, rejected ${rejected}, below-threshold ${below})`,
+        `${r.crawl.pages} pages, nav ${r.crawl.navCount} | suppressed ${r.suppressedOfferings.length} | candidates: ${r.candidates.length} (surfaced ${surfaced}, rejected ${rejected}, below-threshold ${below})`,
       );
     }
     if (aiCalls >= MAX_AI_CALLS) {
@@ -262,6 +278,8 @@ async function main() {
     sites: results.length,
     crawlOk: results.filter((r) => r.crawl.ok).length,
     crawlFailed: results.filter((r) => !r.crawl.ok).length,
+    analyzable: results.filter((r) => r.analyzable).length,
+    notAnalyzable: results.filter((r) => !r.analyzable).length,
     offeringsEvaluated: results.reduce((n, r) => n + r.offeringsEvaluated, 0),
     suppressedOfferings: results.reduce((n, r) => n + r.suppressedOfferings.length, 0),
     skippedOfferings: results.reduce((n, r) => n + r.skippedOfferings.length, 0),

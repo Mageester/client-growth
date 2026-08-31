@@ -51,6 +51,7 @@ describe("absence verification — validation regressions", () => {
       evidence: bundle({
         pages: [{ title: "Residential Plumbing" }, { title: "Drain Cleaning" }, { title: "Financing" }],
         nav: ["Residential", "Drain Cleaning", "Sump Pump Services", "Financing"],
+        links: [{ href: "https://ex.example/services/sump-pump/", label: "Sump Pump Services", inNav: true }],
       }),
       ...NO_FETCH,
     });
@@ -64,6 +65,7 @@ describe("absence verification — validation regressions", () => {
       evidence: bundle({
         pages: [{ title: "Heating Services" }, { title: "Furnaces" }, { title: "Boilers" }],
         nav: ["Heating", "Furnaces", "Boilers", "Geothermal", "Water Heaters", "Heat Pumps", "Air Conditioning"],
+        links: [{ href: "https://ex.example/heating/heat-pumps/", label: "Heat Pumps", inNav: true }],
       }),
       ...NO_FETCH,
     });
@@ -77,6 +79,7 @@ describe("absence verification — validation regressions", () => {
       evidence: bundle({
         pages: [{ title: "Heating" }, { title: "Cooling" }, { title: "Locations" }],
         nav: ["Services", "Heating", "Cooling", "Air Quality", "Maintenance Plans"],
+        links: [{ href: "https://ex.example/indoor-air-quality/", label: "Air Quality", inNav: true }],
       }),
       ...NO_FETCH,
     });
@@ -90,6 +93,7 @@ describe("absence verification — validation regressions", () => {
       evidence: bundle({
         pages: [{ title: "Pest Control" }, { title: "How It Works" }, { title: "Pricing" }],
         nav: ["Pests We Treat", "Ants", "Spiders", "Mosquitoes", "Wasps"],
+        links: [{ href: "https://ex.example/pests/mosquitoes/", label: "Mosquitoes", inNav: true }],
       }),
       ...NO_FETCH,
     });
@@ -194,6 +198,26 @@ describe("absence verification — validation regressions", () => {
       ...NO_FETCH,
     });
     expect(v.conclusion).toBe("present");
+  });
+
+  it("a matching nav label with no href is INCONCLUSIVE, not absent (Jones 'Mini-Splits')", async () => {
+    const v = await verifyOfferingAbsence({
+      offering: "ductless mini split installation",
+      allOfferings: ["air conditioning installation", "boiler repair", "drain cleaning", "ductless mini split installation"],
+      evidence: bundle({
+        pages: [
+          { url: "https://ex.example/hvac-services/air-conditioning-repair/", title: "Air Conditioning Repair" },
+          { url: "https://ex.example/hvac-services/heating-repair/", title: "Heating Repair" },
+          { url: "https://ex.example/plumbing-services/", title: "Plumbing Services" },
+        ],
+        // "Mini-Splits" is a mega-menu label with no anchor href.
+        nav: ["Services", "Air Conditioning", "Heating", "Mini-Splits", "Plumbing", "Drains"],
+        links: [],
+      }),
+      ...NO_FETCH,
+    });
+    expect(v.conclusion).toBe("inconclusive");
+    expect(v.conclusion).not.toBe("absent");
   });
 
   it("does not treat a modifier-only offering as a gap", async () => {

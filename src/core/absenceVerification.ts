@@ -169,49 +169,42 @@ export async function verifyOfferingAbsence(
   strongLinks.sort((a, b) => b.score - a.score);
   closeLinks.sort((a, b) => b.score - a.score);
 
-  // A strong structural match (a nav item / clean URL literally named after the
-  // service) is compelling on its own. Fetch it for evidence when we can, but
-  // do not surface an opportunity against it either way.
-  if (strongLinks.length > 0) {
-    const top = strongLinks[0]!;
-    let fetchedSatisfied = false;
+  const strongWithUrl = strongLinks.filter((l) => l.url);
+  const strongLabelOnly = strongLinks.filter((l) => !l.url);
+
+  // A strong structural match WITH a link: fetch it for evidence when we can,
+  // then conclude the page is present either way (the URL is named after the
+  // service).
+  if (strongWithUrl.length > 0) {
+    const top = strongWithUrl[0]!;
     if (input.fetchPage && top.url && budget.remaining > 0) {
       budget.remaining--;
       inspectedUrls.push(top.url);
       const page = await input.fetchPage(top.url);
       if (page) {
         const tokens = textTokenSet([page.title, ...page.h1s, ...page.headings].join(" "));
-        fetchedSatisfied = strengthOf(tokens, head, discriminating).hasAllDiscriminating;
+        const satisfied = strengthOf(tokens, head, discriminating).hasAllDiscriminating;
         record({
           where: "fetched-page",
           value: page.title || top.url,
           url: top.url,
           score: top.score,
-          satisfied: fetchedSatisfied,
-          reason: fetchedSatisfied
+          satisfied,
+          reason: satisfied
             ? "Fetched the linked page; it targets this offering."
-            : "Fetched the linked page; its title/headings did not clearly target this offering, but the link is named after the service.",
+            : "Fetched the linked page; the link is named after the service though its title/headings were less specific.",
         });
       }
     }
-    void fetchedSatisfied;
-    for (const l of strongLinks.slice(0, 4)) {
-      record({
-        where: l.where,
-        value: l.value,
-        url: l.url,
-        score: l.score,
-        satisfied: true,
-        reason:
-          "Navigation label / link is named after this offering — a dedicated page almost certainly exists.",
-      });
+    for (const l of strongWithUrl.slice(0, 4)) {
+      record({ where: l.where, value: l.value, url: l.url, score: l.score, satisfied: true, reason: "Link is named after this offering — a dedicated page almost certainly exists." });
     }
     return present(offering, top.url, inspectedUrls, closeMatches);
   }
 
-  // Close (but not conclusive) matches: fetch the top few and check content.
+  // Close (but not conclusive) matches that HAVE a link: fetch and check content.
   for (const l of closeLinks) {
-    if (!input.fetchPage || !l.url || budget.remaining <= 0) break;
+    if (!input.fetchPage || !l.url || budget.remaining <= 0) continue;
     if (inspectedUrls.includes(l.url)) continue;
     budget.remaining--;
     inspectedUrls.push(l.url);
@@ -236,17 +229,25 @@ export async function verifyOfferingAbsence(
     if (satisfied) return present(offering, l.url, inspectedUrls, closeMatches);
   }
 
-  // Record the close matches we could not fetch / that did not satisfy.
+  // An existence signal we could NOT verify — a matching nav label / link with
+  // no href to fetch. We cannot prove absence, so we do not surface.
+  const unverifiable = [...strongLabelOnly, ...closeLinks.filter((l) => !l.url)];
+  if (unverifiable.length > 0) {
+    for (const l of unverifiable.slice(0, 4)) {
+      record({ where: l.where, value: l.value, url: l.url, score: l.score, satisfied: false, reason: "Matches this offering but has no link to verify — existence signal, cannot confirm or deny." });
+    }
+    return {
+      conclusion: "inconclusive",
+      inspectedUrls,
+      closeMatches,
+      reason: `A navigation entry ("${unverifiable[0]!.value}") matches "${offering}" but has no link to verify; absence cannot be proven, so no opportunity is surfaced.`,
+    };
+  }
+
+  // Record any close matches we could not fetch (budget) but that had a URL.
   for (const l of closeLinks.slice(0, 4)) {
     if (l.url && inspectedUrls.includes(l.url)) continue;
-    record({
-      where: l.where,
-      value: l.value,
-      url: l.url,
-      score: l.score,
-      satisfied: false,
-      reason: "Partially matches the offering but does not clearly cover it.",
-    });
+    record({ where: l.where, value: l.value, url: l.url, score: l.score, satisfied: false, reason: "Partially matches the offering but does not clearly cover it." });
   }
 
   return {
@@ -282,4 +283,129 @@ function present(
       ? `The site already has a page/section for "${offering}" (${matchedUrl}).`
       : `The site already represents "${offering}" in its navigation or link structure.`,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Crawl / service-coverage adequacy
+// ---------------------------------------------------------------------------
+
+/**
+ * Path segments that mean a page is NOT a service page. A large generic nav,
+ * lots of these, or raw page count alone must never qualify a crawl as adequate.
+ */
+const NON_SERVICE_SEGMENTS = new Set([
+  "", "home", "index", "about", "about-us", "our-story", "contact", "contact-us",
+  "blog", "news", "articles", "resources", "careers", "career", "jobs",
+  "reviews", "testimonials", "financing", "finance", "specials", "special-offers",
+  "offers", "coupons", "promotions", "locations", "location", "service-area",
+  "service-areas", "areas-served", "areas-we-serve", "privacy", "privacy-policy",
+  "terms", "terms-of-service", "team", "our-team", "staff", "gallery", "photos",
+  "projects", "portfolio", "shop", "store", "cart", "account", "login", "faq",
+  "faqs", "sitemap", "search", "book", "booking", "schedule", "schedule-online",
+  "request-appointment", "get-a-quote", "quote", "estimate", "buy-a-home",
+  "sell-a-home", "for-homeowners",
+]);
+
+const SERVICE_PATH_HINT = /\/(services?|our-services|what-we-do|solutions|expertise)(\/|$)/i;
+const SERVICE_WORD_IN_SEGMENT =
+  /(repair|install|installation|replacement|cleaning|control|removal|treatment|maintenance|remediation|restoration|inspection|encapsulation|pruning|grinding|rewiring|lighting|irrigation)/i;
+
+function offeringHead(offering: string): string[] {
+  return significantTokens(offering);
+}
+
+/** Does this text strongly cover the offering (>= 60% of head tokens, deterministic)? */
+function textCoversOffering(text: string, head: string[]): boolean {
+  if (head.length === 0) return false;
+  const tokens = textTokenSet(text);
+  const overlap = head.filter((t) => has(tokens, t)).length;
+  return overlap / head.length >= STRONG_SCORE && overlap >= 1;
+}
+
+function slugCoversOffering(slug: string, head: string[]): boolean {
+  if (head.length === 0) return false;
+  const tokens = new Set(slugTokens(slug));
+  const overlap = head.filter((t) => has(tokens, t)).length;
+  return overlap / head.length >= STRONG_SCORE && overlap >= 1;
+}
+
+function isServiceLikePage(page: EvidencePage, heads: string[][]): boolean {
+  let path = "/";
+  try {
+    path = new URL(page.url).pathname.toLowerCase();
+  } catch {
+    /* ignore */
+  }
+  if (SERVICE_PATH_HINT.test(path)) return true;
+  const text = [page.title, ...page.h1s, ...page.headings].join(" ");
+  if (heads.some((h) => textCoversOffering(text, h))) return true;
+  const segs = path.split("/").filter(Boolean);
+  const last = segs[segs.length - 1] ?? "";
+  if (segs.length >= 1 && !NON_SERVICE_SEGMENTS.has(last) && SERVICE_WORD_IN_SEGMENT.test(last)) {
+    return true;
+  }
+  return false;
+}
+
+export interface CoverageAssessment {
+  analyzable: boolean;
+  reason: string;
+  representedOfferings: number;
+  serviceLikePages: number;
+  serviceLikeSitemapUrls: number;
+}
+
+/**
+ * Do we actually have evidence that the SERVICE portion of the site was reached?
+ * A large generic nav, or a pile of About/Blog/Location pages, does NOT count.
+ * Adequate iff any of:
+ *   - >= 2 distinct offerings are represented somewhere (page text, nav label,
+ *     link label/href, or sitemap slug) by a strong deterministic match
+ *   - >= 2 crawled pages look like service pages
+ *   - >= 3 sitemap URLs look like service pages
+ */
+export function assessServiceCoverage(input: {
+  client: { offerings: string[] };
+  evidence: EvidenceBundle;
+}): CoverageAssessment {
+  const { evidence } = input;
+  const offerings = input.client.offerings.filter((o) => offeringHead(o).length > 0);
+  const heads = offerings.map(offeringHead);
+
+  const haystack: string[] = [
+    ...evidence.site.nav,
+    ...evidence.site.links.map((l) => l.label),
+  ];
+  const slugHaystack: string[] = [
+    ...evidence.site.links.map((l) => l.href),
+    ...evidence.site.sitemapUrls,
+  ];
+  const pageText = evidence.site.pages.map((p) =>
+    [p.title, ...p.h1s, ...p.headings].join(" "),
+  );
+
+  let representedOfferings = 0;
+  for (const head of heads) {
+    const represented =
+      pageText.some((t) => textCoversOffering(t, head)) ||
+      haystack.some((h) => textCoversOffering(h, head)) ||
+      slugHaystack.some((s) => slugCoversOffering(s, head));
+    if (represented) representedOfferings++;
+  }
+
+  const serviceLikePages = evidence.site.pages.filter((p) =>
+    isServiceLikePage(p, heads),
+  ).length;
+  const serviceLikeSitemapUrls = evidence.site.sitemapUrls.filter(
+    (u) => heads.some((h) => slugCoversOffering(u, h)) || SERVICE_PATH_HINT.test(u),
+  ).length;
+
+  const analyzable =
+    representedOfferings >= 2 || serviceLikePages >= 2 || serviceLikeSitemapUrls >= 3;
+
+  const reason = analyzable
+    ? `Service coverage confirmed: ${representedOfferings} offering(s) represented on the site, ${serviceLikePages} service-like crawled page(s), ${serviceLikeSitemapUrls} service-like sitemap URL(s).`
+    : `Insufficient service coverage: only ${representedOfferings} offering(s) represented, ${serviceLikePages} service-like crawled page(s), ${serviceLikeSitemapUrls} service-like sitemap URL(s) — the crawl did not demonstrably reach the site's service pages, so no absence can be claimed.`;
+
+  return { analyzable, reason, representedOfferings, serviceLikePages, serviceLikeSitemapUrls };
 }

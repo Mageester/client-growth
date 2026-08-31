@@ -1,25 +1,27 @@
 {
   "summary": {
-    "generatedAt": "2026-08-31T01:36:08.735Z",
+    "generatedAt": "2026-08-31T01:50:42.106Z",
     "caseSet": "local",
     "sites": 20,
     "crawlOk": 19,
     "crawlFailed": 1,
-    "offeringsEvaluated": 114,
-    "suppressedOfferings": 74,
+    "analyzable": 15,
+    "notAnalyzable": 5,
+    "offeringsEvaluated": 90,
+    "suppressedOfferings": 77,
     "skippedOfferings": 0,
-    "candidates": 40,
-    "verifyFetches": 14,
-    "aiCalls": 31,
+    "candidates": 13,
+    "verifyFetches": 34,
+    "aiCalls": 12,
     "tokens": {
-      "prompt": 29821,
-      "completion": 5814
+      "prompt": 12489,
+      "completion": 2252
     },
-    "approxCostUsd": 0.01445,
+    "approxCostUsd": 0.00585,
     "outcomes": {
-      "surfaced": 31,
+      "surfaced": 12,
       "rejected": 0,
-      "belowThreshold": 9,
+      "belowThreshold": 1,
       "evaluatorError": 0
     }
   },
@@ -60,220 +62,12 @@
           "Commercial"
         ]
       },
-      "offeringsEvaluated": 6,
-      "suppressedOfferings": [
-        "air conditioning repair"
-      ],
+      "analyzable": false,
+      "coverageReason": "Insufficient service coverage: only 1 offering(s) represented, 1 service-like crawled page(s), 0 service-like sitemap URL(s) — the crawl did not demonstrably reach the site's service pages, so no absence can be claimed.",
+      "offeringsEvaluated": 0,
+      "suppressedOfferings": [],
       "skippedOfferings": [],
-      "candidates": [
-        {
-          "website": "www.bellbrothers.com",
-          "vertical": "hvac/plumbing (Sacramento)",
-          "offering": "furnace replacement",
-          "passedThreshold": true,
-          "outcome": "surfaced",
-          "confidence": 0.85,
-          "suggestedService": "Service Landing Page",
-          "suggestedPriceRange": "$900-$1800",
-          "rationale": "Furnace replacement is a core, high-value service for an HVAC company, and the absence of a dedicated page represents a clear gap in the client's digital presence. A dedicated page would improve SEO for a high-intent search term, provide detailed information to educate customers, and support conversion. The offering is commercially significant and a page would add substantial value.",
-          "suggestedScope": [
-            "Keyword research and SEO optimization for 'furnace replacement' and related terms",
-            "Creation of a dedicated service page with detailed content on furnace replacement, including benefits, process, and FAQs",
-            "Integration of internal links from relevant pages (e.g., heating services, blog posts) and navigation",
-            "Addition of customer testimonials and case studies to build trust",
-            "Implementation of clear calls-to-action (e.g., 'Get a Quote', 'Schedule Service')",
-            "Mobile-responsive design and fast-loading page structure"
-          ],
-          "verificationReason": "No crawled page, navigation entry, link, or sitemap URL mentions \"furnace replacement\".",
-          "verificationInspected": [],
-          "verificationCloseMatches": [],
-          "evidenceRefs": [
-            "https://www.bellbrothers.com/",
-            "https://www.bellbrothers.com/feel-the-love-2026/",
-            "https://www.bellbrothers.com/promotions",
-            "https://www.bellbrothers.com/blog",
-            "https://www.bellbrothers.com/reviews",
-            "https://www.bellbrothers.com/schedule-online",
-            "https://www.bellbrothers.com/comfort-club",
-            "https://www.bellbrothers.com/plumbing/drain-cleaning"
-          ]
-        },
-        {
-          "website": "www.bellbrothers.com",
-          "vertical": "hvac/plumbing (Sacramento)",
-          "offering": "heat pump installation",
-          "passedThreshold": true,
-          "outcome": "surfaced",
-          "confidence": 0.8,
-          "suggestedService": "Service Landing Page",
-          "suggestedPriceRange": "$900-$1800",
-          "rationale": "Heat pump installation is a significant HVAC service line, especially in regions with moderate climates where heat pumps are a popular energy-efficient alternative. The client already offers related services like air conditioning repair and furnace replacement, indicating a full HVAC service portfolio. A dedicated page would allow for targeted SEO, detailed explanation of benefits, and clear conversion paths, which is standard for a service of this importance. The absence of a dedicated page is a missed opportunity to capture relevant search traffic and educate customers.",
-          "suggestedScope": [
-            "Create a dedicated 'Heat Pump Installation' page with unique content covering benefits, types, installation process, and FAQs.",
-            "Include local SEO elements such as service area keywords and schema markup for local business.",
-            "Add internal links from related pages (e.g., Heating, Air Conditioning) and ensure it appears in the main navigation.",
-            "Develop supporting content like blog posts or guides on heat pump efficiency and maintenance to build topical authority.",
-            "Implement conversion elements: clear calls-to-action, contact forms, and phone number display."
-          ],
-          "verificationReason": "No crawled page, navigation entry, link, or sitemap URL adequately covers \"heat pump installation\"; the nearest matches were checked and rejected.",
-          "verificationInspected": [],
-          "verificationCloseMatches": [
-            {
-              "value": "Heating",
-              "satisfied": false,
-              "reason": "Partially matches the offering but does not clearly cover it."
-            },
-            {
-              "value": "https://www.bellbrothers.com/24-7-emergency-heating-and-cooling",
-              "satisfied": false,
-              "reason": "Partially matches the offering but does not clearly cover it."
-            },
-            {
-              "value": "Heating Stay warm with our home heating services",
-              "satisfied": false,
-              "reason": "Partially matches the offering but does not clearly cover it."
-            },
-            {
-              "value": "https://www.bellbrothers.com/heating",
-              "satisfied": false,
-              "reason": "Partially matches the offering but does not clearly cover it."
-            }
-          ],
-          "evidenceRefs": [
-            "https://www.bellbrothers.com/",
-            "https://www.bellbrothers.com/feel-the-love-2026/",
-            "https://www.bellbrothers.com/promotions",
-            "https://www.bellbrothers.com/blog",
-            "https://www.bellbrothers.com/reviews",
-            "https://www.bellbrothers.com/schedule-online",
-            "https://www.bellbrothers.com/comfort-club",
-            "https://www.bellbrothers.com/plumbing/drain-cleaning",
-            "considered:https://www.bellbrothers.com/24-7-emergency-heating-and-cooling",
-            "considered:https://www.bellbrothers.com/heating",
-            "considered:https://www.bellbrothers.com/heating"
-          ]
-        },
-        {
-          "website": "www.bellbrothers.com",
-          "vertical": "hvac/plumbing (Sacramento)",
-          "offering": "water heater installation",
-          "passedThreshold": true,
-          "outcome": "surfaced",
-          "confidence": 0.85,
-          "suggestedService": "Service Landing Page",
-          "suggestedPriceRange": "$900-$1800",
-          "rationale": "Water heater installation is a significant, high-ticket home service with strong search demand. The client already offers it, but the absence of a dedicated page means they are likely losing organic traffic and failing to convert visitors seeking this specific service. A dedicated page would improve SEO, provide detailed information, and support lead generation.",
-          "suggestedScope": [
-            "Keyword research for water heater installation and related terms",
-            "On-page SEO optimization including title, meta description, and headers",
-            "Content creation covering types of water heaters, installation process, benefits, and FAQs",
-            "Internal linking from relevant pages (e.g., plumbing services, blog posts)",
-            "Schema markup for local business and service",
-            "Call-to-action elements and lead capture forms",
-            "Mobile-responsive design and fast loading"
-          ],
-          "verificationReason": "No crawled page, navigation entry, link, or sitemap URL mentions \"water heater installation\".",
-          "verificationInspected": [],
-          "verificationCloseMatches": [],
-          "evidenceRefs": [
-            "https://www.bellbrothers.com/",
-            "https://www.bellbrothers.com/feel-the-love-2026/",
-            "https://www.bellbrothers.com/promotions",
-            "https://www.bellbrothers.com/blog",
-            "https://www.bellbrothers.com/reviews",
-            "https://www.bellbrothers.com/schedule-online",
-            "https://www.bellbrothers.com/comfort-club",
-            "https://www.bellbrothers.com/plumbing/drain-cleaning"
-          ]
-        },
-        {
-          "website": "www.bellbrothers.com",
-          "vertical": "hvac/plumbing (Sacramento)",
-          "offering": "sewer line replacement",
-          "passedThreshold": true,
-          "outcome": "surfaced",
-          "confidence": 0.8,
-          "suggestedService": "Service Landing Page",
-          "suggestedPriceRange": "$900-$1800",
-          "rationale": "Sewer line replacement is a significant, high-ticket plumbing service that homeowners often search for specifically. The client already offers this service, but the absence of a dedicated page means they are likely losing organic search traffic and failing to convert visitors who need this exact service. A dedicated page would allow for targeted SEO, clear service descriptions, and a strong call-to-action, directly supporting lead generation and revenue growth.",
-          "suggestedScope": [
-            "Keyword research for 'sewer line replacement' and related terms",
-            "On-page SEO optimization including meta tags, headings, and content",
-            "Creation of a dedicated service page with detailed description, benefits, and FAQs",
-            "Internal linking from relevant pages (e.g., plumbing, sewer & drains)",
-            "Schema markup for local business and service",
-            "Call-to-action elements (e.g., contact form, phone number, scheduling link)"
-          ],
-          "verificationReason": "No crawled page, navigation entry, link, or sitemap URL adequately covers \"sewer line replacement\"; the nearest matches were checked and rejected.",
-          "verificationInspected": [],
-          "verificationCloseMatches": [
-            {
-              "value": "Sewer &#038; Drains",
-              "satisfied": false,
-              "reason": "Partially matches the offering but does not clearly cover it."
-            },
-            {
-              "value": "Schedule Online",
-              "satisfied": false,
-              "reason": "Partially matches the offering but does not clearly cover it."
-            },
-            {
-              "value": "https://www.bellbrothers.com/schedule-online",
-              "satisfied": false,
-              "reason": "Partially matches the offering but does not clearly cover it."
-            },
-            {
-              "value": "Sewer & Drains",
-              "satisfied": false,
-              "reason": "Partially matches the offering but does not clearly cover it."
-            }
-          ],
-          "evidenceRefs": [
-            "https://www.bellbrothers.com/",
-            "https://www.bellbrothers.com/feel-the-love-2026/",
-            "https://www.bellbrothers.com/promotions",
-            "https://www.bellbrothers.com/blog",
-            "https://www.bellbrothers.com/reviews",
-            "https://www.bellbrothers.com/schedule-online",
-            "https://www.bellbrothers.com/comfort-club",
-            "https://www.bellbrothers.com/plumbing/drain-cleaning",
-            "considered:https://www.bellbrothers.com/schedule-online",
-            "considered:https://www.bellbrothers.com/schedule-online",
-            "considered:https://www.bellbrothers.com/plumbing/drain-cleaning"
-          ]
-        },
-        {
-          "website": "www.bellbrothers.com",
-          "vertical": "hvac/plumbing (Sacramento)",
-          "offering": "duct sealing",
-          "passedThreshold": true,
-          "outcome": "surfaced",
-          "confidence": 0.85,
-          "suggestedService": "Service Landing Page",
-          "suggestedPriceRange": "$900-$1800",
-          "rationale": "Duct sealing is a legitimate, distinct HVAC service that improves energy efficiency and indoor air quality. The client's site has a clear service-line structure (Heating, Air Conditioning, Plumbing, etc.) and already has dedicated pages for other specific services (e.g., drain cleaning). A dedicated duct sealing page would help capture relevant search traffic, educate customers, and support cross-selling. The absence is confirmed, and the offering is not trivial.",
-          "suggestedScope": [
-            "Create a dedicated service page for duct sealing with SEO-optimized content",
-            "Include sections on benefits, process, signs you need duct sealing, and FAQs",
-            "Add internal links from related service pages and the homepage",
-            "Add the page to the sitemap and navigation under 'Air Conditioning' or 'Indoor Air Quality'",
-            "Include a call-to-action for scheduling an appointment or requesting a quote"
-          ],
-          "verificationReason": "No crawled page, navigation entry, link, or sitemap URL mentions \"duct sealing\".",
-          "verificationInspected": [],
-          "verificationCloseMatches": [],
-          "evidenceRefs": [
-            "https://www.bellbrothers.com/",
-            "https://www.bellbrothers.com/feel-the-love-2026/",
-            "https://www.bellbrothers.com/promotions",
-            "https://www.bellbrothers.com/blog",
-            "https://www.bellbrothers.com/reviews",
-            "https://www.bellbrothers.com/schedule-online",
-            "https://www.bellbrothers.com/comfort-club",
-            "https://www.bellbrothers.com/plumbing/drain-cleaning"
-          ]
-        }
-      ]
+      "candidates": []
     },
     {
       "id": "gilmore",
@@ -311,6 +105,8 @@
           "Contact"
         ]
       },
+      "analyzable": true,
+      "coverageReason": "Service coverage confirmed: 6 offering(s) represented on the site, 4 service-like crawled page(s), 0 service-like sitemap URL(s).",
       "offeringsEvaluated": 6,
       "suppressedOfferings": [
         "ac installation",
@@ -387,71 +183,19 @@
           "(629) 888-8400"
         ]
       },
+      "analyzable": true,
+      "coverageReason": "Service coverage confirmed: 4 offering(s) represented on the site, 3 service-like crawled page(s), 37 service-like sitemap URL(s).",
       "offeringsEvaluated": 6,
       "suppressedOfferings": [
         "ac repair",
         "furnace installation",
         "heat pump installation",
+        "water heater installation",
         "electrical panel upgrade",
         "generator installation"
       ],
       "skippedOfferings": [],
-      "candidates": [
-        {
-          "website": "www.coolray.com",
-          "vertical": "home services (Atlanta)",
-          "offering": "water heater installation",
-          "passedThreshold": true,
-          "outcome": "surfaced",
-          "confidence": 0.8,
-          "suggestedService": "Service Landing Page",
-          "suggestedPriceRange": "$900-$1800",
-          "rationale": "Water heater installation is a significant home service with high commercial value, and the client already offers it. The absence of a dedicated page is a missed opportunity for SEO and lead generation. The nearest matches (Water Treatment, etc.) do not cover this offering, so a dedicated page would fill a clear gap and likely improve conversions.",
-          "suggestedScope": [
-            "Keyword research for water heater installation",
-            "On-page SEO (title, meta description, headings, content)",
-            "Service description covering types (tank, tankless), benefits, and process",
-            "FAQ section addressing common questions",
-            "Internal linking from related pages (e.g., plumbing, heating)",
-            "Call-to-action and lead capture form",
-            "Local SEO elements (service area, schema markup)"
-          ],
-          "verificationReason": "No crawled page, navigation entry, link, or sitemap URL adequately covers \"water heater installation\"; the nearest matches were checked and rejected.",
-          "verificationInspected": [],
-          "verificationCloseMatches": [
-            {
-              "value": "Water Treatment",
-              "satisfied": false,
-              "reason": "Partially matches the offering but does not clearly cover it."
-            },
-            {
-              "value": "Water Filtration",
-              "satisfied": false,
-              "reason": "Partially matches the offering but does not clearly cover it."
-            },
-            {
-              "value": "Water Specialty Solutions",
-              "satisfied": false,
-              "reason": "Partially matches the offering but does not clearly cover it."
-            },
-            {
-              "value": "Water Softeners",
-              "satisfied": false,
-              "reason": "Partially matches the offering but does not clearly cover it."
-            }
-          ],
-          "evidenceRefs": [
-            "https://www.coolray.com/",
-            "https://www.coolray.com/tn",
-            "https://www.coolray.com/offers",
-            "https://www.coolray.com/careers",
-            "https://www.coolray.com/company",
-            "https://www.coolray.com/service-area",
-            "https://www.coolray.com/heating",
-            "https://www.coolray.com/heating/heating-repair"
-          ]
-        }
-      ]
+      "candidates": []
     },
     {
       "id": "callsnappy",
@@ -470,107 +214,12 @@
           "More"
         ]
       },
-      "offeringsEvaluated": 6,
+      "analyzable": false,
+      "coverageReason": "Insufficient service coverage: only 0 offering(s) represented, 0 service-like crawled page(s), 0 service-like sitemap URL(s) — the crawl did not demonstrably reach the site's service pages, so no absence can be claimed.",
+      "offeringsEvaluated": 0,
       "suppressedOfferings": [],
       "skippedOfferings": [],
-      "candidates": [
-        {
-          "website": "www.callsnappy.com",
-          "vertical": "electrical/plumbing/hvac (Atlanta)",
-          "offering": "electrical panel upgrade",
-          "passedThreshold": false,
-          "outcome": "below-threshold",
-          "confidence": null,
-          "suggestedService": null,
-          "suggestedPriceRange": null,
-          "rationale": null,
-          "suggestedScope": null,
-          "verificationReason": "No crawled page, navigation entry, link, or sitemap URL mentions \"electrical panel upgrade\".",
-          "verificationInspected": [],
-          "verificationCloseMatches": [],
-          "evidenceRefs": []
-        },
-        {
-          "website": "www.callsnappy.com",
-          "vertical": "electrical/plumbing/hvac (Atlanta)",
-          "offering": "ev charger installation",
-          "passedThreshold": false,
-          "outcome": "below-threshold",
-          "confidence": null,
-          "suggestedService": null,
-          "suggestedPriceRange": null,
-          "rationale": null,
-          "suggestedScope": null,
-          "verificationReason": "No crawled page, navigation entry, link, or sitemap URL mentions \"ev charger installation\".",
-          "verificationInspected": [],
-          "verificationCloseMatches": [],
-          "evidenceRefs": []
-        },
-        {
-          "website": "www.callsnappy.com",
-          "vertical": "electrical/plumbing/hvac (Atlanta)",
-          "offering": "standby generator installation",
-          "passedThreshold": false,
-          "outcome": "below-threshold",
-          "confidence": null,
-          "suggestedService": null,
-          "suggestedPriceRange": null,
-          "rationale": null,
-          "suggestedScope": null,
-          "verificationReason": "No crawled page, navigation entry, link, or sitemap URL mentions \"standby generator installation\".",
-          "verificationInspected": [],
-          "verificationCloseMatches": [],
-          "evidenceRefs": []
-        },
-        {
-          "website": "www.callsnappy.com",
-          "vertical": "electrical/plumbing/hvac (Atlanta)",
-          "offering": "drain cleaning",
-          "passedThreshold": false,
-          "outcome": "below-threshold",
-          "confidence": null,
-          "suggestedService": null,
-          "suggestedPriceRange": null,
-          "rationale": null,
-          "suggestedScope": null,
-          "verificationReason": "No crawled page, navigation entry, link, or sitemap URL mentions \"drain cleaning\".",
-          "verificationInspected": [],
-          "verificationCloseMatches": [],
-          "evidenceRefs": []
-        },
-        {
-          "website": "www.callsnappy.com",
-          "vertical": "electrical/plumbing/hvac (Atlanta)",
-          "offering": "water heater installation",
-          "passedThreshold": false,
-          "outcome": "below-threshold",
-          "confidence": null,
-          "suggestedService": null,
-          "suggestedPriceRange": null,
-          "rationale": null,
-          "suggestedScope": null,
-          "verificationReason": "No crawled page, navigation entry, link, or sitemap URL mentions \"water heater installation\".",
-          "verificationInspected": [],
-          "verificationCloseMatches": [],
-          "evidenceRefs": []
-        },
-        {
-          "website": "www.callsnappy.com",
-          "vertical": "electrical/plumbing/hvac (Atlanta)",
-          "offering": "ac repair",
-          "passedThreshold": false,
-          "outcome": "below-threshold",
-          "confidence": null,
-          "suggestedService": null,
-          "suggestedPriceRange": null,
-          "rationale": null,
-          "suggestedScope": null,
-          "verificationReason": "No crawled page, navigation entry, link, or sitemap URL mentions \"ac repair\".",
-          "verificationInspected": [],
-          "verificationCloseMatches": [],
-          "evidenceRefs": []
-        }
-      ]
+      "candidates": []
     },
     {
       "id": "romanelectric",
@@ -588,147 +237,12 @@
         ],
         "navLabels": []
       },
-      "offeringsEvaluated": 6,
-      "suppressedOfferings": [
-        "electrical panel upgrade"
-      ],
+      "analyzable": false,
+      "coverageReason": "Insufficient service coverage: only 0 offering(s) represented, 0 service-like crawled page(s), 0 service-like sitemap URL(s) — the crawl did not demonstrably reach the site's service pages, so no absence can be claimed.",
+      "offeringsEvaluated": 0,
+      "suppressedOfferings": [],
       "skippedOfferings": [],
-      "candidates": [
-        {
-          "website": "www.romanelectrichome.com",
-          "vertical": "electrical/plumbing/hvac (Milwaukee)",
-          "offering": "ceiling fan installation",
-          "passedThreshold": true,
-          "outcome": "surfaced",
-          "confidence": 0.8,
-          "suggestedService": "Service Landing Page",
-          "suggestedPriceRange": "$900-$1800",
-          "rationale": "Ceiling fan installation is a common, high-intent home service that clients actively search for. The absence of a dedicated page means the client is missing out on targeted traffic and lead generation. A dedicated page would provide SEO value, showcase expertise, and convert visitors, making it a legitimate billable service.",
-          "suggestedScope": [
-            "Keyword research for ceiling fan installation in service area",
-            "Create dedicated service page with unique content, FAQs, and calls-to-action",
-            "Optimize page for local SEO (meta tags, schema, local keywords)",
-            "Add internal links from relevant pages and navigation",
-            "Implement tracking and conversion measurement"
-          ],
-          "verificationReason": "No crawled page, navigation entry, link, or sitemap URL mentions \"ceiling fan installation\".",
-          "verificationInspected": [],
-          "verificationCloseMatches": [],
-          "evidenceRefs": [
-            "https://www.romanelectrichome.com/",
-            "https://www.romanelectrichome.com/about-us/protection-plan/",
-            "https://www.romanelectrichome.com/service-area/"
-          ]
-        },
-        {
-          "website": "www.romanelectrichome.com",
-          "vertical": "electrical/plumbing/hvac (Milwaukee)",
-          "offering": "water heater installation",
-          "passedThreshold": true,
-          "outcome": "surfaced",
-          "confidence": 0.8,
-          "suggestedService": "Service Landing Page",
-          "suggestedPriceRange": "$900-$1800",
-          "rationale": "Water heater installation is a significant home service with high customer demand and substantial revenue potential. The client, a full-service home services company, already offers this service, but the absence of a dedicated page means they are likely missing out on targeted search traffic and conversion opportunities. A dedicated page would allow for specific SEO targeting, detailed service information, and clear calls-to-action, which is standard practice in the industry and adds clear value.",
-          "suggestedScope": [
-            "Keyword research for water heater installation and related terms",
-            "On-page SEO optimization including title, meta description, and headers",
-            "Content creation covering types of water heaters, installation process, and benefits",
-            "Internal linking from relevant service pages and homepage",
-            "Schema markup for local business and service",
-            "Mobile-responsive design and fast loading",
-            "Clear calls-to-action and lead capture forms",
-            "Customer testimonials and trust signals"
-          ],
-          "verificationReason": "No crawled page, navigation entry, link, or sitemap URL mentions \"water heater installation\".",
-          "verificationInspected": [],
-          "verificationCloseMatches": [],
-          "evidenceRefs": [
-            "https://www.romanelectrichome.com/",
-            "https://www.romanelectrichome.com/about-us/protection-plan/",
-            "https://www.romanelectrichome.com/service-area/"
-          ]
-        },
-        {
-          "website": "www.romanelectrichome.com",
-          "vertical": "electrical/plumbing/hvac (Milwaukee)",
-          "offering": "furnace repair",
-          "passedThreshold": true,
-          "outcome": "surfaced",
-          "confidence": 0.8,
-          "suggestedService": "Service Landing Page",
-          "suggestedPriceRange": "$900-$1800",
-          "rationale": "Furnace repair is a core HVAC service for a home services company, and the absence of a dedicated page represents a missed opportunity to capture relevant search traffic and clearly present the offering. A dedicated page would improve SEO, provide detailed information, and support lead generation.",
-          "suggestedScope": [
-            "Keyword research for furnace repair in the service area",
-            "Create a dedicated furnace repair service page with unique content",
-            "Include service details, benefits, and FAQs",
-            "Add internal links from relevant pages and navigation",
-            "Optimize meta tags and schema markup for local SEO"
-          ],
-          "verificationReason": "No crawled page, navigation entry, link, or sitemap URL mentions \"furnace repair\".",
-          "verificationInspected": [],
-          "verificationCloseMatches": [],
-          "evidenceRefs": [
-            "https://www.romanelectrichome.com/",
-            "https://www.romanelectrichome.com/about-us/protection-plan/",
-            "https://www.romanelectrichome.com/service-area/"
-          ]
-        },
-        {
-          "website": "www.romanelectrichome.com",
-          "vertical": "electrical/plumbing/hvac (Milwaukee)",
-          "offering": "ev charger installation",
-          "passedThreshold": true,
-          "outcome": "surfaced",
-          "confidence": 0.8,
-          "suggestedService": "Service Landing Page",
-          "suggestedPriceRange": "$900-$1800",
-          "rationale": "EV charger installation is a high-value, growing service line with significant commercial potential. The client, a full-service home services company, already offers electrical services, making EV charger installation a natural extension. A dedicated page would capture targeted search traffic, educate customers, and generate qualified leads. The absence of a page is a clear gap.",
-          "suggestedScope": [
-            "Keyword research for EV charger installation terms",
-            "Dedicated service page with SEO-optimized content",
-            "FAQ section addressing common questions (e.g., costs, permits, compatibility)",
-            "Call-to-action and lead capture form",
-            "Internal linking from relevant service pages",
-            "Local SEO schema markup (e.g., Service, FAQ)"
-          ],
-          "verificationReason": "No crawled page, navigation entry, link, or sitemap URL mentions \"ev charger installation\".",
-          "verificationInspected": [],
-          "verificationCloseMatches": [],
-          "evidenceRefs": [
-            "https://www.romanelectrichome.com/",
-            "https://www.romanelectrichome.com/about-us/protection-plan/",
-            "https://www.romanelectrichome.com/service-area/"
-          ]
-        },
-        {
-          "website": "www.romanelectrichome.com",
-          "vertical": "electrical/plumbing/hvac (Milwaukee)",
-          "offering": "whole house rewiring",
-          "passedThreshold": true,
-          "outcome": "surfaced",
-          "confidence": 0.8,
-          "suggestedService": "Service Landing Page",
-          "suggestedPriceRange": "$900-$1800",
-          "rationale": "Whole house rewiring is a significant, high-value electrical service that homeowners often search for specifically, especially for older homes. The absence of a dedicated page means the client is missing out on targeted organic traffic and fails to address a key customer need. A dedicated page would provide detailed information, build trust, and improve conversion opportunities.",
-          "suggestedScope": [
-            "Keyword research for 'whole house rewiring' and related terms",
-            "Create a dedicated service page with comprehensive content covering benefits, process, safety, and FAQs",
-            "Include internal links from relevant pages (e.g., electrical services, home page) and add to navigation",
-            "Add schema markup for local service to enhance SEO",
-            "Implement a clear call-to-action and lead capture form"
-          ],
-          "verificationReason": "No crawled page, navigation entry, link, or sitemap URL mentions \"whole house rewiring\".",
-          "verificationInspected": [],
-          "verificationCloseMatches": [],
-          "evidenceRefs": [
-            "https://www.romanelectrichome.com/",
-            "https://www.romanelectrichome.com/about-us/protection-plan/",
-            "https://www.romanelectrichome.com/service-area/"
-          ]
-        }
-      ]
+      "candidates": []
     },
     {
       "id": "jonesservices",
@@ -818,55 +332,19 @@
           "Partners"
         ]
       },
+      "analyzable": true,
+      "coverageReason": "Service coverage confirmed: 6 offering(s) represented on the site, 5 service-like crawled page(s), 0 service-like sitemap URL(s).",
       "offeringsEvaluated": 6,
       "suppressedOfferings": [
         "air conditioning installation",
         "boiler repair",
         "water heater installation",
         "generator installation",
-        "drain cleaning"
+        "drain cleaning",
+        "ductless mini split installation"
       ],
       "skippedOfferings": [],
-      "candidates": [
-        {
-          "website": "www.jonesservices.com",
-          "vertical": "hvac/plumbing/electrical (Hudson Valley NY)",
-          "offering": "ductless mini split installation",
-          "passedThreshold": true,
-          "outcome": "surfaced",
-          "confidence": 0.8,
-          "suggestedService": "Service Landing Page",
-          "suggestedPriceRange": "$900-$1800",
-          "rationale": "Ductless mini split installation is a significant HVAC service line with clear commercial value. The client already offers this service and has a navigation label for 'Mini-Splits', but no dedicated page exists. A dedicated page would improve SEO, provide detailed information, and capture relevant search traffic, making it a legitimate billable project.",
-          "suggestedScope": [
-            "Create a dedicated service page for 'Ductless Mini Split Installation'",
-            "Include detailed description of benefits, features, and installation process",
-            "Add FAQ section addressing common questions",
-            "Include customer testimonials and case studies",
-            "Optimize page for local SEO with relevant keywords and schema markup",
-            "Add clear calls-to-action for scheduling a consultation or requesting a quote"
-          ],
-          "verificationReason": "No crawled page, navigation entry, link, or sitemap URL adequately covers \"ductless mini split installation\"; the nearest matches were checked and rejected.",
-          "verificationInspected": [],
-          "verificationCloseMatches": [
-            {
-              "value": "Mini-Splits",
-              "satisfied": false,
-              "reason": "Partially matches the offering but does not clearly cover it."
-            }
-          ],
-          "evidenceRefs": [
-            "https://www.jonesservices.com/",
-            "https://www.jonesservices.com/shop/",
-            "https://www.jonesservices.com/about-us/financing-options-plans/",
-            "https://www.jonesservices.com/hvac-services/air-conditioning-repair/",
-            "https://www.jonesservices.com/hvac-services/heating-repair/",
-            "https://www.jonesservices.com/plumbing-services/plumbing-repair/",
-            "https://www.jonesservices.com/plumbing-services/",
-            "https://www.jonesservices.com/drain-services/drain-clearing-service/"
-          ]
-        }
-      ]
+      "candidates": []
     },
     {
       "id": "lentheplumber",
@@ -950,6 +428,8 @@
           "We’re Hiring"
         ]
       },
+      "analyzable": true,
+      "coverageReason": "Service coverage confirmed: 6 offering(s) represented on the site, 6 service-like crawled page(s), 0 service-like sitemap URL(s).",
       "offeringsEvaluated": 6,
       "suppressedOfferings": [
         "drain cleaning",
@@ -1064,48 +544,19 @@
           "FAQs"
         ]
       },
+      "analyzable": true,
+      "coverageReason": "Service coverage confirmed: 4 offering(s) represented on the site, 0 service-like crawled page(s), 0 service-like sitemap URL(s).",
       "offeringsEvaluated": 6,
       "suppressedOfferings": [
+        "air conditioning repair",
         "furnace installation",
         "heat pump installation",
+        "solar panel installation",
         "water heater installation",
         "ductwork replacement"
       ],
       "skippedOfferings": [],
-      "candidates": [
-        {
-          "website": "www.mauzy.com",
-          "vertical": "hvac/solar (San Diego)",
-          "offering": "air conditioning repair",
-          "passedThreshold": false,
-          "outcome": "below-threshold",
-          "confidence": null,
-          "suggestedService": null,
-          "suggestedPriceRange": null,
-          "rationale": null,
-          "suggestedScope": null,
-          "verificationReason": "No crawled page, navigation entry, link, or sitemap URL adequately covers \"air conditioning repair\"; the nearest matches were checked and rejected.",
-          "verificationInspected": [],
-          "verificationCloseMatches": [],
-          "evidenceRefs": []
-        },
-        {
-          "website": "www.mauzy.com",
-          "vertical": "hvac/solar (San Diego)",
-          "offering": "solar panel installation",
-          "passedThreshold": false,
-          "outcome": "below-threshold",
-          "confidence": null,
-          "suggestedService": null,
-          "suggestedPriceRange": null,
-          "rationale": null,
-          "suggestedScope": null,
-          "verificationReason": "No crawled page, navigation entry, link, or sitemap URL adequately covers \"solar panel installation\"; the nearest matches were checked and rejected.",
-          "verificationInspected": [],
-          "verificationCloseMatches": [],
-          "evidenceRefs": []
-        }
-      ]
+      "candidates": []
     },
     {
       "id": "abchome",
@@ -1150,6 +601,8 @@
           "Monkee-Boy"
         ]
       },
+      "analyzable": true,
+      "coverageReason": "Service coverage confirmed: 6 offering(s) represented on the site, 2 service-like crawled page(s), 3 service-like sitemap URL(s).",
       "offeringsEvaluated": 6,
       "suppressedOfferings": [
         "pest control",
@@ -1237,12 +690,15 @@
           "Payment Portal (opens in new tab)"
         ]
       },
+      "analyzable": true,
+      "coverageReason": "Service coverage confirmed: 4 offering(s) represented on the site, 3 service-like crawled page(s), 0 service-like sitemap URL(s).",
       "offeringsEvaluated": 6,
       "suppressedOfferings": [
         "residential roof replacement",
         "commercial roofing",
         "roof repair",
-        "metal roofing"
+        "metal roofing",
+        "solar roofing"
       ],
       "skippedOfferings": [],
       "candidates": [
@@ -1255,66 +711,18 @@
           "confidence": 0.8,
           "suggestedService": "Service Landing Page",
           "suggestedPriceRange": "$900-$1800",
-          "rationale": "Gutter installation is a legitimate, commercially viable service line that complements roofing offerings. The absence of a dedicated page means potential customers searching for this service may not find it, and the client is missing an opportunity to capture relevant search traffic and upsell to existing roofing customers. A dedicated page would provide clear information, improve SEO, and support lead generation.",
+          "rationale": "Gutter installation is a legitimate, commercially viable service line that complements roofing offerings. The absence of a dedicated page means potential customers searching for this service may not find it, and the client is missing an opportunity to capture relevant traffic and upsell. A dedicated page would provide clear information, improve SEO, and support lead generation.",
           "suggestedScope": [
-            "Create a dedicated 'Gutter Installation' page with service overview, benefits, materials (e.g., aluminum, copper), and installation process.",
-            "Include high-quality images and testimonials to build trust.",
-            "Add a FAQ section addressing common questions about gutter installation, maintenance, and costs.",
-            "Implement on-page SEO: title tag, meta description, headers, and internal links from related roofing pages.",
-            "Add a clear call-to-action (e.g., 'Get a Free Estimate') and contact form.",
-            "Ensure the page is mobile-responsive and fast-loading."
+            "Create a dedicated 'Gutter Installation' page with service description, benefits, materials, and process.",
+            "Include high-quality images and customer testimonials.",
+            "Add a FAQ section addressing common gutter-related questions.",
+            "Implement on-page SEO with targeted keywords and meta tags.",
+            "Add internal links from related roofing pages and the homepage.",
+            "Include a clear call-to-action for quotes or contact."
           ],
           "verificationReason": "No crawled page, navigation entry, link, or sitemap URL mentions \"gutter installation\".",
           "verificationInspected": [],
           "verificationCloseMatches": [],
-          "evidenceRefs": [
-            "https://www.bakerroofing.com/",
-            "https://www.bakerroofing.com/roofing-systems/",
-            "https://www.bakerroofing.com/projects/"
-          ]
-        },
-        {
-          "website": "www.bakerroofing.com",
-          "vertical": "roofing (Raleigh NC)",
-          "offering": "solar roofing",
-          "passedThreshold": true,
-          "outcome": "surfaced",
-          "confidence": 0.85,
-          "suggestedService": "Service Landing Page",
-          "suggestedPriceRange": "$900-$1800",
-          "rationale": "Solar roofing is a distinct and growing service line that combines roofing with renewable energy. The client already lists it as an offering, but the site lacks a dedicated page, which means potential customers searching for solar roofing may not find relevant information. A dedicated page would improve SEO, educate visitors, and generate qualified leads. The offering is commercially significant and aligns with current market trends.",
-          "suggestedScope": [
-            "Keyword research and SEO strategy for solar roofing",
-            "Dedicated landing page with unique content on solar roofing benefits, types, and installation process",
-            "Integration with existing roofing systems and energy efficiency messaging",
-            "Internal linking from relevant pages and navigation",
-            "Conversion elements: CTAs, lead form, and FAQ section",
-            "Mobile-responsive design and performance optimization"
-          ],
-          "verificationReason": "No crawled page, navigation entry, link, or sitemap URL adequately covers \"solar roofing\"; the nearest matches were checked and rejected.",
-          "verificationInspected": [],
-          "verificationCloseMatches": [
-            {
-              "value": "Commercial Roofing",
-              "satisfied": false,
-              "reason": "Partially matches the offering but does not clearly cover it."
-            },
-            {
-              "value": "Roofing Services",
-              "satisfied": false,
-              "reason": "Partially matches the offering but does not clearly cover it."
-            },
-            {
-              "value": "Roofing Systems",
-              "satisfied": false,
-              "reason": "Partially matches the offering but does not clearly cover it."
-            },
-            {
-              "value": "Roofing Insights",
-              "satisfied": false,
-              "reason": "Partially matches the offering but does not clearly cover it."
-            }
-          ],
           "evidenceRefs": [
             "https://www.bakerroofing.com/",
             "https://www.bakerroofing.com/roofing-systems/",
@@ -1368,6 +776,8 @@
           "Privacy Policy"
         ]
       },
+      "analyzable": true,
+      "coverageReason": "Service coverage confirmed: 4 offering(s) represented on the site, 8 service-like crawled page(s), 35 service-like sitemap URL(s).",
       "offeringsEvaluated": 6,
       "suppressedOfferings": [
         "roof replacement",
@@ -1386,14 +796,14 @@
           "confidence": 0.8,
           "suggestedService": "Service Landing Page",
           "suggestedPriceRange": "$900-$1800",
-          "rationale": "Hail damage restoration is a distinct, high-value service line for a roofing company, especially in Oregon where hail events occur. The existing storm damage page is too broad and does not specifically address hail damage, which is a common and specific insurance claim trigger. A dedicated page would improve SEO for 'hail damage restoration' queries, provide targeted information for homeowners, and support lead generation. The offering is commercially significant and a page would add clear value.",
+          "rationale": "Hail damage restoration is a distinct, high-value service line for a roofing company, especially in Oregon where hail storms occur. The existing storm damage page is too broad and does not specifically address hail damage, which is a common and specific insurance claim trigger. A dedicated page would improve SEO for 'hail damage restoration' queries, provide targeted information for homeowners, and support lead generation. The offering is commercially significant and a dedicated page adds clear value.",
           "suggestedScope": [
-            "Keyword research for hail damage restoration in Oregon",
-            "On-page SEO optimization including title, meta description, and headers",
-            "Content creation covering hail damage signs, repair process, insurance claims, and benefits of choosing Interstate Roofing",
-            "Internal linking from related pages (e.g., storm damage, roofing) and to service area pages",
-            "Schema markup for local business and service",
-            "Call-to-action elements and lead capture forms"
+            "Keyword research for hail damage restoration and related terms",
+            "Create a dedicated service page with unique content covering hail damage signs, repair process, insurance claims assistance, and service area",
+            "Add internal links from relevant pages (e.g., roofing, storm damage) and navigation",
+            "Add the page to the sitemap and submit to search engines",
+            "Implement local SEO schema (e.g., Service, RoofingContractor) on the page",
+            "Include FAQs and testimonials specific to hail damage restoration"
           ],
           "verificationReason": "No crawled page, navigation entry, link, or sitemap URL adequately covers \"hail damage restoration\"; the nearest matches were checked and rejected.",
           "verificationInspected": [
@@ -1436,14 +846,16 @@
           "confidence": 0.9,
           "suggestedService": "Service Landing Page",
           "suggestedPriceRange": "$900-$1800",
-          "rationale": "Siding installation is a legitimate home exterior service line that complements the client's existing roofing and gutter offerings. The absence of a dedicated page is a clear gap, as the client positions itself as an exterior remodeling company. A dedicated page would improve SEO, provide detailed information, and capture relevant search traffic, adding significant value.",
+          "rationale": "Siding installation is a legitimate home exterior service that complements the client's existing roofing and gutter offerings. The absence of a dedicated page means potential customers searching for siding services may not find the company, and the page would provide SEO value, lead generation, and cross-selling opportunities. The client's positioning as an 'Exterior Remodeling Company' further supports the need for a dedicated siding page.",
           "suggestedScope": [
-            "Create a dedicated 'Siding Installation' page with service overview, benefits, materials (vinyl, fiber cement, etc.), and process.",
-            "Include high-quality images and a gallery of siding projects.",
-            "Add customer testimonials and case studies specific to siding.",
-            "Implement on-page SEO: title tag, meta description, headers, and internal links from related pages.",
-            "Add a clear call-to-action for free quotes and contact forms.",
-            "Ensure mobile responsiveness and fast loading times."
+            "Keyword research for siding installation and related terms",
+            "On-page SEO optimization including meta tags, headings, and content",
+            "Creation of service page content highlighting benefits, materials, and process",
+            "Internal linking from relevant pages (e.g., roofing, gutters) and to contact/quote forms",
+            "Integration of local schema markup for service areas",
+            "Addition of FAQ section to address common customer questions",
+            "Inclusion of high-quality images and possibly video of siding projects",
+            "Call-to-action elements for quote requests and phone calls"
           ],
           "verificationReason": "No crawled page, navigation entry, link, or sitemap URL mentions \"siding installation\".",
           "verificationInspected": [],
@@ -1509,6 +921,8 @@
           "Do Not Sell/Share My Personal Information"
         ]
       },
+      "analyzable": true,
+      "coverageReason": "Service coverage confirmed: 3 offering(s) represented on the site, 5 service-like crawled page(s), 0 service-like sitemap URL(s).",
       "offeringsEvaluated": 6,
       "suppressedOfferings": [
         "landscape design",
@@ -1526,13 +940,13 @@
           "confidence": 0.8,
           "suggestedService": "Service Landing Page",
           "suggestedPriceRange": "$900-$1800",
-          "rationale": "Outdoor lighting is a distinct, commercially viable service line that enhances landscape design and construction. A dedicated page would improve SEO, clarify offerings, and support lead generation. The absence of any mention across the site confirms a gap worth filling.",
+          "rationale": "Outdoor lighting is a distinct, commercially valuable service line that enhances landscape design and construction. The absence of a dedicated page means the client is missing a key opportunity to attract customers searching for this specific service, showcase relevant work, and improve SEO. A dedicated page would provide clear information, build trust, and drive conversions.",
           "suggestedScope": [
-            "Create a dedicated 'Outdoor Lighting' page with service overview, benefits, and examples.",
-            "Include SEO-optimized content targeting relevant keywords.",
-            "Add internal links from related service pages and the main services menu.",
-            "Integrate calls-to-action and contact forms to capture leads.",
-            "Optionally add a gallery or case studies showcasing lighting projects."
+            "Keyword research for outdoor lighting services",
+            "Create a dedicated service page with compelling copy and visuals",
+            "Include portfolio examples and testimonials",
+            "Optimize for local SEO and internal linking",
+            "Add a call-to-action and contact form"
           ],
           "verificationReason": "No crawled page, navigation entry, link, or sitemap URL mentions \"outdoor lighting\".",
           "verificationInspected": [],
@@ -1551,17 +965,16 @@
           "offering": "irrigation installation",
           "passedThreshold": true,
           "outcome": "surfaced",
-          "confidence": 0.85,
+          "confidence": 0.8,
           "suggestedService": "Service Landing Page",
           "suggestedPriceRange": "$900-$1800",
-          "rationale": "Irrigation installation is a distinct, commercially significant service line for a landscape company, and the absence of a dedicated page means the client is missing a key opportunity to attract and convert relevant search traffic. A dedicated page would allow for targeted SEO, detailed service descriptions, and clear calls-to-action, adding clear value.",
+          "rationale": "Irrigation installation is a distinct, commercially significant service within landscape design and construction. A dedicated page would improve SEO for high-intent searches, clarify service offerings, and support lead generation. The absence of such a page is a missed opportunity.",
           "suggestedScope": [
-            "Keyword research for irrigation installation and related terms",
-            "On-page SEO optimization (title, meta description, headings, content)",
-            "Creation of service page content covering types of irrigation systems, benefits, process, and FAQs",
-            "Internal linking from relevant pages (e.g., services, blog) and to related services",
-            "Integration of calls-to-action and lead capture forms",
-            "Schema markup for local business and service offerings"
+            "Keyword research for irrigation-related terms",
+            "Create dedicated service page with detailed content on irrigation installation, benefits, types, and process",
+            "Include FAQs and calls-to-action",
+            "Add internal links from related service pages and homepage",
+            "Optimize meta title and description for local SEO"
           ],
           "verificationReason": "No crawled page, navigation entry, link, or sitemap URL mentions \"irrigation installation\".",
           "verificationInspected": [],
@@ -1583,15 +996,14 @@
           "confidence": 0.8,
           "suggestedService": "Service Landing Page",
           "suggestedPriceRange": "$900-$1800",
-          "rationale": "Water features are a distinct, high-value service line in luxury landscape design, and the absence of a dedicated page means the client is missing a key opportunity to attract and convert relevant search traffic. A dedicated page would allow for targeted SEO, showcase portfolio examples, and provide detailed information that supports the sales process.",
+          "rationale": "Water features are a distinct, high-value service line in luxury landscape design, and the absence of a dedicated page means the client is missing a key opportunity to attract and convert relevant search traffic. A dedicated page would allow for targeted SEO, showcase portfolio examples, and provide detailed information that can differentiate the client in a competitive market.",
           "suggestedScope": [
             "Keyword research for water features and related terms",
-            "On-page SEO optimization (title, meta description, headings, content)",
-            "Creation of compelling copy highlighting benefits, types, and process",
-            "Integration of high-quality images and video of past water feature projects",
+            "On-page SEO optimization including meta tags, headings, and content",
+            "Creation of compelling copy highlighting benefits, types, and customization options",
+            "Integration of high-quality images and possibly video of past water feature projects",
             "Internal linking from relevant service and portfolio pages",
-            "Mobile-responsive design and fast loading",
-            "Call-to-action elements (contact form, phone number, consultation booking)"
+            "Call-to-action elements to encourage inquiries"
           ],
           "verificationReason": "No crawled page, navigation entry, link, or sitemap URL mentions \"water features\".",
           "verificationInspected": [],
@@ -1648,6 +1060,8 @@
           "Pensacola, FL"
         ]
       },
+      "analyzable": true,
+      "coverageReason": "Service coverage confirmed: 4 offering(s) represented on the site, 8 service-like crawled page(s), 11 service-like sitemap URL(s).",
       "offeringsEvaluated": 6,
       "suppressedOfferings": [
         "commercial landscape maintenance",
@@ -1666,14 +1080,13 @@
           "confidence": 0.85,
           "suggestedService": "Service Landing Page",
           "suggestedPriceRange": "$900-$1800",
-          "rationale": "Erosion control is a legitimate commercial landscaping service that addresses a critical need for property owners, especially in areas prone to soil erosion. The client already offers this service, but without a dedicated page, potential customers searching for erosion control solutions may not find the service or understand its value. A dedicated page would improve SEO, provide detailed information, and help convert visitors into leads. This is a valuable addition to the client's service line.",
+          "rationale": "Erosion control is a legitimate commercial landscaping service that addresses a significant environmental and property management concern. The client already offers this service, but it lacks a dedicated page, which means potential customers searching for erosion control solutions may not find relevant information. A dedicated page would improve SEO, provide detailed explanations of the service, and help convert visitors into leads. This is a valuable addition to the client's service portfolio.",
           "suggestedScope": [
-            "Create a dedicated 'Erosion Control' service page with detailed description, benefits, and applications.",
-            "Include relevant keywords and meta tags for SEO optimization.",
-            "Add high-quality images or videos demonstrating erosion control solutions.",
-            "Incorporate a call-to-action (CTA) for inquiries or quotes.",
-            "Link to related services such as landscape installation and irrigation management.",
-            "Add a FAQ section addressing common erosion control questions."
+            "Create a dedicated 'Erosion Control' service page with detailed content explaining the service, its benefits, and applications.",
+            "Include relevant keywords for SEO, such as 'erosion control services', 'commercial erosion control', and 'landscape erosion solutions'.",
+            "Add case studies or examples of past erosion control projects to build credibility.",
+            "Integrate calls-to-action (CTAs) for lead generation, such as 'Get a Quote' or 'Contact Us'.",
+            "Ensure the page is linked from the main services page and navigation menu for easy discovery."
           ],
           "verificationReason": "No crawled page, navigation entry, link, or sitemap URL mentions \"erosion control\".",
           "verificationInspected": [],
@@ -1698,14 +1111,14 @@
           "confidence": 0.85,
           "suggestedService": "Service Landing Page",
           "suggestedPriceRange": "$900-$1800",
-          "rationale": "Athletic field maintenance is a distinct, commercially viable service line for a commercial landscape company, and the absence of a dedicated page means the client is missing a targeted opportunity to attract schools, parks, and sports facilities. A dedicated page would improve SEO, provide detailed service information, and support lead generation.",
+          "rationale": "Athletic field maintenance is a specialized commercial service with distinct needs (e.g., turf health, safety, playability) and likely a separate target audience (schools, parks, sports complexes). The absence of a dedicated page means the client is missing an opportunity to rank for relevant keywords and clearly communicate this offering. A dedicated page would add significant value by addressing specific pain points and showcasing expertise.",
           "suggestedScope": [
-            "Keyword research for athletic field maintenance",
-            "On-page SEO optimization (title, meta description, headings)",
-            "Content creation: service overview, benefits, process, and FAQs",
-            "Include relevant images and case studies",
-            "Internal linking from services page and blog",
-            "Add calls-to-action and contact form"
+            "Keyword research for athletic field maintenance terms",
+            "Dedicated service page with unique copy, benefits, and FAQs",
+            "Case studies or testimonials from athletic field clients",
+            "Photo gallery or video showcasing athletic field projects",
+            "Internal linking from related services and blog posts",
+            "Local SEO optimization for target service areas"
           ],
           "verificationReason": "No crawled page, navigation entry, link, or sitemap URL mentions \"athletic field maintenance\".",
           "verificationInspected": [],
@@ -1737,6 +1150,8 @@
         ],
         "navLabels": []
       },
+      "analyzable": true,
+      "coverageReason": "Service coverage confirmed: 4 offering(s) represented on the site, 1 service-like crawled page(s), 53 service-like sitemap URL(s).",
       "offeringsEvaluated": 6,
       "suppressedOfferings": [
         "tree pruning",
@@ -1800,171 +1215,12 @@
           "Log out"
         ]
       },
-      "offeringsEvaluated": 6,
-      "suppressedOfferings": [
-        "move out cleaning"
-      ],
+      "analyzable": false,
+      "coverageReason": "Insufficient service coverage: only 0 offering(s) represented, 0 service-like crawled page(s), 0 service-like sitemap URL(s) — the crawl did not demonstrably reach the site's service pages, so no absence can be claimed.",
+      "offeringsEvaluated": 0,
+      "suppressedOfferings": [],
       "skippedOfferings": [],
-      "candidates": [
-        {
-          "website": "www.castlekeepers.com",
-          "vertical": "house cleaning (Charleston/Atlanta)",
-          "offering": "recurring house cleaning",
-          "passedThreshold": true,
-          "outcome": "surfaced",
-          "confidence": 0.85,
-          "suggestedService": "Service Landing Page",
-          "suggestedPriceRange": "$900-$1800",
-          "rationale": "Recurring house cleaning is a core, commercially significant service for a cleaning company. The absence of a dedicated page is a clear gap that likely hurts SEO and conversion. A dedicated page can target relevant keywords, explain the service, and drive bookings.",
-          "suggestedScope": [
-            "Keyword research for recurring cleaning services",
-            "Write compelling copy highlighting benefits, process, and pricing",
-            "Include FAQ section addressing common concerns",
-            "Add clear calls-to-action for booking or free estimates",
-            "Implement local SEO schema markup",
-            "Optimize meta title and description"
-          ],
-          "verificationReason": "No crawled page, navigation entry, link, or sitemap URL mentions \"recurring house cleaning\".",
-          "verificationInspected": [],
-          "verificationCloseMatches": [],
-          "evidenceRefs": [
-            "https://www.castlekeepers.com/",
-            "https://www.castlekeepers.com/home",
-            "https://www.castlekeepers.com/about",
-            "https://www.castlekeepers.com/buy-a-home",
-            "https://www.castlekeepers.com/sell-a-home",
-            "https://www.castlekeepers.com/castle-keepers-program",
-            "https://www.castlekeepers.com/for-castle-keepers",
-            "https://www.castlekeepers.com/for-homeowners"
-          ]
-        },
-        {
-          "website": "www.castlekeepers.com",
-          "vertical": "house cleaning (Charleston/Atlanta)",
-          "offering": "deep cleaning",
-          "passedThreshold": true,
-          "outcome": "surfaced",
-          "confidence": 0.85,
-          "suggestedService": "Service Landing Page",
-          "suggestedPriceRange": "$900-$1800",
-          "rationale": "Deep cleaning is a distinct, high-value service line commonly offered by house cleaning companies. The absence of a dedicated page means potential customers searching for this specific service may not find it, and the company misses an opportunity to rank for relevant keywords and upsell. A dedicated page would provide detailed information, pricing, and booking options, enhancing user experience and conversion.",
-          "suggestedScope": [
-            "Create a dedicated 'Deep Cleaning' page with detailed description of services included",
-            "Include before/after images or testimonials to build trust",
-            "Add a clear call-to-action for booking or requesting a quote",
-            "Optimize page with SEO keywords like 'deep cleaning services' and 'deep house cleaning'",
-            "Link to related services (e.g., move-in/move-out cleaning) for cross-selling"
-          ],
-          "verificationReason": "No crawled page, navigation entry, link, or sitemap URL mentions \"deep cleaning\".",
-          "verificationInspected": [],
-          "verificationCloseMatches": [],
-          "evidenceRefs": [
-            "https://www.castlekeepers.com/",
-            "https://www.castlekeepers.com/home",
-            "https://www.castlekeepers.com/about",
-            "https://www.castlekeepers.com/buy-a-home",
-            "https://www.castlekeepers.com/sell-a-home",
-            "https://www.castlekeepers.com/castle-keepers-program",
-            "https://www.castlekeepers.com/for-castle-keepers",
-            "https://www.castlekeepers.com/for-homeowners"
-          ]
-        },
-        {
-          "website": "www.castlekeepers.com",
-          "vertical": "house cleaning (Charleston/Atlanta)",
-          "offering": "move in cleaning",
-          "passedThreshold": true,
-          "outcome": "surfaced",
-          "confidence": 0.85,
-          "suggestedService": "Service Landing Page",
-          "suggestedPriceRange": "$900-$1800",
-          "rationale": "Move-in cleaning is a distinct, commercially valuable service line for a house cleaning company, often sought by new homeowners and renters. The absence of a dedicated page means lost SEO and conversion opportunities. A dedicated page can target relevant keywords, explain the service, and drive bookings.",
-          "suggestedScope": [
-            "Create a dedicated 'Move-In Cleaning' page with service description, benefits, and process.",
-            "Include SEO-optimized content targeting 'move-in cleaning' and related keywords.",
-            "Add clear calls-to-action (e.g., 'Get a Quote', 'Book Now') and contact form.",
-            "Integrate internal links from relevant pages (e.g., home, services) and add to navigation.",
-            "Add FAQ section addressing common questions about move-in cleaning."
-          ],
-          "verificationReason": "No crawled page, navigation entry, link, or sitemap URL mentions \"move in cleaning\".",
-          "verificationInspected": [],
-          "verificationCloseMatches": [],
-          "evidenceRefs": [
-            "https://www.castlekeepers.com/",
-            "https://www.castlekeepers.com/home",
-            "https://www.castlekeepers.com/about",
-            "https://www.castlekeepers.com/buy-a-home",
-            "https://www.castlekeepers.com/sell-a-home",
-            "https://www.castlekeepers.com/castle-keepers-program",
-            "https://www.castlekeepers.com/for-castle-keepers",
-            "https://www.castlekeepers.com/for-homeowners"
-          ]
-        },
-        {
-          "website": "www.castlekeepers.com",
-          "vertical": "house cleaning (Charleston/Atlanta)",
-          "offering": "post construction cleaning",
-          "passedThreshold": true,
-          "outcome": "surfaced",
-          "confidence": 0.85,
-          "suggestedService": "Service Landing Page",
-          "suggestedPriceRange": "$900-$1800",
-          "rationale": "Post construction cleaning is a distinct, high-value service line that requires specialized processes and messaging. The client already offers it, but the absence of a dedicated page means potential customers searching for this service cannot find it, and the company misses an opportunity to rank for relevant keywords. A dedicated page would improve SEO, clarify service details, and drive conversions.",
-          "suggestedScope": [
-            "Keyword research for post construction cleaning terms",
-            "Write SEO-optimized copy explaining the service, process, and benefits",
-            "Include before/after photos or video testimonials",
-            "Add a clear call-to-action for quotes or booking",
-            "Internal linking from related pages (e.g., deep cleaning, move-in/move-out)",
-            "Schema markup for local business services"
-          ],
-          "verificationReason": "No crawled page, navigation entry, link, or sitemap URL mentions \"post construction cleaning\".",
-          "verificationInspected": [],
-          "verificationCloseMatches": [],
-          "evidenceRefs": [
-            "https://www.castlekeepers.com/",
-            "https://www.castlekeepers.com/home",
-            "https://www.castlekeepers.com/about",
-            "https://www.castlekeepers.com/buy-a-home",
-            "https://www.castlekeepers.com/sell-a-home",
-            "https://www.castlekeepers.com/castle-keepers-program",
-            "https://www.castlekeepers.com/for-castle-keepers",
-            "https://www.castlekeepers.com/for-homeowners"
-          ]
-        },
-        {
-          "website": "www.castlekeepers.com",
-          "vertical": "house cleaning (Charleston/Atlanta)",
-          "offering": "green cleaning",
-          "passedThreshold": true,
-          "outcome": "surfaced",
-          "confidence": 0.85,
-          "suggestedService": "Service Landing Page",
-          "suggestedPriceRange": "$900-$1800",
-          "rationale": "Green cleaning is a distinct, commercially viable service line that aligns with growing consumer demand for eco-friendly options. The client already lists it as an offering, but the absence of a dedicated page means potential customers searching for this service may not find it, and the client misses an opportunity to differentiate and capture relevant traffic. A dedicated page would provide clear information, improve SEO, and support conversion.",
-          "suggestedScope": [
-            "Create a dedicated 'Green Cleaning' page with detailed description of eco-friendly products and methods",
-            "Include FAQs addressing common concerns about green cleaning effectiveness and safety",
-            "Add customer testimonials or case studies highlighting green cleaning results",
-            "Optimize page for local SEO with relevant keywords and schema markup",
-            "Integrate clear calls-to-action for booking or requesting a quote",
-            "Link to related services (e.g., deep cleaning, recurring cleaning) for cross-selling"
-          ],
-          "verificationReason": "No crawled page, navigation entry, link, or sitemap URL mentions \"green cleaning\".",
-          "verificationInspected": [],
-          "verificationCloseMatches": [],
-          "evidenceRefs": [
-            "https://www.castlekeepers.com/",
-            "https://www.castlekeepers.com/home",
-            "https://www.castlekeepers.com/about",
-            "https://www.castlekeepers.com/buy-a-home",
-            "https://www.castlekeepers.com/sell-a-home",
-            "https://www.castlekeepers.com/castle-keepers-program",
-            "https://www.castlekeepers.com/for-castle-keepers",
-            "https://www.castlekeepers.com/for-homeowners"
-          ]
-        }
-      ]
+      "candidates": []
     },
     {
       "id": "arrow",
@@ -2064,6 +1320,8 @@
           "Our Brands"
         ]
       },
+      "analyzable": true,
+      "coverageReason": "Service coverage confirmed: 5 offering(s) represented on the site, 6 service-like crawled page(s), 102 service-like sitemap URL(s).",
       "offeringsEvaluated": 6,
       "suppressedOfferings": [
         "pest control",
@@ -2083,12 +1341,13 @@
           "confidence": 0.85,
           "suggestedService": "Service Landing Page",
           "suggestedPriceRange": "$900-$1800",
-          "rationale": "Crawl space encapsulation is a legitimate, high-value service line that complements the client's existing moisture control and pest prevention offerings. The absence of a dedicated page represents a missed opportunity to capture relevant search traffic and educate customers, making it a worthwhile investment.",
+          "rationale": "Crawl space encapsulation is a legitimate, high-value service line that aligns with Arrow Exterminators' existing moisture control and insulation offerings. The absence of a dedicated page represents a missed opportunity to capture relevant search traffic and educate customers, making it a worthwhile investment.",
           "suggestedScope": [
             "Create a dedicated service page for crawl space encapsulation",
-            "Include benefits, process, and FAQs",
-            "Add internal links from related services (e.g., moisture control, pest control)",
-            "Optimize for local SEO with service-area keywords",
+            "Include detailed description of the service, benefits, and process",
+            "Add FAQs and customer testimonials",
+            "Optimize for local SEO with relevant keywords",
+            "Include internal links to related services (moisture control, insulation)",
             "Add calls-to-action for quotes and contact"
           ],
           "verificationReason": "No crawled page, navigation entry, link, or sitemap URL mentions \"crawl space encapsulation\".",
@@ -2184,6 +1443,8 @@
           "Contact"
         ]
       },
+      "analyzable": true,
+      "coverageReason": "Service coverage confirmed: 6 offering(s) represented on the site, 2 service-like crawled page(s), 26 service-like sitemap URL(s).",
       "offeringsEvaluated": 6,
       "suppressedOfferings": [
         "car accident lawyer",
@@ -2203,14 +1464,13 @@
           "confidence": 0.85,
           "suggestedService": "Service Landing Page",
           "suggestedPriceRange": "$900-$1800",
-          "rationale": "Nursing home abuse is a serious and distinct personal injury practice area with high commercial value, especially for a firm serving Wisconsin, Illinois, and Iowa where elder abuse cases are prevalent. The absence of a dedicated page is a missed opportunity for SEO and client acquisition. A dedicated page would allow targeted content, FAQs, and case examples, improving search visibility and conversion.",
+          "rationale": "Nursing home abuse is a serious and distinct personal injury practice area with high commercial value, especially for a firm serving Wisconsin, Illinois, and Iowa where elder abuse cases are prevalent. The absence of a dedicated page is a clear gap, as the firm already has pages for other specific injury types (e.g., car accidents, dog bites). A dedicated page would improve SEO, provide targeted information to a vulnerable audience, and likely generate qualified leads. The offering is not trivial and warrants a dedicated page.",
           "suggestedScope": [
-            "Keyword research for nursing home abuse and neglect terms",
-            "Dedicated page with overview of nursing home abuse law, signs, and legal options",
-            "FAQ section addressing common concerns",
-            "Case results or testimonials specific to nursing home abuse",
-            "Internal linking from practice area and homepage",
-            "Schema markup for legal service"
+            "Create a dedicated 'Nursing Home Abuse' page with keyword-optimized content",
+            "Include sections on signs of abuse, legal rights, and how the firm can help",
+            "Add internal links from the practice areas page and relevant blog posts",
+            "Implement on-page SEO (meta tags, headings, schema markup)",
+            "Add a clear call-to-action and contact form specific to nursing home abuse inquiries"
           ],
           "verificationReason": "No crawled page, navigation entry, link, or sitemap URL mentions \"nursing home abuse\".",
           "verificationInspected": [],
@@ -2348,6 +1608,8 @@
           "Free Case Evaluation"
         ]
       },
+      "analyzable": true,
+      "coverageReason": "Service coverage confirmed: 4 offering(s) represented on the site, 8 service-like crawled page(s), 0 service-like sitemap URL(s).",
       "offeringsEvaluated": 6,
       "suppressedOfferings": [
         "car accident lawyer",
@@ -2367,14 +1629,13 @@
           "confidence": 0.85,
           "suggestedService": "Service Landing Page",
           "suggestedPriceRange": "$900-$1800",
-          "rationale": "Social Security Disability is a distinct legal service line with significant demand, and the absence of a dedicated page represents a clear gap in the client's online presence. Creating a dedicated page would improve SEO, provide detailed information to potential clients, and support lead generation.",
+          "rationale": "Social Security Disability is a distinct legal service line with significant demand, and the client's practice areas page lists it as an offering. A dedicated page would improve SEO, provide detailed information, and capture relevant traffic, adding clear value.",
           "suggestedScope": [
-            "Keyword research for social security disability terms",
-            "Drafting unique, informative content covering eligibility, application process, and appeals",
-            "On-page SEO optimization (title tags, meta descriptions, headers, internal linking)",
-            "Adding clear calls-to-action and contact forms",
-            "Implementing schema markup for legal services",
-            "Creating supporting assets like FAQs or client testimonials"
+            "Create a dedicated page for Social Security Disability with comprehensive content on eligibility, application process, and appeals.",
+            "Include FAQs and a clear call-to-action for a free case review.",
+            "Optimize the page for local SEO targeting relevant keywords.",
+            "Add internal links from the practice areas page and other relevant pages.",
+            "Ensure the page is mobile-friendly and fast-loading."
           ],
           "verificationReason": "No crawled page, navigation entry, link, or sitemap URL mentions \"social security disability\".",
           "verificationInspected": [],
@@ -2431,10 +1692,13 @@
           "HIPAA"
         ]
       },
+      "analyzable": true,
+      "coverageReason": "Service coverage confirmed: 4 offering(s) represented on the site, 8 service-like crawled page(s), 2 service-like sitemap URL(s).",
       "offeringsEvaluated": 6,
       "suppressedOfferings": [
         "teeth cleaning",
         "dental implants",
+        "teeth whitening",
         "root canal",
         "emergency dentist"
       ],
@@ -2449,14 +1713,14 @@
           "confidence": 0.9,
           "suggestedService": "Service Landing Page",
           "suggestedPriceRange": "$900-$1800",
-          "rationale": "Invisalign is a high-value, widely sought-after orthodontic service. The client's site has dedicated pages for other services like dental implants and cosmetic dentistry, but no page for Invisalign. Creating a dedicated page would improve SEO, provide detailed information, and capture patient demand, making it a legitimate billable project.",
+          "rationale": "Invisalign is a high-value, widely sought-after orthodontic service. The client's site currently lacks a dedicated page for it, despite offering it. A dedicated page would improve SEO, provide detailed information, and capture demand from potential patients searching for Invisalign. This is a legitimate, billable service line.",
           "suggestedScope": [
-            "Keyword research and SEO strategy for Invisalign-related terms",
-            "Creation of a dedicated Invisalign service page with unique content",
+            "Keyword research and SEO strategy for Invisalign",
+            "Dedicated Invisalign service page with unique content",
             "Internal linking from relevant pages (e.g., services, home)",
-            "On-page optimization (meta tags, headings, schema markup)",
-            "Integration with appointment request and contact forms",
-            "Potential addition of FAQ section and patient testimonials"
+            "Schema markup for dental service",
+            "Conversion optimization (CTAs, appointment forms)",
+            "Local SEO integration (location pages, Google Business Profile)"
           ],
           "verificationReason": "No crawled page, navigation entry, link, or sitemap URL mentions \"invisalign\".",
           "verificationInspected": [],
@@ -2470,61 +1734,6 @@
             "https://www.perfectteeth.com/services/cosmetic-dentistry/",
             "https://www.perfectteeth.com/services/dental-implants/",
             "https://www.perfectteeth.com/request-appointment/"
-          ]
-        },
-        {
-          "website": "www.perfectteeth.com",
-          "vertical": "dental (CO/NM/AZ)",
-          "offering": "teeth whitening",
-          "passedThreshold": true,
-          "outcome": "surfaced",
-          "confidence": 0.8,
-          "suggestedService": "Service Landing Page",
-          "suggestedPriceRange": "$900-$1800",
-          "rationale": "Teeth whitening is a common, high-demand cosmetic dental service. The client's site lacks a dedicated page for it, despite having pages for other services like dental implants and cosmetic dentistry. A dedicated page would improve SEO, provide detailed information, and support conversion for this profitable service.",
-          "suggestedScope": [
-            "Create a dedicated 'Teeth Whitening' page with service description, benefits, process, and FAQs.",
-            "Include before/after images or testimonials to build trust.",
-            "Add a clear call-to-action for appointment booking or consultation.",
-            "Optimize page for local SEO with relevant keywords and schema markup.",
-            "Integrate internal links from related services and homepage."
-          ],
-          "verificationReason": "No crawled page, navigation entry, link, or sitemap URL adequately covers \"teeth whitening\"; the nearest matches were checked and rejected.",
-          "verificationInspected": [],
-          "verificationCloseMatches": [
-            {
-              "value": "Perfect Teeth Savings Plan",
-              "satisfied": false,
-              "reason": "Partially matches the offering but does not clearly cover it."
-            },
-            {
-              "value": "Crowns Solutions to help restore teeth to their natural look, feel, and funciton. Learn more",
-              "satisfied": false,
-              "reason": "Partially matches the offering but does not clearly cover it."
-            },
-            {
-              "value": "Root Canals Pain-free root canal treatment to help you keep your natural teeth. Learn more",
-              "satisfied": false,
-              "reason": "Partially matches the offering but does not clearly cover it."
-            },
-            {
-              "value": "Perfect Teeth Dental - Green Mountain",
-              "satisfied": false,
-              "reason": "Partially matches the offering but does not clearly cover it."
-            }
-          ],
-          "evidenceRefs": [
-            "https://www.perfectteeth.com/",
-            "https://www.perfectteeth.com/dental-services/",
-            "https://www.perfectteeth.com/offices/",
-            "https://www.perfectteeth.com/financing-payment-options/",
-            "https://www.perfectteeth.com/special-offers/",
-            "https://www.perfectteeth.com/services/cosmetic-dentistry/",
-            "https://www.perfectteeth.com/services/dental-implants/",
-            "https://www.perfectteeth.com/request-appointment/",
-            "considered:https://www.perfectteeth.com/services/general-dentistry/",
-            "considered:https://www.perfectteeth.com/services/endodontics/",
-            "considered:https://www.perfectteeth.com/offices/colorado/green-mountain/"
           ]
         }
       ]
@@ -2541,6 +1750,8 @@
         "pageTitles": [],
         "navLabels": []
       },
+      "analyzable": false,
+      "coverageReason": "no pages crawled",
       "offeringsEvaluated": 0,
       "suppressedOfferings": [],
       "skippedOfferings": [],

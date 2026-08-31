@@ -10,6 +10,7 @@ import type {
   Service,
 } from "@/core/schema";
 import { runRules } from "@/core/rules";
+import { assessServiceCoverage, type CoverageAssessment } from "@/core/absenceVerification";
 import { passesEvidenceThreshold } from "@/core/threshold";
 import { resolveBillability } from "@/core/billability";
 import { dedupeKey } from "@/core/dedupe";
@@ -63,6 +64,12 @@ export interface AnalyzeClientResult {
   suppressed: Opportunity[];
   /** The evidence the run was based on (for caching and display). */
   evidence: EvidenceBundle;
+  /**
+   * Whether the crawl demonstrably reached the site's service section. When
+   * `analyzable` is false, no rules run, no AI is called, and nothing is claimed
+   * missing.
+   */
+  coverage: CoverageAssessment;
   stats: AnalyzeClientStats;
 }
 
@@ -103,9 +110,17 @@ export async function analyzeClient(
     aiCalls: 0,
   };
 
+  const evidence = await input.evidenceProvider.getEvidence(input.client);
+
+  // 0. crawl adequacy — did we actually reach the service portion of the site?
+  //    If not, claim nothing: no rules, no verification GETs, no AI.
+  const coverage = assessServiceCoverage({ client: input.client, evidence });
+  if (!coverage.analyzable) {
+    return { opportunities: [], suppressed: [], evidence, coverage, stats };
+  }
+
   // 1. deterministic rules (+ deterministic absence verification, incl. a few
   //    targeted GETs — never AI)
-  const evidence = await input.evidenceProvider.getEvidence(input.client);
   const fetchPage = input.evidenceProvider.fetchPage?.bind(input.evidenceProvider);
   const candidates = await runRules({
     client: input.client,
@@ -208,5 +223,5 @@ export async function analyzeClient(
   }
   stats.surfaced = opportunities.length;
 
-  return { opportunities, suppressed, evidence, stats };
+  return { opportunities, suppressed, evidence, coverage, stats };
 }

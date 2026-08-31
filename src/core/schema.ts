@@ -103,7 +103,12 @@ export type RuleId = z.infer<typeof RuleIdSchema>;
  * exactly what was inspected before the absence was claimed.
  */
 export const VerificationSchema = z.object({
-  conclusion: z.enum(["absent", "present", "weak"]),
+  // absent      = positively verified: no adequate page exists -> may surface
+  // present     = an adequate existing page/section was found -> suppress
+  // inconclusive= an existence signal was found but could not be verified
+  //               (e.g. a matching nav label with no link) -> suppress
+  // weak        = the offering has no distinctive words to verify -> suppress
+  conclusion: z.enum(["absent", "present", "inconclusive", "weak"]),
   /** URLs actually fetched during targeted verification. */
   inspectedUrls: z.array(z.string()).default([]),
   /** Near-matches considered, and why each did or did not satisfy the offering. */
