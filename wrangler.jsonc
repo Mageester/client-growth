@@ -9,7 +9,10 @@
     "binding": "ASSETS"
   },
   "observability": {
-    "enabled": true
+    "enabled": true,
+    "logs": {
+      "invocation_logs": false
+    }
   },
   "d1_databases": [
     {
