@@ -42,6 +42,8 @@ export interface AnalyzeClientInput {
   maxAiCalls?: number;
   /** Cap on targeted GETs across absence verification for this run. Default 12. */
   maxVerifyFetches?: number;
+  /** Cap on status probes across broken-conversion-path for this run. Default 8. */
+  maxProbes?: number;
 }
 
 export interface AnalyzeClientStats {
@@ -112,22 +114,25 @@ export async function analyzeClient(
 
   const evidence = await input.evidenceProvider.getEvidence(input.client);
 
-  // 0. crawl adequacy — did we actually reach the service portion of the site?
-  //    If not, claim nothing: no rules, no verification GETs, no AI.
+  // 0. crawl service-coverage assessment. This gates missing-service-page (it
+  //    must not claim a page is missing from a crawl that never reached the
+  //    service section) but NOT broken-conversion-path, whose evidence is a
+  //    concrete probed defect independent of service-page coverage.
   const coverage = assessServiceCoverage({ client: input.client, evidence });
-  if (!coverage.analyzable) {
-    return { opportunities: [], suppressed: [], evidence, coverage, stats };
-  }
 
-  // 1. deterministic rules (+ deterministic absence verification, incl. a few
-  //    targeted GETs — never AI)
+  // 1. deterministic rules (+ deterministic absence verification / probes —
+  //    never AI)
   const fetchPage = input.evidenceProvider.fetchPage?.bind(input.evidenceProvider);
+  const probe = input.evidenceProvider.probe?.bind(input.evidenceProvider);
   const candidates = await runRules({
     client: input.client,
     catalog: input.catalog,
     evidence,
+    coverage,
     fetchPage,
     verifyBudget: { remaining: input.maxVerifyFetches ?? 12 },
+    probe,
+    probeBudget: { remaining: input.maxProbes ?? 8 },
   });
   stats.candidates = candidates.length;
 

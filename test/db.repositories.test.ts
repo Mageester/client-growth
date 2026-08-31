@@ -19,7 +19,7 @@ describe("service + client + coverage repositories", () => {
   it("round-trips services and toggles active", async () => {
     for (const s of hvacCatalog()) await repo.upsertService(db, s);
     expect((await repo.listServices(db)).map((s) => s.id).sort()).toEqual(
-      ["svc-brand-refresh", "svc-landing-page", "svc-seo-retainer"],
+      ["svc-brand-refresh", "svc-conversion-fix", "svc-landing-page", "svc-seo-retainer"],
     );
 
     await repo.setServiceActive(db, "svc-brand-refresh", false);
@@ -29,7 +29,7 @@ describe("service + client + coverage repositories", () => {
     const updated = { ...hvacCatalog()[0]!, priceMax: 1800 };
     await repo.upsertService(db, updated);
     expect((await repo.getService(db, "svc-landing-page"))?.priceMax).toBe(1800);
-    expect(await repo.listServices(db)).toHaveLength(3);
+    expect(await repo.listServices(db)).toHaveLength(4);
   });
 
   it("round-trips a client and its coverage", async () => {

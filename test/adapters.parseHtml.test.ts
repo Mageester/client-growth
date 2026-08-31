@@ -42,4 +42,41 @@ describe("parseHtml", () => {
     expect(parsed.page.textExcerpt).not.toContain("color: #003");
     expect(parsed.page.wordCount).toBeGreaterThan(0);
   });
+
+  it("captures tel:/mailto: links with scheme, and aria-label on links", () => {
+    const html = `<!doctype html><html><body>
+      <a href="tel:+1-555-867-5309">Call us</a>
+      <a href="mailto:hi@x.example">Email</a>
+      <a href="/quote" aria-label="Get a free quote" title="Quote">Start</a>
+    </body></html>`;
+    const parsed = parseHtml(html, "https://x.example/");
+
+    const tel = parsed.links.find((l) => l.scheme === "tel");
+    expect(tel?.href).toBe("tel:+1-555-867-5309");
+    expect(tel?.label).toBe("Call us");
+    expect(parsed.links.some((l) => l.scheme === "mailto")).toBe(true);
+
+    const quote = parsed.links.find((l) => l.href.endsWith("/quote"));
+    expect(quote?.ariaLabel).toBe("Get a free quote");
+    expect(quote?.title).toBe("Quote");
+    expect(parsed.sameOriginLinks).toEqual(["https://x.example/quote"]); // http only
+  });
+
+  it("captures <form> action, method and whether it has a submit control", () => {
+    const html = `<!doctype html><html><body>
+      <form action="/contact/submit" method="post">
+        <input type="text" name="name" />
+        <button type="submit">Send</button>
+      </form>
+      <form action="/search"><input type="search" /></form>
+      <form><button>Go</button></form>
+    </body></html>`;
+    const parsed = parseHtml(html, "https://x.example/");
+
+    expect(parsed.page.forms).toHaveLength(3);
+    expect(parsed.page.forms[0]).toEqual({ action: "/contact/submit", method: "POST", hasSubmit: true });
+    expect(parsed.page.forms[1]).toEqual({ action: "/search", method: "GET", hasSubmit: false });
+    // a bare <button> inside a form defaults to type=submit
+    expect(parsed.page.forms[2]).toEqual({ action: "", method: "GET", hasSubmit: true });
+  });
 });

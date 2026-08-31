@@ -1,4 +1,4 @@
-import type { EvidenceProvider } from "@/ports/EvidenceProvider";
+import type { EvidenceProvider, ProbeResult } from "@/ports/EvidenceProvider";
 import {
   EvidenceBundleSchema,
   type Client,
@@ -12,18 +12,20 @@ import { parseHtml } from "@/adapters/evidence/parseHtml";
  * Minimal real website evidence provider.
  *
  *  - standard HTTP `fetch` only (no browser, no rendering, no screenshots)
- *  - same-origin pages only
+ *  - same-origin pages only for the crawl
  *  - shallow breadth-first crawl, hard cap (~10 useful pages)
- *  - collects every same-origin link (href + anchor text) for absence verification
+ *  - records HTTP status for every crawled URL, plus links (with scheme, nav
+ *    flag, aria-label, and which pages they were found on) and <form>s
  *  - reads /sitemap.xml when cheaply available
- *  - exposes `fetchPage(url)` so the rule can pull one specific page during
- *    targeted verification without a second crawl
+ *  - exposes `fetchPage(url)` (targeted absence verification) and `probe(url)`
+ *    (HEAD->GET status check for the broken-conversion-path rule)
  *  - no Lighthouse / PageSpeed / paid APIs
  *  - deterministic given a `fetchImpl`; unit-tested with in-memory HTML fixtures
  */
 
 const DEFAULT_MAX_PAGES = 10;
 const MAX_SITEMAP_URLS = 300;
+const PROBE_TIMEOUT_MS = 8_000;
 const USER_AGENT = "ClientGrowthBot/0.1 (+website evidence; operated by the agency)";
 
 export interface HttpEvidenceProviderOptions {
@@ -37,6 +39,17 @@ function toOrigin(domain: string): string {
   const withScheme = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
   return new URL(withScheme).origin;
 }
+
+const emptyPage = (url: string, status: number): EvidencePage => ({
+  url,
+  status,
+  title: "",
+  h1s: [],
+  headings: [],
+  textExcerpt: "",
+  wordCount: 0,
+  forms: [],
+});
 
 export class HttpEvidenceProvider implements EvidenceProvider {
   constructor(private readonly options: HttpEvidenceProviderOptions = {}) {}
@@ -58,9 +71,10 @@ export class HttpEvidenceProvider implements EvidenceProvider {
     const queue: string[] = [`${origin}/`];
     const pages: EvidencePage[] = [];
     let nav: string[] = [];
-    const linksByHref = new Map<string, EvidenceLink>();
+    const linksByKey = new Map<string, EvidenceLink>();
+    let htmlPages = 0;
 
-    while (queue.length > 0 && pages.length < maxPages) {
+    while (queue.length > 0 && htmlPages < maxPages) {
       const url = queue.shift();
       if (url === undefined || visited.has(url)) continue;
       visited.add(url);
@@ -74,23 +88,37 @@ export class HttpEvidenceProvider implements EvidenceProvider {
       } catch {
         continue;
       }
-      if (!response.ok) continue;
+
+      if (!response.ok) {
+        pages.push(emptyPage(url, response.status));
+        continue;
+      }
       const contentType = (response.headers.get("content-type") ?? "").toLowerCase();
-      if (!contentType.includes("text/html")) continue;
+      if (!contentType.includes("text/html")) {
+        pages.push(emptyPage(url, response.status));
+        continue;
+      }
 
       const parsed = parseHtml(await response.text(), url);
-      pages.push(parsed.page);
+      pages.push({ ...parsed.page, status: response.status });
+      htmlPages++;
       if (nav.length === 0 && parsed.nav.length > 0) nav = parsed.nav;
 
       for (const link of parsed.links) {
-        const existing = linksByHref.get(link.href);
+        const key = `${link.scheme}:${link.href}`;
+        const existing = linksByKey.get(key);
         if (!existing) {
-          linksByHref.set(link.href, { ...link });
+          linksByKey.set(key, { ...link, foundOn: [url] });
         } else {
           if (!existing.label && link.label) existing.label = link.label;
+          if (!existing.ariaLabel && link.ariaLabel) existing.ariaLabel = link.ariaLabel;
+          if (!existing.title && link.title) existing.title = link.title;
           if (link.inNav) existing.inNav = true;
+          if (!existing.foundOn.includes(url)) existing.foundOn.push(url);
         }
-        if (!visited.has(link.href) && !queue.includes(link.href)) queue.push(link.href);
+        if (link.scheme === "http" && !visited.has(link.href) && !queue.includes(link.href)) {
+          queue.push(link.href);
+        }
       }
     }
 
@@ -100,12 +128,7 @@ export class HttpEvidenceProvider implements EvidenceProvider {
       clientId: client.id,
       source: "http",
       capturedAt: (this.options.now?.() ?? new Date()).toISOString(),
-      site: {
-        pages,
-        nav,
-        links: [...linksByHref.values()],
-        sitemapUrls,
-      },
+      site: { pages, nav, links: [...linksByKey.values()], sitemapUrls },
     });
   }
 
@@ -124,7 +147,40 @@ export class HttpEvidenceProvider implements EvidenceProvider {
     if (!response.ok) return null;
     const contentType = (response.headers.get("content-type") ?? "").toLowerCase();
     if (!contentType.includes("text/html")) return null;
-    return parseHtml(await response.text(), url).page;
+    return { ...parseHtml(await response.text(), url).page, status: response.status };
+  }
+
+  /**
+   * HEAD (falling back to GET on 405/501) status check for a single URL, with
+   * redirects followed. `status: 0` means the request could not be completed
+   * (DNS, TLS, timeout) — the caller must treat that as inconclusive.
+   */
+  async probe(url: string): Promise<ProbeResult> {
+    const fetchImpl = this.resolveFetch();
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
+    const headers = { "user-agent": USER_AGENT };
+    try {
+      let res = await fetchImpl(url, {
+        method: "HEAD",
+        redirect: "follow",
+        signal: controller.signal,
+        headers,
+      });
+      if (res.status === 405 || res.status === 501) {
+        res = await fetchImpl(url, {
+          method: "GET",
+          redirect: "follow",
+          signal: controller.signal,
+          headers,
+        });
+      }
+      return { requestedUrl: url, status: res.status, finalUrl: res.url || url, ok: res.ok };
+    } catch {
+      return { requestedUrl: url, status: 0, finalUrl: url, ok: false };
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   /** Best-effort /sitemap.xml read (follows one level of sitemap index). */

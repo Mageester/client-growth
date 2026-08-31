@@ -122,11 +122,13 @@ describe("absence verification — validation regressions", () => {
       if (url.includes("garage-spring")) {
         return {
           url,
+          status: 200,
           title: "Garage Door Spring Repair & Replacement",
           h1s: ["Garage Door Spring Repair"],
           headings: ["Broken Spring Signs"],
           textExcerpt: "",
           wordCount: 200,
+          forms: [],
         };
       }
       return null;

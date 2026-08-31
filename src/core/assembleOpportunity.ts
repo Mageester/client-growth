@@ -9,6 +9,29 @@ import {
 import { dedupeKey } from "@/core/dedupe";
 import { titleCase } from "@/core/text";
 
+/** Opportunity title, per rule. */
+function titleFor(candidate: Candidate): string {
+  const d = candidate.conversionDefect;
+  if (d) {
+    switch (d.kind) {
+      case "malformed-tel":
+        return "Broken click-to-call link";
+      case "broken-form-target":
+        return "Broken form submission path";
+      case "conversion-page-error":
+        return `${titleCase(d.elementText || "Conversion page")} returns an error`;
+      default: {
+        const label =
+          d.elementText && d.elementText !== "(unlabelled)"
+            ? `"${d.elementText}"`
+            : "conversion";
+        return `Broken ${label} link`;
+      }
+    }
+  }
+  return `${titleCase(candidate.subject)} — dedicated service page`;
+}
+
 export interface AssembleInput {
   candidate: Candidate;
   evaluation: Evaluation;
@@ -28,13 +51,14 @@ export function assembleOpportunity(input: AssembleInput): Opportunity {
     dedupeKey: key,
     clientId,
     ruleId: candidate.ruleId,
-    title: `${titleCase(candidate.subject)} — dedicated service page`,
+    title: titleFor(candidate),
     detected: candidate.detected,
     evidenceRefs: candidate.evidenceRefs,
     rationale: evaluation.rationale,
     suggestedServiceId: service.id,
     suggestedScope: evaluation.suggestedScope,
     verification: candidate.verification,
+    conversionDefect: candidate.conversionDefect,
     priceMin: service.priceMin,
     priceMax: service.priceMax,
     confidence: evaluation.confidence,
@@ -66,7 +90,7 @@ export function assembleCoveredOpportunity(input: AssembleCoveredInput): Opportu
     dedupeKey: key,
     clientId,
     ruleId: candidate.ruleId,
-    title: `${titleCase(candidate.subject)} — dedicated service page`,
+    title: titleFor(candidate),
     detected: candidate.detected,
     evidenceRefs: candidate.evidenceRefs,
     rationale:
@@ -75,6 +99,7 @@ export function assembleCoveredOpportunity(input: AssembleCoveredInput): Opportu
     suggestedServiceId: service.id,
     suggestedScope: prior?.suggestedScope ?? [],
     verification: candidate.verification,
+    conversionDefect: candidate.conversionDefect,
     priceMin: service.priceMin,
     priceMax: service.priceMax,
     confidence: candidate.rawConfidence,

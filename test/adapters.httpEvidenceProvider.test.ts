@@ -48,8 +48,11 @@ describe("HttpEvidenceProvider", () => {
 
     expect(bundle.source).toBe("http");
     expect(bundle.clientId).toBe("client-coolbreeze");
-    const urls = bundle.site.pages.map((p) => p.url).sort();
-    expect(urls).toEqual(
+    const htmlUrls = bundle.site.pages
+      .filter((p) => p.status === 200)
+      .map((p) => p.url)
+      .sort();
+    expect(htmlUrls).toEqual(
       [
         `${ORIGIN}/`,
         `${ORIGIN}/air-conditioning-repair`,
@@ -58,6 +61,12 @@ describe("HttpEvidenceProvider", () => {
       ].sort(),
     );
     expect(bundle.site.nav).toContain("Furnace Installation");
+    // Non-OK crawled URLs are recorded with their status (for the conversion rule).
+    const errorPages = bundle.site.pages.filter((p) => p.status >= 400);
+    expect(errorPages.map((p) => p.url).sort()).toEqual(
+      [`${ORIGIN}/about`, `${ORIGIN}/contact`].sort(),
+    );
+    expect(errorPages.every((p) => p.status === 404)).toBe(true);
   });
 
   it("never requests an off-origin URL", async () => {
@@ -75,6 +84,45 @@ describe("HttpEvidenceProvider", () => {
   it("respects the maxPages cap", async () => {
     const provider = new HttpEvidenceProvider({ fetchImpl: makeFetch(), maxPages: 2 });
     const bundle = await provider.getEvidence(client);
-    expect(bundle.site.pages).toHaveLength(2);
+    expect(bundle.site.pages.filter((p) => p.status === 200)).toHaveLength(2);
+  });
+});
+
+describe("HttpEvidenceProvider.probe", () => {
+  it("returns the final status and falls back HEAD -> GET on 405", async () => {
+    const calls: Array<{ url: string; method: string }> = [];
+    const fetchImpl = vi.fn(async (input: string | URL, init?: RequestInit) => {
+      const url = String(input);
+      const method = (init?.method ?? "GET").toUpperCase();
+      calls.push({ url, method });
+      if (url.endsWith("/dead")) return new Response("", { status: 404 });
+      if (url.endsWith("/head-hostile")) {
+        return method === "HEAD"
+          ? new Response("", { status: 405 })
+          : new Response("ok", { status: 200 });
+      }
+      return new Response("", { status: 200 });
+    }) as unknown as typeof fetch;
+
+    const provider = new HttpEvidenceProvider({ fetchImpl });
+
+    expect((await provider.probe("https://x.example/dead")).status).toBe(404);
+
+    const r = await provider.probe("https://x.example/head-hostile");
+    expect(r.status).toBe(200);
+    expect(calls.filter((c) => c.url.endsWith("/head-hostile")).map((c) => c.method)).toEqual([
+      "HEAD",
+      "GET",
+    ]);
+  });
+
+  it("returns status 0 when the request throws", async () => {
+    const fetchImpl = vi.fn(async () => {
+      throw new Error("ENOTFOUND");
+    }) as unknown as typeof fetch;
+    const provider = new HttpEvidenceProvider({ fetchImpl });
+    const r = await provider.probe("https://nope.example/");
+    expect(r.status).toBe(0);
+    expect(r.ok).toBe(false);
   });
 });

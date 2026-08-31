@@ -1,0 +1,86 @@
+{
+  "reports": [
+    {
+      "domain": "www.bellbrothers.com",
+      "crawlPages": 8,
+      "telLinks": 2,
+      "forms": 17,
+      "conversionLinks": 0,
+      "probes": 1,
+      "defects": []
+    },
+    {
+      "domain": "www.gilmoreair.com",
+      "crawlPages": 8,
+      "telLinks": 1,
+      "forms": 17,
+      "conversionLinks": 0,
+      "probes": 1,
+      "defects": [
+        {
+          "kind": "dead-conversion-link",
+          "pageUrl": "https://www.gilmoreair.com/schedule-online/",
+          "element": "(unlabelled)",
+          "target": "https://www.gilmoreair.com/schedule-online/item.url",
+          "status": 404,
+          "confidence": 0.85,
+          "detected": "The \"(unlabelled)\" conversion button on https://www.gilmoreair.com/schedule-online/ links to https://www.gilmoreair.com/schedule-online/item.url, which returns HTTP 404."
+        }
+      ]
+    },
+    {
+      "domain": "www.lentheplumber.com",
+      "crawlPages": 8,
+      "telLinks": 3,
+      "forms": 8,
+      "conversionLinks": 0,
+      "probes": 1,
+      "defects": []
+    },
+    {
+      "domain": "www.russelllandscape.com",
+      "crawlPages": 8,
+      "telLinks": 2,
+      "forms": 28,
+      "conversionLinks": 0,
+      "probes": 12,
+      "defects": []
+    },
+    {
+      "domain": "www.castlekeepers.com",
+      "crawlPages": 8,
+      "telLinks": 0,
+      "forms": 5,
+      "conversionLinks": 0,
+      "probes": 1,
+      "defects": []
+    },
+    {
+      "domain": "www.perfectteeth.com",
+      "crawlPages": 8,
+      "telLinks": 10,
+      "forms": 1,
+      "conversionLinks": 0,
+      "probes": 0,
+      "defects": []
+    },
+    {
+      "domain": "www.hupy.com",
+      "crawlPages": 8,
+      "telLinks": 3,
+      "forms": 18,
+      "conversionLinks": 0,
+      "probes": 1,
+      "defects": []
+    },
+    {
+      "domain": "www.bakerroofing.com",
+      "crawlPages": 3,
+      "telLinks": 1,
+      "forms": 7,
+      "conversionLinks": 0,
+      "probes": 6,
+      "defects": []
+    }
+  ]
+}

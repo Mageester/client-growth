@@ -25,5 +25,14 @@
     "priceMax": 6000,
     "tags": ["brand"],
     "active": true
+  },
+  {
+    "id": "svc-conversion-fix",
+    "name": "Conversion Path Fix",
+    "description": "Diagnose and repair a broken conversion element (dead CTA, broken form submission, unusable click-to-call link) so the client stops losing leads.",
+    "priceMin": 300,
+    "priceMax": 900,
+    "tags": ["conversion-fix"],
+    "active": true
   }
 ]

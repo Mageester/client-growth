@@ -3,15 +3,26 @@
  * browser. Regex-based and fully deterministic so it is trivially testable with
  * saved HTML fixtures and cheap enough to run on a Worker.
  *
- * It extracts what the rule and its absence-verification pass need: title,
- * headings, and every same-origin link with its anchor text and whether it sat
- * inside a navigation region.
+ * It extracts what the rules need: title, headings, every link (with anchor
+ * text, aria-label/title, nav flag, and scheme so tel:/mailto: CTAs survive),
+ * and every <form> (action / method / whether it has a submit control).
  */
+
+export type LinkScheme = "http" | "tel" | "mailto";
 
 export interface ParsedLink {
   href: string;
   label: string;
+  ariaLabel: string;
+  title: string;
+  scheme: LinkScheme;
   inNav: boolean;
+}
+
+export interface ParsedForm {
+  action: string;
+  method: "GET" | "POST";
+  hasSubmit: boolean;
 }
 
 export interface ParsedPage {
@@ -22,6 +33,7 @@ export interface ParsedPage {
     headings: string[];
     textExcerpt: string;
     wordCount: number;
+    forms: ParsedForm[];
   };
   nav: string[];
   links: ParsedLink[];
@@ -57,13 +69,66 @@ function captures(re: RegExp, input: string): string[] {
   return out;
 }
 
-/** [href, innerHtml] pairs for every <a> in the input. */
-function anchorPairs(input: string): Array<[string, string]> {
-  const out: Array<[string, string]> = [];
-  const re = /<a\b[^>]*\bhref=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+function attr(openTag: string, name: string): string {
+  const m = new RegExp(`\\b${name}\\s*=\\s*["']([^"']*)["']`, "i").exec(openTag);
+  return m?.[1] ?? "";
+}
+
+interface AnchorRecord {
+  openTag: string;
+  href: string;
+  ariaLabel: string;
+  title: string;
+  inner: string;
+}
+
+function anchorRecords(input: string): AnchorRecord[] {
+  const out: AnchorRecord[] = [];
+  const re = /<a\b([^>]*)>([\s\S]*?)<\/a>/gi;
   let m: RegExpExecArray | null;
   while ((m = re.exec(input)) !== null) {
-    if (m[1] !== undefined) out.push([m[1], m[2] ?? ""]);
+    const openTag = m[1] ?? "";
+    const href = attr(openTag, "href");
+    if (!href) continue;
+    out.push({
+      openTag,
+      href,
+      ariaLabel: attr(openTag, "aria-label"),
+      title: attr(openTag, "title"),
+      inner: m[2] ?? "",
+    });
+  }
+  return out;
+}
+
+function schemeOf(href: string): LinkScheme | null {
+  const h = href.trim().toLowerCase();
+  if (h.startsWith("tel:")) return "tel";
+  if (h.startsWith("mailto:")) return "mailto";
+  if (h.startsWith("http://") || h.startsWith("https://")) return "http";
+  // Any other explicit scheme (javascript:, data:, sms:, ftp:, #fragment) is out.
+  if (h.startsWith("#") || /^[a-z][a-z0-9+.-]*:/i.test(h)) return null;
+  // No scheme -> relative http(s) URL.
+  return "http";
+}
+
+function parseForms(body: string): ParsedForm[] {
+  const out: ParsedForm[] = [];
+  const re = /<form\b([^>]*)>([\s\S]*?)<\/form>/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(body)) !== null) {
+    const openTag = m[1] ?? "";
+    const inner = m[2] ?? "";
+    const methodRaw = attr(openTag, "method").toUpperCase();
+    const hasSubmit =
+      /<input\b[^>]*\btype\s*=\s*["'](?:submit|image)["']/i.test(inner) ||
+      /<button\b[^>]*\btype\s*=\s*["']submit["']/i.test(inner) ||
+      /<button\b(?![^>]*\btype\s*=)[^>]*>/i.test(inner);
+    out.push({
+      action: attr(openTag, "action").trim(),
+      method: methodRaw === "POST" ? "POST" : "GET",
+      hasSubmit,
+    });
   }
   return out;
 }
@@ -85,30 +150,46 @@ export function parseHtml(html: string, url: string): ParsedPage {
   // Navigation regions: <nav> blocks and role="navigation" containers.
   const navBlocks = [
     ...captures(/<nav\b[^>]*>([\s\S]*?)<\/nav>/gi, body),
-    ...captures(
-      /<[a-z]+\b[^>]*\brole=["']navigation["'][^>]*>([\s\S]*?)<\/[a-z]+>/gi,
-      body,
-    ),
+    ...captures(/<[a-z]+\b[^>]*\brole=["']navigation["'][^>]*>([\s\S]*?)<\/[a-z]+>/gi, body),
   ];
   const navHrefs = new Set<string>();
   const navSet = new Set<string>();
   for (const block of navBlocks) {
-    for (const [href, inner] of anchorPairs(block)) {
-      const label = clean(inner);
+    for (const a of anchorRecords(block)) {
+      const label = clean(a.inner) || a.ariaLabel || a.title;
       if (label) navSet.add(label);
-      navHrefs.add(href);
-    }
-    for (const anchor of captures(/<a\b[^>]*>([\s\S]*?)<\/a>/gi, block)) {
-      const label = clean(anchor);
-      if (label) navSet.add(label);
+      navHrefs.add(a.href);
     }
   }
 
-  // Every same-origin link with its anchor text.
   const base = new URL(url);
-  const byHref = new Map<string, ParsedLink>();
-  for (const [rawHref, inner] of anchorPairs(body)) {
-    const raw = rawHref.split("#")[0]?.trim();
+  const byKey = new Map<string, ParsedLink>();
+
+  for (const a of anchorRecords(body)) {
+    const scheme = schemeOf(a.href);
+    if (!scheme) continue;
+    const label = clean(a.inner);
+
+    if (scheme === "tel" || scheme === "mailto") {
+      const key = `${scheme}:${a.href.trim()}`;
+      const existing = byKey.get(key);
+      if (!existing) {
+        byKey.set(key, {
+          href: a.href.trim(),
+          label,
+          ariaLabel: a.ariaLabel,
+          title: a.title,
+          scheme,
+          inNav: navHrefs.has(a.href),
+        });
+      } else if (!existing.label && label) {
+        existing.label = label;
+      }
+      continue;
+    }
+
+    // http(s) — same-origin only, fragment stripped
+    const raw = a.href.split("#")[0]?.trim();
     if (!raw) continue;
     let resolved: URL;
     try {
@@ -118,20 +199,27 @@ export function parseHtml(html: string, url: string): ParsedPage {
     }
     if (resolved.origin !== base.origin || !/^https?:$/.test(resolved.protocol)) continue;
     const key = resolved.toString();
-    const label = clean(inner);
-    const inNav = navHrefs.has(rawHref);
-    const existing = byHref.get(key);
+    const existing = byKey.get(key);
     if (!existing) {
-      byHref.set(key, { href: key, label, inNav });
+      byKey.set(key, {
+        href: key,
+        label,
+        ariaLabel: a.ariaLabel,
+        title: a.title,
+        scheme: "http",
+        inNav: navHrefs.has(a.href),
+      });
     } else {
       if (!existing.label && label) existing.label = label;
-      if (inNav) existing.inNav = true;
+      if (!existing.ariaLabel && a.ariaLabel) existing.ariaLabel = a.ariaLabel;
+      if (!existing.title && a.title) existing.title = a.title;
+      if (navHrefs.has(a.href)) existing.inNav = true;
     }
   }
 
   const text = clean(body);
   const wordCount = text ? text.split(/\s+/).length : 0;
-  const links = [...byHref.values()];
+  const links = [...byKey.values()];
 
   return {
     page: {
@@ -141,9 +229,10 @@ export function parseHtml(html: string, url: string): ParsedPage {
       headings,
       textExcerpt: text.slice(0, TEXT_EXCERPT_LENGTH),
       wordCount,
+      forms: parseForms(body),
     },
     nav: [...navSet],
     links,
-    sameOriginLinks: links.map((l) => l.href),
+    sameOriginLinks: links.filter((l) => l.scheme === "http").map((l) => l.href),
   };
 }

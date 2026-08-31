@@ -55,23 +55,42 @@ export type Coverage = z.infer<typeof CoverageSchema>;
 // ---------------------------------------------------------------------------
 // Website evidence (provenance preserved, no unsupported claims)
 // ---------------------------------------------------------------------------
+/** A <form> discovered on a page: how it submits and whether it has a submit control. */
+export const EvidenceFormSchema = z.object({
+  /** Raw `action` attribute (may be relative, absolute, "#", or ""). */
+  action: z.string().default(""),
+  /** Uppercased method; defaults to GET per the HTML spec. */
+  method: z.enum(["GET", "POST"]).default("GET"),
+  hasSubmit: z.boolean().default(false),
+});
+export type EvidenceForm = z.infer<typeof EvidenceFormSchema>;
+
 export const EvidencePageSchema = z.object({
   url: z.string().url(),
+  /** HTTP status the crawler received for this page. */
+  status: z.number().int().default(200),
   title: z.string().default(""),
   h1s: z.array(z.string()).default([]),
   headings: z.array(z.string()).default([]),
   /** Short excerpt kept for provenance, not for analysis. */
   textExcerpt: z.string().default(""),
   wordCount: z.number().int().nonnegative().default(0),
+  forms: z.array(EvidenceFormSchema).default([]),
 });
 export type EvidencePage = z.infer<typeof EvidencePageSchema>;
 
-/** A same-origin link discovered while crawling: its href and its anchor text. */
+/** A link discovered while crawling: its href, anchor text, and where it was seen. */
 export const EvidenceLinkSchema = z.object({
   href: z.string().min(1),
   label: z.string().default(""),
+  /** http (same-origin page link), or a tel:/mailto: contact link. */
+  scheme: z.enum(["http", "tel", "mailto"]).default("http"),
+  ariaLabel: z.string().default(""),
+  title: z.string().default(""),
   /** True when this link appeared inside a <nav> / role="navigation" region. */
   inNav: z.boolean().default(false),
+  /** URLs of the crawled pages this link appeared on. */
+  foundOn: z.array(z.string()).default([]),
 });
 export type EvidenceLink = z.infer<typeof EvidenceLinkSchema>;
 
@@ -94,8 +113,35 @@ export type EvidenceBundle = z.infer<typeof EvidenceBundleSchema>;
 // ---------------------------------------------------------------------------
 // Rule output (deterministic candidates, pre-AI)
 // ---------------------------------------------------------------------------
-export const RuleIdSchema = z.enum(["missing-service-page"]);
+export const RuleIdSchema = z.enum(["missing-service-page", "broken-conversion-path"]);
 export type RuleId = z.infer<typeof RuleIdSchema>;
+
+/**
+ * Deterministic record of a broken conversion element. Every field is something
+ * literally observed — never inferred from an aesthetic opinion.
+ */
+export const ConversionDefectSchema = z.object({
+  kind: z.enum([
+    "dead-conversion-link",
+    "conversion-page-error",
+    "malformed-tel",
+    "broken-form-target",
+  ]),
+  /** The crawled page the broken element sits on (first occurrence). */
+  pageUrl: z.string().min(1),
+  /** Visible text / aria-label of the element. */
+  elementText: z.string().default(""),
+  /** The raw href / action of the element. */
+  elementHref: z.string().default(""),
+  /** The URL that was probed (for link/form defects), if any. */
+  target: z.string().optional(),
+  /** HTTP status observed for `target`, if probed. */
+  observedStatus: z.number().int().optional(),
+  /** All crawled pages the element appeared on. */
+  seenOn: z.array(z.string()).default([]),
+  note: z.string().default(""),
+});
+export type ConversionDefect = z.infer<typeof ConversionDefectSchema>;
 
 /**
  * Deterministic record of the targeted "does a page for this offering already
@@ -149,6 +195,7 @@ export const CandidateSchema = z.object({
   rawConfidence: z.number().min(0).max(1),
   suggestedServiceId: z.string().min(1),
   verification: VerificationSchema.optional(),
+  conversionDefect: ConversionDefectSchema.optional(),
 });
 export type Candidate = z.infer<typeof CandidateSchema>;
 
@@ -191,6 +238,7 @@ export const OpportunitySchema = z.object({
   suggestedServiceId: z.string().min(1),
   suggestedScope: z.array(z.string()).default([]),
   verification: VerificationSchema.optional(),
+  conversionDefect: ConversionDefectSchema.optional(),
   priceMin: z.number().nonnegative(),
   priceMax: z.number().nonnegative(),
   confidence: z.number().min(0).max(1),

@@ -29,6 +29,24 @@ export class MockEvaluator implements OpportunityEvaluator {
       });
     }
 
+    if (candidate.ruleId === "broken-conversion-path" && candidate.conversionDefect) {
+      const d = candidate.conversionDefect;
+      return Promise.resolve({
+        verdict: "surface",
+        confidence: Math.min(0.9, Number((candidate.rawConfidence + 0.05).toFixed(2))),
+        rationale:
+          `${d.note} on ${d.pageUrl}. This sits directly on the path a visitor ` +
+          `takes to become a lead, so every affected visit is a lost enquiry ` +
+          `until it is fixed. The defect is specific and reproducible.`,
+        suggestedScope: [
+          `Reproduce and confirm the broken element (${d.elementHref || d.target})`,
+          `Repair the ${d.kind.replace(/-/g, " ")} and point it at the correct working target`,
+          `Test the full conversion path end to end (click → destination → submit → confirmation)`,
+          `Check the rest of the site for the same broken element and fix consistently`,
+        ],
+      });
+    }
+
     return Promise.resolve({
       verdict: "reject",
       confidence: 0,

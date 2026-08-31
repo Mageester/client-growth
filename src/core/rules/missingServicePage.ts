@@ -1,19 +1,10 @@
-import type { Candidate, Client, EvidenceBundle, Service } from "@/core/schema";
+import type { Candidate } from "@/core/schema";
 import { significantTokens } from "@/core/text";
-import { verifyOfferingAbsence, type PageFetcher } from "@/core/absenceVerification";
+import { verifyOfferingAbsence } from "@/core/absenceVerification";
+import type { RuleContext } from "@/core/rules/context";
 
 /** Agency services tagged like this are what this rule proposes. */
 const LANDING_PAGE_TAG = "landing-page";
-
-export interface RuleContext {
-  client: Client;
-  catalog: Service[];
-  evidence: EvidenceBundle;
-  /** Optional: pull one specific page during targeted absence verification. */
-  fetchPage?: PageFetcher;
-  /** Shared fetch budget across all offerings in one analysis run. */
-  verifyBudget?: { remaining: number };
-}
 
 /**
  * missing-service-page
@@ -22,14 +13,15 @@ export interface RuleContext {
  *
  * Discovery starts from the bounded crawl, but a small page set is NOT proof of
  * absence. Each offering that is not obviously present goes through a targeted
- * verification pass (see absenceVerification.ts): crawled pages, nav labels,
- * every discovered link (label + href), and sitemap URLs are searched with
- * normalized/singularized matching, and a plausible existing page is fetched to
- * confirm. Only offerings that survive verification become candidates, and the
- * verification record is attached for audit.
+ * verification pass (see absenceVerification.ts). Runs only when the crawl
+ * demonstrably reached the site's service section (ctx.coverage.analyzable).
  */
 export async function missingServicePageRule(ctx: RuleContext): Promise<Candidate[]> {
   const { client, catalog, evidence } = ctx;
+
+  // Crawl service-coverage gate: if we did not demonstrably reach the service
+  // portion of the site, claim nothing missing.
+  if (ctx.coverage && !ctx.coverage.analyzable) return [];
 
   const service = catalog.find(
     (s) => s.active && s.tags.includes(LANDING_PAGE_TAG),
