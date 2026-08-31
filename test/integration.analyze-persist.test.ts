@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { nodeSqliteDb, type NodeSqliteDb } from "@/db/nodeSqlite";
 import * as repo from "@/db/repositories";
+import { createWorkspaceForOwner } from "@/db/workspaces";
+import type { TenantScope } from "@/db/tenant";
 import { analyzeClient } from "@/pipeline/analyzeClient";
 import { FixtureEvidenceProvider } from "@/adapters/evidence/FixtureEvidenceProvider";
 import { MockEvaluator } from "@/adapters/evaluator/MockEvaluator";
@@ -9,33 +11,36 @@ import { generateProposalDraft } from "@/core/proposal";
 import { hvacCatalog, hvacClient, hvacEvidence } from "./helpers/fixtures";
 
 let db: NodeSqliteDb;
+let t: TenantScope;
 
 const NOW = new Date("2026-08-30T00:00:00.000Z");
 
 async function seed() {
-  for (const s of hvacCatalog()) await repo.upsertService(db, s);
-  await repo.upsertClient(db, hvacClient());
+  for (const s of hvacCatalog()) await repo.upsertService(t, s);
+  await repo.upsertClient(t, hvacClient());
 }
 
 async function analyzeAndPersist() {
-  const client = (await repo.getClient(db, "client-coolbreeze"))!;
+  const client = (await repo.getClient(t, "client-coolbreeze"))!;
   const result = await analyzeClient({
     client,
-    catalog: await repo.listServices(db),
-    coverage: await repo.listCoverage(db, client.id),
-    existing: await repo.listOpportunities(db, client.id),
+    catalog: await repo.listServices(t),
+    coverage: await repo.listCoverage(t, client.id),
+    existing: await repo.listOpportunities(t, client.id),
     evidenceProvider: new FixtureEvidenceProvider([hvacEvidence()]),
     evaluator: new MockEvaluator(),
     now: NOW,
   });
-  await repo.saveEvidence(db, result.evidence);
-  await repo.saveAnalysis(db, [...result.opportunities, ...result.suppressed]);
+  await repo.saveEvidence(t, result.evidence);
+  await repo.saveAnalysis(t, [...result.opportunities, ...result.suppressed]);
   return result;
 }
 
 beforeEach(async () => {
   db = nodeSqliteDb(":memory:");
   await repo.applySchema(db);
+  await createWorkspaceForOwner(db, { id: "ws_test", name: "Test", ownerUserId: "u1" });
+  t = { db, workspaceId: "ws_test" };
   await seed();
 });
 
@@ -44,7 +49,7 @@ afterEach(() => db.close());
 describe("analyze -> persist -> decide -> re-analyze", () => {
   it("persists the surfaced opportunity", async () => {
     await analyzeAndPersist();
-    const stored = await repo.listOpportunities(db, "client-coolbreeze");
+    const stored = await repo.listOpportunities(t, "client-coolbreeze");
     expect(stored).toHaveLength(1);
     expect(stored[0]?.suggestedServiceId).toBe("svc-landing-page");
     expect(stored[0]?.status).toBe("new");
@@ -54,14 +59,14 @@ describe("analyze -> persist -> decide -> re-analyze", () => {
     const first = await analyzeAndPersist();
     const id = first.opportunities[0]!.id;
 
-    await repo.setOpportunityStatus(db, id, "dismissed");
+    await repo.setOpportunityStatus(t, id, "dismissed");
 
     const second = await analyzeAndPersist();
     expect(second.opportunities).toHaveLength(0);
     expect(second.stats.suppressedByPriorDecision).toBe(1);
     expect(second.stats.aiCalls).toBe(0);
 
-    const stored = await repo.listOpportunities(db, "client-coolbreeze");
+    const stored = await repo.listOpportunities(t, "client-coolbreeze");
     expect(stored).toHaveLength(1);
     expect(stored[0]?.status).toBe("dismissed");
   });
@@ -69,15 +74,15 @@ describe("analyze -> persist -> decide -> re-analyze", () => {
   it("keeps a prepared proposal across a re-run", async () => {
     const first = await analyzeAndPersist();
     const opp = first.opportunities[0]!;
-    const client = (await repo.getClient(db, "client-coolbreeze"))!;
-    const service = (await repo.getService(db, opp.suggestedServiceId))!;
+    const client = (await repo.getClient(t, "client-coolbreeze"))!;
+    const service = (await repo.getService(t, opp.suggestedServiceId))!;
 
     const draft = generateProposalDraft({ opportunity: opp, client, service });
-    await repo.setOpportunityProposal(db, opp.id, draft);
+    await repo.setOpportunityProposal(t, opp.id, draft);
 
     await analyzeAndPersist();
 
-    const stored = (await repo.getOpportunity(db, opp.id))!;
+    const stored = (await repo.getOpportunity(t, opp.id))!;
     expect(stored.status).toBe("proposal_prepared");
     expect(stored.proposalMd).toContain("# Proposal:");
     expect(stored.proposalMd).toContain("$900");
@@ -85,14 +90,14 @@ describe("analyze -> persist -> decide -> re-analyze", () => {
 
   it("re-analysis after coverage is added moves it to already-covered and stops billing it", async () => {
     await analyzeAndPersist();
-    await repo.setCoverage(db, "client-coolbreeze", "svc-landing-page", "now in retainer");
+    await repo.setCoverage(t, "client-coolbreeze", "svc-landing-page", "now in retainer");
 
     const result = await analyzeAndPersist();
     expect(result.opportunities).toHaveLength(0);
     expect(result.stats.suppressedByCoverage).toBe(1);
     expect(result.stats.aiCalls).toBe(0);
 
-    const stored = await repo.listOpportunities(db, "client-coolbreeze");
+    const stored = await repo.listOpportunities(t, "client-coolbreeze");
     expect(stored[0]?.billableStatus).toBe("already_covered");
     expect(stored[0]?.status).toBe("already_covered");
   });

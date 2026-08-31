@@ -1,0 +1,93 @@
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+import Database from "better-sqlite3";
+import { betterAuth } from "better-auth";
+
+import { buildAuthOptions } from "../../app/lib/authOptions";
+import { SCHEMA_SQL } from "@/db/schema";
+import type { RunResult, SqlDb, SqlStatement, SqlValue } from "@/db/sql";
+
+const migrationsDir = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "migrations");
+
+/** A minimal SqlDb over a better-sqlite3 Database (shared with Better Auth in tests). */
+function sqlDbOver(raw: Database.Database): SqlDb {
+  const stmt = (sql: string, bound: SqlValue[]): SqlStatement => ({
+    bind: (...v: SqlValue[]) => stmt(sql, v),
+    all: <T,>() => Promise.resolve(raw.prepare(sql).all(...(bound as never[])) as T[]),
+    first: <T,>() =>
+      Promise.resolve((raw.prepare(sql).get(...(bound as never[])) ?? null) as T | null),
+    run: (): Promise<RunResult> => {
+      const r = raw.prepare(sql).run(...(bound as never[]));
+      return Promise.resolve({ rowsAffected: Number(r.changes ?? 0) });
+    },
+  });
+  return {
+    exec: (sql: string) => {
+      raw.exec(sql);
+      return Promise.resolve();
+    },
+    prepare: (sql: string) => stmt(sql, []),
+  };
+}
+
+/**
+ * A Better Auth instance + a SqlDb view of the SAME in-memory database, with the
+ * committed auth migration (0004) and the app schema applied — so app repos and
+ * Better Auth share storage in tests.
+ */
+export function makeTestAuth(): {
+  auth: ReturnType<typeof betterAuth>;
+  db: SqlDb;
+  raw: Database.Database;
+} {
+  const raw = new Database(":memory:");
+  raw.pragma("foreign_keys = ON");
+  raw.exec(readFileSync(join(migrationsDir, "0004_better_auth.sql"), "utf8"));
+  raw.exec(SCHEMA_SQL);
+
+  const auth = betterAuth(
+    buildAuthOptions({
+      database: raw as never,
+      secret: "test-secret-".padEnd(48, "x"),
+      baseURL: "http://localhost:8787",
+    }),
+  );
+
+  return { auth, db: sqlDbOver(raw), raw };
+}
+
+export async function signUp(
+  auth: ReturnType<typeof betterAuth>,
+  email: string,
+  password: string,
+  name = "Test",
+): Promise<{ cookie: string; status: number }> {
+  const res = await auth.api.signUpEmail({ body: { email, password, name }, asResponse: true });
+  return { cookie: res.headers.get("set-cookie") ?? "", status: res.status };
+}
+
+export function headers(cookie: string): Headers {
+  return new Headers({ cookie });
+}
+
+/** A Cloudflare-D1-shaped adapter over better-sqlite3, for exercising real routes. */
+export function d1LikeOver(raw: Database.Database): unknown {
+  const mk = (sql: string, bound: unknown[]): unknown => ({
+    bind: (...v: unknown[]) => mk(sql, v),
+    all: async () => ({ results: raw.prepare(sql).all(...(bound as never[])) }),
+    first: async (col?: string) => {
+      const r = raw.prepare(sql).get(...(bound as never[])) as Record<string, unknown> | undefined;
+      if (!r) return null;
+      return col ? (r[col] ?? null) : r;
+    },
+    run: async () => ({ meta: { changes: raw.prepare(sql).run(...(bound as never[])).changes } }),
+  });
+  return {
+    prepare: (sql: string) => mk(sql, []),
+    exec: async (sql: string) => {
+      raw.exec(sql);
+    },
+  };
+}

@@ -2,7 +2,7 @@ import { Form, Link } from "react-router";
 
 import * as repo from "@/db/repositories";
 import { ClientSchema } from "@/core/schema";
-import { getDb } from "../lib/context";
+import { requireTenant } from "../lib/session.server";
 import type { Route } from "./+types/clients._index";
 
 export function meta() {
@@ -18,12 +18,13 @@ function slugId(name: string): string {
   return `client-${base || "unnamed"}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
-export async function loader({ context }: Route.LoaderArgs) {
-  return { clients: await repo.listClients(getDb(context)) };
+export async function loader({ request, context }: Route.LoaderArgs) {
+  const t = await requireTenant(request, context);
+  return { clients: await repo.listClients(t.scope) };
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
-  const db = getDb(context);
+  const t = await requireTenant(request, context);
   const form = await request.formData();
   const name = String(form.get("name") ?? "").trim();
   const domain = String(form.get("domain") ?? "").trim().replace(/^https?:\/\//, "").replace(/\/+$/, "");
@@ -41,7 +42,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     offerings,
     notes: String(form.get("notes") ?? "").trim(),
   });
-  await repo.upsertClient(db, client);
+  await repo.upsertClient(t.scope, client);
   return { ok: true as const, id: client.id };
 }
 

@@ -1,0 +1,81 @@
+import { redirect } from "react-router";
+
+import type { SqlDb } from "@/db/sql";
+import type { TenantScope } from "@/db/tenant";
+import { getWorkspaceForUser, type Workspace } from "@/db/workspaces";
+import { d1Db } from "./d1.server";
+import { getAuth, type AuthEnv } from "./auth.server";
+
+export interface SessionUser {
+  id: string;
+  email: string;
+  name: string;
+}
+export interface AuthedContext {
+  userId: string;
+  user: SessionUser;
+}
+export interface TenantContext extends AuthedContext {
+  db: SqlDb;
+  workspace: Workspace;
+  scope: TenantScope;
+}
+
+type ContextLike = { cloudflare: { env: AuthEnv } };
+
+/** Resolve the signed-in user from the request, or null. Swappable in tests. */
+type Resolver = (request: Request, env: AuthEnv) => Promise<AuthedContext | null>;
+
+async function defaultResolver(request: Request, env: AuthEnv): Promise<AuthedContext | null> {
+  const session = await getAuth(env).api.getSession({ headers: request.headers });
+  if (!session?.user) return null;
+  return {
+    userId: session.user.id,
+    user: {
+      id: session.user.id,
+      email: session.user.email,
+      name: session.user.name ?? "",
+    },
+  };
+}
+
+let resolver: Resolver = defaultResolver;
+
+/** Test hook: replace (or reset with null) the session resolver. */
+export function __setSessionResolver(next: Resolver | null): void {
+  resolver = next ?? defaultResolver;
+}
+
+export async function getSession(
+  request: Request,
+  context: ContextLike,
+): Promise<AuthedContext | null> {
+  return resolver(request, context.cloudflare.env);
+}
+
+/** Signed-in user or a redirect to /login. */
+export async function requireSession(
+  request: Request,
+  context: ContextLike,
+): Promise<AuthedContext> {
+  const authed = await resolver(request, context.cloudflare.env);
+  if (!authed) throw redirect("/login");
+  return authed;
+}
+
+/**
+ * Signed-in user WITH a workspace, plus a workspace-scoped DB handle. No
+ * workspace yet -> redirect to /onboarding. Every protected loader/action must
+ * call this and use `scope` for all repo access.
+ */
+export async function requireTenant(
+  request: Request,
+  context: ContextLike,
+): Promise<TenantContext> {
+  const authed = await requireSession(request, context);
+  const env = context.cloudflare.env;
+  const db = d1Db(env.DB as never);
+  const workspace = await getWorkspaceForUser(db, authed.userId);
+  if (!workspace) throw redirect("/onboarding");
+  return { ...authed, db, workspace, scope: { db, workspaceId: workspace.id } };
+}

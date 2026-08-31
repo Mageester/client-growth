@@ -9,11 +9,16 @@
 
 export type SqlValue = string | number | null;
 
+export interface RunResult {
+  /** Rows inserted/updated/deleted by this statement. */
+  rowsAffected: number;
+}
+
 export interface SqlStatement {
   bind(...values: SqlValue[]): SqlStatement;
   all<T = Record<string, unknown>>(): Promise<T[]>;
   first<T = Record<string, unknown>>(): Promise<T | null>;
-  run(): Promise<void>;
+  run(): Promise<RunResult>;
 }
 
 export interface SqlDb {

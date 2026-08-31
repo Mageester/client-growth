@@ -12,8 +12,9 @@ import {
 } from "@/core/schema";
 import { SCHEMA_SQL } from "@/db/schema";
 import type { SqlDb } from "@/db/sql";
+import { CrossWorkspaceError, existsInWorkspace, type TenantScope } from "@/db/tenant";
 
-/** Apply the canonical schema (idempotent). Used by tests and local seeding. */
+/** Apply the canonical application schema (idempotent). Tests / local seeding. */
 export function applySchema(db: SqlDb): Promise<void> {
   return db.exec(SCHEMA_SQL);
 }
@@ -45,33 +46,45 @@ function toService(row: ServiceRow): Service {
   });
 }
 
-export async function listServices(db: SqlDb): Promise<Service[]> {
-  const rows = await db.prepare("SELECT * FROM services ORDER BY name").all<ServiceRow>();
+export async function listServices(t: TenantScope): Promise<Service[]> {
+  const rows = await t.db
+    .prepare("SELECT * FROM services WHERE workspace_id = ? ORDER BY name")
+    .bind(t.workspaceId)
+    .all<ServiceRow>();
   return rows.map(toService);
 }
 
-export async function getService(db: SqlDb, id: string): Promise<Service | null> {
-  const row = await db.prepare("SELECT * FROM services WHERE id = ?").bind(id).first<ServiceRow>();
+export async function getService(t: TenantScope, id: string): Promise<Service | null> {
+  const row = await t.db
+    .prepare("SELECT * FROM services WHERE id = ? AND workspace_id = ?")
+    .bind(id, t.workspaceId)
+    .first<ServiceRow>();
   return row ? toService(row) : null;
 }
 
-export async function upsertService(db: SqlDb, service: Service): Promise<void> {
+/** Insert or update a service in this workspace. Throws if `id` belongs elsewhere. */
+export async function upsertService(t: TenantScope, service: Service): Promise<void> {
   const s = ServiceSchema.parse(service);
-  await db
+  const owner = await t.db
+    .prepare("SELECT workspace_id FROM services WHERE id = ?")
+    .bind(s.id)
+    .first<{ workspace_id: string }>();
+  if (owner && owner.workspace_id !== t.workspaceId) {
+    throw new CrossWorkspaceError(`service ${s.id} belongs to another workspace`);
+  }
+  await t.db
     .prepare(
-      `INSERT INTO services (id, name, description, price_min, price_max, tags, active, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `INSERT INTO services (id, workspace_id, name, description, price_min, price_max, tags, active, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET
-         name = excluded.name,
-         description = excluded.description,
-         price_min = excluded.price_min,
-         price_max = excluded.price_max,
-         tags = excluded.tags,
-         active = excluded.active,
-         updated_at = excluded.updated_at`,
+         name = excluded.name, description = excluded.description,
+         price_min = excluded.price_min, price_max = excluded.price_max,
+         tags = excluded.tags, active = excluded.active, updated_at = excluded.updated_at
+       WHERE services.workspace_id = ?`,
     )
     .bind(
       s.id,
+      t.workspaceId,
       s.name,
       s.description,
       s.priceMin,
@@ -79,15 +92,21 @@ export async function upsertService(db: SqlDb, service: Service): Promise<void> 
       JSON.stringify(s.tags),
       s.active ? 1 : 0,
       nowIso(),
+      t.workspaceId,
     )
     .run();
 }
 
-export async function setServiceActive(db: SqlDb, id: string, active: boolean): Promise<void> {
-  await db
-    .prepare("UPDATE services SET active = ?, updated_at = ? WHERE id = ?")
-    .bind(active ? 1 : 0, nowIso(), id)
+export async function setServiceActive(
+  t: TenantScope,
+  id: string,
+  active: boolean,
+): Promise<boolean> {
+  const r = await t.db
+    .prepare("UPDATE services SET active = ?, updated_at = ? WHERE id = ? AND workspace_id = ?")
+    .bind(active ? 1 : 0, nowIso(), id, t.workspaceId)
     .run();
+  return r.rowsAffected > 0;
 }
 
 // ---------------------------------------------------------------------------
@@ -111,30 +130,50 @@ function toClient(row: ClientRow): Client {
   });
 }
 
-export async function listClients(db: SqlDb): Promise<Client[]> {
-  const rows = await db.prepare("SELECT * FROM clients ORDER BY name").all<ClientRow>();
+export async function listClients(t: TenantScope): Promise<Client[]> {
+  const rows = await t.db
+    .prepare("SELECT * FROM clients WHERE workspace_id = ? ORDER BY name")
+    .bind(t.workspaceId)
+    .all<ClientRow>();
   return rows.map(toClient);
 }
 
-export async function getClient(db: SqlDb, id: string): Promise<Client | null> {
-  const row = await db.prepare("SELECT * FROM clients WHERE id = ?").bind(id).first<ClientRow>();
+export async function getClient(t: TenantScope, id: string): Promise<Client | null> {
+  const row = await t.db
+    .prepare("SELECT * FROM clients WHERE id = ? AND workspace_id = ?")
+    .bind(id, t.workspaceId)
+    .first<ClientRow>();
   return row ? toClient(row) : null;
 }
 
-export async function upsertClient(db: SqlDb, client: Client): Promise<void> {
+export async function upsertClient(t: TenantScope, client: Client): Promise<void> {
   const c = ClientSchema.parse(client);
-  await db
+  const owner = await t.db
+    .prepare("SELECT workspace_id FROM clients WHERE id = ?")
+    .bind(c.id)
+    .first<{ workspace_id: string }>();
+  if (owner && owner.workspace_id !== t.workspaceId) {
+    throw new CrossWorkspaceError(`client ${c.id} belongs to another workspace`);
+  }
+  await t.db
     .prepare(
-      `INSERT INTO clients (id, name, domain, offerings, notes, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?)
+      `INSERT INTO clients (id, workspace_id, name, domain, offerings, notes, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET
-         name = excluded.name,
-         domain = excluded.domain,
-         offerings = excluded.offerings,
-         notes = excluded.notes,
-         updated_at = excluded.updated_at`,
+         name = excluded.name, domain = excluded.domain, offerings = excluded.offerings,
+         notes = excluded.notes, updated_at = excluded.updated_at
+       WHERE clients.workspace_id = ?`,
     )
-    .bind(c.id, c.name, c.domain, JSON.stringify(c.offerings), c.notes, nowIso())
+    .bind(
+      c.id,
+      t.workspaceId,
+      c.name,
+      c.domain,
+      JSON.stringify(c.offerings),
+      c.notes,
+      nowIso(),
+      t.workspaceId,
+    )
     .run();
 }
 
@@ -147,10 +186,10 @@ interface CoverageRow {
   note: string | null;
 }
 
-export async function listCoverage(db: SqlDb, clientId: string): Promise<Coverage[]> {
-  const rows = await db
-    .prepare("SELECT * FROM client_coverage WHERE client_id = ?")
-    .bind(clientId)
+export async function listCoverage(t: TenantScope, clientId: string): Promise<Coverage[]> {
+  const rows = await t.db
+    .prepare("SELECT * FROM client_coverage WHERE client_id = ? AND workspace_id = ?")
+    .bind(clientId, t.workspaceId)
     .all<CoverageRow>();
   return rows.map((r) =>
     CoverageSchema.parse({
@@ -162,31 +201,38 @@ export async function listCoverage(db: SqlDb, clientId: string): Promise<Coverag
   );
 }
 
+/** Returns false when the client or service is not in this workspace. */
 export async function setCoverage(
-  db: SqlDb,
+  t: TenantScope,
   clientId: string,
   serviceId: string,
   note?: string,
-): Promise<void> {
-  await db
+): Promise<boolean> {
+  if (!(await existsInWorkspace(t, "clients", clientId))) return false;
+  if (!(await existsInWorkspace(t, "services", serviceId))) return false;
+  await t.db
     .prepare(
-      `INSERT INTO client_coverage (client_id, service_id, note)
-       VALUES (?, ?, ?)
+      `INSERT INTO client_coverage (workspace_id, client_id, service_id, note)
+       VALUES (?, ?, ?, ?)
        ON CONFLICT(client_id, service_id) DO UPDATE SET note = excluded.note`,
     )
-    .bind(clientId, serviceId, note ?? null)
+    .bind(t.workspaceId, clientId, serviceId, note ?? null)
     .run();
+  return true;
 }
 
 export async function removeCoverage(
-  db: SqlDb,
+  t: TenantScope,
   clientId: string,
   serviceId: string,
-): Promise<void> {
-  await db
-    .prepare("DELETE FROM client_coverage WHERE client_id = ? AND service_id = ?")
-    .bind(clientId, serviceId)
+): Promise<boolean> {
+  const r = await t.db
+    .prepare(
+      "DELETE FROM client_coverage WHERE client_id = ? AND service_id = ? AND workspace_id = ?",
+    )
+    .bind(clientId, serviceId, t.workspaceId)
     .run();
+  return r.rowsAffected > 0;
 }
 
 // ---------------------------------------------------------------------------
@@ -196,29 +242,32 @@ interface EvidenceRow {
   bundle: string;
 }
 
-export async function saveEvidence(db: SqlDb, bundle: EvidenceBundle): Promise<void> {
+export async function saveEvidence(t: TenantScope, bundle: EvidenceBundle): Promise<void> {
   const b = EvidenceBundleSchema.parse(bundle);
-  await db
+  if (!(await existsInWorkspace(t, "clients", b.clientId))) {
+    throw new CrossWorkspaceError(`evidence for client ${b.clientId} not in this workspace`);
+  }
+  await t.db
     .prepare(
-      `INSERT INTO evidence_bundles (client_id, source, captured_at, bundle)
-       VALUES (?, ?, ?, ?)`,
+      `INSERT INTO evidence_bundles (workspace_id, client_id, source, captured_at, bundle)
+       VALUES (?, ?, ?, ?, ?)`,
     )
-    .bind(b.clientId, b.source, b.capturedAt, JSON.stringify(b))
+    .bind(t.workspaceId, b.clientId, b.source, b.capturedAt, JSON.stringify(b))
     .run();
 }
 
 export async function getLatestEvidence(
-  db: SqlDb,
+  t: TenantScope,
   clientId: string,
 ): Promise<EvidenceBundle | null> {
-  const row = await db
+  const row = await t.db
     .prepare(
       `SELECT bundle FROM evidence_bundles
-       WHERE client_id = ?
+       WHERE client_id = ? AND workspace_id = ?
        ORDER BY captured_at DESC, id DESC
        LIMIT 1`,
     )
-    .bind(clientId)
+    .bind(clientId, t.workspaceId)
     .first<EvidenceRow>();
   return row ? EvidenceBundleSchema.parse(JSON.parse(row.bundle)) : null;
 }
@@ -274,44 +323,52 @@ function toOpportunity(row: OpportunityRow): Opportunity {
   });
 }
 
-export async function listOpportunities(db: SqlDb, clientId: string): Promise<Opportunity[]> {
-  const rows = await db
-    .prepare("SELECT * FROM opportunities WHERE client_id = ? ORDER BY confidence DESC, title")
-    .bind(clientId)
+export async function listOpportunities(
+  t: TenantScope,
+  clientId: string,
+): Promise<Opportunity[]> {
+  const rows = await t.db
+    .prepare(
+      "SELECT * FROM opportunities WHERE client_id = ? AND workspace_id = ? ORDER BY confidence DESC, title",
+    )
+    .bind(clientId, t.workspaceId)
     .all<OpportunityRow>();
   return rows.map(toOpportunity);
 }
 
-async function upsertOpportunity(db: SqlDb, opp: Opportunity): Promise<void> {
+export async function getOpportunity(t: TenantScope, id: string): Promise<Opportunity | null> {
+  const row = await t.db
+    .prepare("SELECT * FROM opportunities WHERE id = ? AND workspace_id = ?")
+    .bind(id, t.workspaceId)
+    .first<OpportunityRow>();
+  return row ? toOpportunity(row) : null;
+}
+
+async function upsertOpportunity(t: TenantScope, opp: Opportunity): Promise<void> {
   const o = OpportunitySchema.parse(opp);
-  await db
+  await t.db
     .prepare(
       `INSERT INTO opportunities (
-         id, dedupe_key, client_id, rule_id, title, detected, evidence_refs, rationale,
+         id, workspace_id, dedupe_key, client_id, rule_id, title, detected, evidence_refs, rationale,
          suggested_service_id, suggested_scope, price_min, price_max, confidence,
          billable_status, status, snooze_until, proposal_md, verification,
          conversion_defect, updated_at
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(client_id, dedupe_key) DO UPDATE SET
-         title = excluded.title,
-         detected = excluded.detected,
-         evidence_refs = excluded.evidence_refs,
-         rationale = excluded.rationale,
+         title = excluded.title, detected = excluded.detected,
+         evidence_refs = excluded.evidence_refs, rationale = excluded.rationale,
          suggested_service_id = excluded.suggested_service_id,
          suggested_scope = excluded.suggested_scope,
-         price_min = excluded.price_min,
-         price_max = excluded.price_max,
-         confidence = excluded.confidence,
-         billable_status = excluded.billable_status,
-         status = excluded.status,
-         snooze_until = excluded.snooze_until,
-         proposal_md = excluded.proposal_md,
-         verification = excluded.verification,
-         conversion_defect = excluded.conversion_defect,
-         updated_at = excluded.updated_at`,
+         price_min = excluded.price_min, price_max = excluded.price_max,
+         confidence = excluded.confidence, billable_status = excluded.billable_status,
+         status = excluded.status, snooze_until = excluded.snooze_until,
+         proposal_md = excluded.proposal_md, verification = excluded.verification,
+         conversion_defect = excluded.conversion_defect, updated_at = excluded.updated_at
+       WHERE opportunities.workspace_id = ?`,
     )
     .bind(
       o.id,
+      t.workspaceId,
       o.dedupeKey,
       o.clientId,
       o.ruleId,
@@ -331,53 +388,55 @@ async function upsertOpportunity(db: SqlDb, opp: Opportunity): Promise<void> {
       o.verification ? JSON.stringify(o.verification) : null,
       o.conversionDefect ? JSON.stringify(o.conversionDefect) : null,
       o.updatedAt,
+      t.workspaceId,
     )
     .run();
 }
 
 /**
- * Persist the reconciled output of a pipeline run. Rows the run did not touch
- * are left untouched (so decisions on stale candidates are preserved). The
- * pipeline has already merged prior status/proposal into these rows.
+ * Persist the reconciled output of a pipeline run into this workspace. Rejects
+ * the whole batch if any row references a client/service outside the workspace
+ * (defence in depth on top of the composite foreign keys).
  */
-export async function saveAnalysis(
-  db: SqlDb,
-  rows: Opportunity[],
-): Promise<void> {
+export async function saveAnalysis(t: TenantScope, rows: Opportunity[]): Promise<void> {
   for (const row of rows) {
-    await upsertOpportunity(db, row);
+    if (!(await existsInWorkspace(t, "clients", row.clientId))) {
+      throw new CrossWorkspaceError(`opportunity for client ${row.clientId} not in this workspace`);
+    }
+    if (!(await existsInWorkspace(t, "services", row.suggestedServiceId))) {
+      throw new CrossWorkspaceError(
+        `opportunity maps to service ${row.suggestedServiceId} not in this workspace`,
+      );
+    }
   }
+  for (const row of rows) await upsertOpportunity(t, row);
 }
 
 export async function setOpportunityStatus(
-  db: SqlDb,
+  t: TenantScope,
   id: string,
   status: Opportunity["status"],
   snoozeUntil?: string,
-): Promise<void> {
-  await db
-    .prepare("UPDATE opportunities SET status = ?, snooze_until = ?, updated_at = ? WHERE id = ?")
-    .bind(status, snoozeUntil ?? null, nowIso(), id)
+): Promise<boolean> {
+  const r = await t.db
+    .prepare(
+      "UPDATE opportunities SET status = ?, snooze_until = ?, updated_at = ? WHERE id = ? AND workspace_id = ?",
+    )
+    .bind(status, snoozeUntil ?? null, nowIso(), id, t.workspaceId)
     .run();
+  return r.rowsAffected > 0;
 }
 
 export async function setOpportunityProposal(
-  db: SqlDb,
+  t: TenantScope,
   id: string,
   proposalMd: string,
-): Promise<void> {
-  await db
+): Promise<boolean> {
+  const r = await t.db
     .prepare(
-      "UPDATE opportunities SET proposal_md = ?, status = 'proposal_prepared', updated_at = ? WHERE id = ?",
+      "UPDATE opportunities SET proposal_md = ?, status = 'proposal_prepared', updated_at = ? WHERE id = ? AND workspace_id = ?",
     )
-    .bind(proposalMd, nowIso(), id)
+    .bind(proposalMd, nowIso(), id, t.workspaceId)
     .run();
-}
-
-export async function getOpportunity(db: SqlDb, id: string): Promise<Opportunity | null> {
-  const row = await db
-    .prepare("SELECT * FROM opportunities WHERE id = ?")
-    .bind(id)
-    .first<OpportunityRow>();
-  return row ? toOpportunity(row) : null;
+  return r.rowsAffected > 0;
 }

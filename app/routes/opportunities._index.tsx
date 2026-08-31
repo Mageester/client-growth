@@ -2,7 +2,7 @@ import { Form, Link, useSearchParams } from "react-router";
 
 import * as repo from "@/db/repositories";
 import type { Opportunity } from "@/core/schema";
-import { getDb, rawEnv } from "../lib/context";
+import { requireTenant } from "../lib/session.server";
 import { runAnalysis } from "../lib/analysis.server";
 import type { Route } from "./+types/opportunities._index";
 
@@ -17,28 +17,29 @@ function isActive(o: Opportunity): boolean {
   );
 }
 
-export async function loader({ context }: Route.LoaderArgs) {
-  const db = getDb(context);
+export async function loader({ request, context }: Route.LoaderArgs) {
+  const t = await requireTenant(request, context);
   const [clients, services] = await Promise.all([
-    repo.listClients(db),
-    repo.listServices(db),
+    repo.listClients(t.scope),
+    repo.listServices(t.scope),
   ]);
   const serviceName = Object.fromEntries(services.map((s) => [s.id, s.name]));
   const groups = await Promise.all(
     clients.map(async (client) => ({
       client,
-      opportunities: await repo.listOpportunities(db, client.id),
+      opportunities: await repo.listOpportunities(t.scope, client.id),
     })),
   );
   return { groups, serviceName };
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
+  const t = await requireTenant(request, context);
   const form = await request.formData();
   const clientId = String(form.get("clientId") ?? "");
   if (!clientId) return { ok: false as const, error: "Missing client" };
   try {
-    const result = await runAnalysis(getDb(context), rawEnv(context), clientId);
+    const result = await runAnalysis(t.scope, context.cloudflare.env as never, clientId);
     return {
       ok: true as const,
       clientId,

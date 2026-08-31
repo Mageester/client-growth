@@ -1,4 +1,4 @@
-import type { SqlDb, SqlStatement, SqlValue } from "@/db/sql";
+import type { RunResult, SqlDb, SqlStatement, SqlValue } from "@/db/sql";
 
 /**
  * Cloudflare D1 implementation of SqlDb. The repositories never import this
@@ -9,7 +9,7 @@ interface D1PreparedStatementLike {
   bind(...values: unknown[]): D1PreparedStatementLike;
   all<T>(): Promise<{ results?: T[] }>;
   first<T>(): Promise<T | null>;
-  run(): Promise<unknown>;
+  run(): Promise<{ meta?: { changes?: number; rows_written?: number } }>;
 }
 
 interface D1DatabaseLike {
@@ -29,8 +29,9 @@ function wrap(stmt: D1PreparedStatementLike): SqlStatement {
     async first<T>(): Promise<T | null> {
       return (await stmt.first<T>()) ?? null;
     },
-    async run(): Promise<void> {
-      await stmt.run();
+    async run(): Promise<RunResult> {
+      const r = await stmt.run();
+      return { rowsAffected: r.meta?.changes ?? r.meta?.rows_written ?? 0 };
     },
   };
 }

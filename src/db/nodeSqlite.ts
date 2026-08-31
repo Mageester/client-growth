@@ -1,6 +1,6 @@
 import { DatabaseSync } from "node:sqlite";
 
-import type { SqlDb, SqlStatement, SqlValue } from "@/db/sql";
+import type { RunResult, SqlDb, SqlStatement, SqlValue } from "@/db/sql";
 
 /**
  * node:sqlite implementation of SqlDb for tests and local seeding. Not used at
@@ -24,9 +24,9 @@ function statement(db: DatabaseSync, sql: string, bound: SqlValue[]): SqlStateme
       const row = db.prepare(sql).get(...bound);
       return Promise.resolve((row ?? null) as T | null);
     },
-    run(): Promise<void> {
-      db.prepare(sql).run(...bound);
-      return Promise.resolve();
+    run(): Promise<RunResult> {
+      const r = db.prepare(sql).run(...bound);
+      return Promise.resolve({ rowsAffected: Number(r.changes ?? 0) });
     },
   };
 }

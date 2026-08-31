@@ -2,43 +2,43 @@ import { Form, Link, redirect } from "react-router";
 
 import * as repo from "@/db/repositories";
 import { generateProposalDraft } from "@/core/proposal";
-import { getDb } from "../lib/context";
+import { requireTenant } from "../lib/session.server";
 import type { Route } from "./+types/opportunities.$id";
 
 export function meta({ data }: Route.MetaArgs) {
   return [{ title: data ? `${data.opportunity.title} · Client Growth` : "Opportunity" }];
 }
 
-export async function loader({ params, context }: Route.LoaderArgs) {
-  const db = getDb(context);
-  const opportunity = await repo.getOpportunity(db, params.id);
+export async function loader({ params, request, context }: Route.LoaderArgs) {
+  const t = await requireTenant(request, context);
+  const opportunity = await repo.getOpportunity(t.scope, params.id);
   if (!opportunity) throw new Response("Opportunity not found", { status: 404 });
   const [client, service, evidence] = await Promise.all([
-    repo.getClient(db, opportunity.clientId),
-    repo.getService(db, opportunity.suggestedServiceId),
-    repo.getLatestEvidence(db, opportunity.clientId),
+    repo.getClient(t.scope, opportunity.clientId),
+    repo.getService(t.scope, opportunity.suggestedServiceId),
+    repo.getLatestEvidence(t.scope, opportunity.clientId),
   ]);
   return { opportunity, client, service, capturedAt: evidence?.capturedAt ?? null };
 }
 
 export async function action({ params, request, context }: Route.ActionArgs) {
-  const db = getDb(context);
+  const t = await requireTenant(request, context);
   const form = await request.formData();
   const intent = String(form.get("intent") ?? "");
-  const opp = await repo.getOpportunity(db, params.id);
+  const opp = await repo.getOpportunity(t.scope, params.id);
   if (!opp) throw new Response("Opportunity not found", { status: 404 });
 
   switch (intent) {
     case "dismiss":
-      await repo.setOpportunityStatus(db, opp.id, "dismissed");
+      await repo.setOpportunityStatus(t.scope, opp.id, "dismissed");
       break;
     case "reopen":
-      await repo.setOpportunityStatus(db, opp.id, "new");
+      await repo.setOpportunityStatus(t.scope, opp.id, "new");
       break;
     case "cover":
-      await repo.setOpportunityStatus(db, opp.id, "already_covered");
+      await repo.setOpportunityStatus(t.scope, opp.id, "already_covered");
       await repo.setCoverage(
-        db,
+        t.scope,
         opp.clientId,
         opp.suggestedServiceId,
         "Marked covered from opportunity review",
@@ -47,22 +47,22 @@ export async function action({ params, request, context }: Route.ActionArgs) {
     case "snooze": {
       const days = Math.max(1, Number(form.get("days") ?? 30));
       const until = new Date(Date.now() + days * 86_400_000).toISOString();
-      await repo.setOpportunityStatus(db, opp.id, "snoozed", until);
+      await repo.setOpportunityStatus(t.scope, opp.id, "snoozed", until);
       break;
     }
     case "prepare-proposal": {
       const [client, service] = await Promise.all([
-        repo.getClient(db, opp.clientId),
-        repo.getService(db, opp.suggestedServiceId),
+        repo.getClient(t.scope, opp.clientId),
+        repo.getService(t.scope, opp.suggestedServiceId),
       ]);
       if (!client || !service) throw new Response("Client or service missing", { status: 409 });
       const draft = generateProposalDraft({ opportunity: opp, client, service });
-      await repo.setOpportunityProposal(db, opp.id, draft);
+      await repo.setOpportunityProposal(t.scope, opp.id, draft);
       break;
     }
     case "save-proposal": {
       const body = String(form.get("proposalMd") ?? "").trim();
-      if (body) await repo.setOpportunityProposal(db, opp.id, body);
+      if (body) await repo.setOpportunityProposal(t.scope, opp.id, body);
       break;
     }
     default:

@@ -10,6 +10,10 @@ import { createRequestHandler, type ServerBuild } from "react-router";
 declare global {
   interface CloudflareEnvironment {
     DB: D1Database;
+    /** Better Auth: signing secret (>= 32 chars). `wrangler secret put`. */
+    BETTER_AUTH_SECRET?: string;
+    /** Better Auth: explicit trusted base URL (never derived from Host/Origin). */
+    BETTER_AUTH_URL?: string;
     AI_PROVIDER?: string;
     DEEPSEEK_API_KEY?: string;
     DEEPSEEK_BASE_URL?: string;

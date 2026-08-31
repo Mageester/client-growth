@@ -1,11 +1,32 @@
 /**
- * Canonical schema string. Applied verbatim by the node:sqlite adapter (tests,
- * local seed) and mirrored by migrations/0001_init.sql for `wrangler d1
- * migrations apply`. test/db.schema-parity.test.ts keeps the two in lockstep.
+ * Canonical **application** schema (tenant + workspace tables). Applied verbatim
+ * by the node:sqlite adapter in tests and by the local seed. The migration files
+ * (0001..0006) must converge on this exact shape — test/db.schema-parity.test.ts
+ * compares table columns AND foreign keys.
+ *
+ * The Better Auth tables (user / session / account / verification / rateLimit)
+ * are NOT here: they are generated from the pinned better-auth version into
+ * migrations/0004_better_auth.sql and covered by test/auth.schema.test.ts.
  */
 export const SCHEMA_SQL = `
+CREATE TABLE IF NOT EXISTS workspaces (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  owner_user_id TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS workspace_members (
+  workspace_id TEXT NOT NULL REFERENCES workspaces (id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'owner',
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (workspace_id, user_id)
+);
+
 CREATE TABLE IF NOT EXISTS services (
   id TEXT PRIMARY KEY,
+  workspace_id TEXT NOT NULL REFERENCES workspaces (id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   description TEXT NOT NULL DEFAULT '',
   price_min REAL NOT NULL,
@@ -15,8 +36,12 @@ CREATE TABLE IF NOT EXISTS services (
   updated_at TEXT NOT NULL
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS services_ws_id ON services (workspace_id, id);
+CREATE INDEX IF NOT EXISTS idx_services_ws ON services (workspace_id);
+
 CREATE TABLE IF NOT EXISTS clients (
   id TEXT PRIMARY KEY,
+  workspace_id TEXT NOT NULL REFERENCES workspaces (id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   domain TEXT NOT NULL,
   offerings TEXT NOT NULL DEFAULT '[]',
@@ -24,25 +49,36 @@ CREATE TABLE IF NOT EXISTS clients (
   updated_at TEXT NOT NULL
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS clients_ws_id ON clients (workspace_id, id);
+CREATE INDEX IF NOT EXISTS idx_clients_ws ON clients (workspace_id);
+
 CREATE TABLE IF NOT EXISTS client_coverage (
+  workspace_id TEXT NOT NULL,
   client_id TEXT NOT NULL,
   service_id TEXT NOT NULL,
   note TEXT,
-  PRIMARY KEY (client_id, service_id)
+  PRIMARY KEY (client_id, service_id),
+  FOREIGN KEY (workspace_id, client_id) REFERENCES clients (workspace_id, id) ON DELETE CASCADE,
+  FOREIGN KEY (workspace_id, service_id) REFERENCES services (workspace_id, id) ON DELETE CASCADE
 );
+
+CREATE INDEX IF NOT EXISTS idx_client_coverage_ws ON client_coverage (workspace_id);
 
 CREATE TABLE IF NOT EXISTS evidence_bundles (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
+  workspace_id TEXT NOT NULL,
   client_id TEXT NOT NULL,
   source TEXT NOT NULL,
   captured_at TEXT NOT NULL,
-  bundle TEXT NOT NULL
+  bundle TEXT NOT NULL,
+  FOREIGN KEY (workspace_id, client_id) REFERENCES clients (workspace_id, id) ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_evidence_client ON evidence_bundles (client_id, captured_at DESC);
+CREATE INDEX IF NOT EXISTS idx_evidence_ws ON evidence_bundles (workspace_id, client_id, captured_at DESC);
 
 CREATE TABLE IF NOT EXISTS opportunities (
   id TEXT PRIMARY KEY,
+  workspace_id TEXT NOT NULL,
   dedupe_key TEXT NOT NULL,
   client_id TEXT NOT NULL,
   rule_id TEXT NOT NULL,
@@ -62,8 +98,9 @@ CREATE TABLE IF NOT EXISTS opportunities (
   verification TEXT,
   conversion_defect TEXT,
   updated_at TEXT NOT NULL,
-  UNIQUE (client_id, dedupe_key)
+  UNIQUE (client_id, dedupe_key),
+  FOREIGN KEY (workspace_id, client_id) REFERENCES clients (workspace_id, id) ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_opp_client ON opportunities (client_id);
+CREATE INDEX IF NOT EXISTS idx_opp_ws ON opportunities (workspace_id, client_id);
 `;

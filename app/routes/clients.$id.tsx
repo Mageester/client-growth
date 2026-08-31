@@ -2,7 +2,7 @@ import { Form, Link, redirect } from "react-router";
 
 import * as repo from "@/db/repositories";
 import { ClientSchema } from "@/core/schema";
-import { getDb, rawEnv } from "../lib/context";
+import { requireTenant } from "../lib/session.server";
 import { runAnalysis } from "../lib/analysis.server";
 import type { Route } from "./+types/clients.$id";
 
@@ -10,15 +10,15 @@ export function meta({ data }: Route.MetaArgs) {
   return [{ title: data ? `${data.client.name} · Client Growth` : "Client" }];
 }
 
-export async function loader({ params, context }: Route.LoaderArgs) {
-  const db = getDb(context);
-  const client = await repo.getClient(db, params.id);
+export async function loader({ params, request, context }: Route.LoaderArgs) {
+  const t = await requireTenant(request, context);
+  const client = await repo.getClient(t.scope, params.id);
   if (!client) throw new Response("Client not found", { status: 404 });
   const [services, coverage, evidence, opportunities] = await Promise.all([
-    repo.listServices(db),
-    repo.listCoverage(db, client.id),
-    repo.getLatestEvidence(db, client.id),
-    repo.listOpportunities(db, client.id),
+    repo.listServices(t.scope),
+    repo.listCoverage(t.scope, client.id),
+    repo.getLatestEvidence(t.scope, client.id),
+    repo.listOpportunities(t.scope, client.id),
   ]);
   return {
     client,
@@ -32,8 +32,8 @@ export async function loader({ params, context }: Route.LoaderArgs) {
 }
 
 export async function action({ params, request, context }: Route.ActionArgs) {
-  const db = getDb(context);
-  const existing = await repo.getClient(db, params.id);
+  const t = await requireTenant(request, context);
+  const existing = await repo.getClient(t.scope, params.id);
   if (!existing) throw new Response("Client not found", { status: 404 });
   const form = await request.formData();
   const intent = String(form.get("intent") ?? "");
@@ -52,23 +52,23 @@ export async function action({ params, request, context }: Route.ActionArgs) {
         .filter(Boolean),
       notes: String(form.get("notes") ?? "").trim(),
     });
-    await repo.upsertClient(db, updated);
+    await repo.upsertClient(t.scope, updated);
     return { ok: true as const, message: "Saved." };
   }
 
   if (intent === "toggle-coverage") {
     const serviceId = String(form.get("serviceId") ?? "");
     if (form.get("covered") === "on") {
-      await repo.setCoverage(db, existing.id, serviceId, "Set from client page");
+      await repo.setCoverage(t.scope, existing.id, serviceId, "Set from client page");
     } else {
-      await repo.removeCoverage(db, existing.id, serviceId);
+      await repo.removeCoverage(t.scope, existing.id, serviceId);
     }
     return { ok: true as const, message: "Coverage updated." };
   }
 
   if (intent === "analyze") {
     try {
-      await runAnalysis(db, rawEnv(context), existing.id);
+      await runAnalysis(t.scope, context.cloudflare.env as never, existing.id);
       return redirect("/opportunities");
     } catch (err) {
       const error =

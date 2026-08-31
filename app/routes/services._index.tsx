@@ -2,7 +2,7 @@ import { Form } from "react-router";
 
 import * as repo from "@/db/repositories";
 import { ServiceSchema } from "@/core/schema";
-import { getDb } from "../lib/context";
+import { requireTenant } from "../lib/session.server";
 import type { Route } from "./+types/services._index";
 
 export function meta() {
@@ -18,17 +18,18 @@ function slugId(name: string): string {
   return `svc-${base || "service"}`;
 }
 
-export async function loader({ context }: Route.LoaderArgs) {
-  return { services: await repo.listServices(getDb(context)) };
+export async function loader({ request, context }: Route.LoaderArgs) {
+  const t = await requireTenant(request, context);
+  return { services: await repo.listServices(t.scope) };
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
-  const db = getDb(context);
+  const t = await requireTenant(request, context);
   const form = await request.formData();
   const intent = String(form.get("intent") ?? "");
 
   if (intent === "toggle-active") {
-    await repo.setServiceActive(db, String(form.get("id")), form.get("active") === "on");
+    await repo.setServiceActive(t.scope, String(form.get("id")), form.get("active") === "on");
     return { ok: true as const };
   }
 
@@ -53,7 +54,7 @@ export async function action({ request, context }: Route.ActionArgs) {
         .filter(Boolean),
       active: true,
     });
-    await repo.upsertService(db, service);
+    await repo.upsertService(t.scope, service);
     return { ok: true as const };
   }
 

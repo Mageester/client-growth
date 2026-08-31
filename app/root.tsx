@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import {
+  Form,
   Links,
   Meta,
   NavLink,
@@ -7,12 +8,34 @@ import {
   Scripts,
   ScrollRestoration,
   isRouteErrorResponse,
+  useRouteLoaderData,
 } from "react-router";
 
 import "./styles/app.css";
+import "./lib/context";
+import { getWorkspaceForUser } from "@/db/workspaces";
+import { d1Db } from "./lib/d1.server";
+import { getSession } from "./lib/session.server";
 import type { Route } from "./+types/root";
 
+export async function loader({ request, context }: Route.LoaderArgs) {
+  try {
+    const authed = await getSession(request, context);
+    if (!authed) return { signedIn: false, workspaceName: null as string | null };
+    const ws = await getWorkspaceForUser(
+      d1Db(context.cloudflare.env.DB as never),
+      authed.userId,
+    );
+    return { signedIn: true, workspaceName: ws?.name ?? null };
+  } catch {
+    return { signedIn: false, workspaceName: null as string | null };
+  }
+}
+
 export function Layout({ children }: { children: ReactNode }) {
+  const data = useRouteLoaderData<typeof loader>("root");
+  const signedIn = data?.signedIn ?? false;
+
   return (
     <html lang="en">
       <head>
@@ -25,11 +48,24 @@ export function Layout({ children }: { children: ReactNode }) {
         <header className="topbar">
           <div className="topbar-inner">
             <span className="brand">Client Growth</span>
-            <nav className="topnav">
-              <NavLink to="/opportunities">Opportunities</NavLink>
-              <NavLink to="/clients">Clients</NavLink>
-              <NavLink to="/services">Services</NavLink>
-            </nav>
+            {signedIn && (
+              <>
+                <nav className="topnav">
+                  <NavLink to="/opportunities">Opportunities</NavLink>
+                  <NavLink to="/clients">Clients</NavLink>
+                  <NavLink to="/services">Services</NavLink>
+                  <NavLink to="/settings">Settings</NavLink>
+                </nav>
+                <span style={{ marginLeft: "auto", display: "flex", gap: "0.75rem", alignItems: "baseline" }}>
+                  {data?.workspaceName && <small>{data.workspaceName}</small>}
+                  <Form method="post" action="/logout" className="inline">
+                    <button className="subtle" type="submit">
+                      Log out
+                    </button>
+                  </Form>
+                </span>
+              </>
+            )}
           </div>
         </header>
         <main className="content">{children}</main>
@@ -57,7 +93,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
     <div className="card">
       <h1>{title}</h1>
       <p className="muted">{String(detail)}</p>
-      <NavLink to="/opportunities">Back to opportunities</NavLink>
+      <NavLink to="/">Home</NavLink>
     </div>
   );
 }
