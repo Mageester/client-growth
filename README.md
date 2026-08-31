@@ -62,11 +62,11 @@ deterministic rules            (missing-service-page, broken-conversion-path)
 
 ```bash
 pnpm install
-pnpm test                 # 119 tests — zero network, zero paid calls
+pnpm test                 # 140 tests — zero network, zero paid calls
 pnpm typecheck            # react-router typegen && tsc
 pnpm build                # react-router build -> build/client + build/server
 
-pnpm db:migrate:local     # apply migrations 0001..0005 to local D1
+pnpm db:migrate:local     # apply migrations 0001..0006 to local D1
 pnpm db:seed:local        # demo workspace (ws_demo) only — real workspaces are never seeded
 pnpm seed:generate        # regenerate scripts/seed.sql from fixtures/hvac/*
 pnpm dev                  # react-router build && wrangler dev
@@ -90,13 +90,19 @@ Then `pnpm db:migrate:local && pnpm db:seed:local && pnpm dev`, and sign up at
 callback lands at `/reset-password`. For a clean slate: delete
 `.wrangler/state/v3/d1` and re-run migrate + seed.
 
-For a deployed Worker, keep `BETTER_AUTH_SECRET` and `RESEND_API_KEY` as
-secrets, and set `BETTER_AUTH_URL` and the verified `RESEND_FROM_EMAIL` in the
-deployment environment. For example:
+For production setup, use the [Cloudflare production deployment runbook](docs/production-deployment.md).
+Keep `BETTER_AUTH_SECRET` and `RESEND_API_KEY` as encrypted production secrets;
+`BETTER_AUTH_URL` and the verified `RESEND_FROM_EMAIL` belong in the production
+environment variables. The production migration baseline intentionally contains
+no demo workspace, and `scripts/seed.sql` must never be run against production.
+
+The guarded production commands are:
 
 ```bash
-wrangler secret put BETTER_AUTH_SECRET
-wrangler secret put RESEND_API_KEY
+pnpm production:preflight
+pnpm db:migrations:production
+pnpm db:migrate:production
+pnpm deploy:production
 ```
 
 ## Status

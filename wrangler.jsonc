@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "client-growth",
-  "compatibility_date": "2025-04-01",
+  "compatibility_date": "2026-08-31",
   "compatibility_flags": ["nodejs_compat"],
   "main": "./workers/app.ts",
   "assets": {
@@ -22,6 +22,38 @@
       "migrations_dir": "migrations"
     }
   ],
+  "env": {
+    "production": {
+      "name": "client-growth-production",
+      "workers_dev": true,
+      "preview_urls": false,
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "client-growth-production",
+          "database_id": "__SET_AFTER_WRANGLER_D1_CREATE__",
+          "migrations_dir": "migrations"
+        }
+      ],
+      "vars": {
+        "AI_PROVIDER": "mock",
+        "DEEPSEEK_BASE_URL": "https://api.deepseek.com",
+        "DEEPSEEK_MODEL": "deepseek-chat",
+        "MAX_AI_CALLS_PER_RUN": "10",
+        "BETTER_AUTH_URL": "https://replace-with-production-host.invalid",
+        "RESEND_FROM_EMAIL": "Client Growth <auth@replace-with-verified-sender.invalid>"
+      },
+      "secrets": {
+        "required": ["BETTER_AUTH_SECRET", "RESEND_API_KEY"]
+      },
+      "observability": {
+        "enabled": true,
+        "logs": {
+          "invocation_logs": false
+        }
+      }
+    }
+  },
   "vars": {
     "AI_PROVIDER": "mock",
     "MAX_AI_CALLS_PER_RUN": "10"

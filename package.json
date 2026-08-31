@@ -16,6 +16,10 @@
     "seed:generate": "tsx scripts/generate-seed.ts",
     "db:migrate:local": "wrangler d1 migrations apply client-growth-dev --local",
     "db:seed:local": "wrangler d1 execute client-growth-dev --local --file=./scripts/seed.sql",
+    "production:preflight": "tsx scripts/production-preflight.ts",
+    "db:migrations:production": "pnpm production:preflight && wrangler d1 migrations list client-growth-production --env production --remote",
+    "db:migrate:production": "pnpm production:preflight && wrangler d1 migrations apply client-growth-production --env production --remote",
+    "deploy:production": "pnpm production:preflight && pnpm typecheck && pnpm build && wrangler deploy --env production --experimental-provision=false --experimental-auto-create=false",
     "smoke:worker": "tsx scripts/smoke-worker.ts",
     "preview": "wrangler dev"
   },
