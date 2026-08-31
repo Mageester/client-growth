@@ -40,10 +40,11 @@ export class HttpEvidenceProvider implements EvidenceProvider {
   constructor(private readonly options: HttpEvidenceProviderOptions = {}) {}
 
   async getEvidence(client: Client): Promise<EvidenceBundle> {
-    const fetchImpl = this.options.fetchImpl ?? globalThis.fetch;
-    if (typeof fetchImpl !== "function") {
+    const rawFetch = this.options.fetchImpl ?? globalThis.fetch;
+    if (typeof rawFetch !== "function") {
       throw new Error("HttpEvidenceProvider: no fetch implementation available");
     }
+    const fetchImpl = this.options.fetchImpl ?? rawFetch.bind(globalThis);
     const maxPages = this.options.maxPages ?? DEFAULT_MAX_PAGES;
     const origin = toOrigin(client.domain);
 

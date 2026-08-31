@@ -5,6 +5,7 @@ import type {
   Candidate,
   Client,
   Coverage,
+  EvidenceBundle,
   Opportunity,
   Service,
 } from "@/core/schema";
@@ -47,6 +48,8 @@ export interface AnalyzeClientStats {
   suppressedByCoverage: number;
   evaluated: number;
   rejectedByEvaluator: number;
+  /** Evaluator threw (unreachable provider, malformed output). Failed closed. */
+  evaluatorErrors: number;
   surfaced: number;
   aiCalls: number;
 }
@@ -56,6 +59,8 @@ export interface AnalyzeClientResult {
   opportunities: Opportunity[];
   /** Kept but not resurfaced: covered, dismissed, or actively snoozed. */
   suppressed: Opportunity[];
+  /** The evidence the run was based on (for caching and display). */
+  evidence: EvidenceBundle;
   stats: AnalyzeClientStats;
 }
 
@@ -91,6 +96,7 @@ export async function analyzeClient(
     suppressedByCoverage: 0,
     evaluated: 0,
     rejectedByEvaluator: 0,
+    evaluatorErrors: 0,
     surfaced: 0,
     aiCalls: 0,
   };
@@ -157,11 +163,24 @@ export async function analyzeClient(
     stats.aiCalls++;
     stats.evaluated++;
 
-    const evaluation = await input.evaluator.evaluate({
-      candidate,
-      client: input.client,
-      evidence,
-    });
+    let evaluation;
+    try {
+      evaluation = await input.evaluator.evaluate({
+        candidate,
+        client: input.client,
+        evidence,
+      });
+    } catch (err) {
+      // Fail closed: an unreachable provider or malformed model output must
+      // never produce an opportunity.
+      stats.evaluatorErrors++;
+      console.error(
+        `[analyzeClient] evaluator failed for "${candidate.subject}": ${
+          err instanceof Error ? `${err.name}: ${err.message}` : String(err)
+        }`,
+      );
+      continue;
+    }
 
     if (evaluation.verdict === "reject" || evaluation.confidence < CONFIDENCE_FLOOR) {
       stats.rejectedByEvaluator++;
@@ -183,5 +202,5 @@ export async function analyzeClient(
   }
   stats.surfaced = opportunities.length;
 
-  return { opportunities, suppressed, stats };
+  return { opportunities, suppressed, evidence, stats };
 }

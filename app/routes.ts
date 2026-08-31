@@ -1,7 +1,10 @@
-import { type RouteConfig, index } from "@react-router/dev/routes";
+import { type RouteConfig, index, route } from "@react-router/dev/routes";
 
-/**
- * Phase E adds: /services, /clients, /opportunities, /opportunities/:id
- * For the Phase A scaffold there is a single placeholder route.
- */
-export default [index("routes/_index.tsx")] satisfies RouteConfig;
+export default [
+  index("routes/_index.tsx"),
+  route("opportunities", "routes/opportunities._index.tsx"),
+  route("opportunities/:id", "routes/opportunities.$id.tsx"),
+  route("clients", "routes/clients._index.tsx"),
+  route("clients/:id", "routes/clients.$id.tsx"),
+  route("services", "routes/services._index.tsx"),
+] satisfies RouteConfig;

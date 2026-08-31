@@ -4,6 +4,13 @@
   "compatibility_date": "2025-04-01",
   "compatibility_flags": ["nodejs_compat"],
   "main": "./workers/app.ts",
+  "assets": {
+    "directory": "./build/client",
+    "binding": "ASSETS"
+  },
+  "observability": {
+    "enabled": true
+  },
   "d1_databases": [
     {
       "binding": "DB",
