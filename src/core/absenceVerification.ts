@@ -1,4 +1,5 @@
 import type { EvidenceBundle, EvidencePage, Verification } from "@/core/schema";
+import type { PageFetchFailure, PageFetchResult } from "@/ports/EvidenceProvider";
 import { coreTokens, significantTokens, singularize, slugTokens } from "@/core/text";
 
 /**
@@ -15,7 +16,7 @@ import { coreTokens, significantTokens, singularize, slugTokens } from "@/core/t
  * capped by `maxFetches`.
  */
 
-export type PageFetcher = (url: string) => Promise<EvidencePage | null>;
+export type PageFetcher = (url: string) => Promise<PageFetchResult>;
 
 export interface VerifyOfferingInput {
   offering: string;
@@ -30,6 +31,10 @@ export interface VerifyOfferingInput {
 }
 
 type CloseMatch = Verification["closeMatches"][number];
+
+function isPageFetchFailure(page: PageFetchResult): page is PageFetchFailure {
+  return page !== null && "kind" in page && page.kind === "network-failure";
+}
 
 const STRONG_SCORE = 0.6;
 const CLOSE_SCORE = 0.5;
@@ -181,6 +186,22 @@ export async function verifyOfferingAbsence(
       budget.remaining--;
       inspectedUrls.push(top.url);
       const page = await input.fetchPage(top.url);
+      if (isPageFetchFailure(page)) {
+        record({
+          where: top.where,
+          value: top.value,
+          url: top.url,
+          score: top.score,
+          satisfied: false,
+          reason: `Targeted fetch was ${page.outcome}: ${page.reason}`,
+        });
+        return inconclusive(
+          offering,
+          inspectedUrls,
+          closeMatches,
+          `Targeted verification of "${top.url}" was ${page.outcome}; absence cannot be proven.`,
+        );
+      }
       if (page) {
         const tokens = textTokenSet([page.title, ...page.h1s, ...page.headings].join(" "));
         const satisfied = strengthOf(tokens, head, discriminating).hasAllDiscriminating;
@@ -209,6 +230,22 @@ export async function verifyOfferingAbsence(
     budget.remaining--;
     inspectedUrls.push(l.url);
     const page = await input.fetchPage(l.url);
+    if (isPageFetchFailure(page)) {
+      record({
+        where: l.where,
+        value: l.value,
+        url: l.url,
+        score: l.score,
+        satisfied: false,
+        reason: `Targeted fetch was ${page.outcome}: ${page.reason}`,
+      });
+      return inconclusive(
+        offering,
+        inspectedUrls,
+        closeMatches,
+        `Targeted verification of "${l.url}" was ${page.outcome}; absence cannot be proven.`,
+      );
+    }
     if (!page) {
       record({ where: l.where, value: l.value, url: l.url, score: l.score, satisfied: false, reason: "Linked page could not be fetched." });
       continue;
@@ -244,10 +281,29 @@ export async function verifyOfferingAbsence(
     };
   }
 
-  // Record any close matches we could not fetch (budget) but that had a URL.
-  for (const l of closeLinks.slice(0, 4)) {
-    if (l.url && inspectedUrls.includes(l.url)) continue;
-    record({ where: l.where, value: l.value, url: l.url, score: l.score, satisfied: false, reason: "Partially matches the offering but does not clearly cover it." });
+  // A close URL that was not fetched is an evidence limitation, not proof of
+  // absence. This includes a depleted targeted-fetch budget and providers that
+  // do not expose targeted fetching at all.
+  const unverifiedCloseLinks = closeLinks.filter(
+    (l) => l.url && !inspectedUrls.includes(l.url),
+  );
+  if (unverifiedCloseLinks.length > 0) {
+    for (const l of unverifiedCloseLinks.slice(0, 4)) {
+      record({
+        where: l.where,
+        value: l.value,
+        url: l.url,
+        score: l.score,
+        satisfied: false,
+        reason: "Near-match URL was not fetched; targeted verification was unavailable or its budget was exhausted.",
+      });
+    }
+    return inconclusive(
+      offering,
+      inspectedUrls,
+      closeMatches,
+      "a near-match URL could not be checked within the targeted verification budget; absence cannot be proven.",
+    );
   }
 
   return {
@@ -282,6 +338,20 @@ function present(
     reason: matchedUrl
       ? `The site already has a page/section for "${offering}" (${matchedUrl}).`
       : `The site already represents "${offering}" in its navigation or link structure.`,
+  };
+}
+
+function inconclusive(
+  offering: string,
+  inspectedUrls: string[],
+  closeMatches: CloseMatch[],
+  reason: string,
+): Verification {
+  return {
+    conclusion: "inconclusive",
+    inspectedUrls,
+    closeMatches,
+    reason: `Could not verify whether "${offering}" is represented. ${reason}`,
   };
 }
 

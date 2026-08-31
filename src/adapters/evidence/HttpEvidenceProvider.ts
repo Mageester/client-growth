@@ -1,12 +1,23 @@
-import type { EvidenceProvider, ProbeResult } from "@/ports/EvidenceProvider";
+import type {
+  EvidenceProvider,
+  PageFetchFailure,
+  ProbeResult,
+} from "@/ports/EvidenceProvider";
 import {
   EvidenceBundleSchema,
   type Client,
   type EvidenceBundle,
   type EvidenceLink,
+  type EvidenceNetworkEvent,
   type EvidencePage,
 } from "@/core/schema";
 import { parseHtml } from "@/adapters/evidence/parseHtml";
+import {
+  normalizeAndValidateUrl,
+  normalizeOrigin,
+  redactUrl,
+  type UrlPolicyFailure,
+} from "@/adapters/evidence/urlPolicy";
 
 /**
  * Minimal real website evidence provider.
@@ -21,23 +32,72 @@ import { parseHtml } from "@/adapters/evidence/parseHtml";
  *    (HEAD->GET status check for the broken-conversion-path rule)
  *  - no Lighthouse / PageSpeed / paid APIs
  *  - deterministic given a `fetchImpl`; unit-tested with in-memory HTML fixtures
+ *
+ * Every request goes through the bounded/manual redirect path below. The URL
+ * policy is intentionally hostname/IP-literal based: Cloudflare Workers does
+ * not expose authoritative DNS resolution for arbitrary hostnames before
+ * fetch, so this layer cannot prove that a public-looking hostname will not
+ * resolve or rebind to a private address.
  */
 
 const DEFAULT_MAX_PAGES = 10;
-const MAX_SITEMAP_URLS = 300;
-const PROBE_TIMEOUT_MS = 8_000;
-const USER_AGENT = "ClientGrowthBot/0.1 (+website evidence; operated by the agency)";
+const DEFAULT_MAX_SITEMAP_URLS = 100;
+const DEFAULT_MAX_RESPONSE_BYTES = 1_000_000;
+const DEFAULT_REQUEST_TIMEOUT_MS = 8_000;
+const DEFAULT_MAX_REDIRECTS = 5;
+const DEFAULT_MAX_REQUESTS = 40;
+const MAX_SITEMAP_INDEX_CHILDREN = 2;
+
+export const DEFAULT_USER_AGENT =
+  "ClientGrowthBot/0.1 (+website evidence; operated by the agency)";
+
+const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
 
 export interface HttpEvidenceProviderOptions {
   fetchImpl?: typeof fetch;
   maxPages?: number;
+  maxSitemapUrls?: number;
+  maxResponseBytes?: number;
+  requestTimeoutMs?: number;
+  maxRedirects?: number;
+  /** Shared request budget across crawl, sitemap, verification, and probes. */
+  maxRequests?: number;
+  /** Optional override for integrations; defaults to DEFAULT_USER_AGENT. */
+  userAgent?: string;
   now?: () => Date;
 }
 
-function toOrigin(domain: string): string {
-  const trimmed = domain.trim().replace(/\/+$/, "");
-  const withScheme = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
-  return new URL(withScheme).origin;
+interface SafeResponse {
+  kind: "response";
+  response: Response;
+  finalUrl: string;
+  redirects: number;
+}
+
+interface RequestFailure {
+  kind: "failure";
+  outcome: "blocked" | "inconclusive";
+  url: string;
+  reason: string;
+  redirects: number;
+}
+
+type SafeRequestResult = SafeResponse | RequestFailure;
+
+type BodyReadResult =
+  | { ok: true; text: string }
+  | { ok: false; outcome: "inconclusive"; reason: string };
+
+function nonNegativeInt(value: number | undefined, fallback: number): number {
+  return value !== undefined && Number.isFinite(value) && value >= 0
+    ? Math.floor(value)
+    : fallback;
+}
+
+function positiveInt(value: number | undefined, fallback: number): number {
+  return value !== undefined && Number.isFinite(value) && value > 0
+    ? Math.floor(value)
+    : fallback;
 }
 
 const emptyPage = (url: string, status: number): EvidencePage => ({
@@ -51,7 +111,95 @@ const emptyPage = (url: string, status: number): EvidencePage => ({
   forms: [],
 });
 
+function isHtmlContentType(value: string): boolean {
+  const mediaType = value.split(";", 1)[0]?.trim().toLowerCase() ?? "";
+  return mediaType === "text/html" || mediaType === "application/xhtml+xml";
+}
+
+function isXmlContentType(value: string): boolean {
+  const mediaType = value.split(";", 1)[0]?.trim().toLowerCase() ?? "";
+  return (
+    mediaType === "application/xml" ||
+    mediaType === "text/xml" ||
+    mediaType === "text/plain" ||
+    mediaType.endsWith("+xml")
+  );
+}
+
+function isRedirectStatus(status: number): boolean {
+  return REDIRECT_STATUSES.has(status);
+}
+
+function contentLengthExceeds(response: Response, maxBytes: number): boolean {
+  const raw = response.headers.get("content-length");
+  if (!raw) return false;
+  const length = Number(raw.trim());
+  return Number.isSafeInteger(length) && length >= 0 && length > maxBytes;
+}
+
+function cancelResponseBody(response: Response): void {
+  try {
+    const cancellation = response.body?.cancel();
+    void cancellation?.catch(() => {
+      // Best-effort cancellation only.
+    });
+  } catch {
+    // Body cancellation is best-effort; the policy decision has already been
+    // made and must not turn into a website defect if cancellation is absent.
+  }
+}
+
+function policyFailure(
+  input: string | URL,
+  result: UrlPolicyFailure,
+  redirects = 0,
+): RequestFailure {
+  return {
+    kind: "failure",
+    outcome: "blocked",
+    url: redactUrl(input),
+    reason: result.reason,
+    redirects,
+  };
+}
+
+function originFailure(input: string | URL, redirects: number): RequestFailure {
+  return {
+    kind: "failure",
+    outcome: "blocked",
+    url: redactUrl(input),
+    reason: "redirect leaves the allowed same-origin boundary",
+    redirects,
+  };
+}
+
+function requestBudgetFailure(input: string | URL, redirects: number): RequestFailure {
+  return {
+    kind: "failure",
+    outcome: "inconclusive",
+    url: redactUrl(input),
+    reason: "request budget exhausted",
+    redirects,
+  };
+}
+
+function pageFetchFailure(url: string | URL, failure: RequestFailure | {
+  outcome: "blocked" | "inconclusive";
+  reason: string;
+}): PageFetchFailure {
+  return {
+    kind: "network-failure",
+    requestedUrl: redactUrl(url),
+    outcome: failure.outcome,
+    reason: failure.reason,
+  };
+}
+
 export class HttpEvidenceProvider implements EvidenceProvider {
+  private requestBudgetRemaining: number | null = null;
+  private networkEvents: EvidenceNetworkEvent[] = [];
+  private lastEvidence: EvidenceBundle | null = null;
+
   constructor(private readonly options: HttpEvidenceProviderOptions = {}) {}
 
   private resolveFetch(): typeof fetch {
@@ -62,158 +210,634 @@ export class HttpEvidenceProvider implements EvidenceProvider {
     return this.options.fetchImpl ?? rawFetch.bind(globalThis);
   }
 
-  async getEvidence(client: Client): Promise<EvidenceBundle> {
+  private userAgent(): string {
+    const configured = this.options.userAgent?.trim();
+    return configured || DEFAULT_USER_AGENT;
+  }
+
+  private maxPages(): number {
+    return Math.min(nonNegativeInt(this.options.maxPages, DEFAULT_MAX_PAGES), DEFAULT_MAX_PAGES);
+  }
+
+  private maxSitemapUrls(): number {
+    return Math.min(
+      nonNegativeInt(this.options.maxSitemapUrls, DEFAULT_MAX_SITEMAP_URLS),
+      DEFAULT_MAX_SITEMAP_URLS,
+    );
+  }
+
+  private maxResponseBytes(): number {
+    return Math.min(
+      positiveInt(this.options.maxResponseBytes, DEFAULT_MAX_RESPONSE_BYTES),
+      DEFAULT_MAX_RESPONSE_BYTES,
+    );
+  }
+
+  private requestTimeoutMs(): number {
+    return Math.min(
+      positiveInt(this.options.requestTimeoutMs, DEFAULT_REQUEST_TIMEOUT_MS),
+      DEFAULT_REQUEST_TIMEOUT_MS,
+    );
+  }
+
+  private maxRedirects(): number {
+    return Math.min(nonNegativeInt(this.options.maxRedirects, DEFAULT_MAX_REDIRECTS), DEFAULT_MAX_REDIRECTS);
+  }
+
+  private maxRequests(): number {
+    return Math.min(nonNegativeInt(this.options.maxRequests, DEFAULT_MAX_REQUESTS), DEFAULT_MAX_REQUESTS);
+  }
+
+  private startRun(): void {
+    this.requestBudgetRemaining = this.maxRequests();
+    this.networkEvents = [];
+    this.lastEvidence = null;
+  }
+
+  private ensureRun(): void {
+    if (this.requestBudgetRemaining === null) this.startRun();
+  }
+
+  private consumeRequest(input: string | URL, redirects: number): RequestFailure | null {
+    this.ensureRun();
+    if ((this.requestBudgetRemaining ?? 0) <= 0) {
+      return requestBudgetFailure(input, redirects);
+    }
+    this.requestBudgetRemaining = (this.requestBudgetRemaining ?? 1) - 1;
+    return null;
+  }
+
+  private recordNetworkEvent(
+    url: string | URL,
+    outcome: "blocked" | "inconclusive",
+    reason: string,
+  ): void {
+    const event: EvidenceNetworkEvent = { url: redactUrl(url), outcome, reason };
+    this.networkEvents.push(event);
+    if (this.lastEvidence) this.lastEvidence.networkEvents.push(event);
+  }
+
+  private recordFailure(failure: RequestFailure): void {
+    this.recordNetworkEvent(failure.url, failure.outcome, failure.reason);
+  }
+
+  /**
+   * Fetch one URL with manual redirects. Each hop is parsed and policy-checked
+   * before its request is issued. The request budget is charged per hop.
+   */
+  private async safeRequest(
+    input: string | URL,
+    init: RequestInit,
+    allowedOrigin?: string,
+  ): Promise<SafeRequestResult> {
+    this.ensureRun();
+
+    const initial = normalizeAndValidateUrl(input);
+    if (!initial.ok) return policyFailure(input, initial);
+    if (allowedOrigin && initial.url.origin !== allowedOrigin) {
+      return originFailure(initial.url, 0);
+    }
+
     const fetchImpl = this.resolveFetch();
-    const maxPages = this.options.maxPages ?? DEFAULT_MAX_PAGES;
-    const origin = toOrigin(client.domain);
+    const initialUrl = initial.url.toString();
+    let current = initialUrl;
+    let redirects = 0;
 
-    const visited = new Set<string>();
-    const queue: string[] = [`${origin}/`];
-    const pages: EvidencePage[] = [];
-    let nav: string[] = [];
-    const linksByKey = new Map<string, EvidenceLink>();
-    let htmlPages = 0;
+    for (;;) {
+      if (allowedOrigin && current !== initialUrl && !this.sameOrigin(current, allowedOrigin)) {
+        return originFailure(current, redirects);
+      }
 
-    while (queue.length > 0 && htmlPages < maxPages) {
-      const url = queue.shift();
-      if (url === undefined || visited.has(url)) continue;
-      visited.add(url);
+      const budgetFailure = this.consumeRequest(current, redirects);
+      if (budgetFailure) return budgetFailure;
+
+      const controller = new AbortController();
+      let timedOut = false;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const requestTimeout = new Promise<never>((_, reject) => {
+        timer = setTimeout(() => {
+          timedOut = true;
+          controller.abort();
+          reject(new Error("request timeout"));
+        }, this.requestTimeoutMs());
+      });
 
       let response: Response;
       try {
-        response = await fetchImpl(url, {
-          redirect: "follow",
-          headers: { "user-agent": USER_AGENT, accept: "text/html" },
+        response = await Promise.race([
+          fetchImpl(current, {
+            ...init,
+            redirect: "manual",
+            signal: controller.signal,
+          }),
+          requestTimeout,
+        ]);
+        if (timedOut) {
+          await cancelResponseBody(response);
+          return {
+            kind: "failure",
+            outcome: "inconclusive",
+            url: redactUrl(current),
+            reason: "request timeout",
+            redirects,
+          };
+        }
+      } catch {
+        return {
+          kind: "failure",
+          outcome: "inconclusive",
+          url: redactUrl(current),
+          reason: timedOut ? "request timeout" : "network request failed",
+          redirects,
+        };
+      } finally {
+        if (timer !== undefined) clearTimeout(timer);
+      }
+
+      // A custom fetch implementation must not be able to silently replace
+      // manual redirects with automatic ones. Validate any final response URL
+      // exposed by the runtime before accepting its body.
+      const responseUrl = response.url?.trim();
+      if (responseUrl && responseUrl !== current) {
+        const observed = normalizeAndValidateUrl(responseUrl);
+        if (!observed.ok) {
+          await cancelResponseBody(response);
+          return policyFailure(responseUrl, observed, redirects);
+        }
+        if (allowedOrigin && observed.url.origin !== allowedOrigin) {
+          await cancelResponseBody(response);
+          return originFailure(observed.url, redirects);
+        }
+        if (observed.url.toString() !== current) {
+          await cancelResponseBody(response);
+          return {
+            kind: "failure",
+            outcome: "inconclusive",
+            url: redactUrl(observed.url),
+            reason: "fetch reported a redirect without a manually validated Location",
+            redirects,
+          };
+        }
+      }
+
+      if (!isRedirectStatus(response.status)) {
+        return { kind: "response", response, finalUrl: current, redirects };
+      }
+
+      if (redirects >= this.maxRedirects()) {
+        await cancelResponseBody(response);
+        return {
+          kind: "failure",
+          outcome: "inconclusive",
+          url: redactUrl(current),
+          reason: `redirect limit of ${this.maxRedirects()} hops exhausted`,
+          redirects,
+        };
+      }
+
+      const location = response.headers.get("location")?.trim();
+      if (!location) {
+        await cancelResponseBody(response);
+        return {
+          kind: "failure",
+          outcome: "inconclusive",
+          url: redactUrl(current),
+          reason: "redirect response has no valid Location header",
+          redirects,
+        };
+      }
+
+      const next = normalizeAndValidateUrl(location, current);
+      if (!next.ok) {
+        await cancelResponseBody(response);
+        return policyFailure(location, next, redirects);
+      }
+      if (allowedOrigin && next.url.origin !== allowedOrigin) {
+        await cancelResponseBody(response);
+        return originFailure(next.url, redirects + 1);
+      }
+
+      await cancelResponseBody(response);
+      current = next.url.toString();
+      redirects++;
+    }
+  }
+
+  private sameOrigin(a: string, b: string): boolean {
+    try {
+      return new URL(a).origin === new URL(b).origin;
+    } catch {
+      return false;
+    }
+  }
+
+  private async readBoundedText(response: Response): Promise<BodyReadResult> {
+    const maxBytes = this.maxResponseBytes();
+    if (contentLengthExceeds(response, maxBytes)) {
+      await cancelResponseBody(response);
+      return {
+        ok: false,
+        outcome: "inconclusive",
+        reason: `response Content-Length exceeds ${maxBytes} bytes`,
+      };
+    }
+
+    if (!response.body) return { ok: true, text: "" };
+
+    let reader: ReadableStreamDefaultReader<Uint8Array>;
+    try {
+      reader = response.body.getReader();
+    } catch {
+      cancelResponseBody(response);
+      return {
+        ok: false,
+        outcome: "inconclusive",
+        reason: "response body could not be read",
+      };
+    }
+    const cancelReader = (reason: string): void => {
+      try {
+        void reader.cancel(reason).catch(() => {
+          // Best-effort cancellation only.
         });
       } catch {
+        // Best-effort cancellation only.
+      }
+    };
+    const decoder = new TextDecoder();
+    const chunks: string[] = [];
+    let totalBytes = 0;
+    let timedOut = false;
+    let bodyTimer: ReturnType<typeof setTimeout> | undefined;
+    const bodyTimeout = new Promise<never>((_, reject) => {
+      bodyTimer = setTimeout(() => {
+        timedOut = true;
+        cancelReader("response body timeout");
+        reject(new Error("response body timeout"));
+      }, this.requestTimeoutMs());
+    });
+    try {
+      for (;;) {
+        const { done, value } = await Promise.race([reader.read(), bodyTimeout]);
+        if (done) break;
+        totalBytes += value.byteLength;
+        if (totalBytes > maxBytes) {
+          cancelReader("response body byte cap exceeded");
+          return {
+            ok: false,
+            outcome: "inconclusive",
+            reason: `response body exceeds ${maxBytes} bytes`,
+          };
+        }
+        chunks.push(decoder.decode(value, { stream: true }));
+      }
+      chunks.push(decoder.decode());
+      return { ok: true, text: chunks.join("") };
+    } catch {
+      cancelReader("response body could not be read");
+      return {
+        ok: false,
+        outcome: "inconclusive",
+        reason: timedOut ? "response body timeout" : "response body could not be read",
+      };
+    } finally {
+      if (bodyTimer !== undefined) clearTimeout(bodyTimer);
+      try {
+        reader.releaseLock();
+      } catch {
+        // Best-effort reader cleanup only.
+      }
+    }
+  }
+
+  async getEvidence(client: Client): Promise<EvidenceBundle> {
+    this.startRun();
+    const capturedAt = (this.options.now?.() ?? new Date()).toISOString();
+    const originResult = normalizeOrigin(client.domain);
+    if (!originResult.ok) {
+      this.recordNetworkEvent(client.domain, "blocked", originResult.reason);
+      const blocked = EvidenceBundleSchema.parse({
+        clientId: client.id,
+        source: "http",
+        capturedAt,
+        site: { pages: [], nav: [], links: [], sitemapUrls: [] },
+        networkEvents: this.networkEvents,
+      });
+      this.lastEvidence = blocked;
+      return blocked;
+    }
+
+    const fetchHeaders = {
+      "user-agent": this.userAgent(),
+      accept: "text/html,application/xhtml+xml",
+    };
+    const origin = originResult.url.origin;
+    const visited = new Set<string>();
+    const queue: string[] = [`${origin}/`];
+    const queued = new Set(queue);
+    const pages: EvidencePage[] = [];
+    const linksByKey = new Map<string, EvidenceLink>();
+    let nav: string[] = [];
+    let pageRequests = 0;
+
+    while (queue.length > 0 && pageRequests < this.maxPages()) {
+      const url = queue.shift();
+      if (url === undefined || visited.has(url)) continue;
+      visited.add(url);
+      pageRequests++;
+
+      const fetched = await this.safeRequest(url, { headers: fetchHeaders }, origin);
+      if (fetched.kind === "failure") {
+        this.recordFailure(fetched);
         continue;
       }
 
+      const { response, finalUrl } = fetched;
       if (!response.ok) {
-        pages.push(emptyPage(url, response.status));
-        continue;
-      }
-      const contentType = (response.headers.get("content-type") ?? "").toLowerCase();
-      if (!contentType.includes("text/html")) {
-        pages.push(emptyPage(url, response.status));
+        await cancelResponseBody(response);
+        pages.push(emptyPage(finalUrl, response.status));
         continue;
       }
 
-      const parsed = parseHtml(await response.text(), url);
+      const contentType = (response.headers.get("content-type") ?? "").toLowerCase();
+      if (!isHtmlContentType(contentType)) {
+        await cancelResponseBody(response);
+        this.recordNetworkEvent(
+          finalUrl,
+          "inconclusive",
+          `response content type is not crawlable HTML/XHTML: ${contentType || "missing"}`,
+        );
+        pages.push(emptyPage(finalUrl, response.status));
+        continue;
+      }
+
+      const body = await this.readBoundedText(response);
+      if (!body.ok) {
+        this.recordNetworkEvent(finalUrl, body.outcome, body.reason);
+        pages.push(emptyPage(finalUrl, response.status));
+        continue;
+      }
+
+      const parsed = parseHtml(body.text, finalUrl);
       pages.push({ ...parsed.page, status: response.status });
-      htmlPages++;
       if (nav.length === 0 && parsed.nav.length > 0) nav = parsed.nav;
 
       for (const link of parsed.links) {
         const key = `${link.scheme}:${link.href}`;
         const existing = linksByKey.get(key);
         if (!existing) {
-          linksByKey.set(key, { ...link, foundOn: [url] });
+          linksByKey.set(key, { ...link, foundOn: [finalUrl] });
         } else {
           if (!existing.label && link.label) existing.label = link.label;
           if (!existing.ariaLabel && link.ariaLabel) existing.ariaLabel = link.ariaLabel;
           if (!existing.title && link.title) existing.title = link.title;
           if (link.inNav) existing.inNav = true;
-          if (!existing.foundOn.includes(url)) existing.foundOn.push(url);
+          if (!existing.foundOn.includes(finalUrl)) existing.foundOn.push(finalUrl);
         }
-        if (link.scheme === "http" && !visited.has(link.href) && !queue.includes(link.href)) {
-          queue.push(link.href);
+
+        if (link.scheme !== "http") continue;
+        const linkUrl = normalizeAndValidateUrl(link.href);
+        if (!linkUrl.ok || linkUrl.url.origin !== origin) continue;
+        const canonicalLink = linkUrl.url.toString();
+        if (!visited.has(canonicalLink) && !queued.has(canonicalLink)) {
+          queued.add(canonicalLink);
+          queue.push(canonicalLink);
         }
       }
     }
 
-    const sitemapUrls = await this.readSitemap(fetchImpl, origin);
-
-    return EvidenceBundleSchema.parse({
+    const sitemapUrls = await this.readSitemap(origin);
+    const bundle = EvidenceBundleSchema.parse({
       clientId: client.id,
       source: "http",
-      capturedAt: (this.options.now?.() ?? new Date()).toISOString(),
+      capturedAt,
       site: { pages, nav, links: [...linksByKey.values()], sitemapUrls },
+      networkEvents: this.networkEvents,
     });
+    this.lastEvidence = bundle;
+    return bundle;
   }
 
   /** Fetch and parse one specific URL. Used by targeted absence verification. */
-  async fetchPage(url: string): Promise<EvidencePage | null> {
-    const fetchImpl = this.resolveFetch();
-    let response: Response;
-    try {
-      response = await fetchImpl(url, {
-        redirect: "follow",
-        headers: { "user-agent": USER_AGENT, accept: "text/html" },
-      });
-    } catch {
+  async fetchPage(url: string): Promise<EvidencePage | PageFetchFailure | null> {
+    this.ensureRun();
+    const initial = normalizeAndValidateUrl(url);
+    if (!initial.ok) {
+      const failure = policyFailure(url, initial);
+      this.recordFailure(failure);
+      return pageFetchFailure(url, failure);
+    }
+
+    const fetched = await this.safeRequest(
+      initial.url,
+      {
+        headers: {
+          "user-agent": this.userAgent(),
+          accept: "text/html,application/xhtml+xml",
+        },
+      },
+      initial.url.origin,
+    );
+    if (fetched.kind === "failure") {
+      this.recordFailure(fetched);
+      return pageFetchFailure(url, fetched);
+    }
+
+    const { response, finalUrl } = fetched;
+    if (!response.ok) {
+      await cancelResponseBody(response);
       return null;
     }
-    if (!response.ok) return null;
     const contentType = (response.headers.get("content-type") ?? "").toLowerCase();
-    if (!contentType.includes("text/html")) return null;
-    return { ...parseHtml(await response.text(), url).page, status: response.status };
+    if (!isHtmlContentType(contentType)) {
+      await cancelResponseBody(response);
+      this.recordNetworkEvent(
+        finalUrl,
+        "inconclusive",
+        `response content type is not crawlable HTML/XHTML: ${contentType || "missing"}`,
+      );
+      return pageFetchFailure(finalUrl, {
+        outcome: "inconclusive",
+        reason: `response content type is not crawlable HTML/XHTML: ${contentType || "missing"}`,
+      });
+    }
+
+    const body = await this.readBoundedText(response);
+    if (!body.ok) {
+      this.recordNetworkEvent(finalUrl, body.outcome, body.reason);
+      return pageFetchFailure(finalUrl, body);
+    }
+    return { ...parseHtml(body.text, finalUrl).page, status: response.status };
   }
 
   /**
    * HEAD (falling back to GET on 405/501) status check for a single URL, with
-   * redirects followed. `status: 0` means the request could not be completed
-   * (DNS, TLS, timeout) — the caller must treat that as inconclusive.
+   * every redirect validated. `status: 0` means the request could not be
+   * completed or trusted; the caller must treat that as inconclusive.
    */
   async probe(url: string): Promise<ProbeResult> {
-    const fetchImpl = this.resolveFetch();
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
-    const headers = { "user-agent": USER_AGENT };
-    try {
-      let res = await fetchImpl(url, {
-        method: "HEAD",
-        redirect: "follow",
-        signal: controller.signal,
-        headers,
-      });
-      if (res.status === 405 || res.status === 501) {
-        res = await fetchImpl(url, {
-          method: "GET",
-          redirect: "follow",
-          signal: controller.signal,
-          headers,
-        });
-      }
-      return { requestedUrl: url, status: res.status, finalUrl: res.url || url, ok: res.ok };
-    } catch {
-      return { requestedUrl: url, status: 0, finalUrl: url, ok: false };
-    } finally {
-      clearTimeout(timer);
+    this.ensureRun();
+    const initial = normalizeAndValidateUrl(url);
+    if (!initial.ok) {
+      const failure = policyFailure(url, initial);
+      this.recordFailure(failure);
+      return {
+        requestedUrl: redactUrl(url),
+        status: 0,
+        finalUrl: redactUrl(url),
+        ok: false,
+        outcome: failure.outcome,
+        reason: failure.reason,
+        redirects: failure.redirects,
+      };
     }
+
+    const headers = { "user-agent": this.userAgent() };
+    const request = async (method: "HEAD" | "GET"): Promise<SafeRequestResult> =>
+      this.safeRequest(initial.url, { method, headers }, initial.url.origin);
+
+    const head = await request("HEAD");
+    if (head.kind === "failure") {
+      this.recordFailure(head);
+      return {
+        requestedUrl: initial.url.toString(),
+        status: 0,
+        finalUrl: initial.url.toString(),
+        ok: false,
+        outcome: head.outcome,
+        reason: head.reason,
+        redirects: head.redirects,
+      };
+    }
+
+    if (head.response.status === 405 || head.response.status === 501) {
+      await cancelResponseBody(head.response);
+      const get = await request("GET");
+      if (get.kind === "failure") {
+        this.recordFailure(get);
+        return {
+          requestedUrl: initial.url.toString(),
+          status: 0,
+          finalUrl: initial.url.toString(),
+          ok: false,
+          outcome: get.outcome,
+          reason: get.reason,
+          redirects: get.redirects,
+        };
+      }
+      const result = {
+        requestedUrl: initial.url.toString(),
+        status: get.response.status,
+        finalUrl: get.finalUrl,
+        ok: get.response.ok,
+        outcome: "complete" as const,
+        redirects: get.redirects,
+      };
+      await cancelResponseBody(get.response);
+      return result;
+    }
+
+    const result = {
+      requestedUrl: initial.url.toString(),
+      status: head.response.status,
+      finalUrl: head.finalUrl,
+      ok: head.response.ok,
+      outcome: "complete" as const,
+      redirects: head.redirects,
+    };
+    await cancelResponseBody(head.response);
+    return result;
   }
 
   /** Best-effort /sitemap.xml read (follows one level of sitemap index). */
-  private async readSitemap(fetchImpl: typeof fetch, origin: string): Promise<string[]> {
-    const collect = async (sitemapUrl: string): Promise<{ locs: string[]; isIndex: boolean }> => {
-      try {
-        const res = await fetchImpl(sitemapUrl, {
-          redirect: "follow",
-          headers: { "user-agent": USER_AGENT },
-        });
-        if (!res.ok) return { locs: [], isIndex: false };
-        const xml = await res.text();
-        const locs: string[] = [];
-        const re = /<loc>\s*([^<\s]+)\s*<\/loc>/gi;
-        let m: RegExpExecArray | null;
-        while ((m = re.exec(xml)) !== null) {
-          if (m[1]) locs.push(m[1]);
-        }
-        return { locs, isIndex: /<sitemapindex[\s>]/i.test(xml) };
-      } catch {
-        return { locs: [], isIndex: false };
+  private async readSitemap(origin: string): Promise<string[]> {
+    const maxUrls = this.maxSitemapUrls();
+    if (maxUrls === 0) return [];
+
+    const collect = async (
+      sitemapUrl: string,
+    ): Promise<{ locs: string[]; isIndex: boolean } | null> => {
+      const fetched = await this.safeRequest(
+        sitemapUrl,
+        {
+          headers: {
+            "user-agent": this.userAgent(),
+            accept: "application/xml,text/xml,text/plain,application/xhtml+xml",
+          },
+        },
+        origin,
+      );
+      if (fetched.kind === "failure") {
+        this.recordFailure(fetched);
+        return null;
       }
+
+      const { response, finalUrl } = fetched;
+      if (!response.ok) {
+        await cancelResponseBody(response);
+        return null;
+      }
+
+      const contentType = (response.headers.get("content-type") ?? "").toLowerCase();
+      if (!isXmlContentType(contentType)) {
+        await cancelResponseBody(response);
+        this.recordNetworkEvent(
+          finalUrl,
+          "inconclusive",
+          `response content type is not crawlable XML/text: ${contentType || "missing"}`,
+        );
+        return null;
+      }
+
+      const body = await this.readBoundedText(response);
+      if (!body.ok) {
+        this.recordNetworkEvent(finalUrl, body.outcome, body.reason);
+        return null;
+      }
+
+      const locs: string[] = [];
+      const re = /<loc>\s*([^<\s]+)\s*<\/loc>/gi;
+      let match: RegExpExecArray | null;
+      while (locs.length < maxUrls && (match = re.exec(body.text)) !== null) {
+        if (match[1]) locs.push(match[1]);
+      }
+      return { locs, isIndex: /<sitemapindex[\s>]/i.test(body.text) };
+    };
+
+    const canonicalSameOrigin = (url: string): string | null => {
+      const parsed = normalizeAndValidateUrl(url);
+      if (!parsed.ok || parsed.url.origin !== origin) return null;
+      return parsed.url.toString();
     };
 
     const root = await collect(`${origin}/sitemap.xml`);
-    let urls = root.locs;
+    if (!root) return [];
+
+    const rawUrls: string[] = [];
     if (root.isIndex) {
-      const children = root.locs.filter((u) => u.startsWith(origin)).slice(0, 2);
-      urls = [];
+      const children = root.locs
+        .map(canonicalSameOrigin)
+        .filter((url): url is string => url !== null)
+        .slice(0, MAX_SITEMAP_INDEX_CHILDREN);
       for (const child of children) {
-        urls.push(...(await collect(child)).locs);
+        const sitemap = await collect(child);
+        if (!sitemap) continue;
+        rawUrls.push(...sitemap.locs);
+        if (rawUrls.length >= maxUrls) break;
       }
+    } else {
+      rawUrls.push(...root.locs);
     }
-    return urls.filter((u) => u.startsWith(origin)).slice(0, MAX_SITEMAP_URLS);
+
+    const urls: string[] = [];
+    const seen = new Set<string>();
+    for (const rawUrl of rawUrls) {
+      if (urls.length >= maxUrls) break;
+      const url = canonicalSameOrigin(rawUrl);
+      if (!url || seen.has(url)) continue;
+      seen.add(url);
+      urls.push(url);
+    }
+    return urls;
   }
 }

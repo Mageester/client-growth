@@ -22,6 +22,9 @@ Three layers, kept deliberately separate:
   D1 for persistence, [Better Auth](https://better-auth.com) (email + password,
   native D1, DB-backed sessions and rate limiting). Every protected loader/action
   calls `requireTenant()` and uses only the returned `scope`.
+- **HTTP evidence boundary** — the real crawler's URL policy, redirect rules,
+  resource/request budgets, failure semantics, and DNS residual limitation are
+  documented in [`docs/security/http-evidence-network-boundary.md`](docs/security/http-evidence-network-boundary.md).
 
 ## Auth & tenancy
 
