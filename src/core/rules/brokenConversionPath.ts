@@ -6,6 +6,7 @@ import {
   telDefect,
   type ConversionIntent,
 } from "@/core/conversionIntent";
+import { normalizeAndValidateUrl, normalizeOrigin } from "@/adapters/evidence/urlPolicy";
 
 /**
  * broken-conversion-path
@@ -36,10 +37,14 @@ const INTENT_WORD: Record<ConversionIntent, string> = {
   call: "click-to-call link",
 };
 
-function toOrigin(domain: string): string {
-  const trimmed = domain.trim().replace(/\/+$/, "");
-  const withScheme = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
-  return new URL(withScheme).origin;
+function toOrigin(domain: string): string | null {
+  const parsed = normalizeOrigin(domain);
+  return parsed.ok ? parsed.url.origin : null;
+}
+
+function normalizeTarget(target: string): string | null {
+  const parsed = normalizeAndValidateUrl(target);
+  return parsed.ok ? parsed.url.toString() : null;
 }
 
 /** Definite "this link is dead" statuses. 405 counts for a clickable link. */
@@ -73,9 +78,12 @@ export async function brokenConversionPathRule(ctx: RuleContext): Promise<Candid
   if (!service) return [];
 
   const origin = toOrigin(ctx.client.domain);
+  if (!origin) return [];
   const probe = ctx.probe;
   const budget = ctx.probeBudget ?? { remaining: 8 };
-  const pageByUrl = new Map(ctx.evidence.site.pages.map((p) => [p.url, p]));
+  const pageByUrl = new Map(
+    ctx.evidence.site.pages.map((p) => [normalizeTarget(p.url) ?? p.url, p]),
+  );
   const defects: ConversionDefect[] = [];
   const seenKeys = new Set<string>();
 
@@ -121,6 +129,10 @@ export async function brokenConversionPathRule(ctx: RuleContext): Promise<Candid
         continue;
       }
 
+      const normalizedTarget = normalizeTarget(target);
+      if (!normalizedTarget) continue;
+      target = normalizedTarget;
+
       if (isPlaceholderTarget(action) || isPlaceholderTarget(target)) {
         add({
           kind: "broken-form-target",
@@ -134,7 +146,7 @@ export async function brokenConversionPathRule(ctx: RuleContext): Promise<Candid
         continue;
       }
 
-      const external = !target.startsWith(origin);
+      const external = new URL(target).origin !== origin;
       // Only same-origin GET actions may be probed. POST actions are never
       // submitted or probed for breakage. External non-placeholder actions are
       // out of scope for V0.
@@ -174,18 +186,20 @@ export async function brokenConversionPathRule(ctx: RuleContext): Promise<Candid
   const targets = new Map<string, { link: EvidenceLink; intent: ConversionIntent }>();
   for (const link of ctx.evidence.site.links) {
     if (link.scheme !== "http") continue;
-    const intent = classifyConversionLink(link);
+    const target = normalizeTarget(link.href);
+    if (!target) continue;
+    const intent = classifyConversionLink({ ...link, href: target });
     if (!intent) continue;
-    const existing = targets.get(link.href);
+    const existing = targets.get(target);
     if (!existing) {
-      targets.set(link.href, { link: { ...link, foundOn: [...link.foundOn] }, intent });
+      targets.set(target, { link: { ...link, href: target, foundOn: [...link.foundOn] }, intent });
     } else {
       existing.link.foundOn = [...new Set([...existing.link.foundOn, ...link.foundOn])];
     }
   }
 
   for (const [target, { link, intent }] of targets) {
-    const external = !target.startsWith(origin);
+    const external = new URL(target).origin !== origin;
 
     if (external) {
       if (isPlaceholderTarget(target)) {
@@ -228,39 +242,40 @@ export async function brokenConversionPathRule(ctx: RuleContext): Promise<Candid
   // ---- also: a crawled conversion page that errored, even if no CTA links to it
   for (const page of ctx.evidence.site.pages) {
     if (page.status < 400) continue;
-    if (targets.has(page.url)) continue; // already handled as a link target
+    const target = normalizeTarget(page.url);
+    if (!target || new URL(target).origin !== origin) continue;
+    if (targets.has(target)) continue; // already handled as a link target
     // Is this URL a conversion page by its own path?
     const asLink: EvidenceLink = {
-      href: page.url,
+      href: target,
       label: "",
       ariaLabel: "",
       title: "",
       scheme: "http",
       inNav: false,
-      foundOn: [page.url],
+      foundOn: [target],
     };
     const intent = classifyConversionLink(asLink);
     if (!intent) continue;
     if (isDeadLinkStatus(page.status)) {
       add({
         kind: "conversion-page-error",
-        pageUrl: page.url,
+        pageUrl: target,
         elementText: `${intent} page`,
-        elementHref: page.url,
-        target: page.url,
+        elementHref: target,
+        target,
         observedStatus: page.status,
-        seenOn: [page.url],
+        seenOn: [target],
         note: `${intent} page returns HTTP ${page.status}`,
       });
-    } else if (REPEAT_5XX.has(page.status) && (await confirm5xx(page.url))) {
+    } else if (REPEAT_5XX.has(page.status) && (await confirm5xx(target))) {
       add({
         kind: "conversion-page-error",
-        pageUrl: page.url,
+        pageUrl: target,
         elementText: `${intent} page`,
-        elementHref: page.url,
-        target: page.url,
+        elementHref: target,
         observedStatus: page.status,
-        seenOn: [page.url],
+        seenOn: [target],
         note: `${intent} page returns HTTP ${page.status} (confirmed)`,
       });
     }
