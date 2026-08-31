@@ -10,7 +10,7 @@ export function meta() {
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   if (await getSession(request, context)) throw redirect("/");
-  return null;
+  return { resetSuccess: new URL(request.url).searchParams.get("reset") === "success" };
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
@@ -33,10 +33,13 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
 }
 
-export default function Login({ actionData }: Route.ComponentProps) {
+export default function Login({ loaderData, actionData }: Route.ComponentProps) {
   return (
     <main style={{ maxWidth: 380, margin: "6vh auto", padding: "0 1.25rem" }}>
       <h1>Log in</h1>
+      {loaderData.resetSuccess && (
+        <div className="notice">Password reset successfully. Log in with your new password.</div>
+      )}
       {actionData?.error && <div className="notice err">{actionData.error}</div>}
       <Form method="post" className="stack">
         <div className="field">
@@ -53,6 +56,9 @@ export default function Login({ actionData }: Route.ComponentProps) {
             required
           />
         </div>
+        <p className="muted" style={{ margin: 0 }}>
+          <Link to="/forgot-password">Forgot password?</Link>
+        </p>
         <button type="submit" className="primary">
           Log in
         </button>

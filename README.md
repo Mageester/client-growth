@@ -34,9 +34,16 @@ Three layers, kept deliberately separate:
 - Base URL comes from the explicit trusted `BETTER_AUTH_URL`, never from a
   request Host/Origin header.
 - Session cookie caching is **off** (plain DB-backed sessions).
-- **PASSWORD RESET IS REQUIRED BEFORE ANY EXTERNAL AGENCY PILOT.** Email
-  verification and password reset are deliberately deferred this phase (no email
-  sender yet). Do not invite real external users until reset is implemented.
+- Password reset uses Better Auth's supported one-hour, one-use token flow.
+  Reset links use the fixed `BETTER_AUTH_URL` origin, successful resets revoke
+  all existing sessions, and the user signs in again with the new password.
+- Password-reset email delivery uses the Worker-native `fetch` API against
+  Resend when `RESEND_API_KEY` and a verified `RESEND_FROM_EMAIL` are set. The
+  sender runs through the Worker's background-task handler; provider failures
+  remain generic to the requester. The live Worker + D1 + Resend smoke is a
+  hard gate before any external agency pilot.
+- Email verification is not part of this phase. Do not invite real external
+  users until the live password-reset smoke has passed.
 
 ## Pipeline order (cost control is structural)
 
@@ -74,10 +81,23 @@ Copy `.dev.vars.example` to `.dev.vars` (git-ignored) and set:
 
 - `BETTER_AUTH_SECRET` — 32+ random chars (`openssl rand -base64 32`)
 - `BETTER_AUTH_URL` — the wrangler dev origin, e.g. `http://localhost:8976`
+- `RESEND_API_KEY` — Resend API key; required for password-reset email delivery
+- `RESEND_FROM_EMAIL` — verified Resend sender, e.g. `Client Growth <auth@your-verified-domain.example>`
 - optionally `AI_PROVIDER=deepseek` + `DEEPSEEK_API_KEY=...` for real evaluations
 
 Then `pnpm db:migrate:local && pnpm db:seed:local && pnpm dev`, and sign up at
-`/signup`. For a clean slate: delete `.wrangler/state/v3/d1` and re-run migrate + seed.
+`/signup`. Password reset starts at `/forgot-password`; the emailed Better Auth
+callback lands at `/reset-password`. For a clean slate: delete
+`.wrangler/state/v3/d1` and re-run migrate + seed.
+
+For a deployed Worker, keep `BETTER_AUTH_SECRET` and `RESEND_API_KEY` as
+secrets, and set `BETTER_AUTH_URL` and the verified `RESEND_FROM_EMAIL` in the
+deployment environment. For example:
+
+```bash
+wrangler secret put BETTER_AUTH_SECRET
+wrangler secret put RESEND_API_KEY
+```
 
 ## Status
 
@@ -85,7 +105,10 @@ Then `pnpm db:migrate:local && pnpm db:seed:local && pnpm dev`, and sign up at
 - **Rule #2** `broken-conversion-path` — V0 complete (dead CTA / broken form / malformed `tel:` / placeholder booking link, all deterministically established before AI).
 - **Multi-tenancy** — Better Auth + per-workspace isolation enforced at the repo
   and DB level; aggressive isolation test matrix (repo + route/HTTP + unauthenticated).
+- **Password reset** — Better Auth token/session behavior, enumeration-safe
+  routes, and Worker-compatible Resend transport implemented; live Worker + D1
+  + Resend smoke remains required before an external pilot.
 
 Not built: Stripe/billing, pricing enforcement, team invites/RBAC, email
-verification, password reset, client portal, autonomous outreach, Morrow
-execution, notifications, scheduled monitoring, a third opportunity rule.
+verification, client portal, autonomous outreach, Morrow execution,
+notifications, scheduled monitoring, a third opportunity rule.

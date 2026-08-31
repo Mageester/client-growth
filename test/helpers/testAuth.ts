@@ -6,6 +6,7 @@ import Database from "better-sqlite3";
 import { betterAuth } from "better-auth";
 
 import { buildAuthOptions } from "../../app/lib/authOptions";
+import type { PasswordResetSender } from "../../app/lib/resend.server";
 import { SCHEMA_SQL } from "@/db/schema";
 import type { RunResult, SqlDb, SqlStatement, SqlValue } from "@/db/sql";
 
@@ -37,7 +38,13 @@ function sqlDbOver(raw: Database.Database): SqlDb {
  * committed auth migration (0004) and the app schema applied — so app repos and
  * Better Auth share storage in tests.
  */
-export function makeTestAuth(): {
+export interface TestAuthOptions {
+  sendResetPassword?: PasswordResetSender;
+  backgroundTaskHandler?: (promise: Promise<unknown>) => void;
+  resetPasswordTokenExpiresIn?: number;
+}
+
+export function makeTestAuth(options: TestAuthOptions = {}): {
   auth: ReturnType<typeof betterAuth>;
   db: SqlDb;
   raw: Database.Database;
@@ -47,13 +54,18 @@ export function makeTestAuth(): {
   raw.exec(readFileSync(join(migrationsDir, "0004_better_auth.sql"), "utf8"));
   raw.exec(SCHEMA_SQL);
 
-  const auth = betterAuth(
-    buildAuthOptions({
-      database: raw as never,
-      secret: "test-secret-".padEnd(48, "x"),
-      baseURL: "http://localhost:8787",
-    }),
-  );
+  const authOptions = buildAuthOptions({
+    database: raw as never,
+    secret: "test-secret-".padEnd(48, "x"),
+    baseURL: "http://localhost:8787",
+    sendResetPassword: options.sendResetPassword,
+    backgroundTaskHandler: options.backgroundTaskHandler,
+  });
+  if (options.resetPasswordTokenExpiresIn !== undefined) {
+    authOptions.emailAndPassword!.resetPasswordTokenExpiresIn = options.resetPasswordTokenExpiresIn;
+  }
+
+  const auth = betterAuth(authOptions);
 
   return { auth, db: sqlDbOver(raw), raw };
 }

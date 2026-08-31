@@ -1,6 +1,11 @@
 import { betterAuth } from "better-auth";
 
 import { buildAuthOptions } from "./authOptions";
+import {
+  createResendPasswordResetSender,
+  getResendConfig,
+} from "./resend.server";
+import { waitUntilInCurrentWorker } from "./workerContext.server";
 
 type AuthInstance = ReturnType<typeof betterAuth>;
 
@@ -15,6 +20,18 @@ export interface AuthEnv {
   BETTER_AUTH_SECRET?: string;
   /** Trusted, explicit base URL. Never derived from a request Host/Origin. */
   BETTER_AUTH_URL?: string;
+  RESEND_API_KEY?: string;
+  RESEND_FROM_EMAIL?: string;
+}
+
+export function getTrustedAuthBaseURL(env: Pick<AuthEnv, "BETTER_AUTH_URL">): string {
+  const baseURL = env.BETTER_AUTH_URL?.trim();
+  if (!baseURL || !/^https?:\/\//.test(baseURL)) {
+    throw new Error(
+      "BETTER_AUTH_URL is missing. Set the explicit, trusted base URL (e.g. http://localhost:8787 locally, https://app.example.com in production).",
+    );
+  }
+  return baseURL;
 }
 
 export function getAuth(env: AuthEnv): AuthInstance {
@@ -28,15 +45,19 @@ export function getAuth(env: AuthEnv): AuthInstance {
       "BETTER_AUTH_SECRET is missing or too short (need >= 32 chars). Set it in .dev.vars locally or `wrangler secret put BETTER_AUTH_SECRET`.",
     );
   }
-  const baseURL = env.BETTER_AUTH_URL?.trim();
-  if (!baseURL || !/^https?:\/\//.test(baseURL)) {
-    throw new Error(
-      "BETTER_AUTH_URL is missing. Set the explicit, trusted base URL (e.g. http://localhost:8787 locally, https://app.example.com in production).",
-    );
-  }
+  const baseURL = getTrustedAuthBaseURL(env);
+  const resendConfig = getResendConfig(env);
 
   const auth = betterAuth(
-    buildAuthOptions({ database: env.DB as never, secret, baseURL }),
+    buildAuthOptions({
+      database: env.DB as never,
+      secret,
+      baseURL,
+      sendResetPassword: resendConfig
+        ? createResendPasswordResetSender(resendConfig)
+        : undefined,
+      backgroundTaskHandler: waitUntilInCurrentWorker,
+    }),
   );
   cache.set(binding, auth);
   return auth;

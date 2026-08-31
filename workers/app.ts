@@ -1,5 +1,7 @@
 import { createRequestHandler, type ServerBuild } from "react-router";
 
+import { runWithWorkerExecutionContext } from "../app/lib/workerContext.server";
+
 /**
  * Cloudflare Worker entry. The domain engine in `src/` never imports this file.
  *
@@ -14,6 +16,8 @@ declare global {
     BETTER_AUTH_SECRET?: string;
     /** Better Auth: explicit trusted base URL (never derived from Host/Origin). */
     BETTER_AUTH_URL?: string;
+    RESEND_API_KEY?: string;
+    RESEND_FROM_EMAIL?: string;
     AI_PROVIDER?: string;
     DEEPSEEK_API_KEY?: string;
     DEEPSEEK_BASE_URL?: string;
@@ -30,6 +34,8 @@ const handler = createRequestHandler(build as unknown as ServerBuild, "productio
 
 export default {
   fetch(request: Request, env: CloudflareEnvironment, ctx: ExecutionContext) {
-    return handler(request, { cloudflare: { env, ctx } });
+    return runWithWorkerExecutionContext(ctx, () =>
+      handler(request, { cloudflare: { env, ctx } }),
+    );
   },
 } satisfies ExportedHandler<CloudflareEnvironment>;

@@ -13,6 +13,10 @@ export interface AuthDeps {
   database: BetterAuthOptions["database"];
   secret: string;
   baseURL: string;
+  sendResetPassword?: NonNullable<
+    NonNullable<BetterAuthOptions["emailAndPassword"]>["sendResetPassword"]
+  >;
+  backgroundTaskHandler?: (promise: Promise<unknown>) => void;
 }
 
 export function buildAuthOptions(deps: AuthDeps): BetterAuthOptions {
@@ -23,9 +27,12 @@ export function buildAuthOptions(deps: AuthDeps): BetterAuthOptions {
     baseURL: deps.baseURL,
     emailAndPassword: {
       enabled: true,
-      // Deferred this phase — see README: PASSWORD RESET IS REQUIRED BEFORE
-      // EXTERNAL AGENCY PILOT.
       requireEmailVerification: false,
+      minPasswordLength: 8,
+      maxPasswordLength: 128,
+      resetPasswordTokenExpiresIn: 60 * 60,
+      revokeSessionsOnPasswordReset: true,
+      ...(deps.sendResetPassword ? { sendResetPassword: deps.sendResetPassword } : {}),
     },
     // Plain database-backed sessions. Cookie caching intentionally OFF for now.
     session: {
@@ -39,5 +46,8 @@ export function buildAuthOptions(deps: AuthDeps): BetterAuthOptions {
       window: 60,
       max: 20,
     },
+    ...(deps.backgroundTaskHandler
+      ? { advanced: { backgroundTasks: { handler: deps.backgroundTaskHandler } } }
+      : {}),
   };
 }
