@@ -1,10 +1,16 @@
-import { useState } from "react";
-import { Form } from "react-router";
+import { useEffect, useRef, useState } from "react";
+import { Form, useNavigation } from "react-router";
 
 import type { Service } from "@/core/schema";
 import { ServiceSchema } from "@/core/schema";
 import * as repo from "@/db/repositories";
-import { formatCurrencyRange, Icon } from "../components/ui";
+import {
+  EmptyState,
+  Icon,
+  SidePanel,
+  formatCurrencyRange,
+  pluralize,
+} from "../components/ui";
 import { requireTenant } from "../lib/session.server";
 import type { Route } from "./+types/services._index";
 
@@ -66,180 +72,240 @@ export async function action({ request, context }: Route.ActionArgs) {
 
 export default function ServicesIndex({ loaderData, actionData }: Route.ComponentProps) {
   const { services } = loaderData;
-  const [addOpen, setAddOpen] = useState(services.length === 0);
+  const navigation = useNavigation();
+  const busy = navigation.state !== "idle";
+  const [editing, setEditing] = useState<Service | "new" | null>(null);
+  const submitted = useRef(false);
+
+  useEffect(() => {
+    if (navigation.state === "submitting") {
+      submitted.current = true;
+    } else if (navigation.state === "idle" && submitted.current) {
+      submitted.current = false;
+      if (actionData?.ok) setEditing(null);
+    }
+  }, [navigation.state, actionData]);
+
   const activeCount = services.filter((service) => service.active).length;
+  const ordered = [...services].sort(
+    (a, b) => Number(b.active) - Number(a.active) || a.name.localeCompare(b.name),
+  );
 
   return (
     <div>
-      <div className="page-head">
-        <div className="page-head-copy">
-          <h1>Services</h1>
-          <div className="sub">The work you can offer when a client site shows a clear opportunity.</div>
+      <div className="pagehead">
+        <div className="pagehead-copy">
+          <span className="eyebrow">Catalog</span>
+          <h1 className="title-page">Services</h1>
+          <p className="summary-line">
+            <span>What your agency can sell when a client site shows a real gap</span>
+            {services.length > 0 && (
+              <>
+                <span className="dot-sep">·</span>
+                <b>{activeCount}</b>
+                <span>
+                  active of {services.length}{" "}
+                  {pluralize(services.length, "offering", "offerings")}
+                </span>
+              </>
+            )}
+          </p>
         </div>
+        {services.length > 0 && (
+          <div className="pagehead-actions">
+            <button className="btn btn-primary" type="button" onClick={() => setEditing("new")}>
+              <Icon name="plus" size={15} />
+              New service
+            </button>
+          </div>
+        )}
       </div>
 
       {actionData?.ok && (
         <div className="notice ok" role="status">
-          <Icon name="check" size={17} />
+          <Icon name="check" size={15} />
           <span>{actionData.message}</span>
         </div>
       )}
       {actionData && !actionData.ok && (
         <div className="notice err" role="alert">
-          <Icon name="x" size={17} />
+          <Icon name="alert" size={15} />
           <span>{actionData.error}</span>
         </div>
       )}
 
-      <section className="card list-shell">
-        <div className="list-toolbar">
-          <div>
-            <strong>Service catalog</strong>
-            <div className="list-toolbar-copy">
-              {services.length} {services.length === 1 ? "service" : "services"} · {activeCount} active
-            </div>
-          </div>
-          <button className="btn btn-primary btn-sm" type="button" onClick={() => setAddOpen(true)}>
-            <Icon name="plus" size={16} />
-            Add service
-          </button>
-        </div>
-        {services.length === 0 ? (
-          <div className="empty-state">
-            <span className="empty-icon"><Icon name="briefcase" size={20} /></span>
-            <h2>No services yet</h2>
-            <p>Add the work your agency sells so opportunities can carry a useful billable range.</p>
-          </div>
-        ) : (
-          <div className="data-table-wrap">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Service</th>
-                  <th>Price range</th>
-                  <th>Tags</th>
-                  <th>Status</th>
-                  <th><span className="sr-only">Actions</span></th>
-                </tr>
-              </thead>
-              <tbody>
-                {services.map((service) => (
-                  <ServiceRow key={service.id} service={service} />
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+      {services.length === 0 ? (
+        <EmptyState
+          icon="briefcase"
+          title="Your catalog is empty"
+          actions={
+            <button className="btn btn-primary" type="button" onClick={() => setEditing("new")}>
+              <Icon name="plus" size={15} />
+              Add your first service
+            </button>
+          }
+        >
+          List the work you actually sell, with the price range you would quote. Opportunities are
+          matched to these offerings so every finding carries a realistic value.
+        </EmptyState>
+      ) : (
+        <ul className="records">
+          {ordered.map((service) => (
+            <li key={service.id}>
+              <ServiceRow service={service} onEdit={() => setEditing(service)} busy={busy} />
+            </li>
+          ))}
+        </ul>
+      )}
 
-      <details
-        id="add-service"
-        className="form-drawer"
-        open={addOpen}
-        onToggle={(event) => setAddOpen(event.currentTarget.open)}
+      <SidePanel
+        open={editing !== null}
+        onClose={() => setEditing(null)}
+        title={editing === "new" ? "New service" : "Edit service"}
+        description="How you describe this offering, and what you would charge for it."
       >
-        <summary className="drawer-summary">
-          <span className="drawer-summary-copy">
-            <strong>Add a service</strong>
-            <small>Keep your catalog simple so recommendations stay grounded.</small>
-          </span>
-          <span className="btn btn-primary btn-sm">
-            <Icon name="plus" size={16} />
-            New service
-          </span>
-        </summary>
-        <div className="drawer-panel">
-          <ServiceForm />
-        </div>
-      </details>
+        {editing !== null && (
+          <ServiceForm
+            service={editing === "new" ? undefined : editing}
+            busy={busy}
+            onCancel={() => setEditing(null)}
+          />
+        )}
+      </SidePanel>
     </div>
   );
 }
 
-function ServiceRow({ service }: { service: Service }) {
-  const idPrefix = service.id.replace(/[^a-z0-9_-]/gi, "-");
+function ServiceRow({
+  service,
+  onEdit,
+  busy,
+}: {
+  service: Service;
+  onEdit: () => void;
+  busy: boolean;
+}) {
   return (
-    <tr>
-      <td>
-        <div className="service-name">{service.name}</div>
-        {service.description && <div className="service-description">{service.description}</div>}
-      </td>
-      <td><span className="cell-primary">{formatCurrencyRange(service.priceMin, service.priceMax)}</span></td>
-      <td>
-        {service.tags.length > 0 ? (
-          <div className="tag-list">
+    <div className={"record service-record" + (service.active ? "" : " is-off")}>
+      <div className="record-main">
+        <div className="record-name">{service.name}</div>
+        {service.description && <p className="offer-line">{service.description}</p>}
+        {service.tags.length > 0 && (
+          <div className="tag-row">
             {service.tags.map((tag) => (
-              <span className="tag" key={tag}><Icon name="tag" size={12} />{tag}</span>
+              <span className="pill quiet" key={tag}>
+                <Icon name="tag" size={10} />
+                {tag}
+              </span>
             ))}
           </div>
-        ) : (
-          <span className="cell-muted">No tags</span>
         )}
-      </td>
-      <td>
+      </div>
+      <div className="record-end">
+        <div className="record-stat wide">
+          <b>{formatCurrencyRange(service.priceMin, service.priceMax)}</b>
+          <span>typical range</span>
+        </div>
         <Form method="post" className="inline">
           <input type="hidden" name="intent" value="toggle-active" />
           <input type="hidden" name="id" value={service.id} />
           {!service.active && <input type="hidden" name="active" value="on" />}
           <button
             type="submit"
-            className={"status-toggle " + (service.active ? "is-active" : "is-inactive")}
+            className={"state-toggle" + (service.active ? " on" : "")}
+            disabled={busy}
             aria-label={(service.active ? "Deactivate " : "Activate ") + service.name}
           >
-            <span className="status-dot" />
+            <span className={"dot" + (service.active ? "" : " hollow")} />
             {service.active ? "Active" : "Inactive"}
           </button>
         </Form>
-      </td>
-      <td>
-        <details className="edit-drawer">
-          <summary>
-            <span className="btn btn-secondary btn-sm">
-              Edit
-              <Icon name="chevron-down" size={14} />
-            </span>
-          </summary>
-          <div className="drawer-panel">
-            <ServiceForm service={service} idPrefix={idPrefix} />
-          </div>
-        </details>
-      </td>
-    </tr>
+        <div className="record-actions">
+          <button className="btn btn-sm" type="button" onClick={onEdit}>
+            <Icon name="pencil" size={13} />
+            Edit
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
-function ServiceForm({ service, idPrefix = "new-service" }: { service?: Service; idPrefix?: string }) {
+function ServiceForm({
+  service,
+  busy,
+  onCancel,
+}: {
+  service?: Service;
+  busy: boolean;
+  onCancel: () => void;
+}) {
+  const prefix = service ? service.id.replace(/[^a-z0-9_-]/gi, "-") : "new-service";
   return (
-    <Form method="post" className="stack">
+    <Form method="post">
       <input type="hidden" name="intent" value="save" />
       {service && <input type="hidden" name="id" value={service.id} />}
+      <div className="field">
+        <label htmlFor={prefix + "-name"}>Service name</label>
+        <input
+          id={prefix + "-name"}
+          name="name"
+          type="text"
+          defaultValue={service?.name}
+          placeholder="Service Landing Page"
+          required
+        />
+      </div>
       <div className="field-row">
-        <div className="field field-wide">
-          <label htmlFor={idPrefix + "-name"}>Service name</label>
-          <input id={idPrefix + "-name"} name="name" type="text" defaultValue={service?.name} required />
+        <div className="field">
+          <label htmlFor={prefix + "-min"}>From</label>
+          <input
+            id={prefix + "-min"}
+            name="priceMin"
+            type="number"
+            min={0}
+            defaultValue={service?.priceMin ?? 0}
+          />
         </div>
         <div className="field">
-          <label htmlFor={idPrefix + "-min"}>Minimum price</label>
-          <input id={idPrefix + "-min"} name="priceMin" type="number" min={0} defaultValue={service?.priceMin ?? 0} />
-        </div>
-        <div className="field">
-          <label htmlFor={idPrefix + "-max"}>Maximum price</label>
-          <input id={idPrefix + "-max"} name="priceMax" type="number" min={0} defaultValue={service?.priceMax ?? 0} />
+          <label htmlFor={prefix + "-max"}>Up to</label>
+          <input
+            id={prefix + "-max"}
+            name="priceMax"
+            type="number"
+            min={0}
+            defaultValue={service?.priceMax ?? 0}
+          />
         </div>
       </div>
       <div className="field">
-        <label htmlFor={idPrefix + "-description"}>Description</label>
-        <textarea id={idPrefix + "-description"} name="description" defaultValue={service?.description} />
+        <label htmlFor={prefix + "-description"}>Description</label>
+        <textarea
+          id={prefix + "-description"}
+          name="description"
+          defaultValue={service?.description}
+          placeholder="What the client gets, in a sentence or two."
+        />
       </div>
       <div className="field">
-        <label htmlFor={idPrefix + "-tags"}>Tags</label>
-        <input id={idPrefix + "-tags"} name="tags" type="text" defaultValue={service?.tags.join(", ")} placeholder="landing-page, conversion-fix" />
-        <div className="field-hint">Use commas to separate tags used by analysis rules.</div>
+        <label htmlFor={prefix + "-tags"}>Tags</label>
+        <input
+          id={prefix + "-tags"}
+          name="tags"
+          type="text"
+          defaultValue={service?.tags.join(", ")}
+          placeholder="landing-page, conversion-fix"
+        />
+        <div className="field-hint">
+          Comma separated. Tags connect a finding to the right offering.
+        </div>
       </div>
       <div className="form-actions">
-        <button type="submit" className="btn btn-primary">
-          {service ? "Save changes" : "Add service"}
-          <Icon name="check" size={15} />
+        <button type="submit" className="btn btn-primary" disabled={busy}>
+          {busy ? "Saving…" : service ? "Save changes" : "Add service"}
+        </button>
+        <button type="button" className="btn btn-ghost" onClick={onCancel}>
+          Cancel
         </button>
       </div>
     </Form>

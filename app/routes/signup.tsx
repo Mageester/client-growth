@@ -58,36 +58,54 @@ export async function action({ request, context }: Route.ActionArgs) {
 
 export default function Signup({ actionData }: Route.ComponentProps) {
   return (
-    <main className="auth-layout">
-      <section className="card auth-card">
-        <div className="auth-header">
-          <h1>Start with your portfolio</h1>
-          <p>Create a workspace for the client sites you want to monitor.</p>
+    <main className="auth">
+      <h1>Start with your portfolio</h1>
+      <p className="auth-sub">
+        Create a workspace for the client sites you already look after.
+      </p>
+      {actionData?.error && (
+        <div className="notice err" role="alert" style={{ marginTop: "1.25rem", marginBottom: 0 }}>
+          <Icon name="alert" size={15} />
+          <span>{actionData.error}</span>
         </div>
-        {actionData?.error && (
-          <div className="notice err" role="alert">
-            <Icon name="x" size={17} />
-            <span>{actionData.error}</span>
-          </div>
-        )}
-        <Form method="post" className="stack">
-          <div className="field">
-            <label htmlFor="workspaceName">Agency / workspace name</label>
-            <input id="workspaceName" name="workspaceName" type="text" autoComplete="organization" required />
-          </div>
-          <div className="field">
-            <label htmlFor="email">Email</label>
-            <input id="email" name="email" type="email" autoComplete="email" required />
-          </div>
-          <div className="field">
-            <label htmlFor="password">Password</label>
-            <input id="password" name="password" type="password" autoComplete="new-password" minLength={8} required />
-            <div className="field-hint">At least 8 characters.</div>
-          </div>
-          <button type="submit" className="btn btn-primary">Create account</button>
-        </Form>
-      </section>
-      <p className="auth-footer">Already have an account? <Link to="/login">Log in</Link></p>
+      )}
+      <Form method="post">
+        <div className="field">
+          <label htmlFor="workspaceName">Agency name</label>
+          <input
+            id="workspaceName"
+            name="workspaceName"
+            type="text"
+            autoComplete="organization"
+            required
+          />
+        </div>
+        <div className="field">
+          <label htmlFor="email">Email</label>
+          <input id="email" name="email" type="email" autoComplete="email" required />
+        </div>
+        <div className="field">
+          <label htmlFor="password">Password</label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            autoComplete="new-password"
+            minLength={8}
+            required
+          />
+          <div className="field-hint">At least 8 characters.</div>
+        </div>
+        <button type="submit" className="btn btn-primary btn-lg">
+          Create account
+        </button>
+      </Form>
+      <p className="auth-foot">
+        Already have an account?{" "}
+        <Link className="link" to="/login">
+          Log in
+        </Link>
+      </p>
     </main>
   );
 }

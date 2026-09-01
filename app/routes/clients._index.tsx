@@ -1,9 +1,15 @@
-import { Form, Link } from "react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Form, Link, useNavigation } from "react-router";
 
 import { ClientSchema } from "@/core/schema";
 import * as repo from "@/db/repositories";
-import { formatDate, getInitials, Icon } from "../components/ui";
+import {
+  EmptyState,
+  Icon,
+  SidePanel,
+  formatDate,
+  pluralize,
+} from "../components/ui";
 import { requireTenant } from "../lib/session.server";
 import type { Route } from "./+types/clients._index";
 
@@ -69,161 +75,184 @@ export async function action({ request, context }: Route.ActionArgs) {
   return { ok: true as const, id: client.id };
 }
 
+type EnrichedClient = Awaited<ReturnType<typeof loader>>["clients"][number];
+
 export default function ClientsIndex({ loaderData, actionData }: Route.ComponentProps) {
   const { clients } = loaderData;
-  const [addOpen, setAddOpen] = useState(clients.length === 0);
+  const navigation = useNavigation();
+  const busy = navigation.state !== "idle";
+  const [addOpen, setAddOpen] = useState(false);
+  const handled = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (actionData?.ok && actionData.id !== handled.current) {
+      handled.current = actionData.id;
+      setAddOpen(false);
+    }
+  }, [actionData]);
+
+  const monitored = clients.filter((client) => client.lastCapturedAt).length;
+  const withWork = clients.filter((client) => client.opportunityCount > 0).length;
+
   return (
     <div>
-      <div className="page-head">
-        <div className="page-head-copy">
-          <h1>Clients</h1>
-          <div className="sub">Keep your client portfolio ready for the next useful conversation.</div>
+      <div className="pagehead">
+        <div className="pagehead-copy">
+          <span className="eyebrow">Portfolio</span>
+          <h1 className="title-page">Clients</h1>
+          <p className="summary-line">
+            <b>{clients.length}</b>
+            <span>{pluralize(clients.length, "business", "businesses")} monitored</span>
+            {clients.length > 0 && (
+              <>
+                <span className="dot-sep">·</span>
+                <span>{monitored} analyzed</span>
+                <span className="dot-sep">·</span>
+                <span>
+                  {withWork} with open {pluralize(withWork, "opportunity", "opportunities")}
+                </span>
+              </>
+            )}
+          </p>
         </div>
+        {clients.length > 0 && (
+          <div className="pagehead-actions">
+            <button className="btn btn-primary" type="button" onClick={() => setAddOpen(true)}>
+              <Icon name="plus" size={15} />
+              Add client
+            </button>
+          </div>
+        )}
       </div>
 
       {actionData?.ok && (
         <div className="notice ok" role="status">
-          <Icon name="check" size={17} />
+          <Icon name="check" size={15} />
           <span>
-            Client added. <Link to={"/clients/" + actionData.id}>Open client</Link>
+            Client added. <Link to={"/clients/" + actionData.id}>Open it to analyze the site</Link>.
           </span>
         </div>
       )}
       {actionData && !actionData.ok && (
         <div className="notice err" role="alert">
-          <Icon name="x" size={17} />
+          <Icon name="alert" size={15} />
           <span>{actionData.error}</span>
         </div>
       )}
 
-      <section className="card list-shell">
-        <div className="list-toolbar">
-          <div>
-            <strong>Client portfolio</strong>
-            <div className="list-toolbar-copy">
-              {clients.length} {clients.length === 1 ? "client" : "clients"} monitored
-            </div>
-          </div>
-          <button className="btn btn-primary btn-sm" type="button" onClick={() => setAddOpen(true)}>
-            <Icon name="plus" size={16} />
-            Add client
-          </button>
-        </div>
-        {clients.length === 0 ? (
-          <div className="empty-state">
-            <span className="empty-icon"><Icon name="users" size={20} /></span>
-            <h2>No clients yet</h2>
-            <p>Add your first client to start finding evidence-backed revenue opportunities.</p>
-          </div>
-        ) : (
-          <div className="data-table-wrap">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Client</th>
-                  <th>Services</th>
-                  <th>Last analysis</th>
-                  <th>Opportunities</th>
-                  <th><span className="sr-only">Actions</span></th>
-                </tr>
-              </thead>
-              <tbody>
-                {clients.map((client) => {
-                  const { lastCapturedAt, opportunityCount } = client;
-                  return (
-                    <tr key={client.id}>
-                    <td>
-                      <div className="client-name-cell">
-                        <span className="avatar">{getInitials(client.name)}</span>
-                        <span>
-                          <Link className="cell-primary" to={"/clients/" + client.id}>
-                            {client.name}
-                          </Link>
-                          <small>{client.domain}</small>
-                        </span>
-                      </div>
-                    </td>
-                    <td><span className="cell-secondary">{client.offerings.length} listed</span></td>
-                    <td>
-                      <span className={lastCapturedAt ? "cell-secondary" : "cell-muted"}>
-                        {lastCapturedAt ? formatDate(lastCapturedAt) : "Not analyzed"}
-                      </span>
-                    </td>
-                    <td>
-                      <span className={opportunityCount > 0 ? "cell-primary" : "cell-muted"}>
-                        {opportunityCount > 0 ? opportunityCount : "None yet"}
-                      </span>
-                    </td>
-                    <td>
-                      <div className="row-actions">
-                        <Link className="btn btn-secondary btn-sm" to={"/clients/" + client.id}>
-                          Open client
-                        </Link>
-                        <Link className="btn btn-quiet btn-sm" to={"/clients/" + client.id}>
-                          Analyze
-                        </Link>
-                      </div>
-                    </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+      {clients.length === 0 ? (
+        <EmptyState
+          icon="users"
+          title="No clients yet"
+          actions={
+            <button className="btn btn-primary" type="button" onClick={() => setAddOpen(true)}>
+              <Icon name="plus" size={15} />
+              Add your first client
+            </button>
+          }
+        >
+          Add a business you already look after. Client Growth watches its site and tells you when
+          there is legitimate, billable work to bring up.
+        </EmptyState>
+      ) : (
+        <ul className="records">
+          {clients.map((client) => (
+            <li key={client.id}>
+              <ClientRow client={client} />
+            </li>
+          ))}
+        </ul>
+      )}
 
-      <details
-        id="add-client"
-        className="form-drawer"
+      <SidePanel
         open={addOpen}
-        onToggle={(event) => setAddOpen(event.currentTarget.open)}
+        onClose={() => setAddOpen(false)}
+        title="Add a client"
+        description="The website and what this business sells. Both feed the analysis."
       >
-        <summary className="drawer-summary">
-          <span className="drawer-summary-copy">
-            <strong>Add a client</strong>
-            <small>Save the website and the services your client sells.</small>
-          </span>
-          <span className="btn btn-primary btn-sm">
-            <Icon name="plus" size={16} />
-            New client
-          </span>
-        </summary>
-        <div className="drawer-panel">
-          <Form method="post" className="stack">
-            <div className="field-row">
-              <div className="field">
-                <label htmlFor="new-client-name">Client name</label>
-                <input id="new-client-name" name="name" type="text" required />
-              </div>
-              <div className="field">
-                <label htmlFor="new-client-domain">Website domain</label>
-                <input id="new-client-domain" name="domain" type="text" placeholder="example.com" required />
-                <div className="field-hint">https:// is optional.</div>
-              </div>
+        <Form method="post">
+          <div className="field">
+            <label htmlFor="new-client-name">Client name</label>
+            <input id="new-client-name" name="name" type="text" required />
+          </div>
+          <div className="field">
+            <label htmlFor="new-client-domain">Website</label>
+            <input
+              id="new-client-domain"
+              name="domain"
+              type="text"
+              placeholder="example.com"
+              required
+            />
+            <div className="field-hint">https:// is optional.</div>
+          </div>
+          <div className="field">
+            <label htmlFor="new-client-offerings">What this business sells</label>
+            <textarea
+              id="new-client-offerings"
+              name="offerings"
+              placeholder={"One per line\nheat pump installation\nair conditioning repair"}
+            />
+            <div className="field-hint">
+              Used to check whether their site actually covers what they sell.
             </div>
-            <div className="field">
-              <label htmlFor="new-client-offerings">Services this client offers</label>
-              <textarea
-                id="new-client-offerings"
-                name="offerings"
-                placeholder={"One service per line\nheat pump installation\nair conditioning repair"}
-              />
-              <div className="field-hint">This helps analysis understand what their customers can buy.</div>
-            </div>
-            <div className="field">
-              <label htmlFor="new-client-notes">Notes</label>
-              <textarea id="new-client-notes" name="notes" placeholder="Optional context for your team" />
-            </div>
-            <div className="form-actions">
-              <button type="submit" className="btn btn-primary">
-                Add client
-                <Icon name="arrow-up-right" size={15} />
-              </button>
-            </div>
-          </Form>
-        </div>
-      </details>
+          </div>
+          <div className="field">
+            <label htmlFor="new-client-notes">Notes</label>
+            <textarea id="new-client-notes" name="notes" placeholder="Optional context for your team" />
+          </div>
+          <div className="form-actions">
+            <button type="submit" className="btn btn-primary" disabled={busy}>
+              {busy ? "Adding…" : "Add client"}
+            </button>
+            <button type="button" className="btn btn-ghost" onClick={() => setAddOpen(false)}>
+              Cancel
+            </button>
+          </div>
+        </Form>
+      </SidePanel>
     </div>
+  );
+}
+
+function ClientRow({ client }: { client: EnrichedClient }) {
+  const analyzed = Boolean(client.lastCapturedAt);
+  const state = !analyzed ? "idle" : client.opportunityCount > 0 ? "live" : "clean";
+  const stateLabel = !analyzed
+    ? "Not analyzed"
+    : client.opportunityCount > 0
+      ? "Open opportunities"
+      : "Clean";
+
+  return (
+    <Link className="record" to={"/clients/" + client.id}>
+      <span className={"state-dot " + state} title={stateLabel}>
+        <span className={"dot" + (analyzed ? "" : " hollow")} />
+        <span className="sr-only">{stateLabel}</span>
+      </span>
+      <span className="record-main">
+        <span className="record-name">{client.name}</span>
+        <span className="record-meta">
+          <span>{client.domain}</span>
+          <span className="dot-sep">·</span>
+          <span>
+            {client.offerings.length} {pluralize(client.offerings.length, "offering", "offerings")}
+          </span>
+        </span>
+      </span>
+      <span className="record-end">
+        <span className={"record-stat" + (client.opportunityCount > 0 ? "" : " is-zero")}>
+          <b>{client.opportunityCount > 0 ? client.opportunityCount : "—"}</b>
+          <span>{pluralize(client.opportunityCount, "opportunity", "opportunities")}</span>
+        </span>
+        <span className="record-stat wide is-zero">
+          <b style={{ fontWeight: 500 }}>
+            {analyzed ? formatDate(client.lastCapturedAt) : "Never"}
+          </b>
+          <span>analyzed</span>
+        </span>
+        <Icon name="chevron-right" size={15} className="record-chevron" />
+      </span>
+    </Link>
   );
 }

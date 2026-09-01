@@ -36,38 +36,53 @@ export async function action({ request, context }: Route.ActionArgs) {
 
 export default function Login({ loaderData, actionData }: Route.ComponentProps) {
   return (
-    <main className="auth-layout">
-      <section className="card auth-card">
-        <div className="auth-header">
-          <h1>Welcome back</h1>
-          <p>Log in to see what’s worth bringing to your next client conversation.</p>
+    <main className="auth">
+      <h1>Welcome back</h1>
+      <p className="auth-sub">
+        Pick up where your portfolio left off and see what is worth raising next.
+      </p>
+      {loaderData.resetSuccess && (
+        <div className="notice ok" role="status" style={{ marginTop: "1.25rem", marginBottom: 0 }}>
+          <Icon name="check" size={15} />
+          <span>Password reset successfully. Log in with your new password.</span>
         </div>
-        {loaderData.resetSuccess && (
-          <div className="notice ok" role="status">
-            <Icon name="check" size={17} />
-            <span>Password reset successfully. Log in with your new password.</span>
-          </div>
-        )}
-        {actionData?.error && (
-          <div className="notice err" role="alert">
-            <Icon name="x" size={17} />
-            <span>{actionData.error}</span>
-          </div>
-        )}
-        <Form method="post" className="stack">
-          <div className="field">
-            <label htmlFor="email">Email</label>
-            <input id="email" name="email" type="email" autoComplete="email" required />
-          </div>
-          <div className="field">
-            <label htmlFor="password">Password</label>
-            <input id="password" name="password" type="password" autoComplete="current-password" required />
-          </div>
-          <p className="auth-link-row"><Link to="/forgot-password">Forgot password?</Link></p>
-          <button type="submit" className="btn btn-primary">Log in</button>
-        </Form>
-      </section>
-      <p className="auth-footer">No account? <Link to="/signup">Create one</Link></p>
+      )}
+      {actionData?.error && (
+        <div className="notice err" role="alert" style={{ marginTop: "1.25rem", marginBottom: 0 }}>
+          <Icon name="alert" size={15} />
+          <span>{actionData.error}</span>
+        </div>
+      )}
+      <Form method="post">
+        <div className="field">
+          <label htmlFor="email">Email</label>
+          <input id="email" name="email" type="email" autoComplete="email" required />
+        </div>
+        <div className="field">
+          <label htmlFor="password">Password</label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            autoComplete="current-password"
+            required
+          />
+          <p className="auth-aside">
+            <Link className="link" to="/forgot-password">
+              Forgot password?
+            </Link>
+          </p>
+        </div>
+        <button type="submit" className="btn btn-primary btn-lg">
+          Log in
+        </button>
+      </Form>
+      <p className="auth-foot">
+        No account?{" "}
+        <Link className="link" to="/signup">
+          Create one
+        </Link>
+      </p>
     </main>
   );
 }

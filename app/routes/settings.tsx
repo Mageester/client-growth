@@ -26,79 +26,83 @@ export async function action({ request, context }: Route.ActionArgs) {
 export default function Settings({ loaderData, actionData }: Route.ComponentProps) {
   const navigation = useNavigation();
   const saving = navigation.state !== "idle";
+
   return (
-    <div>
-      <div className="page-head">
-        <div className="page-head-copy">
-          <h1>Settings</h1>
-          <div className="sub">A few essentials for your account and agency workspace.</div>
+    <div className="detail detail-narrow">
+      <div className="pagehead">
+        <div className="pagehead-copy">
+          <span className="eyebrow">Account</span>
+          <h1 className="title-page">Settings</h1>
         </div>
       </div>
 
       {actionData && "ok" in actionData && actionData.ok && (
         <div className="notice ok" role="status">
-          <Icon name="check" size={17} />
-          <span>Workspace settings saved.</span>
+          <Icon name="check" size={15} />
+          <span>Workspace saved.</span>
         </div>
       )}
       {actionData && "error" in actionData && actionData.error && (
         <div className="notice err" role="alert">
-          <Icon name="x" size={17} />
+          <Icon name="alert" size={15} />
           <span>{actionData.error}</span>
         </div>
       )}
 
-      <div className="settings-grid">
-        <section className="card settings-section">
-          <div className="detail-card-title">
-            <h2>Account</h2>
-            <Icon name="users" size={18} />
+      <section className="section">
+        <div className="section-head">
+          <div>
+            <h2 className="title-section">Workspace</h2>
+            <p>The agency name shown across Client Growth.</p>
           </div>
-          <p className="section-description">The signed-in account connected to this workspace.</p>
-          <dl className="kv">
+        </div>
+        <Form method="post">
+          <div className="field">
+            <label htmlFor="workspaceName">Workspace name</label>
+            <input
+              id="workspaceName"
+              name="workspaceName"
+              type="text"
+              defaultValue={loaderData.workspaceName}
+            />
+          </div>
+          <div className="form-actions">
+            <button type="submit" className="btn btn-primary" disabled={saving}>
+              {saving ? "Saving…" : "Save changes"}
+            </button>
+          </div>
+        </Form>
+      </section>
+
+      <section className="section">
+        <div className="section-head">
+          <div>
+            <h2 className="title-section">Account</h2>
+            <p>The signed-in account that owns this workspace.</p>
+          </div>
+        </div>
+        <dl>
+          <div className="kv-row">
             <dt>Email</dt>
             <dd>{loaderData.email}</dd>
-          </dl>
-        </section>
-
-        <section className="card settings-section">
-          <div className="detail-card-title">
-            <h2>Workspace</h2>
-            <Icon name="briefcase" size={18} />
           </div>
-          <p className="section-description">The agency name shown throughout Client Growth.</p>
-          <Form method="post" className="stack">
-            <div className="field">
-              <label htmlFor="workspaceName">Agency / workspace name</label>
-              <input
-                id="workspaceName"
-                name="workspaceName"
-                type="text"
-                defaultValue={loaderData.workspaceName}
-              />
-            </div>
-            <div className="form-actions">
-              <button type="submit" className="btn btn-primary" disabled={saving}>
-                <Icon name="check" size={15} />
-                {saving ? "Saving…" : "Save changes"}
-              </button>
-            </div>
+        </dl>
+      </section>
+
+      <section className="section">
+        <div className="section-head">
+          <div>
+            <h2 className="title-section">Session</h2>
+            <p>Sign out of this browser when you are finished.</p>
+          </div>
+          <Form method="post" action="/logout">
+            <button type="submit" className="btn">
+              <Icon name="logout" size={14} />
+              Log out
+            </button>
           </Form>
-        </section>
-
-        <section className="card settings-section">
-          <div className="detail-card-title">
-            <h2>Session</h2>
-            <Icon name="settings" size={18} />
-          </div>
-          <p className="section-description">Sign out of this browser when you’re finished.</p>
-          <div className="form-actions">
-            <Form method="post" action="/logout">
-              <button type="submit" className="btn btn-secondary">Log out</button>
-            </Form>
-          </div>
-        </section>
-      </div>
+        </div>
+      </section>
     </div>
   );
 }

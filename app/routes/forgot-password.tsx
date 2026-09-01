@@ -42,40 +42,53 @@ export async function action({ request, context }: Route.ActionArgs) {
 
 export default function ForgotPassword({ actionData }: Route.ComponentProps) {
   return (
-    <main className="auth-layout">
-      <section className="card auth-card">
-        <div className="auth-header">
-          <h1>Reset your password</h1>
-          <p>Enter your account email and we’ll send a reset link if it matches.</p>
-        </div>
-        {actionData?.submitted ? (
-          <>
-            <div className="notice ok" role="status">
-              <Icon name="check" size={17} />
-              <span>{RESET_SUBMITTED}</span>
+    <main className="auth">
+      <h1>Reset your password</h1>
+      <p className="auth-sub">
+        Enter your account email and we will send a reset link if it matches.
+      </p>
+      {actionData?.submitted ? (
+        <>
+          <div className="notice ok" role="status" style={{ marginTop: "1.5rem" }}>
+            <Icon name="check" size={15} />
+            <span>{RESET_SUBMITTED}</span>
+          </div>
+          <p className="prose">
+            If you do not see it soon, check your spam folder or request another link.
+          </p>
+          <Link className="btn btn-block" to="/login" style={{ marginTop: "1.25rem" }}>
+            Back to log in
+          </Link>
+        </>
+      ) : (
+        <>
+          {actionData?.error && (
+            <div
+              className="notice err"
+              role="alert"
+              style={{ marginTop: "1.25rem", marginBottom: 0 }}
+            >
+              <Icon name="alert" size={15} />
+              <span>{actionData.error}</span>
             </div>
-            <p className="muted">If you don’t see it soon, check your spam folder or request another link.</p>
-            <Link className="btn btn-secondary" to="/login">Back to log in</Link>
-          </>
-        ) : (
-          <>
-            {actionData?.error && (
-              <div className="notice err" role="alert">
-                <Icon name="x" size={17} />
-                <span>{actionData.error}</span>
-              </div>
-            )}
-            <Form method="post" className="stack">
-              <div className="field">
-                <label htmlFor="email">Email</label>
-                <input id="email" name="email" type="email" autoComplete="email" required />
-              </div>
-              <button type="submit" className="btn btn-primary">Send reset link</button>
-            </Form>
-            <p className="auth-footer">Remembered it? <Link to="/login">Log in</Link></p>
-          </>
-        )}
-      </section>
+          )}
+          <Form method="post">
+            <div className="field">
+              <label htmlFor="email">Email</label>
+              <input id="email" name="email" type="email" autoComplete="email" required />
+            </div>
+            <button type="submit" className="btn btn-primary btn-lg">
+              Send reset link
+            </button>
+          </Form>
+          <p className="auth-foot">
+            Remembered it?{" "}
+            <Link className="link" to="/login">
+              Log in
+            </Link>
+          </p>
+        </>
+      )}
     </main>
   );
 }

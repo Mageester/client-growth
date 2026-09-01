@@ -56,44 +56,71 @@ export async function action({ request, context }: Route.ActionArgs) {
 
 export default function ResetPassword({ loaderData, actionData }: Route.ComponentProps) {
   return (
-    <main className="auth-layout">
-      <section className="card auth-card">
-        <div className="auth-header">
-          <h1>Choose a new password</h1>
-          <p>Use a password you’ll be comfortable keeping for your Client Growth account.</p>
-        </div>
-        {loaderData.invalid ? (
-          <>
-            <div className="notice err" role="alert">
-              <Icon name="x" size={17} />
-              <span>{INVALID_RESET}</span>
+    <main className="auth">
+      <h1>Choose a new password</h1>
+      <p className="auth-sub">
+        Use a password you will be comfortable keeping for your Client Growth account.
+      </p>
+      {loaderData.invalid ? (
+        <>
+          <div className="notice err" role="alert" style={{ marginTop: "1.5rem" }}>
+            <Icon name="alert" size={15} />
+            <span>{INVALID_RESET}</span>
+          </div>
+          <Link className="btn btn-block" to="/forgot-password">
+            Request a new reset link
+          </Link>
+        </>
+      ) : (
+        <>
+          {actionData?.error && (
+            <div
+              className="notice err"
+              role="alert"
+              style={{ marginTop: "1.25rem", marginBottom: 0 }}
+            >
+              <Icon name="alert" size={15} />
+              <span>{actionData.error}</span>
             </div>
-            <Link className="btn btn-secondary" to="/forgot-password">Request a new reset link</Link>
-          </>
-        ) : (
-          <>
-            {actionData?.error && (
-              <div className="notice err" role="alert">
-                <Icon name="x" size={17} />
-                <span>{actionData.error}</span>
-              </div>
-            )}
-            <Form method="post" className="stack">
-              <input type="hidden" name="token" value={loaderData.token} />
-              <div className="field">
-                <label htmlFor="newPassword">New password</label>
-                <input id="newPassword" name="newPassword" type="password" autoComplete="new-password" minLength={8} maxLength={128} required />
-              </div>
-              <div className="field">
-                <label htmlFor="confirmPassword">Confirm new password</label>
-                <input id="confirmPassword" name="confirmPassword" type="password" autoComplete="new-password" minLength={8} maxLength={128} required />
-              </div>
-              <button type="submit" className="btn btn-primary">Reset password</button>
-            </Form>
-            <p className="auth-footer">Need a fresh link? <Link to="/forgot-password">Start again</Link></p>
-          </>
-        )}
-      </section>
+          )}
+          <Form method="post">
+            <input type="hidden" name="token" value={loaderData.token} />
+            <div className="field">
+              <label htmlFor="newPassword">New password</label>
+              <input
+                id="newPassword"
+                name="newPassword"
+                type="password"
+                autoComplete="new-password"
+                minLength={8}
+                maxLength={128}
+                required
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="confirmPassword">Confirm new password</label>
+              <input
+                id="confirmPassword"
+                name="confirmPassword"
+                type="password"
+                autoComplete="new-password"
+                minLength={8}
+                maxLength={128}
+                required
+              />
+            </div>
+            <button type="submit" className="btn btn-primary btn-lg">
+              Reset password
+            </button>
+          </Form>
+          <p className="auth-foot">
+            Need a fresh link?{" "}
+            <Link className="link" to="/forgot-password">
+              Start again
+            </Link>
+          </p>
+        </>
+      )}
     </main>
   );
 }

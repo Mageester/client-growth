@@ -109,91 +109,154 @@ export async function action({ request, context }: Route.ActionArgs) {
 
 export default function Onboarding({ loaderData, actionData }: Route.ComponentProps) {
   return (
-    <main className="onboarding-layout">
-      <div className="onboarding-intro">
-        <h1>Get started</h1>
-        <p>Set up the essentials for your agency, then we’ll take you to Opportunities.</p>
+    <main className="detail">
+      <span className="eyebrow">Setup</span>
+      <h1 className="title-lg" style={{ marginTop: "0.3rem" }}>
+        Get your workspace ready
+      </h1>
+      <p className="prose" style={{ marginTop: "0.55rem" }}>
+        Two things: what your agency sells, and the first client site to look at. We analyze it
+        straight after and take you to your opportunities.
+      </p>
+      <div className="steps" aria-label="Setup steps">
+        <span className="step is-current">
+          <span className="step-num">1</span>
+          Services
+        </span>
+        <span className="step-rule" />
+        <span className="step">
+          <span className="step-num">2</span>
+          First client
+        </span>
+        <span className="step-rule" />
+        <span className="step">
+          <span className="step-num">3</span>
+          Analyze
+        </span>
       </div>
-      <div className="step-list" aria-label="Setup steps">
-        <div className="step is-current"><span className="step-number">1</span><span>Services</span></div>
-        <div className="step"><span className="step-number">2</span><span>First client</span></div>
-        <div className="step"><span className="step-number">3</span><span>Analyze</span></div>
-      </div>
+
       {actionData?.error && (
-        <div className="notice err" role="alert">
-          <Icon name="x" size={17} />
+        <div className="notice err" role="alert" style={{ marginTop: "1.5rem" }}>
+          <Icon name="alert" size={15} />
           <span>{actionData.error}</span>
         </div>
       )}
 
-      <Form method="post" className="stack">
+      <Form method="post">
         {!loaderData.hasWorkspace && (
-          <section className="card onboarding-card">
-            <h2>Your agency</h2>
-            <p>Choose the workspace name you’ll see in the app.</p>
-            <div className="field">
-              <label htmlFor="workspaceName">Agency / workspace name</label>
+          <section className="section">
+            <div className="section-head">
+              <div>
+                <h2 className="title-section">Your agency</h2>
+                <p>The workspace name you will see across the app.</p>
+              </div>
+            </div>
+            <div className="field" style={{ maxWidth: "24rem" }}>
+              <label htmlFor="workspaceName">Agency name</label>
               <input id="workspaceName" name="workspaceName" type="text" required />
             </div>
           </section>
         )}
 
-        <section className="card onboarding-card">
-          <h2>Your services</h2>
-          <p>Tell Client Growth what your agency can offer when a site shows a clear opportunity.</p>
+        <section className="section">
+          <div className="section-head">
+            <div>
+              <h2 className="title-section">What you sell</h2>
+              <p>
+                The work you can offer when a client site shows a clear gap. Price ranges keep every
+                finding grounded in real money.
+              </p>
+            </div>
+          </div>
           {DEFAULT_SERVICES.map((service, i) => {
             const field = "svc" + i;
             return (
-              <div className="field-row" key={i}>
-                <div className="field field-wide">
-                  <label htmlFor={field + "Name"}>Name</label>
-                  <input id={field + "Name"} name={field + "Name"} type="text" defaultValue={service.name} />
+              <div className="field-row split-3" key={i} style={{ marginTop: i ? "0.9rem" : 0 }}>
+                <div className="field">
+                  <label htmlFor={field + "Name"}>Service {i + 1}</label>
+                  <input
+                    id={field + "Name"}
+                    name={field + "Name"}
+                    type="text"
+                    defaultValue={service.name}
+                    placeholder={i === 2 ? "Optional" : undefined}
+                  />
                 </div>
                 <div className="field">
-                  <label htmlFor={field + "Min"}>Min $</label>
-                  <input id={field + "Min"} name={field + "Min"} type="number" min={0} defaultValue={service.min} />
+                  <label htmlFor={field + "Min"}>From</label>
+                  <input
+                    id={field + "Min"}
+                    name={field + "Min"}
+                    type="number"
+                    min={0}
+                    defaultValue={service.min}
+                  />
                 </div>
                 <div className="field">
-                  <label htmlFor={field + "Max"}>Max $</label>
-                  <input id={field + "Max"} name={field + "Max"} type="number" min={0} defaultValue={service.max} />
+                  <label htmlFor={field + "Max"}>Up to</label>
+                  <input
+                    id={field + "Max"}
+                    name={field + "Max"}
+                    type="number"
+                    min={0}
+                    defaultValue={service.max}
+                  />
                 </div>
-                <div className="field">
-                  <label htmlFor={field + "Tags"}>Tags</label>
-                  <input id={field + "Tags"} name={field + "Tags"} type="text" defaultValue={service.tags} />
-                </div>
+                <input
+                  id={field + "Tags"}
+                  name={field + "Tags"}
+                  type="hidden"
+                  defaultValue={service.tags}
+                />
               </div>
             );
           })}
         </section>
 
-        <section className="card onboarding-card">
-          <h2>Your first client</h2>
-          <p>We’ll analyze this site after setup and bring the findings into your opportunity list.</p>
-          <div className="field-row">
-            <div className="field">
-              <label htmlFor="clientName">Name</label>
-              <input id="clientName" name="clientName" type="text" required />
-            </div>
-            <div className="field">
-              <label htmlFor="clientDomain">Website domain</label>
-              <input id="clientDomain" name="clientDomain" type="text" placeholder="example.com" required />
+        <section className="section">
+          <div className="section-head">
+            <div>
+              <h2 className="title-section">Your first client</h2>
+              <p>We analyze this site as soon as setup is saved.</p>
             </div>
           </div>
-          <div className="field">
-            <label htmlFor="clientOfferings">Services this client offers</label>
-            <textarea
-              id="clientOfferings"
-              name="clientOfferings"
-              placeholder={"One service per line\nheat pump installation\nair conditioning repair"}
-            />
-            <div className="field-hint">One service per line. You can set contract coverage after setup.</div>
+          <div style={{ maxWidth: "34rem" }}>
+            <div className="field-row">
+              <div className="field">
+                <label htmlFor="clientName">Client name</label>
+                <input id="clientName" name="clientName" type="text" required />
+              </div>
+              <div className="field">
+                <label htmlFor="clientDomain">Website</label>
+                <input
+                  id="clientDomain"
+                  name="clientDomain"
+                  type="text"
+                  placeholder="example.com"
+                  required
+                />
+              </div>
+            </div>
+            <div className="field">
+              <label htmlFor="clientOfferings">What this business sells</label>
+              <textarea
+                id="clientOfferings"
+                name="clientOfferings"
+                placeholder={"One per line\nheat pump installation\nair conditioning repair"}
+              />
+              <div className="field-hint">
+                Used to check whether their site actually covers what they sell. Contract coverage
+                can be set later.
+              </div>
+            </div>
+          </div>
+          <div className="form-actions">
+            <button type="submit" className="btn btn-primary btn-lg">
+              Save and analyze
+              <Icon name="arrow-right" size={15} />
+            </button>
           </div>
         </section>
-
-        <button type="submit" className="btn btn-primary">
-          Save &amp; analyze website
-          <Icon name="arrow-up-right" size={15} />
-        </button>
       </Form>
     </main>
   );

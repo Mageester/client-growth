@@ -2,7 +2,13 @@ import { Form, Link, redirect, useNavigation } from "react-router";
 
 import { ClientSchema } from "@/core/schema";
 import * as repo from "@/db/repositories";
-import { formatCurrencyRange, formatDate, Icon } from "../components/ui";
+import {
+  EmptyState,
+  Icon,
+  formatCurrencyRange,
+  formatDate,
+  pluralize,
+} from "../components/ui";
 import { runAnalysis } from "../lib/analysis.server";
 import { requireTenant } from "../lib/session.server";
 import type { Route } from "./+types/clients.$id";
@@ -89,119 +95,170 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
   const { client, services, coveredIds, lastCapturedAt, opportunityCount } = loaderData;
   const navigation = useNavigation();
   const busy = navigation.state !== "idle";
+  const analyzing = navigation.formData?.get("intent") === "analyze";
 
   return (
-    <div className="detail-layout">
-      <div className="detail-lede">
-        <div>
-          <h1>{client.name}</h1>
-          <div className="sub">
-            <span>{client.domain}</span>
-            <span className="meta-dot">•</span>
-            <span>{client.offerings.length} listed service{client.offerings.length === 1 ? "" : "s"}</span>
+    <div className="detail">
+      <Link className="backlink" to="/clients">
+        <Icon name="arrow-left" size={14} />
+        Clients
+      </Link>
+
+      <header className="detail-head">
+        <div className="detail-head-row">
+          <div>
+            <span className="eyebrow">Client</span>
+            <h1 className="title-lg">{client.name}</h1>
+            <div className="detail-meta">
+              <a
+                href={"https://" + client.domain}
+                target="_blank"
+                rel="noreferrer"
+                className="row-tight"
+              >
+                {client.domain}
+                <Icon name="external" size={12} />
+              </a>
+              <span className="dot-sep">·</span>
+              <span>
+                {client.offerings.length}{" "}
+                {pluralize(client.offerings.length, "offering", "offerings")} tracked
+              </span>
+            </div>
           </div>
+          <Form method="post">
+            <input type="hidden" name="intent" value="analyze" />
+            <button type="submit" className="btn btn-primary" disabled={busy}>
+              <Icon name="refresh" size={15} className={analyzing ? "spin" : undefined} />
+              {analyzing ? "Analyzing…" : lastCapturedAt ? "Re-analyze site" : "Analyze site"}
+            </button>
+          </Form>
         </div>
-        <Link className="btn btn-secondary" to="/clients">
-          <Icon name="arrow-up-right" size={15} />
-          All clients
-        </Link>
-      </div>
+
+        <dl className="factbar">
+          <div className="fact">
+            <dt>Last analyzed</dt>
+            <dd>{lastCapturedAt ? formatDate(lastCapturedAt, true) : "Never"}</dd>
+          </div>
+          <div className="fact">
+            <dt>Open opportunities</dt>
+            <dd>
+              {opportunityCount > 0 ? (
+                <Link className="link" to={"/opportunities?client=" + client.id}>
+                  {opportunityCount}{" "}
+                  {pluralize(opportunityCount, "opportunity", "opportunities")}
+                </Link>
+              ) : (
+                <span className="faint">None</span>
+              )}
+            </dd>
+          </div>
+          <div className="fact">
+            <dt>Covered by contract</dt>
+            <dd>
+              {coveredIds.length > 0 ? (
+                `${coveredIds.length} of ${services.length}`
+              ) : (
+                <span className="faint">Nothing marked</span>
+              )}
+            </dd>
+          </div>
+        </dl>
+      </header>
 
       {actionData && "ok" in actionData && actionData.ok && (
-        <div className="notice ok" role="status">
-          <Icon name="check" size={17} />
+        <div className="notice ok" role="status" style={{ marginTop: "1.15rem" }}>
+          <Icon name="check" size={15} />
           <span>{actionData.message}</span>
         </div>
       )}
       {actionData && "ok" in actionData && !actionData.ok && (
-        <div className="notice err" role="alert">
-          <Icon name="x" size={17} />
+        <div className="notice err" role="alert" style={{ marginTop: "1.15rem" }}>
+          <Icon name="alert" size={15} />
           <span>{actionData.error}</span>
         </div>
       )}
 
-      <section className="card">
-        <div className="detail-card-title">
+      <section className="section">
+        <div className="section-head">
           <div>
-            <h2>Website analysis</h2>
-            <p className="muted">Scan the site for evidence-backed opportunities you can review with the client.</p>
+            <h2 className="title-section">Contract coverage</h2>
+            <p>
+              Work you already do for this client under contract. Covered offerings are never
+              surfaced as a billable opportunity.
+            </p>
           </div>
-          <span className={lastCapturedAt ? "status proposal" : "status"}>{lastCapturedAt ? "Scanned" : "Not scanned"}</span>
-        </div>
-        <div className="row-actions">
-          <span className="cell-muted">
-            {lastCapturedAt ? "Last scanned " + formatDate(lastCapturedAt, true) : "No analysis has been run yet"}
-          </span>
-          {opportunityCount > 0 && (
-            <Link className="btn btn-quiet btn-sm" to="/opportunities">
-              {opportunityCount} active opportunit{opportunityCount === 1 ? "y" : "ies"}
-              <Icon name="arrow-up-right" size={14} />
-            </Link>
-          )}
-        </div>
-        <Form method="post" className="form-actions">
-          <input type="hidden" name="intent" value="analyze" />
-          <button type="submit" className="btn btn-primary" disabled={busy}>
-            <Icon name="refresh" size={16} />
-            {busy ? "Analyzing…" : "Scan website & analyze"}
-          </button>
-        </Form>
-      </section>
-
-      <section className="card">
-        <div className="detail-card-title">
-          <div>
-            <h2>Contract coverage</h2>
-            <p className="muted">Covered work is never surfaced as a billable upsell for this client.</p>
-          </div>
-          <Icon name="briefcase" size={18} />
         </div>
         {services.length === 0 ? (
-          <div className="empty-state compact">
-            <p>Add services to your catalog first.</p>
-            <Link className="btn btn-secondary btn-sm" to="/services">Open services</Link>
-          </div>
+          <EmptyState
+            icon="briefcase"
+            title="No services in your catalog"
+            inset
+            actions={
+              <Link className="btn" to="/services">
+                Open catalog
+              </Link>
+            }
+          >
+            Add the work your agency sells before marking what this client already pays for.
+          </EmptyState>
         ) : (
-          <table className="coverage-table">
-            <tbody>
-              {services.map((service) => {
-                const covered = coveredIds.includes(service.id);
-                return (
-                  <tr key={service.id}>
-                    <td>
-                      <Form method="post" className="inline">
-                        <input type="hidden" name="intent" value="toggle-coverage" />
-                        <input type="hidden" name="serviceId" value={service.id} />
-                        {!covered && <input type="hidden" name="covered" value="on" />}
-                        <button
-                          type="submit"
-                          className={"coverage-toggle " + (covered ? "is-covered" : "")}
-                          aria-label={(covered ? "Remove coverage for " : "Mark covered: ") + service.name}
-                        >
-                          {covered ? <Icon name="check" size={17} /> : <span className="coverage-empty" aria-hidden="true" />}
-                        </button>
-                      </Form>
-                    </td>
-                    <td><span className="cell-primary">{service.name}</span></td>
-                    <td><span className="cell-secondary">{formatCurrencyRange(service.priceMin, service.priceMax)}</span></td>
-                    <td><span className="cell-muted">{service.active ? "Active service" : "Inactive service"}</span></td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <ul className="records">
+            {services.map((service) => {
+              const covered = coveredIds.includes(service.id);
+              return (
+                <li key={service.id}>
+                  <Form method="post" className="record">
+                    <input type="hidden" name="intent" value="toggle-coverage" />
+                    <input type="hidden" name="serviceId" value={service.id} />
+                    {!covered && <input type="hidden" name="covered" value="on" />}
+                    <button
+                      type="submit"
+                      className={"check-toggle" + (covered ? " on" : "")}
+                      disabled={busy}
+                      aria-pressed={covered}
+                      aria-label={
+                        (covered ? "Remove coverage for " : "Mark as covered: ") + service.name
+                      }
+                    >
+                      <Icon name="check" size={12} strokeWidth={2.4} />
+                    </button>
+                    <span className="record-main">
+                      <span className="record-name">{service.name}</span>
+                      <span className="record-meta">
+                        <span>{covered ? "Covered by contract" : "Available to sell"}</span>
+                        {!service.active && (
+                          <>
+                            <span className="dot-sep">·</span>
+                            <span>Inactive in catalog</span>
+                          </>
+                        )}
+                      </span>
+                    </span>
+                    <span className="record-end">
+                      <span className="record-stat wide is-zero">
+                        <b style={{ fontWeight: 550 }}>
+                          {formatCurrencyRange(service.priceMin, service.priceMax)}
+                        </b>
+                        <span>typical range</span>
+                      </span>
+                    </span>
+                  </Form>
+                </li>
+              );
+            })}
+          </ul>
         )}
       </section>
 
-      <section className="card">
-        <div className="detail-card-title">
+      <section className="section">
+        <div className="section-head">
           <div>
-            <h2>Client details</h2>
-            <p className="muted">Update the site and service context used during analysis.</p>
+            <h2 className="title-section">Details</h2>
+            <p>The site and offering context every analysis is checked against.</p>
           </div>
-          <Icon name="settings" size={18} />
         </div>
-        <Form method="post" className="stack">
+        <Form method="post" style={{ maxWidth: "34rem" }}>
           <input type="hidden" name="intent" value="save" />
           <div className="field-row">
             <div className="field">
@@ -209,23 +266,27 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
               <input id="name" name="name" type="text" defaultValue={client.name} />
             </div>
             <div className="field">
-              <label htmlFor="domain">Website domain</label>
+              <label htmlFor="domain">Website</label>
               <input id="domain" name="domain" type="text" defaultValue={client.domain} />
             </div>
           </div>
           <div className="field">
-            <label htmlFor="offerings">Services this client offers</label>
+            <label htmlFor="offerings">What this business sells</label>
             <textarea id="offerings" name="offerings" defaultValue={client.offerings.join("\n")} />
-            <div className="field-hint">One service per line.</div>
+            <div className="field-hint">One per line.</div>
           </div>
           <div className="field">
             <label htmlFor="notes">Notes</label>
-            <textarea id="notes" name="notes" defaultValue={client.notes} placeholder="Optional context for your team" />
+            <textarea
+              id="notes"
+              name="notes"
+              defaultValue={client.notes}
+              placeholder="Optional context for your team"
+            />
           </div>
           <div className="form-actions">
             <button type="submit" className="btn btn-primary" disabled={busy}>
-              <Icon name="check" size={15} />
-              {busy ? "Saving…" : "Save changes"}
+              {busy && !analyzing ? "Saving…" : "Save changes"}
             </button>
           </div>
         </Form>
