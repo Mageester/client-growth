@@ -258,6 +258,18 @@ describe("counts agree across every surface", () => {
     expect(detail.totals.open).toBe(1);
   });
 
+  it("groups every opportunity by client in one query, scoped to the workspace", async () => {
+    const grouped = await repo.listOpportunitiesByClient(scope);
+    expect(grouped.get("cli_a")).toHaveLength(3);
+    expect([...grouped.keys()]).toEqual(["cli_a"]);
+
+    // A second workspace sees none of it.
+    const { createWorkspaceForOwner } = await import("@/db/workspaces");
+    await createWorkspaceForOwner(scope.db, { id: "ws_b", name: "B", ownerUserId: "u_b" });
+    const other = await repo.listOpportunitiesByClient({ db: scope.db, workspaceId: "ws_b" });
+    expect(other.size).toBe(0);
+  });
+
   it("closed findings never inflate potential value on any surface", async () => {
     const detail = (await clientDetail.loader({
       request: new Request("http://localhost/clients/cli_a"),

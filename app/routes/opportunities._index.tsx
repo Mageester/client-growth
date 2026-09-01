@@ -39,26 +39,26 @@ export function meta() {
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const t = await requireTenant(request, context);
-  const [clients, services, runsByClient] = await Promise.all([
+  // Four queries for the whole portfolio, not four plus one per client.
+  const [clients, services, runsByClient, oppsByClient] = await Promise.all([
     repo.listClients(t.scope),
     repo.listServices(t.scope),
     repo.latestAnalysisRunByClient(t.scope),
+    repo.listOpportunitiesByClient(t.scope),
   ]);
   const serviceName = Object.fromEntries(services.map((s) => [s.id, s.name]));
-  const groups = await Promise.all(
-    clients.map(async (client) => {
-      const opportunities = await repo.listOpportunities(t.scope, client.id);
-      const totals = totalsFor(opportunities);
-      const run = runsByClient.get(client.id) ?? null;
-      return {
-        client,
-        opportunities,
-        totals,
-        run,
-        state: clientState({ outcome: run?.outcome ?? null, openCount: totals.open }),
-      };
-    }),
-  );
+  const groups = clients.map((client) => {
+    const opportunities = oppsByClient.get(client.id) ?? [];
+    const totals = totalsFor(opportunities);
+    const run = runsByClient.get(client.id) ?? null;
+    return {
+      client,
+      opportunities,
+      totals,
+      run,
+      state: clientState({ outcome: run?.outcome ?? null, openCount: totals.open }),
+    };
+  });
   return { groups, serviceName };
 }
 

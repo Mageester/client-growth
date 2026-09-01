@@ -38,23 +38,23 @@ function slugId(name: string): string {
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const t = await requireTenant(request, context);
-  const [clients, runsByClient] = await Promise.all([
+  // Three queries regardless of portfolio size.
+  const [clients, runsByClient, oppsByClient] = await Promise.all([
     repo.listClients(t.scope),
     repo.latestAnalysisRunByClient(t.scope),
+    repo.listOpportunitiesByClient(t.scope),
   ]);
-  const enriched = await Promise.all(
-    clients.map(async (client) => {
-      const totals = totalsFor(await repo.listOpportunities(t.scope, client.id));
-      const run = runsByClient.get(client.id) ?? null;
-      return {
-        ...client,
-        totals,
-        lastRunAt: run?.finishedAt ?? null,
-        runSummary: run?.summary ?? null,
-        state: clientState({ outcome: run?.outcome ?? null, openCount: totals.open }),
-      };
-    }),
-  );
+  const enriched = clients.map((client) => {
+    const totals = totalsFor(oppsByClient.get(client.id) ?? []);
+    const run = runsByClient.get(client.id) ?? null;
+    return {
+      ...client,
+      totals,
+      lastRunAt: run?.finishedAt ?? null,
+      runSummary: run?.summary ?? null,
+      state: clientState({ outcome: run?.outcome ?? null, openCount: totals.open }),
+    };
+  });
   return { clients: enriched };
 }
 

@@ -337,6 +337,31 @@ export async function listOpportunities(
   return rows.map(toOpportunity);
 }
 
+/**
+ * Every opportunity in the workspace, grouped by client, in one query.
+ *
+ * The portfolio surfaces need all of them at once; asking per client turned the
+ * feed into one round trip per client, which on D1 is the difference between a
+ * fast page and a visibly slow one as a portfolio grows.
+ */
+export async function listOpportunitiesByClient(
+  t: TenantScope,
+): Promise<Map<string, Opportunity[]>> {
+  const rows = await t.db
+    .prepare(
+      "SELECT * FROM opportunities WHERE workspace_id = ? ORDER BY client_id, confidence DESC, title",
+    )
+    .bind(t.workspaceId)
+    .all<OpportunityRow>();
+  const grouped = new Map<string, Opportunity[]>();
+  for (const row of rows) {
+    const list = grouped.get(row.client_id);
+    if (list) list.push(toOpportunity(row));
+    else grouped.set(row.client_id, [toOpportunity(row)]);
+  }
+  return grouped;
+}
+
 export async function getOpportunity(t: TenantScope, id: string): Promise<Opportunity | null> {
   const row = await t.db
     .prepare("SELECT * FROM opportunities WHERE id = ? AND workspace_id = ?")
