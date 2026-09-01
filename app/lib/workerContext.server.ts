@@ -4,7 +4,20 @@ export interface WorkerExecutionContextLike {
   waitUntil(promise: Promise<unknown>): void;
 }
 
-const executionContext = new AsyncLocalStorage<WorkerExecutionContextLike>();
+// The Worker entry and the generated server bundle can each contain a copy of
+// this module. Store the bridge on the isolate global so both copies observe
+// the same request-scoped execution context.
+const executionContextKey = Symbol.for("client-growth.worker-execution-context");
+const globalRegistry = globalThis as unknown as Record<PropertyKey, unknown>;
+const executionContext =
+  (globalRegistry[executionContextKey] as
+    | AsyncLocalStorage<WorkerExecutionContextLike>
+    | undefined) ??
+  (() => {
+    const context = new AsyncLocalStorage<WorkerExecutionContextLike>();
+    globalRegistry[executionContextKey] = context;
+    return context;
+  })();
 
 export function runWithWorkerExecutionContext<T>(
   context: WorkerExecutionContextLike,
