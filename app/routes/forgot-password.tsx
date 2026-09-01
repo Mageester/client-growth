@@ -1,6 +1,7 @@
 import { Form, Link } from "react-router";
 
 import { getAuth, getTrustedAuthBaseURL } from "../lib/auth.server";
+import { Icon } from "../components/ui";
 import type { Route } from "./+types/forgot-password";
 
 const GENERIC_ERROR = "We couldn’t start the password reset. Please try again later.";
@@ -41,34 +42,40 @@ export async function action({ request, context }: Route.ActionArgs) {
 
 export default function ForgotPassword({ actionData }: Route.ComponentProps) {
   return (
-    <main style={{ maxWidth: 380, margin: "6vh auto", padding: "0 1.25rem" }}>
-      <h1>Forgot your password?</h1>
-      {actionData?.submitted ? (
-        <>
-          <div className="notice">{RESET_SUBMITTED}</div>
-          <p className="muted">
-            If you don’t see it soon, check your spam folder or request another link.
-          </p>
-          <Link to="/login">Back to log in</Link>
-        </>
-      ) : (
-        <>
-          <p className="muted">Enter your account email and we’ll send a reset link if it matches.</p>
-          {actionData?.error && <div className="notice err">{actionData.error}</div>}
-          <Form method="post" className="stack">
-            <div className="field">
-              <label htmlFor="email">Email</label>
-              <input id="email" name="email" type="email" autoComplete="email" required />
+    <main className="auth-layout">
+      <section className="card auth-card">
+        <div className="auth-header">
+          <h1>Reset your password</h1>
+          <p>Enter your account email and we’ll send a reset link if it matches.</p>
+        </div>
+        {actionData?.submitted ? (
+          <>
+            <div className="notice ok" role="status">
+              <Icon name="check" size={17} />
+              <span>{RESET_SUBMITTED}</span>
             </div>
-            <button type="submit" className="primary">
-              Send reset link
-            </button>
-          </Form>
-          <p className="muted" style={{ marginTop: "1rem" }}>
-            Remembered it? <Link to="/login">Log in</Link>
-          </p>
-        </>
-      )}
+            <p className="muted">If you don’t see it soon, check your spam folder or request another link.</p>
+            <Link className="btn btn-secondary" to="/login">Back to log in</Link>
+          </>
+        ) : (
+          <>
+            {actionData?.error && (
+              <div className="notice err" role="alert">
+                <Icon name="x" size={17} />
+                <span>{actionData.error}</span>
+              </div>
+            )}
+            <Form method="post" className="stack">
+              <div className="field">
+                <label htmlFor="email">Email</label>
+                <input id="email" name="email" type="email" autoComplete="email" required />
+              </div>
+              <button type="submit" className="btn btn-primary">Send reset link</button>
+            </Form>
+            <p className="auth-footer">Remembered it? <Link to="/login">Log in</Link></p>
+          </>
+        )}
+      </section>
     </main>
   );
 }

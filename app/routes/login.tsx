@@ -2,6 +2,7 @@ import { Form, Link, redirect } from "react-router";
 
 import { getAuth } from "../lib/auth.server";
 import { getSession } from "../lib/session.server";
+import { Icon } from "../components/ui";
 import type { Route } from "./+types/login";
 
 export function meta() {
@@ -35,37 +36,38 @@ export async function action({ request, context }: Route.ActionArgs) {
 
 export default function Login({ loaderData, actionData }: Route.ComponentProps) {
   return (
-    <main style={{ maxWidth: 380, margin: "6vh auto", padding: "0 1.25rem" }}>
-      <h1>Log in</h1>
-      {loaderData.resetSuccess && (
-        <div className="notice">Password reset successfully. Log in with your new password.</div>
-      )}
-      {actionData?.error && <div className="notice err">{actionData.error}</div>}
-      <Form method="post" className="stack">
-        <div className="field">
-          <label htmlFor="email">Email</label>
-          <input id="email" name="email" type="email" autoComplete="email" required />
+    <main className="auth-layout">
+      <section className="card auth-card">
+        <div className="auth-header">
+          <h1>Welcome back</h1>
+          <p>Log in to see what’s worth bringing to your next client conversation.</p>
         </div>
-        <div className="field">
-          <label htmlFor="password">Password</label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            autoComplete="current-password"
-            required
-          />
-        </div>
-        <p className="muted" style={{ margin: 0 }}>
-          <Link to="/forgot-password">Forgot password?</Link>
-        </p>
-        <button type="submit" className="primary">
-          Log in
-        </button>
-      </Form>
-      <p className="muted" style={{ marginTop: "1rem" }}>
-        No account? <Link to="/signup">Create one</Link>
-      </p>
+        {loaderData.resetSuccess && (
+          <div className="notice ok" role="status">
+            <Icon name="check" size={17} />
+            <span>Password reset successfully. Log in with your new password.</span>
+          </div>
+        )}
+        {actionData?.error && (
+          <div className="notice err" role="alert">
+            <Icon name="x" size={17} />
+            <span>{actionData.error}</span>
+          </div>
+        )}
+        <Form method="post" className="stack">
+          <div className="field">
+            <label htmlFor="email">Email</label>
+            <input id="email" name="email" type="email" autoComplete="email" required />
+          </div>
+          <div className="field">
+            <label htmlFor="password">Password</label>
+            <input id="password" name="password" type="password" autoComplete="current-password" required />
+          </div>
+          <p className="auth-link-row"><Link to="/forgot-password">Forgot password?</Link></p>
+          <button type="submit" className="btn btn-primary">Log in</button>
+        </Form>
+      </section>
+      <p className="auth-footer">No account? <Link to="/signup">Create one</Link></p>
     </main>
   );
 }

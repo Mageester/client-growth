@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { Form } from "react-router";
 
-import * as repo from "@/db/repositories";
+import type { Service } from "@/core/schema";
 import { ServiceSchema } from "@/core/schema";
+import * as repo from "@/db/repositories";
+import { formatCurrencyRange, Icon } from "../components/ui";
 import { requireTenant } from "../lib/session.server";
 import type { Route } from "./+types/services._index";
 
@@ -15,7 +18,7 @@ function slugId(name: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 40);
-  return `svc-${base || "service"}`;
+  return "svc-" + (base || "service");
 }
 
 export async function loader({ request, context }: Route.LoaderArgs) {
@@ -30,7 +33,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   if (intent === "toggle-active") {
     await repo.setServiceActive(t.scope, String(form.get("id")), form.get("active") === "on");
-    return { ok: true as const };
+    return { ok: true as const, message: "Service status updated." };
   }
 
   if (intent === "save") {
@@ -50,12 +53,12 @@ export async function action({ request, context }: Route.ActionArgs) {
       priceMax,
       tags: String(form.get("tags") ?? "")
         .split(",")
-        .map((t) => t.trim())
+        .map((tag) => tag.trim())
         .filter(Boolean),
       active: true,
     });
     await repo.upsertService(t.scope, service);
-    return { ok: true as const };
+    return { ok: true as const, message: idInput ? "Service changes saved." : "Service added." };
   }
 
   throw new Response("Unknown action", { status: 400 });
@@ -63,101 +66,182 @@ export async function action({ request, context }: Route.ActionArgs) {
 
 export default function ServicesIndex({ loaderData, actionData }: Route.ComponentProps) {
   const { services } = loaderData;
+  const [addOpen, setAddOpen] = useState(services.length === 0);
+  const activeCount = services.filter((service) => service.active).length;
+
   return (
     <div>
       <div className="page-head">
-        <div>
+        <div className="page-head-copy">
           <h1>Services</h1>
-          <div className="sub">Your catalog of billable work and its price ranges.</div>
+          <div className="sub">The work you can offer when a client site shows a clear opportunity.</div>
         </div>
       </div>
 
-      {actionData && !actionData.ok && <div className="notice err">{actionData.error}</div>}
+      {actionData?.ok && (
+        <div className="notice ok" role="status">
+          <Icon name="check" size={17} />
+          <span>{actionData.message}</span>
+        </div>
+      )}
+      {actionData && !actionData.ok && (
+        <div className="notice err" role="alert">
+          <Icon name="x" size={17} />
+          <span>{actionData.error}</span>
+        </div>
+      )}
 
-      <div className="card">
-        {services.length === 0 ? (
-          <div className="empty">No services yet. Add one below.</div>
-        ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>Service</th>
-                <th>Price range</th>
-                <th>Tags</th>
-                <th>Active</th>
-              </tr>
-            </thead>
-            <tbody>
-              {services.map((s) => (
-                <tr key={s.id}>
-                  <td>
-                    <strong>{s.name}</strong>
-                    {s.description && (
-                      <div className="muted" style={{ fontSize: "0.85rem" }}>
-                        {s.description}
-                      </div>
-                    )}
-                  </td>
-                  <td className="muted">
-                    ${s.priceMin.toLocaleString()}–${s.priceMax.toLocaleString()}
-                  </td>
-                  <td className="muted">{s.tags.join(", ") || "—"}</td>
-                  <td>
-                    <Form method="post" className="inline">
-                      <input type="hidden" name="intent" value="toggle-active" />
-                      <input type="hidden" name="id" value={s.id} />
-                      {!s.active && <input type="hidden" name="active" value="on" />}
-                      <button type="submit" className="subtle">
-                        {s.active ? "Active" : "Inactive"}
-                      </button>
-                    </Form>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      <section className="card">
-        <h2>Add or update a service</h2>
-        <Form method="post" className="stack">
-          <input type="hidden" name="intent" value="save" />
-          <div className="field-row">
-            <div className="field">
-              <label htmlFor="name">Name</label>
-              <input id="name" name="name" type="text" required />
-            </div>
-            <div className="field">
-              <label htmlFor="id">ID (blank = generate; existing ID updates)</label>
-              <input id="id" name="id" type="text" placeholder="svc-…" />
-            </div>
-          </div>
-          <div className="field">
-            <label htmlFor="description">Description</label>
-            <textarea id="description" name="description" style={{ minHeight: "3.5rem" }} />
-          </div>
-          <div className="field-row">
-            <div className="field">
-              <label htmlFor="priceMin">Min price</label>
-              <input id="priceMin" name="priceMin" type="number" min={0} defaultValue={0} />
-            </div>
-            <div className="field">
-              <label htmlFor="priceMax">Max price</label>
-              <input id="priceMax" name="priceMax" type="number" min={0} defaultValue={0} />
-            </div>
-            <div className="field">
-              <label htmlFor="tags">Tags (comma-separated)</label>
-              <input id="tags" name="tags" type="text" placeholder="landing-page" />
-            </div>
-          </div>
+      <section className="card list-shell">
+        <div className="list-toolbar">
           <div>
-            <button type="submit" className="primary">
-              Save service
-            </button>
+            <strong>Service catalog</strong>
+            <div className="list-toolbar-copy">
+              {services.length} {services.length === 1 ? "service" : "services"} · {activeCount} active
+            </div>
           </div>
-        </Form>
+          <button className="btn btn-primary btn-sm" type="button" onClick={() => setAddOpen(true)}>
+            <Icon name="plus" size={16} />
+            Add service
+          </button>
+        </div>
+        {services.length === 0 ? (
+          <div className="empty-state">
+            <span className="empty-icon"><Icon name="briefcase" size={20} /></span>
+            <h2>No services yet</h2>
+            <p>Add the work your agency sells so opportunities can carry a useful billable range.</p>
+          </div>
+        ) : (
+          <div className="data-table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Service</th>
+                  <th>Price range</th>
+                  <th>Tags</th>
+                  <th>Status</th>
+                  <th><span className="sr-only">Actions</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                {services.map((service) => (
+                  <ServiceRow key={service.id} service={service} />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
+
+      <details
+        id="add-service"
+        className="form-drawer"
+        open={addOpen}
+        onToggle={(event) => setAddOpen(event.currentTarget.open)}
+      >
+        <summary className="drawer-summary">
+          <span className="drawer-summary-copy">
+            <strong>Add a service</strong>
+            <small>Keep your catalog simple so recommendations stay grounded.</small>
+          </span>
+          <span className="btn btn-primary btn-sm">
+            <Icon name="plus" size={16} />
+            New service
+          </span>
+        </summary>
+        <div className="drawer-panel">
+          <ServiceForm />
+        </div>
+      </details>
     </div>
+  );
+}
+
+function ServiceRow({ service }: { service: Service }) {
+  const idPrefix = service.id.replace(/[^a-z0-9_-]/gi, "-");
+  return (
+    <tr>
+      <td>
+        <div className="service-name">{service.name}</div>
+        {service.description && <div className="service-description">{service.description}</div>}
+      </td>
+      <td><span className="cell-primary">{formatCurrencyRange(service.priceMin, service.priceMax)}</span></td>
+      <td>
+        {service.tags.length > 0 ? (
+          <div className="tag-list">
+            {service.tags.map((tag) => (
+              <span className="tag" key={tag}><Icon name="tag" size={12} />{tag}</span>
+            ))}
+          </div>
+        ) : (
+          <span className="cell-muted">No tags</span>
+        )}
+      </td>
+      <td>
+        <Form method="post" className="inline">
+          <input type="hidden" name="intent" value="toggle-active" />
+          <input type="hidden" name="id" value={service.id} />
+          {!service.active && <input type="hidden" name="active" value="on" />}
+          <button
+            type="submit"
+            className={"status-toggle " + (service.active ? "is-active" : "is-inactive")}
+            aria-label={(service.active ? "Deactivate " : "Activate ") + service.name}
+          >
+            <span className="status-dot" />
+            {service.active ? "Active" : "Inactive"}
+          </button>
+        </Form>
+      </td>
+      <td>
+        <details className="edit-drawer">
+          <summary>
+            <span className="btn btn-secondary btn-sm">
+              Edit
+              <Icon name="chevron-down" size={14} />
+            </span>
+          </summary>
+          <div className="drawer-panel">
+            <ServiceForm service={service} idPrefix={idPrefix} />
+          </div>
+        </details>
+      </td>
+    </tr>
+  );
+}
+
+function ServiceForm({ service, idPrefix = "new-service" }: { service?: Service; idPrefix?: string }) {
+  return (
+    <Form method="post" className="stack">
+      <input type="hidden" name="intent" value="save" />
+      {service && <input type="hidden" name="id" value={service.id} />}
+      <div className="field-row">
+        <div className="field field-wide">
+          <label htmlFor={idPrefix + "-name"}>Service name</label>
+          <input id={idPrefix + "-name"} name="name" type="text" defaultValue={service?.name} required />
+        </div>
+        <div className="field">
+          <label htmlFor={idPrefix + "-min"}>Minimum price</label>
+          <input id={idPrefix + "-min"} name="priceMin" type="number" min={0} defaultValue={service?.priceMin ?? 0} />
+        </div>
+        <div className="field">
+          <label htmlFor={idPrefix + "-max"}>Maximum price</label>
+          <input id={idPrefix + "-max"} name="priceMax" type="number" min={0} defaultValue={service?.priceMax ?? 0} />
+        </div>
+      </div>
+      <div className="field">
+        <label htmlFor={idPrefix + "-description"}>Description</label>
+        <textarea id={idPrefix + "-description"} name="description" defaultValue={service?.description} />
+      </div>
+      <div className="field">
+        <label htmlFor={idPrefix + "-tags"}>Tags</label>
+        <input id={idPrefix + "-tags"} name="tags" type="text" defaultValue={service?.tags.join(", ")} placeholder="landing-page, conversion-fix" />
+        <div className="field-hint">Use commas to separate tags used by analysis rules.</div>
+      </div>
+      <div className="form-actions">
+        <button type="submit" className="btn btn-primary">
+          {service ? "Save changes" : "Add service"}
+          <Icon name="check" size={15} />
+        </button>
+      </div>
+    </Form>
   );
 }

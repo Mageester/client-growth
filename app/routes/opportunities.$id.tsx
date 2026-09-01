@@ -1,12 +1,13 @@
-import { Form, Link, redirect } from "react-router";
+import { Form, Link, redirect, useNavigation } from "react-router";
 
 import * as repo from "@/db/repositories";
 import { generateProposalDraft } from "@/core/proposal";
+import { formatCurrencyRange, formatDate, Icon } from "../components/ui";
 import { requireTenant } from "../lib/session.server";
 import type { Route } from "./+types/opportunities.$id";
 
 export function meta({ data }: Route.MetaArgs) {
-  return [{ title: data ? `${data.opportunity.title} · Client Growth` : "Opportunity" }];
+  return [{ title: data ? data.opportunity.title + " · Client Growth" : "Opportunity" }];
 }
 
 export async function loader({ params, request, context }: Route.LoaderArgs) {
@@ -68,141 +69,167 @@ export async function action({ params, request, context }: Route.ActionArgs) {
     default:
       throw new Response("Unknown action", { status: 400 });
   }
-  return redirect(`/opportunities/${opp.id}`);
+  return redirect("/opportunities/" + opp.id);
+}
+
+function statusLabel(opp: Awaited<ReturnType<typeof loader>>["opportunity"]) {
+  if (opp.status === "proposal_prepared") return { label: "Proposal ready", tone: "proposal" };
+  if (opp.status === "dismissed") return { label: "Dismissed", tone: "dismissed" };
+  if (opp.status === "snoozed") return { label: "Snoozed", tone: "snoozed" };
+  if (opp.billableStatus === "already_covered" || opp.status === "already_covered") {
+    return { label: "Already covered", tone: "covered" };
+  }
+  return { label: "New", tone: "billable" };
 }
 
 export default function OpportunityDetail({ loaderData }: Route.ComponentProps) {
-  const { opportunity: o, client, service, capturedAt } = loaderData;
-  const pageRefs = o.evidenceRefs.filter((r) => !r.startsWith("nav:"));
-  const navRefs = o.evidenceRefs.filter((r) => r.startsWith("nav:")).map((r) => r.slice(4));
+  const { opportunity: opp, client, service, capturedAt } = loaderData;
+  const pageRefs = opp.evidenceRefs.filter((ref) => !ref.startsWith("nav:"));
+  const navRefs = opp.evidenceRefs.filter((ref) => ref.startsWith("nav:")).map((ref) => ref.slice(4));
+  const navigation = useNavigation();
+  const busy = navigation.state !== "idle";
+  const status = statusLabel(opp);
 
   return (
-    <div className="stack">
-      <div className="page-head">
+    <div className="detail-layout">
+      <div className="detail-lede">
         <div>
-          <h1>{o.title}</h1>
+          <h1>{opp.title}</h1>
           <div className="sub">
-            {client ? <Link to={`/clients/${client.id}`}>{client.name}</Link> : "Unknown client"}
-            {" · "}
-            {o.billableStatus === "already_covered" ? "Already covered" : "Billable"}
-            {" · "}
-            {Math.round(o.confidence * 100)}% confidence
+            {client ? <Link to={"/clients/" + client.id}>{client.name}</Link> : "Unknown client"}
+            <span className="meta-dot">•</span>
+            <span className={"status " + status.tone}>{status.label}</span>
+            <span className="meta-dot">•</span>
+            <span>{Math.round(opp.confidence * 100)}% confidence</span>
           </div>
         </div>
-        <Link to="/opportunities">← All opportunities</Link>
+        <Link className="btn btn-secondary" to="/opportunities">
+          <Icon name="arrow-up-right" size={15} />
+          All opportunities
+        </Link>
       </div>
 
       <section className="card">
-        <h3>What was detected</h3>
-        <p>{o.detected}</p>
+        <div className="detail-card-title">
+          <div>
+            <h2>What was detected</h2>
+            <p className="muted">The evidence and reasoning behind this recommendation.</p>
+          </div>
+          <Icon name="activity" size={18} />
+        </div>
+        <p>{opp.detected}</p>
         <h3>Why it matters</h3>
-        <p>{o.rationale}</p>
+        <p className="muted">{opp.rationale}</p>
         <hr className="divider" />
         <dl className="kv">
           <dt>Suggested service</dt>
-          <dd>{service ? service.name : o.suggestedServiceId}</dd>
-          <dt>Price range</dt>
-          <dd>
-            ${o.priceMin.toLocaleString()}–${o.priceMax.toLocaleString()}
-          </dd>
-          <dt>Status</dt>
-          <dd>{o.status.replace(/_/g, " ")}</dd>
-          {o.snoozeUntil && (
+          <dd>{service ? service.name : opp.suggestedServiceId}</dd>
+          <dt>Estimated range</dt>
+          <dd>{formatCurrencyRange(opp.priceMin, opp.priceMax)}</dd>
+          <dt>Decision</dt>
+          <dd>{status.label}</dd>
+          {opp.snoozeUntil && (
             <>
               <dt>Snoozed until</dt>
-              <dd>{new Date(o.snoozeUntil).toLocaleDateString()}</dd>
+              <dd>{formatDate(opp.snoozeUntil)}</dd>
             </>
           )}
         </dl>
-        {o.suggestedScope.length > 0 && (
+        {opp.suggestedScope.length > 0 && (
           <>
-            <h3 style={{ marginTop: "1rem" }}>Proposed scope</h3>
+            <h3>Proposed scope</h3>
             <ul className="scope-list">
-              {o.suggestedScope.map((line, i) => (
-                <li key={i}>{line}</li>
-              ))}
+              {opp.suggestedScope.map((line, index) => <li key={index}>{line}</li>)}
             </ul>
           </>
         )}
       </section>
 
       <section className="card">
-        <div className="card-head">
-          <h3 style={{ margin: 0 }}>Evidence</h3>
-          {capturedAt && <small>captured {new Date(capturedAt).toLocaleString()}</small>}
+        <div className="detail-card-title">
+          <div>
+            <h2>Evidence</h2>
+            <p className="muted">Pages checked during the latest analysis.</p>
+          </div>
+          {capturedAt && <span className="cell-muted">{formatDate(capturedAt, true)}</span>}
         </div>
-        <ul className="evidence-list">
-          {pageRefs.map((ref) => (
-            <li key={ref}>
-              <a href={ref} target="_blank" rel="noreferrer">
-                {ref}
-              </a>
-            </li>
-          ))}
-        </ul>
+        {pageRefs.length > 0 ? (
+          <ul className="evidence-list">
+            {pageRefs.map((ref) => (
+              <li key={ref}>
+                <a href={ref} target="_blank" rel="noreferrer">{ref}</a>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="muted">No page references were stored for this opportunity.</p>
+        )}
         {navRefs.length > 0 && (
-          <p className="muted" style={{ marginTop: "0.6rem", marginBottom: 0 }}>
+          <p className="muted">
             Navigation checked: {navRefs.join(", ")}
           </p>
         )}
       </section>
 
       <section className="card">
-        <h3>Agency actions</h3>
+        <div className="detail-card-title">
+          <div>
+            <h2>Agency actions</h2>
+            <p className="muted">Decide what happens next. Proposal drafts stay in Client Growth until you copy them out.</p>
+          </div>
+          <Icon name="briefcase" size={18} />
+        </div>
         <div className="row-actions">
-          {o.status !== "new" && (
+          {opp.status !== "new" && (
             <Form method="post" className="inline">
               <input type="hidden" name="intent" value="reopen" />
-              <button type="submit">Reopen</button>
+              <button type="submit" className="btn btn-secondary" disabled={busy}>Reopen</button>
             </Form>
           )}
           <Form method="post" className="inline">
             <input type="hidden" name="intent" value="prepare-proposal" />
-            <button type="submit" className="primary">
-              {o.proposalMd ? "Regenerate proposal draft" : "Prepare proposal"}
+            <button type="submit" className="btn btn-primary" disabled={busy}>
+              <Icon name="document" size={15} />
+              {opp.proposalMd ? "Regenerate proposal draft" : "Prepare proposal"}
             </button>
           </Form>
           <Form method="post" className="inline">
             <input type="hidden" name="intent" value="dismiss" />
-            <button type="submit" className="danger">
+            <button type="submit" className="btn btn-danger" disabled={busy}>
+              <Icon name="x" size={15} />
               Dismiss
             </button>
           </Form>
           <Form method="post" className="inline">
             <input type="hidden" name="intent" value="cover" />
-            <button type="submit">Mark already covered</button>
+            <button type="submit" className="btn btn-secondary" disabled={busy}>Mark already covered</button>
           </Form>
           <Form method="post" className="inline row-actions">
             <input type="hidden" name="intent" value="snooze" />
-            <input
-              type="number"
-              name="days"
-              defaultValue={30}
-              min={1}
-              style={{ width: "4.5rem" }}
-              aria-label="Snooze days"
-            />
-            <button type="submit">Snooze days</button>
+            <input className="snooze-input" type="number" name="days" defaultValue={30} min={1} aria-label="Snooze days" />
+            <button type="submit" className="btn btn-secondary" disabled={busy}>Snooze</button>
           </Form>
         </div>
       </section>
 
-      {o.proposalMd && (
+      {opp.proposalMd && (
         <section className="card">
-          <div className="card-head">
-            <h3 style={{ margin: 0 }}>Proposal draft</h3>
-            <span className="badge proposal">Editable</span>
+          <div className="detail-card-title">
+            <div>
+              <h2>Proposal draft</h2>
+              <p className="muted">Edit the draft before you take it into your proposal tool.</p>
+            </div>
+            <span className="status proposal">Editable</span>
           </div>
           <Form method="post" className="stack">
             <input type="hidden" name="intent" value="save-proposal" />
-            <textarea name="proposalMd" defaultValue={o.proposalMd} style={{ minHeight: "22rem" }} />
-            <div className="row-actions">
-              <button type="submit" className="primary">
-                Save draft
+            <textarea name="proposalMd" defaultValue={opp.proposalMd} style={{ minHeight: "22rem" }} />
+            <div className="form-actions">
+              <button type="submit" className="btn btn-primary" disabled={busy}>
+                <Icon name="check" size={15} />
+                {busy ? "Saving…" : "Save draft"}
               </button>
-              <small className="muted">
-                Draft only — nothing is sent. Copy into your proposal tool when ready.
-              </small>
+              <span className="proposal-note">Draft only — nothing is sent.</span>
             </div>
           </Form>
         </section>

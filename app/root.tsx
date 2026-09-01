@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import {
   Form,
+  Link,
   Links,
   Meta,
   NavLink,
@@ -8,12 +9,14 @@ import {
   Scripts,
   ScrollRestoration,
   isRouteErrorResponse,
+  useLocation,
   useRouteLoaderData,
 } from "react-router";
 
 import "./styles/app.css";
 import "./lib/context";
 import { getWorkspaceForUser } from "@/db/workspaces";
+import { getInitials, Icon } from "./components/ui";
 import { d1Db } from "./lib/d1.server";
 import { getSession } from "./lib/session.server";
 import type { Route } from "./+types/root";
@@ -34,7 +37,9 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 
 export function Layout({ children }: { children: ReactNode }) {
   const data = useRouteLoaderData<typeof loader>("root");
+  const location = useLocation();
   const signedIn = data?.signedIn ?? false;
+  const showAppNav = signedIn && Boolean(data?.workspaceName) && location.pathname !== "/onboarding";
 
   return (
     <html lang="en">
@@ -45,30 +50,63 @@ export function Layout({ children }: { children: ReactNode }) {
         <Links />
       </head>
       <body>
+        <a className="skip-link" href="#main-content">
+          Skip to content
+        </a>
         <header className="topbar">
           <div className="topbar-inner">
-            <span className="brand">Client Growth</span>
-            {signedIn && (
-              <>
-                <nav className="topnav">
-                  <NavLink to="/opportunities">Opportunities</NavLink>
-                  <NavLink to="/clients">Clients</NavLink>
-                  <NavLink to="/services">Services</NavLink>
-                  <NavLink to="/settings">Settings</NavLink>
-                </nav>
-                <span style={{ marginLeft: "auto", display: "flex", gap: "0.75rem", alignItems: "baseline" }}>
-                  {data?.workspaceName && <small>{data.workspaceName}</small>}
+            <NavLink className="brand" to={signedIn ? "/opportunities" : "/"}>
+              <span className="brand-mark"><Icon name="signal" size={19} strokeWidth={2.2} /></span>
+              <span>Client Growth</span>
+            </NavLink>
+            {showAppNav && (
+              <nav className="topnav" aria-label="Primary navigation">
+                <NavLink to="/opportunities" className={({ isActive }) => isActive ? "active" : undefined}>
+                  <Icon name="activity" size={16} />
+                  Opportunities
+                </NavLink>
+                <NavLink to="/clients" className={({ isActive }) => isActive ? "active" : undefined}>
+                  <Icon name="users" size={16} />
+                  Clients
+                </NavLink>
+                <NavLink to="/services" className={({ isActive }) => isActive ? "active" : undefined}>
+                  <Icon name="briefcase" size={16} />
+                  Services
+                </NavLink>
+                <NavLink to="/settings" className={({ isActive }) => isActive ? "active" : undefined}>
+                  <Icon name="settings" size={16} />
+                  Settings
+                </NavLink>
+              </nav>
+            )}
+            <div className="topbar-actions">
+              {!signedIn && (
+                <div className="public-nav">
+                  <Link to="/login">Log in</Link>
+                  <Link className="btn btn-primary btn-sm" to="/signup">Create account</Link>
+                </div>
+              )}
+              {signedIn && (
+                <div className="account-area">
+                  <div className="workspace-control">
+                    <span className="avatar avatar-small">{getInitials(data?.workspaceName)}</span>
+                    <span className="workspace-copy">
+                      <strong>{data?.workspaceName ?? "Set up workspace"}</strong>
+                      <small>{data?.workspaceName ? "Workspace" : "Getting started"}</small>
+                    </span>
+                    <Icon name="chevron-down" size={15} />
+                  </div>
                   <Form method="post" action="/logout" className="inline">
-                    <button className="subtle" type="submit">
+                    <button className="account-logout" type="submit">
                       Log out
                     </button>
                   </Form>
-                </span>
-              </>
-            )}
+                </div>
+              )}
+            </div>
           </div>
         </header>
-        <main className="content">{children}</main>
+        <main id="main-content" className="content">{children}</main>
         <ScrollRestoration />
         <Scripts />
       </body>
@@ -90,10 +128,11 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
       ? error.message
       : "Unknown error";
   return (
-    <div className="card">
+    <div className="error-state">
+      <span className="empty-icon"><Icon name="x" size={20} /></span>
       <h1>{title}</h1>
       <p className="muted">{String(detail)}</p>
-      <NavLink to="/">Home</NavLink>
+      <NavLink className="btn btn-secondary" to="/">Return home</NavLink>
     </div>
   );
 }

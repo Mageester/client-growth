@@ -1,6 +1,7 @@
 import { Form, Link, redirect } from "react-router";
 
 import { getAuth } from "../lib/auth.server";
+import { Icon } from "../components/ui";
 import type { Route } from "./+types/reset-password";
 
 const INVALID_RESET = "That reset link is invalid or expired. Request a new one.";
@@ -34,9 +35,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   const confirmPassword = String(form.get("confirmPassword") ?? "");
 
   if (!token) return { error: INVALID_RESET };
-  if (newPassword.length < 8 || newPassword.length > 128) {
-    return { error: PASSWORD_LENGTH_ERROR };
-  }
+  if (newPassword.length < 8 || newPassword.length > 128) return { error: PASSWORD_LENGTH_ERROR };
   if (newPassword !== confirmPassword) return { error: "The passwords do not match." };
 
   try {
@@ -57,53 +56,44 @@ export async function action({ request, context }: Route.ActionArgs) {
 
 export default function ResetPassword({ loaderData, actionData }: Route.ComponentProps) {
   return (
-    <main style={{ maxWidth: 380, margin: "6vh auto", padding: "0 1.25rem" }}>
-      <h1>Reset your password</h1>
-      {loaderData.invalid ? (
-        <>
-          <div className="notice err">{INVALID_RESET}</div>
-          <p className="muted">
-            <Link to="/forgot-password">Request a new reset link</Link>
-          </p>
-        </>
-      ) : (
-        <>
-          {actionData?.error && <div className="notice err">{actionData.error}</div>}
-          <Form method="post" className="stack">
-            <input type="hidden" name="token" value={loaderData.token} />
-            <div className="field">
-              <label htmlFor="newPassword">New password</label>
-              <input
-                id="newPassword"
-                name="newPassword"
-                type="password"
-                autoComplete="new-password"
-                minLength={8}
-                maxLength={128}
-                required
-              />
+    <main className="auth-layout">
+      <section className="card auth-card">
+        <div className="auth-header">
+          <h1>Choose a new password</h1>
+          <p>Use a password you’ll be comfortable keeping for your Client Growth account.</p>
+        </div>
+        {loaderData.invalid ? (
+          <>
+            <div className="notice err" role="alert">
+              <Icon name="x" size={17} />
+              <span>{INVALID_RESET}</span>
             </div>
-            <div className="field">
-              <label htmlFor="confirmPassword">Confirm new password</label>
-              <input
-                id="confirmPassword"
-                name="confirmPassword"
-                type="password"
-                autoComplete="new-password"
-                minLength={8}
-                maxLength={128}
-                required
-              />
-            </div>
-            <button type="submit" className="primary">
-              Reset password
-            </button>
-          </Form>
-          <p className="muted" style={{ marginTop: "1rem" }}>
-            Need a fresh link? <Link to="/forgot-password">Start again</Link>
-          </p>
-        </>
-      )}
+            <Link className="btn btn-secondary" to="/forgot-password">Request a new reset link</Link>
+          </>
+        ) : (
+          <>
+            {actionData?.error && (
+              <div className="notice err" role="alert">
+                <Icon name="x" size={17} />
+                <span>{actionData.error}</span>
+              </div>
+            )}
+            <Form method="post" className="stack">
+              <input type="hidden" name="token" value={loaderData.token} />
+              <div className="field">
+                <label htmlFor="newPassword">New password</label>
+                <input id="newPassword" name="newPassword" type="password" autoComplete="new-password" minLength={8} maxLength={128} required />
+              </div>
+              <div className="field">
+                <label htmlFor="confirmPassword">Confirm new password</label>
+                <input id="confirmPassword" name="confirmPassword" type="password" autoComplete="new-password" minLength={8} maxLength={128} required />
+              </div>
+              <button type="submit" className="btn btn-primary">Reset password</button>
+            </Form>
+            <p className="auth-footer">Need a fresh link? <Link to="/forgot-password">Start again</Link></p>
+          </>
+        )}
+      </section>
     </main>
   );
 }
