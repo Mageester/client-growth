@@ -167,6 +167,7 @@ async function main() {
         source: "http",
         capturedAt: new Date().toISOString(),
         site: { pages: [], nav: [], links: [], sitemapUrls: [] },
+        networkEvents: [],
       },
     });
     console.log(JSON.stringify(evaluation, null, 2));

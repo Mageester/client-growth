@@ -94,6 +94,15 @@ export const EvidenceLinkSchema = z.object({
 });
 export type EvidenceLink = z.infer<typeof EvidenceLinkSchema>;
 
+/** A network-policy failure preserved with an HTTP evidence run. */
+export const EvidenceNetworkEventSchema = z.object({
+  /** Redacted/canonical URL when it was parseable. */
+  url: z.string().min(1),
+  outcome: z.enum(["blocked", "inconclusive"]),
+  reason: z.string().min(1),
+});
+export type EvidenceNetworkEvent = z.infer<typeof EvidenceNetworkEventSchema>;
+
 export const EvidenceBundleSchema = z.object({
   clientId: z.string().min(1),
   source: z.enum(["fixture", "http"]),
@@ -107,6 +116,8 @@ export const EvidenceBundleSchema = z.object({
     /** URLs listed in /sitemap.xml when cheaply available. */
     sitemapUrls: z.array(z.string()).default([]),
   }),
+  /** Network-policy failures are evidence limitations, never website defects. */
+  networkEvents: z.array(EvidenceNetworkEventSchema).default([]),
 });
 export type EvidenceBundle = z.infer<typeof EvidenceBundleSchema>;
 

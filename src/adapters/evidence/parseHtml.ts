@@ -102,17 +102,20 @@ function anchorRecords(input: string): AnchorRecord[] {
 }
 
 function schemeOf(href: string): LinkScheme | null {
-  const h = href.trim().toLowerCase();
-  if (h.startsWith("tel:")) return "tel";
-  if (h.startsWith("mailto:")) return "mailto";
-  if (h.startsWith("http://") || h.startsWith("https://")) return "http";
-  // Any other explicit scheme (javascript:, data:, sms:, ftp:, #fragment) is out.
-  if (h.startsWith("#") || /^[a-z][a-z0-9+.-]*:/i.test(h)) return null;
-  // No scheme -> relative http(s) URL.
-  return "http";
+  const value = href.trim();
+  try {
+    const parsed = new URL(value, "https://client-growth.invalid/");
+    if (parsed.protocol === "tel:") return "tel";
+    if (parsed.protocol === "mailto:") return "mailto";
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") return "http";
+    // Any other explicit scheme (javascript:, data:, sms:, ftp:) is out.
+    return null;
+  } catch {
+    return null;
+  }
 }
 
-function parseForms(body: string): ParsedForm[] {
+function parseForms(body: string, base: URL): ParsedForm[] {
   const out: ParsedForm[] = [];
   const re = /<form\b([^>]*)>([\s\S]*?)<\/form>/gi;
   let m: RegExpExecArray | null;
@@ -124,8 +127,20 @@ function parseForms(body: string): ParsedForm[] {
       /<input\b[^>]*\btype\s*=\s*["'](?:submit|image)["']/i.test(inner) ||
       /<button\b[^>]*\btype\s*=\s*["']submit["']/i.test(inner) ||
       /<button\b(?![^>]*\btype\s*=)[^>]*>/i.test(inner);
+    const rawAction = attr(openTag, "action").trim();
+    let action = rawAction;
+    if (rawAction) {
+      try {
+        const resolved = new URL(rawAction, base);
+        if (resolved.username || resolved.password) action = "";
+      } catch {
+        // A malformed action is not requestable. Do not preserve an explicit
+        // credential-looking value in evidence if it cannot be parsed.
+        if (/^[a-z][a-z0-9+.-]*:\/\/[^/?#]*@/i.test(rawAction)) action = "";
+      }
+    }
     out.push({
-      action: attr(openTag, "action").trim(),
+      action,
       method: methodRaw === "POST" ? "POST" : "GET",
       hasSubmit,
     });
@@ -197,6 +212,7 @@ export function parseHtml(html: string, url: string): ParsedPage {
     } catch {
       continue;
     }
+    if (resolved.username || resolved.password) continue;
     if (resolved.origin !== base.origin || !/^https?:$/.test(resolved.protocol)) continue;
     const key = resolved.toString();
     const existing = byKey.get(key);
@@ -229,7 +245,7 @@ export function parseHtml(html: string, url: string): ParsedPage {
       headings,
       textExcerpt: text.slice(0, TEXT_EXCERPT_LENGTH),
       wordCount,
-      forms: parseForms(body),
+      forms: parseForms(body, base),
     },
     nav: [...navSet],
     links,

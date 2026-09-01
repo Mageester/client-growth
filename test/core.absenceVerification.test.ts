@@ -152,6 +152,41 @@ describe("absence verification — validation regressions", () => {
     expect(v.inspectedUrls).toContain("https://ex.example/garage-spring-repair/");
   });
 
+  it("treats a blocked targeted fetch as inconclusive rather than absence", async () => {
+    const fetchPage = vi.fn(async (url: string) => ({
+      kind: "network-failure" as const,
+      requestedUrl: url,
+      outcome: "blocked" as const,
+      reason: "redirect leaves the allowed same-origin boundary",
+    }));
+    const v = await verifyOfferingAbsence({
+      offering: "pool heater installation",
+      allOfferings: ["ac repair", "pool heater installation"],
+      evidence: bundle({
+        pages: [{ title: "Air Conditioning" }],
+        links: [{ href: "https://ex.example/pool-heater-installation/", label: "Pool Heater Installation" }],
+      }),
+      fetchPage,
+    });
+    expect(v.conclusion).toBe("inconclusive");
+    expect(v.reason).toMatch(/absence cannot be proven/i);
+  });
+
+  it("does not claim absence when a close match is left unverified by the fetch budget", async () => {
+    const v = await verifyOfferingAbsence({
+      offering: "pool heater geothermal",
+      allOfferings: ["ac repair", "pool heater geothermal"],
+      evidence: bundle({
+        pages: [{ title: "Air Conditioning" }],
+        links: [{ href: "https://ex.example/pool-heater/", label: "Pool Heater" }],
+      }),
+      fetchPage: vi.fn(async () => null),
+      budget: { remaining: 0 },
+    });
+    expect(v.conclusion).toBe("inconclusive");
+    expect(v.reason).toMatch(/budget|verify/i);
+  });
+
   it("still concludes ABSENT for a genuine gap, and records what was checked", async () => {
     const fetchPage = vi.fn(async (): Promise<EvidencePage | null> => null);
     const v = await verifyOfferingAbsence({

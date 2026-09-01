@@ -1,13 +1,29 @@
 import type { Client, EvidenceBundle, EvidencePage } from "@/core/schema";
 
+/** A page fetch failed for a network-policy or transport reason. */
+export interface PageFetchFailure {
+  kind: "network-failure";
+  requestedUrl: string;
+  outcome: "blocked" | "inconclusive";
+  reason: string;
+}
+
+export type PageFetchResult = EvidencePage | PageFetchFailure | null;
+
 /** Result of a single-URL status check (see EvidenceProvider.probe). */
 export interface ProbeResult {
   requestedUrl: string;
-  /** HTTP status after following redirects. 0 means the request could not be
-   *  completed (DNS/TLS/timeout) and must be treated as inconclusive. */
+  /** HTTP status after validated redirects. 0 means no trustworthy status was
+   * obtained and must be treated as inconclusive. */
   status: number;
   finalUrl: string;
   ok: boolean;
+  /** Explicit network outcome for policy failures; absent for older providers. */
+  outcome?: "complete" | "blocked" | "inconclusive";
+  /** Safe diagnostic reason for a blocked/inconclusive result. */
+  reason?: string;
+  /** Number of validated redirect hops followed for this probe. */
+  redirects?: number;
 }
 
 /**
@@ -22,6 +38,6 @@ export interface ProbeResult {
  */
 export interface EvidenceProvider {
   getEvidence(client: Client): Promise<EvidenceBundle>;
-  fetchPage?(url: string): Promise<EvidencePage | null>;
+  fetchPage?(url: string): Promise<PageFetchResult>;
   probe?(url: string): Promise<ProbeResult>;
 }
