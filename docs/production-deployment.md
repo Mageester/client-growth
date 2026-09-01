@@ -226,8 +226,8 @@ Use two isolated browser contexts and controlled test mailboxes. Record the Work
 Run the exact automated acceptance tests from the integrated hardening branch, then add the live black-box checks below against a disposable account and harmless public endpoints:
 
 - [ ] Reject non-HTTP(S), credential-bearing, malformed, localhost, loopback, private, link-local, multicast, metadata-service, and reserved IP targets, including alternate IPv4/IPv6 spellings and IPv4-mapped IPv6 forms.
-- [ ] Validate every redirect destination and final resolved address; a public URL redirecting to a blocked address fails closed.
-- [ ] Confirm DNS resolution/revalidation cannot be bypassed by a redirect or rebinding between validation and fetch.
+- [ ] Validate every redirect destination before the next request; a public URL redirecting to a blocked literal address fails closed.
+- [ ] Retain the documented DNS-rebinding limitation: Workers cannot authoritatively resolve arbitrary hostnames before fetch, so a public-looking hostname may still resolve or rebind privately. Do not mark this residual risk as protected.
 - [ ] Enforce the configured page-count, redirect, timeout, response-size, and content-type limits; oversized/binary/non-HTML responses do not become evidence.
 - [ ] Confirm conversion probes use the same target-safety boundary and do not forward the user’s cookies, Authorization header, or internal network access.
 - [ ] Confirm a blocked/failed crawl returns a generic safe error, stores no private response body, and never surfaces an opportunity from insufficient evidence.
