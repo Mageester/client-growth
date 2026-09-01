@@ -227,6 +227,15 @@ export function Icon({
 }
 
 /**
+ * Queue menu teardown after the browser has handled an activated item. This is
+ * especially important for menu items that are submit buttons inside a Form:
+ * unmounting them synchronously cancels their native submit action.
+ */
+export function deferMenuClose(onClose: () => void) {
+  setTimeout(onClose, 0);
+}
+
+/**
  * A small popover anchored to its trigger. Closes on outside pointer, Escape,
  * navigation, and on any activation inside the panel.
  */
@@ -245,6 +254,7 @@ export function Menu({
 }) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const location = useLocation();
 
   useEffect(() => setOpen(false), [location.key]);
@@ -255,7 +265,10 @@ export function Menu({
       if (root.current && !root.current.contains(event.target as Node)) setOpen(false);
     }
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      setOpen(false);
+      requestAnimationFrame(() => triggerRef.current?.focus());
     }
     document.addEventListener("mousedown", onPointerDown);
     document.addEventListener("keydown", onKeyDown);
@@ -269,6 +282,7 @@ export function Menu({
     <div className="menu" ref={root}>
       <button
         type="button"
+        ref={triggerRef}
         className={triggerClassName}
         aria-haspopup="menu"
         aria-expanded={open}
@@ -281,7 +295,9 @@ export function Menu({
         <div
           className={"menu-pop align-" + align}
           role="menu"
-          onClick={() => setOpen(false)}
+          // Let a nested Form submit before unmounting the clicked button.
+          // Closing synchronously cancels the browser's default submit action.
+          onClick={() => deferMenuClose(() => setOpen(false))}
         >
           {children}
         </div>

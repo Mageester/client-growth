@@ -151,17 +151,11 @@ export async function analyzeClient(
     const key = dedupeKey(input.client.id, candidate.ruleId, candidate.subject);
     const prior = existingByKey.get(key);
 
-    // 4a. prior agency decision wins — no evaluator call
-    if (prior && isSuppressed(prior, now)) {
-      suppressed.push(prior);
-      stats.suppressedByPriorDecision++;
-      continue;
-    }
-
     // 3. resolve billability / existing coverage
     const billableStatus = resolveBillability(candidate.suggestedServiceId, input.coverage);
 
-    // 4b. already-covered work is recorded but never judged by the evaluator
+    // 4a. Contract coverage is authoritative over a prior state. This keeps a
+    // direct coverage change and the next re-analysis in agreement.
     if (billableStatus === "already_covered") {
       const service = input.catalog.find((s) => s.id === candidate.suggestedServiceId);
       if (service) {
@@ -176,6 +170,14 @@ export async function analyzeClient(
         );
       }
       stats.suppressedByCoverage++;
+      continue;
+    }
+
+    // 4b. A prior agency decision wins when the work is still billable — no
+    // evaluator call. An expired snooze is intentionally not suppressed.
+    if (prior && isSuppressed(prior, now)) {
+      suppressed.push(prior);
+      stats.suppressedByPriorDecision++;
       continue;
     }
 

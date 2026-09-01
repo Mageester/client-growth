@@ -4,7 +4,7 @@ import { Form, Link, redirect, useNavigation } from "react-router";
 import * as repo from "@/db/repositories";
 import { generateProposalDraft } from "@/core/proposal";
 import { buildEvidenceCase } from "../lib/evidence";
-import { isOpen, nextAction, statusBadge } from "../lib/portfolio";
+import { isOpen, isSnoozeExpired, nextAction, statusBadge } from "../lib/portfolio";
 import {
   Fact,
   Icon,
@@ -114,8 +114,10 @@ export default function OpportunityDetail({ loaderData, actionData }: Route.Comp
   const navigation = useNavigation();
   const busy = navigation.state !== "idle";
   const pending = navigation.formData?.get("intent");
-  const badge = statusBadge(opp);
-  const live = isOpen(opp);
+  const now = new Date();
+  const snoozeActive = opp.status === "snoozed" && !isSnoozeExpired(opp, now);
+  const badge = statusBadge(opp, now);
+  const live = isOpen(opp, now);
   const [showAllEvidence, setShowAllEvidence] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -167,7 +169,7 @@ export default function OpportunityDetail({ loaderData, actionData }: Route.Comp
             <h1 className="title-lg">{opp.title}</h1>
             <p className="detail-next">
               <Icon name="arrow-right" size={13} />
-              {nextAction(opp)}
+              {nextAction(opp, now)}
             </p>
           </div>
         </div>
@@ -195,7 +197,7 @@ export default function OpportunityDetail({ loaderData, actionData }: Route.Comp
             {evidence.inspectedCount}{" "}
             {pluralize(evidence.inspectedCount, "page checked", "pages checked")}
           </Fact>
-          {opp.snoozeUntil && opp.status === "snoozed" && (
+          {opp.snoozeUntil && snoozeActive && (
             <Fact label="Returns">{formatDate(opp.snoozeUntil)}</Fact>
           )}
         </dl>
@@ -367,7 +369,7 @@ export default function OpportunityDetail({ loaderData, actionData }: Route.Comp
               )}
             </p>
           )}
-          {opp.status === "snoozed" && opp.snoozeUntil && (
+          {snoozeActive && opp.snoozeUntil && (
             <p className="action-note">
               Hidden from the feed until {formatDate(opp.snoozeUntil)}.
             </p>

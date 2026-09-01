@@ -202,7 +202,13 @@ export async function listCoverage(t: TenantScope, clientId: string): Promise<Co
   );
 }
 
-/** Returns false when the client or service is not in this workspace. */
+/**
+ * Mark a service covered for this client and reconcile any existing findings
+ * that map to it. Coverage is authoritative: leaving an older finding marked
+ * billable would let it leak into open counts until someone re-ran analysis.
+ *
+ * Returns false when the client or service is not in this workspace.
+ */
 export async function setCoverage(
   t: TenantScope,
   clientId: string,
@@ -218,6 +224,15 @@ export async function setCoverage(
        ON CONFLICT(client_id, service_id) DO UPDATE SET note = excluded.note`,
     )
     .bind(t.workspaceId, clientId, serviceId, note ?? null)
+    .run();
+  await t.db
+    .prepare(
+      `UPDATE opportunities
+       SET billable_status = 'already_covered', status = 'already_covered',
+           snooze_until = NULL, updated_at = ?
+       WHERE workspace_id = ? AND client_id = ? AND suggested_service_id = ?`,
+    )
+    .bind(nowIso(), t.workspaceId, clientId, serviceId)
     .run();
   return true;
 }
@@ -458,23 +473,28 @@ export async function setOpportunityStatus(
  * `proposal_prepared`.
  *
  * Deliberately scoped to opportunities that are still open and billable. A
- * dismissed, snoozed or already-covered finding must not be silently resurrected
- * into the feed as a side effect of drafting — the agency's decision wins until
- * they explicitly reopen it. The route guards this too; this is defence in depth.
+ * dismissed, actively snoozed or already-covered finding must not be silently
+ * resurrected into the feed as a side effect of drafting — the agency's decision
+ * wins until they explicitly reopen it or its snooze ends. The route guards this
+ * too; this is defence in depth.
  */
 export async function setOpportunityProposal(
   t: TenantScope,
   id: string,
   proposalMd: string,
 ): Promise<boolean> {
+  const now = nowIso();
   const r = await t.db
     .prepare(
       `UPDATE opportunities SET proposal_md = ?, status = 'proposal_prepared', updated_at = ?
        WHERE id = ? AND workspace_id = ?
          AND billable_status = 'billable'
-         AND status IN ('new', 'proposal_prepared')`,
+         AND (
+           status IN ('new', 'proposal_prepared')
+           OR (status = 'snoozed' AND snooze_until IS NOT NULL AND snooze_until <= ?)
+         )`,
     )
-    .bind(proposalMd, nowIso(), id, t.workspaceId)
+    .bind(proposalMd, now, id, t.workspaceId, now)
     .run();
   return r.rowsAffected > 0;
 }

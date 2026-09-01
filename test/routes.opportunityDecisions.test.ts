@@ -170,6 +170,20 @@ describe("preparing a proposal", () => {
     expect(saved?.proposalMd).toBeUndefined();
   });
 
+  it("prepares a proposal after a snooze has expired", async () => {
+    await repo.saveAnalysis(
+      scope,
+      [opp({ status: "snoozed", snoozeUntil: "2000-01-01T00:00:00.000Z" })],
+    );
+
+    const res = (await act("prepare-proposal")) as Response;
+
+    expect(res.status).toBe(302);
+    const saved = await repo.getOpportunity(scope, "opp_1");
+    expect(saved?.status).toBe("proposal_prepared");
+    expect(saved?.proposalMd).toContain("No page for heat pumps");
+  });
+
   it("saves an edited draft without changing the agency's decision", async () => {
     await repo.saveAnalysis(scope, [opp({ status: "snoozed", proposalMd: "# old" })]);
     await act("save-proposal", { proposalMd: "# edited" });

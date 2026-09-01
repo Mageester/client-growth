@@ -11,10 +11,13 @@ import type { AnalysisOutcome } from "@/core/analysisOutcome";
  */
 
 /** Open = the agency can still sell this, and has not decided otherwise. */
-export function isOpen(opp: Opportunity): boolean {
+export function isOpen(opp: Opportunity, now: Date | number = new Date()): boolean {
+  // `isOpen` is also used directly as an Array.filter predicate, whose second
+  // argument is the numeric index rather than an injected clock.
+  const clock = now instanceof Date ? now : new Date();
   return (
     opp.billableStatus === "billable" &&
-    (opp.status === "new" || opp.status === "proposal_prepared")
+    (opp.status === "new" || opp.status === "proposal_prepared" || isSnoozeExpired(opp, clock))
   );
 }
 
@@ -69,13 +72,13 @@ export interface PortfolioTotals {
 }
 
 /** Totals over open work only — closed findings never inflate pipeline value. */
-export function totalsFor(opportunities: Opportunity[]): PortfolioTotals {
+export function totalsFor(opportunities: Opportunity[], now = new Date()): PortfolioTotals {
   let open = 0;
   let closed = 0;
   let priceMin = 0;
   let priceMax = 0;
   for (const opp of opportunities) {
-    if (isOpen(opp)) {
+    if (isOpen(opp, now)) {
       open++;
       priceMin += opp.priceMin;
       priceMax += opp.priceMax;
@@ -113,10 +116,11 @@ export interface StatusBadge {
 }
 
 /** The single status vocabulary shown to the user, everywhere. */
-export function statusBadge(opp: Opportunity): StatusBadge {
+export function statusBadge(opp: Opportunity, now = new Date()): StatusBadge {
   if (opp.billableStatus === "already_covered" || opp.status === "already_covered") {
     return { label: "Already covered", tone: "warn" };
   }
+  if (isSnoozeExpired(opp, now)) return { label: "Open", tone: "accent" };
   if (opp.status === "dismissed") return { label: "Dismissed", tone: "quiet" };
   if (opp.status === "snoozed") return { label: "Snoozed", tone: "quiet" };
   if (opp.status === "proposal_prepared") return { label: "Proposal ready", tone: "pos" };
@@ -124,8 +128,8 @@ export function statusBadge(opp: Opportunity): StatusBadge {
 }
 
 /** What the agency should do next with this finding. */
-export function nextAction(opp: Opportunity): string {
-  if (!isOpen(opp)) {
+export function nextAction(opp: Opportunity, now = new Date()): string {
+  if (!isOpen(opp, now)) {
     if (opp.status === "dismissed") return "Reopen if this becomes relevant again";
     if (opp.status === "snoozed") return "Returns to the feed when the snooze ends";
     return "Already covered by this client's contract";

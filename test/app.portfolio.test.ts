@@ -49,6 +49,30 @@ describe("open predicate", () => {
   it("excludes covered work even while its status still says new", () => {
     expect(isOpen(opp({ billableStatus: "already_covered", status: "new" }))).toBe(false);
   });
+
+  it("returns an expired snooze to the open portfolio", () => {
+    const now = new Date("2026-09-01T12:00:00.000Z");
+    const expired = opp({
+      status: "snoozed",
+      snoozeUntil: "2026-09-01T11:59:59.000Z",
+    });
+
+    expect(isOpen(expired, now)).toBe(true);
+    expect(totalsFor([expired], now)).toEqual({
+      open: 1,
+      closed: 0,
+      priceMin: 900,
+      priceMax: 1800,
+    });
+    expect(statusBadge(expired, now)).toEqual({ label: "Open", tone: "accent" });
+    expect(nextAction(expired, now)).toMatch(/review the evidence/i);
+  });
+
+  it("remains safe to use as an Array filter predicate", () => {
+    const expired = opp({ status: "snoozed", snoozeUntil: "2000-01-01T00:00:00.000Z" });
+
+    expect([expired].filter(isOpen)).toEqual([expired]);
+  });
 });
 
 describe("portfolio totals", () => {

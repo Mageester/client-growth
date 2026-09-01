@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import * as repo from "@/db/repositories";
 import { createWorkspaceForOwner } from "@/db/workspaces";
 import { SCHEMA_SQL } from "@/db/schema";
-import { ClientSchema, ServiceSchema } from "@/core/schema";
+import { ClientSchema, OpportunitySchema, ServiceSchema } from "@/core/schema";
 import { __setSessionResolver } from "../app/lib/session.server";
 import { d1LikeOver } from "./helpers/testAuth";
 
@@ -309,6 +309,60 @@ describe("editing a client", () => {
     })) as { ok: boolean };
     expect(res.ok).toBe(false);
     expect(await repo.listCoverage(scope, "cli_a")).toHaveLength(0);
+  });
+
+  it("marks matching findings covered when a service becomes contract-covered", async () => {
+    await repo.upsertService(
+      scope,
+      ServiceSchema.parse({
+        id: "svc_landing",
+        name: "Landing page",
+        description: "",
+        priceMin: 900,
+        priceMax: 1800,
+        tags: ["landing-page"],
+        active: true,
+      }),
+    );
+    const finding = (id: string, status: "new" | "dismissed" | "snoozed", snoozeUntil?: string) =>
+      OpportunitySchema.parse({
+        id,
+        dedupeKey: id,
+        clientId: "cli_a",
+        ruleId: "missing-service-page",
+        title: `Finding ${id}`,
+        detected: "The page is missing.",
+        evidenceRefs: ["https://acme.example/services"],
+        rationale: "It is sellable work.",
+        suggestedServiceId: "svc_landing",
+        suggestedScope: ["Build the page"],
+        priceMin: 900,
+        priceMax: 1800,
+        confidence: 0.9,
+        billableStatus: "billable",
+        status,
+        snoozeUntil,
+        updatedAt: "2026-09-01T00:00:00.000Z",
+      });
+    await repo.saveAnalysis(scope, [
+      finding("opp_open", "new"),
+      finding("opp_expired", "snoozed", "2000-01-01T00:00:00.000Z"),
+      finding("opp_active_snooze", "snoozed", "2999-01-01T00:00:00.000Z"),
+      finding("opp_dismissed", "dismissed"),
+    ]);
+
+    const res = (await call(clientDetail.action as never, {
+      request: formReq({ intent: "toggle-coverage", serviceId: "svc_landing", covered: "on" }),
+      params: { id: "cli_a" },
+      context: ctx,
+    })) as { ok: boolean };
+
+    expect(res.ok).toBe(true);
+    for (const id of ["opp_open", "opp_expired", "opp_active_snooze", "opp_dismissed"]) {
+      const saved = await repo.getOpportunity(scope, id);
+      expect(saved?.status).toBe("already_covered");
+      expect(saved?.billableStatus).toBe("already_covered");
+    }
   });
 });
 
