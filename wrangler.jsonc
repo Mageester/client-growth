@@ -31,7 +31,7 @@
         {
           "binding": "DB",
           "database_name": "client-growth-production",
-          "database_id": "__SET_AFTER_WRANGLER_D1_CREATE__",
+          "database_id": "fcb0af15-ccef-446f-be77-01aafa5f5e50",
           "migrations_dir": "migrations"
         }
       ],
@@ -40,8 +40,8 @@
         "DEEPSEEK_BASE_URL": "https://api.deepseek.com",
         "DEEPSEEK_MODEL": "deepseek-chat",
         "MAX_AI_CALLS_PER_RUN": "10",
-        "BETTER_AUTH_URL": "https://replace-with-production-host.invalid",
-        "RESEND_FROM_EMAIL": "Client Growth <auth@replace-with-verified-sender.invalid>"
+        "BETTER_AUTH_URL": "https://client-growth-production.aidan-magee2.workers.dev",
+        "RESEND_FROM_EMAIL": "Client Growth noreply@getaxiom.ca"
       },
       "secrets": {
         "required": ["BETTER_AUTH_SECRET", "RESEND_API_KEY"]
