@@ -4,13 +4,23 @@ import { Form, Link, useNavigation } from "react-router";
 import { ClientSchema } from "@/core/schema";
 import * as repo from "@/db/repositories";
 import {
+  CLIENT_STATE_LABEL,
+  CLIENT_STATE_ORDER,
+  clientState,
+  totalsFor,
+  type ClientState,
+} from "../lib/portfolio";
+import {
   EmptyState,
   Icon,
   SidePanel,
-  formatDate,
+  StateDot,
+  formatCompactRange,
+  formatRelative,
   pluralize,
 } from "../components/ui";
 import { requireTenant } from "../lib/session.server";
+import { normalizeDomain, validateClientInput } from "../lib/validation";
 import type { Route } from "./+types/clients._index";
 
 export function meta() {
@@ -28,51 +38,59 @@ function slugId(name: string): string {
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const t = await requireTenant(request, context);
-  const clients = await repo.listClients(t.scope);
-  const enrichedClients = await Promise.all(
+  const [clients, runsByClient] = await Promise.all([
+    repo.listClients(t.scope),
+    repo.latestAnalysisRunByClient(t.scope),
+  ]);
+  const enriched = await Promise.all(
     clients.map(async (client) => {
-      const [opportunities, evidence] = await Promise.all([
-        repo.listOpportunities(t.scope, client.id),
-        repo.getLatestEvidence(t.scope, client.id),
-      ]);
+      const totals = totalsFor(await repo.listOpportunities(t.scope, client.id));
+      const run = runsByClient.get(client.id) ?? null;
       return {
         ...client,
-        lastCapturedAt: evidence?.capturedAt ?? null,
-        opportunityCount: opportunities.filter(
-          (opp) =>
-            opp.billableStatus === "billable" &&
-            (opp.status === "new" || opp.status === "proposal_prepared"),
-        ).length,
+        totals,
+        lastRunAt: run?.finishedAt ?? null,
+        runSummary: run?.summary ?? null,
+        state: clientState({ outcome: run?.outcome ?? null, openCount: totals.open }),
       };
     }),
   );
-  return { clients: enrichedClients };
+  return { clients: enriched };
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
   const t = await requireTenant(request, context);
   const form = await request.formData();
-  const name = String(form.get("name") ?? "").trim();
-  const domain = String(form.get("domain") ?? "")
-    .trim()
-    .replace(/^https?:\/\//, "")
-    .replace(/\/+$/, "");
-  if (!name || !domain) return { ok: false as const, error: "Name and domain are required." };
+  const input = {
+    name: String(form.get("name") ?? ""),
+    domain: String(form.get("domain") ?? ""),
+    offerings: String(form.get("offerings") ?? ""),
+  };
+  const problem = validateClientInput(input);
+  if (problem) return { ok: false as const, error: problem };
 
-  const offerings = String(form.get("offerings") ?? "")
-    .split("\n")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const domain = normalizeDomain(input.domain);
+  const existing = await repo.listClients(t.scope);
+  const duplicate = existing.find((client) => client.domain.toLowerCase() === domain);
+  if (duplicate) {
+    return {
+      ok: false as const,
+      error: `${duplicate.name} is already watching ${domain}.`,
+    };
+  }
 
   const client = ClientSchema.parse({
-    id: slugId(name),
-    name,
+    id: slugId(input.name),
+    name: input.name.trim(),
     domain,
-    offerings,
+    offerings: input.offerings
+      .split("\n")
+      .map((s) => s.trim())
+      .filter(Boolean),
     notes: String(form.get("notes") ?? "").trim(),
   });
   await repo.upsertClient(t.scope, client);
-  return { ok: true as const, id: client.id };
+  return { ok: true as const, id: client.id, name: client.name };
 }
 
 type EnrichedClient = Awaited<ReturnType<typeof loader>>["clients"][number];
@@ -91,8 +109,16 @@ export default function ClientsIndex({ loaderData, actionData }: Route.Component
     }
   }, [actionData]);
 
-  const monitored = clients.filter((client) => client.lastCapturedAt).length;
-  const withWork = clients.filter((client) => client.opportunityCount > 0).length;
+  const counts = clients.reduce<Record<ClientState, number>>(
+    (acc, client) => ({ ...acc, [client.state]: acc[client.state] + 1 }),
+    { attention: 0, clean: 0, inconclusive: 0, never: 0 },
+  );
+  const ordered = [...clients].sort(
+    (a, b) =>
+      CLIENT_STATE_ORDER[a.state] - CLIENT_STATE_ORDER[b.state] ||
+      b.totals.priceMax - a.totals.priceMax ||
+      a.name.localeCompare(b.name),
+  );
 
   return (
     <div>
@@ -101,16 +127,28 @@ export default function ClientsIndex({ loaderData, actionData }: Route.Component
           <span className="eyebrow">Portfolio</span>
           <h1 className="title-page">Clients</h1>
           <p className="summary-line">
-            <b>{clients.length}</b>
-            <span>{pluralize(clients.length, "business", "businesses")} monitored</span>
+            <b className="num">{clients.length}</b>
+            <span>{pluralize(clients.length, "site watched", "sites watched")}</span>
             {clients.length > 0 && (
               <>
                 <span className="dot-sep">·</span>
-                <span>{monitored} analyzed</span>
-                <span className="dot-sep">·</span>
                 <span>
-                  {withWork} with open {pluralize(withWork, "opportunity", "opportunities")}
+                  {counts.attention > 0
+                    ? `${counts.attention} ${pluralize(counts.attention, "needs", "need")} attention`
+                    : "none need attention"}
                 </span>
+                {counts.inconclusive > 0 && (
+                  <>
+                    <span className="dot-sep">·</span>
+                    <span>{counts.inconclusive} could not be read</span>
+                  </>
+                )}
+                {counts.never > 0 && (
+                  <>
+                    <span className="dot-sep">·</span>
+                    <span>{counts.never} not yet analyzed</span>
+                  </>
+                )}
               </>
             )}
           </p>
@@ -129,7 +167,8 @@ export default function ClientsIndex({ loaderData, actionData }: Route.Component
         <div className="notice ok" role="status">
           <Icon name="check" size={15} />
           <span>
-            Client added. <Link to={"/clients/" + actionData.id}>Open it to analyze the site</Link>.
+            {actionData.name} added.{" "}
+            <Link to={"/clients/" + actionData.id}>Open it and analyze the site</Link>.
           </span>
         </div>
       )}
@@ -151,12 +190,12 @@ export default function ClientsIndex({ loaderData, actionData }: Route.Component
             </button>
           }
         >
-          Add a business you already look after. Client Growth watches its site and tells you when
-          there is legitimate, billable work to bring up.
+          Add a business you already look after. Client Growth watches its website and tells you
+          when there is legitimate, billable work worth bringing up.
         </EmptyState>
       ) : (
         <ul className="records">
-          {clients.map((client) => (
+          {ordered.map((client) => (
             <li key={client.id}>
               <ClientRow client={client} />
             </li>
@@ -168,12 +207,12 @@ export default function ClientsIndex({ loaderData, actionData }: Route.Component
         open={addOpen}
         onClose={() => setAddOpen(false)}
         title="Add a client"
-        description="The website and what this business sells. Both feed the analysis."
+        description="The website, and what this business sells. Both feed every analysis."
       >
         <Form method="post">
           <div className="field">
             <label htmlFor="new-client-name">Client name</label>
-            <input id="new-client-name" name="name" type="text" required />
+            <input id="new-client-name" name="name" type="text" required autoComplete="off" />
           </div>
           <div className="field">
             <label htmlFor="new-client-domain">Website</label>
@@ -183,23 +222,32 @@ export default function ClientsIndex({ loaderData, actionData }: Route.Component
               type="text"
               placeholder="example.com"
               required
+              autoComplete="off"
+              inputMode="url"
             />
-            <div className="field-hint">https:// is optional.</div>
+            <div className="field-hint">Just the domain — https:// is optional.</div>
           </div>
           <div className="field">
             <label htmlFor="new-client-offerings">What this business sells</label>
             <textarea
               id="new-client-offerings"
               name="offerings"
-              placeholder={"One per line\nheat pump installation\nair conditioning repair"}
+              rows={6}
+              placeholder={"heat pump installation\nair conditioning repair\nduct cleaning"}
             />
             <div className="field-hint">
-              Used to check whether their site actually covers what they sell.
+              One per line. This is what the site gets checked against, so it matters more than
+              anything else on this form.
             </div>
           </div>
           <div className="field">
             <label htmlFor="new-client-notes">Notes</label>
-            <textarea id="new-client-notes" name="notes" placeholder="Optional context for your team" />
+            <textarea
+              id="new-client-notes"
+              name="notes"
+              rows={3}
+              placeholder="Optional context for your team"
+            />
           </div>
           <div className="form-actions">
             <button type="submit" className="btn btn-primary" disabled={busy}>
@@ -216,24 +264,15 @@ export default function ClientsIndex({ loaderData, actionData }: Route.Component
 }
 
 function ClientRow({ client }: { client: EnrichedClient }) {
-  const analyzed = Boolean(client.lastCapturedAt);
-  const state = !analyzed ? "idle" : client.opportunityCount > 0 ? "live" : "clean";
-  const stateLabel = !analyzed
-    ? "Not analyzed"
-    : client.opportunityCount > 0
-      ? "Open opportunities"
-      : "Clean";
-
   return (
     <Link className="record" to={"/clients/" + client.id}>
-      <span className={"state-dot " + state} title={stateLabel}>
-        <span className={"dot" + (analyzed ? "" : " hollow")} />
-        <span className="sr-only">{stateLabel}</span>
-      </span>
+      <StateDot state={client.state} />
       <span className="record-main">
         <span className="record-name">{client.name}</span>
         <span className="record-meta">
-          <span>{client.domain}</span>
+          <span className="record-domain">{client.domain}</span>
+          <span className="dot-sep">·</span>
+          <span>{CLIENT_STATE_LABEL[client.state]}</span>
           <span className="dot-sep">·</span>
           <span>
             {client.offerings.length} {pluralize(client.offerings.length, "offering", "offerings")}
@@ -241,14 +280,20 @@ function ClientRow({ client }: { client: EnrichedClient }) {
         </span>
       </span>
       <span className="record-end">
-        <span className={"record-stat" + (client.opportunityCount > 0 ? "" : " is-zero")}>
-          <b>{client.opportunityCount > 0 ? client.opportunityCount : "—"}</b>
-          <span>{pluralize(client.opportunityCount, "opportunity", "opportunities")}</span>
+        <span className={"record-stat" + (client.totals.open > 0 ? "" : " is-zero")}>
+          <b className="num">{client.totals.open > 0 ? client.totals.open : "—"}</b>
+          <span>{pluralize(client.totals.open, "opportunity", "opportunities")}</span>
+        </span>
+        <span className={"record-stat wide" + (client.totals.open > 0 ? "" : " is-zero")}>
+          <b className="num">
+            {client.totals.open > 0
+              ? formatCompactRange(client.totals.priceMin, client.totals.priceMax)
+              : "—"}
+          </b>
+          <span>potential value</span>
         </span>
         <span className="record-stat wide is-zero">
-          <b style={{ fontWeight: 500 }}>
-            {analyzed ? formatDate(client.lastCapturedAt) : "Never"}
-          </b>
+          <b>{formatRelative(client.lastRunAt)}</b>
           <span>analyzed</span>
         </span>
         <Icon name="chevron-right" size={15} className="record-chevron" />

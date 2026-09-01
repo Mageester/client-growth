@@ -4,7 +4,7 @@
 # 32+ random chars. Generate: `openssl rand -base64 32`
 BETTER_AUTH_SECRET=dev-only-change-me-to-32-plus-random-characters
 # Explicit, trusted base URL. Local dev = the wrangler dev origin.
-BETTER_AUTH_URL=http://localhost:8787
+BETTER_AUTH_URL=http://localhost:8788
 
 # --- Password-reset email (required for an external pilot) ---
 # RESEND_API_KEY=re_...

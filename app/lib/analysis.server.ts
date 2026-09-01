@@ -3,6 +3,7 @@ import { FixtureEvidenceProvider } from "@/adapters/evidence/FixtureEvidenceProv
 import { HttpEvidenceProvider } from "@/adapters/evidence/HttpEvidenceProvider";
 import { createEvaluator } from "@/adapters/evaluator/createEvaluator";
 import { parseEnv } from "@/config/env";
+import { classifyAnalysis, type AnalysisOutcomeResult } from "@/core/analysisOutcome";
 import { analyzeClient, type AnalyzeClientResult } from "@/pipeline/analyzeClient";
 import * as repo from "@/db/repositories";
 import type { TenantScope } from "@/db/tenant";
@@ -23,19 +24,30 @@ function evidenceProviderFor(client: Client, workspaceId: string) {
   return new HttpEvidenceProvider({ maxPages: 10 });
 }
 
+export interface RunAnalysisResult extends AnalyzeClientResult {
+  /** The truthful, persisted classification of this run. */
+  verdict: AnalysisOutcomeResult;
+}
+
 /**
  * Analyze one client in the caller's workspace. Every read/write is scoped by
  * `t`; a client id from another workspace resolves to null -> 404, before any
  * crawl / probe / AI.
+ *
+ * The run's outcome is persisted alongside the evidence so later page loads can
+ * still tell "we read the site and it is clean" apart from "we could not read
+ * the site". Inferring the former from the latter would be a lie the crawler
+ * deliberately refuses to tell.
  */
 export async function runAnalysis(
   t: TenantScope,
   env: Record<string, unknown>,
   clientId: string,
-): Promise<AnalyzeClientResult> {
+): Promise<RunAnalysisResult> {
   const client = await repo.getClient(t, clientId);
   if (!client) throw new Response("Client not found", { status: 404 });
 
+  const startedAt = new Date().toISOString();
   const parsed = parseEnv(env);
   const result = await analyzeClient({
     client,
@@ -47,7 +59,31 @@ export async function runAnalysis(
     maxAiCalls: parsed.MAX_AI_CALLS_PER_RUN,
   });
 
+  const verdict = classifyAnalysis({
+    evidence: result.evidence,
+    analyzable: result.coverage.analyzable,
+    coverageReason: result.coverage.reason,
+    surfaced: result.opportunities.length,
+    evaluatorErrors: result.stats.evaluatorErrors,
+  });
+
   await repo.saveEvidence(t, result.evidence);
   await repo.saveAnalysis(t, [...result.opportunities, ...result.suppressed]);
-  return result;
+  await repo.recordAnalysisRun(t, {
+    clientId,
+    startedAt,
+    finishedAt: new Date().toISOString(),
+    source: result.evidence.source,
+    outcome: verdict.outcome,
+    summary: verdict.summary,
+    limitation: verdict.limitation,
+    pagesRead: verdict.reach.readablePages,
+    pagesFetched: verdict.reach.fetchedPages,
+    blockedEvents: verdict.reach.blockedEvents,
+    inconclusiveEvents: verdict.reach.inconclusiveEvents,
+    surfaced: result.opportunities.length,
+    stats: { ...result.stats },
+  });
+
+  return { ...result, verdict };
 }

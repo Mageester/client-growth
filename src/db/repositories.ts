@@ -10,6 +10,7 @@ import {
   type Opportunity,
   type Service,
 } from "@/core/schema";
+import { ANALYSIS_OUTCOMES, type AnalysisOutcome } from "@/core/analysisOutcome";
 import { SCHEMA_SQL } from "@/db/schema";
 import type { SqlDb } from "@/db/sql";
 import { CrossWorkspaceError, existsInWorkspace, type TenantScope } from "@/db/tenant";
@@ -427,6 +428,15 @@ export async function setOpportunityStatus(
   return r.rowsAffected > 0;
 }
 
+/**
+ * Attach a freshly generated proposal and move the opportunity into
+ * `proposal_prepared`.
+ *
+ * Deliberately scoped to opportunities that are still open and billable. A
+ * dismissed, snoozed or already-covered finding must not be silently resurrected
+ * into the feed as a side effect of drafting — the agency's decision wins until
+ * they explicitly reopen it. The route guards this too; this is defence in depth.
+ */
 export async function setOpportunityProposal(
   t: TenantScope,
   id: string,
@@ -434,9 +444,184 @@ export async function setOpportunityProposal(
 ): Promise<boolean> {
   const r = await t.db
     .prepare(
-      "UPDATE opportunities SET proposal_md = ?, status = 'proposal_prepared', updated_at = ? WHERE id = ? AND workspace_id = ?",
+      `UPDATE opportunities SET proposal_md = ?, status = 'proposal_prepared', updated_at = ?
+       WHERE id = ? AND workspace_id = ?
+         AND billable_status = 'billable'
+         AND status IN ('new', 'proposal_prepared')`,
     )
     .bind(proposalMd, nowIso(), id, t.workspaceId)
     .run();
   return r.rowsAffected > 0;
+}
+
+/** Save an edited draft without touching the agency's decision on the finding. */
+export async function saveOpportunityProposalText(
+  t: TenantScope,
+  id: string,
+  proposalMd: string,
+): Promise<boolean> {
+  const r = await t.db
+    .prepare(
+      "UPDATE opportunities SET proposal_md = ?, updated_at = ? WHERE id = ? AND workspace_id = ?",
+    )
+    .bind(proposalMd, nowIso(), id, t.workspaceId)
+    .run();
+  return r.rowsAffected > 0;
+}
+
+// ---------------------------------------------------------------------------
+// analysis runs (truthful per-run outcome)
+// ---------------------------------------------------------------------------
+interface AnalysisRunRow {
+  id: number;
+  client_id: string;
+  started_at: string;
+  finished_at: string;
+  source: string;
+  outcome: string;
+  summary: string;
+  limitation: string | null;
+  pages_read: number;
+  pages_fetched: number;
+  blocked_events: number;
+  inconclusive_events: number;
+  surfaced: number;
+  stats: string;
+}
+
+export interface AnalysisRun {
+  id: number;
+  clientId: string;
+  startedAt: string;
+  finishedAt: string;
+  source: string;
+  outcome: AnalysisOutcome;
+  summary: string;
+  limitation: string | null;
+  pagesRead: number;
+  pagesFetched: number;
+  blockedEvents: number;
+  inconclusiveEvents: number;
+  surfaced: number;
+  stats: Record<string, number>;
+}
+
+export type NewAnalysisRun = Omit<AnalysisRun, "id">;
+
+function toAnalysisRun(row: AnalysisRunRow): AnalysisRun {
+  const outcome = (ANALYSIS_OUTCOMES as readonly string[]).includes(row.outcome)
+    ? (row.outcome as AnalysisOutcome)
+    : "inconclusive";
+  let stats: Record<string, number> = {};
+  try {
+    const parsed: unknown = JSON.parse(row.stats);
+    if (parsed && typeof parsed === "object") stats = parsed as Record<string, number>;
+  } catch {
+    // A malformed stats blob is diagnostic only — never fail a page render on it.
+  }
+  return {
+    id: row.id,
+    clientId: row.client_id,
+    startedAt: row.started_at,
+    finishedAt: row.finished_at,
+    source: row.source,
+    outcome,
+    summary: row.summary,
+    limitation: row.limitation,
+    pagesRead: row.pages_read,
+    pagesFetched: row.pages_fetched,
+    blockedEvents: row.blocked_events,
+    inconclusiveEvents: row.inconclusive_events,
+    surfaced: row.surfaced,
+    stats,
+  };
+}
+
+export async function recordAnalysisRun(t: TenantScope, run: NewAnalysisRun): Promise<void> {
+  if (!(await existsInWorkspace(t, "clients", run.clientId))) {
+    throw new CrossWorkspaceError(`analysis run for client ${run.clientId} not in this workspace`);
+  }
+  await t.db
+    .prepare(
+      `INSERT INTO analysis_runs (
+         workspace_id, client_id, started_at, finished_at, source, outcome, summary, limitation,
+         pages_read, pages_fetched, blocked_events, inconclusive_events, surfaced, stats
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .bind(
+      t.workspaceId,
+      run.clientId,
+      run.startedAt,
+      run.finishedAt,
+      run.source,
+      run.outcome,
+      run.summary,
+      run.limitation ?? null,
+      run.pagesRead,
+      run.pagesFetched,
+      run.blockedEvents,
+      run.inconclusiveEvents,
+      run.surfaced,
+      JSON.stringify(run.stats),
+    )
+    .run();
+}
+
+export async function getLatestAnalysisRun(
+  t: TenantScope,
+  clientId: string,
+): Promise<AnalysisRun | null> {
+  const row = await t.db
+    .prepare(
+      `SELECT * FROM analysis_runs
+       WHERE client_id = ? AND workspace_id = ?
+       ORDER BY finished_at DESC, id DESC
+       LIMIT 1`,
+    )
+    .bind(clientId, t.workspaceId)
+    .first<AnalysisRunRow>();
+  return row ? toAnalysisRun(row) : null;
+}
+
+/** Most recent runs first. Used for the client's analysis history. */
+export async function listAnalysisRuns(
+  t: TenantScope,
+  clientId: string,
+  limit = 8,
+): Promise<AnalysisRun[]> {
+  const rows = await t.db
+    .prepare(
+      `SELECT * FROM analysis_runs
+       WHERE client_id = ? AND workspace_id = ?
+       ORDER BY finished_at DESC, id DESC
+       LIMIT ?`,
+    )
+    .bind(clientId, t.workspaceId, Math.max(1, Math.min(50, Math.floor(limit))))
+    .all<AnalysisRunRow>();
+  return rows.map(toAnalysisRun);
+}
+
+/**
+ * Latest run per client in one query. The portfolio views need this for every
+ * client at once; issuing one query per client turned the feed into an N+1.
+ */
+export async function latestAnalysisRunByClient(
+  t: TenantScope,
+): Promise<Map<string, AnalysisRun>> {
+  const rows = await t.db
+    .prepare(
+      // Correlated on purpose: an uncorrelated MAX(finished_at) + MAX(id) pair
+      // can name a row that has neither, which silently surfaces a stale run.
+      `SELECT r.* FROM analysis_runs r
+       WHERE r.workspace_id = ?
+         AND r.id = (
+           SELECT i.id FROM analysis_runs i
+           WHERE i.workspace_id = r.workspace_id AND i.client_id = r.client_id
+           ORDER BY i.finished_at DESC, i.id DESC
+           LIMIT 1
+         )`,
+    )
+    .bind(t.workspaceId)
+    .all<AnalysisRunRow>();
+  return new Map(rows.map((row) => [row.client_id, toAnalysisRun(row)]));
 }

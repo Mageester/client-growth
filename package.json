@@ -20,7 +20,8 @@
     "db:migrations:production": "pnpm production:preflight && wrangler d1 migrations list client-growth-production --env production --remote",
     "db:migrate:production": "pnpm production:preflight && wrangler d1 migrations apply client-growth-production --env production --remote",
     "deploy:production": "pnpm production:preflight && pnpm typecheck && pnpm build && wrangler deploy --env production --experimental-provision=false --experimental-auto-create=false",
-    "preview": "wrangler dev"
+    "preview": "wrangler dev",
+    "dev:fixture": "tsx scripts/dev-fixture.ts"
   },
   "dependencies": {
     "better-auth": "1.7.2",

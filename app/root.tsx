@@ -17,16 +17,34 @@ import {
 import "./styles/app.css";
 import "./lib/context";
 import { getWorkspaceForUser } from "@/db/workspaces";
-import { EmptyState, getInitials, Icon, Menu } from "./components/ui";
+import { AxiomCredit, EmptyState, getInitials, Icon, Menu } from "./components/ui";
 import { d1Db } from "./lib/d1.server";
 import { getSession } from "./lib/session.server";
 import type { Route } from "./+types/root";
 
-const EMPTY = { signedIn: false, workspaceName: null as string | null, email: null as string | null };
+const EMPTY = {
+  signedIn: false,
+  workspaceName: null as string | null,
+  email: null as string | null,
+};
 
 /** The brand mark, inline so the tab icon costs no request and never 404s. */
 const FAVICON =
-  "data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2032%2032'%3E%3Crect%20width%3D'32'%20height%3D'32'%20rx%3D'8'%20fill%3D'%2317191f'%2F%3E%3Cg%20stroke%3D'%23fff'%20stroke-width%3D'2.8'%20stroke-linecap%3D'round'%20fill%3D'none'%3E%3Cpath%20d%3D'M10%2022.5v-6'%2F%3E%3Cpath%20d%3D'M16%2022.5v-11'%2F%3E%3Cpath%20d%3D'M22%2022.5v-14'%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E";
+  "data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2032%2032'%3E%3Crect%20width%3D'32'%20height%3D'32'%20rx%3D'8'%20fill%3D'%2314140f'%2F%3E%3Cg%20stroke%3D'%23f2f0ea'%20stroke-width%3D'2.8'%20stroke-linecap%3D'round'%20fill%3D'none'%3E%3Cpath%20d%3D'M10%2022.5v-6'%2F%3E%3Cpath%20d%3D'M16%2022.5v-11'%2F%3E%3Cpath%20d%3D'M22%2022.5v-14'%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E";
+
+export function links() {
+  return [
+    { rel: "icon", href: FAVICON },
+    { rel: "preconnect", href: "https://fonts.googleapis.com" },
+    { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+    {
+      // Fraunces is Axiom's display face; `display=swap` keeps the fallback serif
+      // painting immediately so a slow font never blocks first render.
+      rel: "stylesheet",
+      href: "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=JetBrains+Mono:wght@400;500;600&display=swap",
+    },
+  ];
+}
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   try {
@@ -70,7 +88,7 @@ export function Layout({ children }: { children: ReactNode }) {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href={FAVICON} />
+        <meta name="color-scheme" content="light dark" />
         <Meta />
         <Links />
       </head>
@@ -138,6 +156,10 @@ export function Layout({ children }: { children: ReactNode }) {
                       Log out
                     </button>
                   </Form>
+                  <div className="menu-sep" />
+                  <div className="menu-foot">
+                    <AxiomCredit />
+                  </div>
                 </Menu>
               )}
             </div>
@@ -160,21 +182,22 @@ export default function App() {
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
-  const title = isRouteErrorResponse(error)
-    ? `${error.status} ${error.statusText}`
-    : "Something went wrong";
-  const detail = isRouteErrorResponse(error)
-    ? error.data
+  const routeError = isRouteErrorResponse(error);
+  const title = routeError ? `${error.status} ${error.statusText}` : "Something went wrong";
+  const detail = routeError
+    ? typeof error.data === "string" && error.data
+      ? error.data
+      : "That page could not be found."
     : error instanceof Error
       ? error.message
-      : "Unknown error";
+      : "An unexpected error occurred.";
   return (
     <div className="error-page">
       <EmptyState
         icon="alert"
         title={title}
         actions={
-          <Link className="btn" to="/">
+          <Link className="btn btn-primary" to="/opportunities">
             Back to Opportunities
           </Link>
         }

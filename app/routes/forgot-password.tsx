@@ -1,7 +1,7 @@
 import { Form, Link } from "react-router";
 
 import { getAuth, getTrustedAuthBaseURL } from "../lib/auth.server";
-import { Icon } from "../components/ui";
+import { AxiomCredit, Icon } from "../components/ui";
 import type { Route } from "./+types/forgot-password";
 
 const GENERIC_ERROR = "We couldn’t start the password reset. Please try again later.";
@@ -43,6 +43,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 export default function ForgotPassword({ actionData }: Route.ComponentProps) {
   return (
     <main className="auth">
+      <span className="auth-eyebrow">Account recovery</span>
       <h1>Reset your password</h1>
       <p className="auth-sub">
         Enter your account email and we will send a reset link if it matches.
@@ -89,6 +90,9 @@ export default function ForgotPassword({ actionData }: Route.ComponentProps) {
           </p>
         </>
       )}
+      <div className="auth-credit">
+        <AxiomCredit />
+      </div>
     </main>
   );
 }

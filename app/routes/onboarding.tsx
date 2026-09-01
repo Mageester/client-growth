@@ -1,4 +1,4 @@
-import { Form, redirect } from "react-router";
+import { Form, redirect, useNavigation } from "react-router";
 
 import * as repo from "@/db/repositories";
 import { ClientSchema, ServiceSchema } from "@/core/schema";
@@ -12,20 +12,43 @@ import { Icon } from "../components/ui";
 import { d1Db } from "../lib/d1.server";
 import { requireSession } from "../lib/session.server";
 import { runAnalysis } from "../lib/analysis.server";
+import { normalizeDomain, validateClientInput, validateServiceInput } from "../lib/validation";
 import type { Route } from "./+types/onboarding";
 
 export function meta() {
   return [{ title: "Get started · Client Growth" }];
 }
 
-const DEFAULT_SERVICES = [
-  { name: "Service Landing Page", min: 900, max: 1800, tags: "landing-page" },
-  { name: "Conversion Path Fix", min: 300, max: 900, tags: "conversion-fix" },
-  { name: "", min: 0, max: 0, tags: "" },
-];
+/**
+ * The two services the engine can actually match today, pre-filled with
+ * defensible mid-market prices. Onboarding teaches the product by showing the
+ * two shapes of finding it can produce, rather than asking for abstract config.
+ */
+const STARTER_SERVICES = [
+  {
+    field: "landing",
+    tag: "landing-page",
+    name: "Service Landing Page",
+    min: 900,
+    max: 1800,
+    when: "a client sells something their website never gives its own page",
+  },
+  {
+    field: "conversion",
+    tag: "conversion-fix",
+    name: "Conversion Path Fix",
+    min: 300,
+    max: 900,
+    when: "a call-to-action, form or phone link on the site is broken",
+  },
+] as const;
 
 function slug(prefix: string, name: string): string {
-  const base = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
+  const base = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
   return prefix + "-" + (base || "x") + "-" + Math.random().toString(36).slice(2, 6);
 }
 
@@ -46,6 +69,35 @@ export async function action({ request, context }: Route.ActionArgs) {
   const db = d1Db(env.DB as never);
   const form = await request.formData();
 
+  const clientInput = {
+    name: String(form.get("clientName") ?? ""),
+    domain: String(form.get("clientDomain") ?? ""),
+    offerings: String(form.get("clientOfferings") ?? ""),
+  };
+  const clientProblem = validateClientInput(clientInput);
+  if (clientProblem) return { error: clientProblem };
+
+  const chosen = STARTER_SERVICES.map((starter) => ({
+    starter,
+    name: String(form.get(starter.field + "Name") ?? starter.name),
+    min: Number(form.get(starter.field + "Min")),
+    max: Number(form.get(starter.field + "Max")),
+    enabled: form.get(starter.field + "On") === "on",
+  })).filter((entry) => entry.enabled);
+
+  if (chosen.length === 0) {
+    return { error: "Keep at least one service — findings are priced from what you sell." };
+  }
+  for (const entry of chosen) {
+    const problem = validateServiceInput({
+      name: entry.name,
+      priceMin: entry.min,
+      priceMax: entry.max,
+      description: "",
+    });
+    if (problem) return { error: problem };
+  }
+
   let ws = await getWorkspaceForUser(db, authed.userId);
   if (!ws) {
     ws = await createWorkspaceForOwner(db, {
@@ -56,42 +108,26 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
   const scope: TenantScope = { db, workspaceId: ws.id };
 
-  const serviceIds: string[] = [];
-  for (let i = 0; i < 3; i++) {
-    const field = "svc" + i;
-    const name = String(form.get(field + "Name") ?? "").trim();
-    if (!name) continue;
-    const min = Number(form.get(field + "Min")) || 0;
-    const max = Number(form.get(field + "Max")) || min;
-    const service = ServiceSchema.parse({
-      id: slug("svc", name),
-      name,
-      description: "",
-      priceMin: Math.max(0, Math.min(min, max)),
-      priceMax: Math.max(min, max),
-      tags: String(form.get(field + "Tags") ?? "")
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean),
-      active: true,
-    });
-    await repo.upsertService(scope, service);
-    serviceIds.push(service.id);
+  for (const entry of chosen) {
+    await repo.upsertService(
+      scope,
+      ServiceSchema.parse({
+        id: slug("svc", entry.name),
+        name: entry.name.trim(),
+        description: "",
+        priceMin: entry.min,
+        priceMax: entry.max,
+        tags: [entry.starter.tag],
+        active: true,
+      }),
+    );
   }
-  if (serviceIds.length === 0) return { error: "Add at least one agency service." };
-
-  const name = String(form.get("clientName") ?? "").trim();
-  const domain = String(form.get("clientDomain") ?? "")
-    .trim()
-    .replace(/^https?:\/\//, "")
-    .replace(/\/+$/, "");
-  if (!name || !domain) return { error: "Enter the client's name and website domain." };
 
   const client = ClientSchema.parse({
-    id: slug("client", name),
-    name,
-    domain,
-    offerings: String(form.get("clientOfferings") ?? "")
+    id: slug("client", clientInput.name),
+    name: clientInput.name.trim(),
+    domain: normalizeDomain(clientInput.domain),
+    offerings: clientInput.offerings
       .split("\n")
       .map((s) => s.trim())
       .filter(Boolean),
@@ -99,44 +135,34 @@ export async function action({ request, context }: Route.ActionArgs) {
   });
   await repo.upsertClient(scope, client);
 
+  // The first analysis is the point of onboarding, so its result must not be
+  // swallowed. A failed crawl still leaves a usable workspace — the client page
+  // says what happened and offers a retry, instead of dropping the user on an
+  // empty feed with no explanation.
   try {
     await runAnalysis(scope, env as never, client.id);
+    return redirect("/opportunities?client=" + client.id);
   } catch {
-    /* The client is saved either way; they can re-analyze from the client page. */
+    return redirect("/clients/" + client.id + "?firstRun=failed");
   }
-  return redirect("/opportunities");
 }
 
 export default function Onboarding({ loaderData, actionData }: Route.ComponentProps) {
+  const navigation = useNavigation();
+  const submitting = navigation.state === "submitting";
+
   return (
-    <main className="detail">
+    <main className="detail onboarding">
       <span className="eyebrow">Setup</span>
-      <h1 className="title-lg" style={{ marginTop: "0.3rem" }}>
-        Get your workspace ready
-      </h1>
-      <p className="prose" style={{ marginTop: "0.55rem" }}>
-        Two things: what your agency sells, and the first client site to look at. We analyze it
-        straight after and take you to your opportunities.
+      <h1 className="title-lg onboarding-title">Watch your first client site</h1>
+      <p className="prose onboarding-lede">
+        Client Growth reads a client&rsquo;s website, compares it against what that business
+        actually sells, and surfaces the work you could legitimately bill for. Two things to set up,
+        then it runs.
       </p>
-      <div className="steps" aria-label="Setup steps">
-        <span className="step is-current">
-          <span className="step-num">1</span>
-          Services
-        </span>
-        <span className="step-rule" />
-        <span className="step">
-          <span className="step-num">2</span>
-          First client
-        </span>
-        <span className="step-rule" />
-        <span className="step">
-          <span className="step-num">3</span>
-          Analyze
-        </span>
-      </div>
 
       {actionData?.error && (
-        <div className="notice err" role="alert" style={{ marginTop: "1.5rem" }}>
+        <div className="notice err" role="alert">
           <Icon name="alert" size={15} />
           <span>{actionData.error}</span>
         </div>
@@ -147,13 +173,16 @@ export default function Onboarding({ loaderData, actionData }: Route.ComponentPr
           <section className="section">
             <div className="section-head">
               <div>
-                <h2 className="title-section">Your agency</h2>
-                <p>The workspace name you will see across the app.</p>
+                <h2 className="title-section">
+                  <span className="step-num">1</span>
+                  Your agency
+                </h2>
+                <p>The workspace name shown across the app.</p>
               </div>
             </div>
-            <div className="field" style={{ maxWidth: "24rem" }}>
+            <div className="field onboarding-field">
               <label htmlFor="workspaceName">Agency name</label>
-              <input id="workspaceName" name="workspaceName" type="text" required />
+              <input id="workspaceName" name="workspaceName" type="text" required autoComplete="organization" />
             </div>
           </section>
         )}
@@ -161,70 +190,85 @@ export default function Onboarding({ loaderData, actionData }: Route.ComponentPr
         <section className="section">
           <div className="section-head">
             <div>
-              <h2 className="title-section">What you sell</h2>
+              <h2 className="title-section">
+                <span className="step-num">{loaderData.hasWorkspace ? 1 : 2}</span>
+                What you sell
+              </h2>
               <p>
-                The work you can offer when a client site shows a clear gap. Price ranges keep every
-                finding grounded in real money.
+                Client Growth finds two kinds of gap today. Set what you would charge to fix each
+                one — every finding is priced from these, so nothing is surfaced that you could not
+                deliver.
               </p>
             </div>
           </div>
-          {DEFAULT_SERVICES.map((service, i) => {
-            const field = "svc" + i;
-            return (
-              <div className="field-row split-3" key={i} style={{ marginTop: i ? "0.9rem" : 0 }}>
-                <div className="field">
-                  <label htmlFor={field + "Name"}>Service {i + 1}</label>
+          <ul className="starter-list">
+            {STARTER_SERVICES.map((service) => (
+              <li className="starter" key={service.field}>
+                <label className="starter-toggle">
                   <input
-                    id={field + "Name"}
-                    name={field + "Name"}
-                    type="text"
-                    defaultValue={service.name}
-                    placeholder={i === 2 ? "Optional" : undefined}
+                    type="checkbox"
+                    name={service.field + "On"}
+                    defaultChecked
+                    aria-label={"Offer " + service.name}
                   />
+                  <span className="starter-copy">
+                    <input
+                      className="starter-name"
+                      name={service.field + "Name"}
+                      type="text"
+                      defaultValue={service.name}
+                      aria-label={service.name + " service name"}
+                    />
+                    <span className="starter-when">When {service.when}.</span>
+                  </span>
+                </label>
+                <div className="starter-price">
+                  <div className="field">
+                    <label htmlFor={service.field + "Min"}>From</label>
+                    <input
+                      id={service.field + "Min"}
+                      name={service.field + "Min"}
+                      type="number"
+                      min={0}
+                      step={50}
+                      inputMode="numeric"
+                      defaultValue={service.min}
+                    />
+                  </div>
+                  <div className="field">
+                    <label htmlFor={service.field + "Max"}>Up to</label>
+                    <input
+                      id={service.field + "Max"}
+                      name={service.field + "Max"}
+                      type="number"
+                      min={0}
+                      step={50}
+                      inputMode="numeric"
+                      defaultValue={service.max}
+                    />
+                  </div>
                 </div>
-                <div className="field">
-                  <label htmlFor={field + "Min"}>From</label>
-                  <input
-                    id={field + "Min"}
-                    name={field + "Min"}
-                    type="number"
-                    min={0}
-                    defaultValue={service.min}
-                  />
-                </div>
-                <div className="field">
-                  <label htmlFor={field + "Max"}>Up to</label>
-                  <input
-                    id={field + "Max"}
-                    name={field + "Max"}
-                    type="number"
-                    min={0}
-                    defaultValue={service.max}
-                  />
-                </div>
-                <input
-                  id={field + "Tags"}
-                  name={field + "Tags"}
-                  type="hidden"
-                  defaultValue={service.tags}
-                />
-              </div>
-            );
-          })}
+              </li>
+            ))}
+          </ul>
+          <p className="field-hint">You can rename these and add more services later.</p>
         </section>
 
         <section className="section">
           <div className="section-head">
             <div>
-              <h2 className="title-section">Your first client</h2>
-              <p>We analyze this site as soon as setup is saved.</p>
+              <h2 className="title-section">
+                <span className="step-num">{loaderData.hasWorkspace ? 2 : 3}</span>
+                Your first client
+              </h2>
+              <p>We read this site as soon as you save, and take you straight to the result.</p>
             </div>
           </div>
-          <div style={{ maxWidth: "34rem" }}>
+          <div className="onboarding-field">
             <div className="field-row">
               <div className="field">
                 <label htmlFor="clientName">Client name</label>
-                <input id="clientName" name="clientName" type="text" required />
+                <input id="clientName" name="clientName" type="text" required autoComplete="off" />
               </div>
               <div className="field">
                 <label htmlFor="clientDomain">Website</label>
@@ -234,6 +278,8 @@ export default function Onboarding({ loaderData, actionData }: Route.ComponentPr
                   type="text"
                   placeholder="example.com"
                   required
+                  autoComplete="off"
+                  inputMode="url"
                 />
               </div>
             </div>
@@ -242,19 +288,26 @@ export default function Onboarding({ loaderData, actionData }: Route.ComponentPr
               <textarea
                 id="clientOfferings"
                 name="clientOfferings"
-                placeholder={"One per line\nheat pump installation\nair conditioning repair"}
+                rows={5}
+                placeholder={"heat pump installation\nair conditioning repair\nduct cleaning"}
               />
               <div className="field-hint">
-                Used to check whether their site actually covers what they sell. Contract coverage
-                can be set later.
+                One per line, in the words their customers would use. This is what the website gets
+                checked against — with fewer than two, Client Growth will not claim anything is
+                missing.
               </div>
             </div>
           </div>
           <div className="form-actions">
-            <button type="submit" className="btn btn-primary btn-lg">
-              Save and analyze
-              <Icon name="arrow-right" size={15} />
+            <button type="submit" className="btn btn-primary btn-lg" disabled={submitting}>
+              <Icon name="refresh" size={15} className={submitting ? "spin" : undefined} />
+              {submitting ? "Reading the site…" : "Save and analyze"}
             </button>
+            {submitting && (
+              <span className="faint form-actions-note">
+                Fetching pages and checking each offering. This usually takes a few seconds.
+              </span>
+            )}
           </div>
         </section>
       </Form>

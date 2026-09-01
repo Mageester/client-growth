@@ -41,7 +41,7 @@ function containsPlaceholder(value: string): boolean {
 }
 
 /** Remove JSONC comments while preserving strings and line breaks. */
-function stripJsonComments(input: string): string {
+export function stripJsonComments(input: string): string {
   let output = "";
   let inString = false;
   let escaped = false;

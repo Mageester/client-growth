@@ -1,14 +1,18 @@
+import { useState } from "react";
 import { Form, Link, redirect, useNavigation } from "react-router";
 
 import * as repo from "@/db/repositories";
 import { generateProposalDraft } from "@/core/proposal";
+import { buildEvidenceCase } from "../lib/evidence";
+import { isOpen, nextAction, statusBadge } from "../lib/portfolio";
 import {
+  Fact,
   Icon,
   Meter,
   formatCurrencyRange,
   formatDate,
+  formatRelative,
   pluralize,
-  shortUrl,
 } from "../components/ui";
 import { requireTenant } from "../lib/session.server";
 import type { Route } from "./+types/opportunities.$id";
@@ -21,12 +25,18 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
   const t = await requireTenant(request, context);
   const opportunity = await repo.getOpportunity(t.scope, params.id);
   if (!opportunity) throw new Response("Opportunity not found", { status: 404 });
-  const [client, service, evidence] = await Promise.all([
+  const [client, service, run] = await Promise.all([
     repo.getClient(t.scope, opportunity.clientId),
     repo.getService(t.scope, opportunity.suggestedServiceId),
-    repo.getLatestEvidence(t.scope, opportunity.clientId),
+    repo.getLatestAnalysisRun(t.scope, opportunity.clientId),
   ]);
-  return { opportunity, client, service, capturedAt: evidence?.capturedAt ?? null };
+  return {
+    opportunity,
+    client,
+    service,
+    lastRunAt: run?.finishedAt ?? null,
+    evidence: buildEvidenceCase(opportunity),
+  };
 }
 
 export async function action({ params, request, context }: Route.ActionArgs) {
@@ -41,6 +51,12 @@ export async function action({ params, request, context }: Route.ActionArgs) {
       await repo.setOpportunityStatus(t.scope, opp.id, "dismissed");
       break;
     case "reopen":
+      if (opp.billableStatus === "already_covered") {
+        return {
+          error:
+            "This work is covered by the client's contract, so it cannot be reopened as billable. Remove the coverage on the client page first.",
+        };
+      }
       await repo.setOpportunityStatus(t.scope, opp.id, "new");
       break;
     case "cover":
@@ -53,12 +69,25 @@ export async function action({ params, request, context }: Route.ActionArgs) {
       );
       break;
     case "snooze": {
-      const days = Math.max(1, Number(form.get("days") ?? 30));
+      const raw = Number(form.get("days"));
+      if (!Number.isFinite(raw) || raw < 1 || raw > 365) {
+        return { error: "Snooze for between 1 and 365 days." };
+      }
+      const days = Math.floor(raw);
       const until = new Date(Date.now() + days * 86_400_000).toISOString();
       await repo.setOpportunityStatus(t.scope, opp.id, "snoozed", until);
       break;
     }
     case "prepare-proposal": {
+      // A proposal is a commitment to sell this work. Drafting one for a finding
+      // the agency already dismissed, snoozed or marked covered would both
+      // resurrect it into the feed and put a price on work nobody intends to do.
+      if (!isOpen(opp)) {
+        return {
+          error:
+            "This finding is closed. Reopen it before preparing a proposal so the client's status stays truthful.",
+        };
+      }
       const [client, service] = await Promise.all([
         repo.getClient(t.scope, opp.clientId),
         repo.getService(t.scope, opp.suggestedServiceId),
@@ -70,7 +99,8 @@ export async function action({ params, request, context }: Route.ActionArgs) {
     }
     case "save-proposal": {
       const body = String(form.get("proposalMd") ?? "").trim();
-      if (body) await repo.setOpportunityProposal(t.scope, opp.id, body);
+      if (!body) return { error: "The draft cannot be empty." };
+      await repo.saveOpportunityProposalText(t.scope, opp.id, body);
       break;
     }
     default:
@@ -79,24 +109,31 @@ export async function action({ params, request, context }: Route.ActionArgs) {
   return redirect("/opportunities/" + opp.id);
 }
 
-function statusLabel(opp: Awaited<ReturnType<typeof loader>>["opportunity"]) {
-  if (opp.status === "proposal_prepared") return { label: "Proposal ready", tone: "pos" };
-  if (opp.status === "dismissed") return { label: "Dismissed", tone: "quiet" };
-  if (opp.status === "snoozed") return { label: "Snoozed", tone: "quiet" };
-  if (opp.billableStatus === "already_covered" || opp.status === "already_covered") {
-    return { label: "Already covered", tone: "warn" };
-  }
-  return { label: "Open", tone: "accent" };
-}
-
-export default function OpportunityDetail({ loaderData }: Route.ComponentProps) {
-  const { opportunity: opp, client, service, capturedAt } = loaderData;
-  const pageRefs = opp.evidenceRefs.filter((ref) => !ref.startsWith("nav:"));
-  const navRefs = opp.evidenceRefs.filter((ref) => ref.startsWith("nav:")).map((ref) => ref.slice(4));
+export default function OpportunityDetail({ loaderData, actionData }: Route.ComponentProps) {
+  const { opportunity: opp, client, service, lastRunAt, evidence } = loaderData;
   const navigation = useNavigation();
   const busy = navigation.state !== "idle";
   const pending = navigation.formData?.get("intent");
-  const status = statusLabel(opp);
+  const badge = statusBadge(opp);
+  const live = isOpen(opp);
+  const [showAllEvidence, setShowAllEvidence] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const evidenceShown = showAllEvidence
+    ? [...evidence.primary, ...evidence.secondary]
+    : evidence.primary;
+  const hiddenEvidence = evidence.secondary.length;
+
+  async function copyDraft() {
+    if (!opp.proposalMd) return;
+    try {
+      await navigator.clipboard.writeText(opp.proposalMd);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2200);
+    } catch {
+      // Clipboard access can be denied; the textarea below is still selectable.
+    }
+  }
 
   return (
     <div className="detail">
@@ -110,8 +147,8 @@ export default function OpportunityDetail({ loaderData }: Route.ComponentProps) 
 
       <header className="detail-head">
         <div className="detail-head-row">
-          <div>
-            <div className="detail-meta" style={{ marginTop: 0 }}>
+          <div className="detail-head-copy">
+            <div className="detail-meta detail-meta-top">
               {client ? (
                 <Link className="finding-client" to={"/clients/" + client.id}>
                   {client.name}
@@ -119,88 +156,137 @@ export default function OpportunityDetail({ loaderData }: Route.ComponentProps) 
               ) : (
                 <span>Unknown client</span>
               )}
-              <span className={"pill " + status.tone}>{status.label}</span>
+              <span className={"pill " + badge.tone}>{badge.label}</span>
+              {lastRunAt && (
+                <>
+                  <span className="dot-sep">·</span>
+                  <span className="faint">analyzed {formatRelative(lastRunAt)}</span>
+                </>
+              )}
             </div>
             <h1 className="title-lg">{opp.title}</h1>
+            <p className="detail-next">
+              <Icon name="arrow-right" size={13} />
+              {nextAction(opp)}
+            </p>
           </div>
         </div>
 
         <dl className="factbar">
-          <div className="fact">
-            <dt>Potential value</dt>
-            <dd>{formatCurrencyRange(opp.priceMin, opp.priceMax)}</dd>
-          </div>
-          <div className="fact">
-            <dt>Confidence</dt>
-            <dd>
-              <span className="row-tight">
-                <Meter value={opp.confidence} />
-                {Math.round(opp.confidence * 100)}%
-              </span>
-            </dd>
-          </div>
-          <div className="fact">
-            <dt>Suggested service</dt>
-            <dd style={{ fontWeight: 550 }}>{service ? service.name : opp.suggestedServiceId}</dd>
-          </div>
-          {opp.snoozeUntil && (
-            <div className="fact">
-              <dt>Snoozed until</dt>
-              <dd style={{ fontWeight: 550 }}>{formatDate(opp.snoozeUntil)}</dd>
-            </div>
+          <Fact label="Potential value">
+            <span className="num">{formatCurrencyRange(opp.priceMin, opp.priceMax)}</span>
+          </Fact>
+          <Fact label="Confidence">
+            <span className="row-tight">
+              <Meter value={opp.confidence} />
+              <span className="num">{Math.round(opp.confidence * 100)}%</span>
+            </span>
+          </Fact>
+          <Fact label="Service to sell">
+            {service ? (
+              <Link className="link" to="/services">
+                {service.name}
+              </Link>
+            ) : (
+              <span className="faint">Removed from catalog</span>
+            )}
+          </Fact>
+          <Fact label="Evidence">
+            {evidence.inspectedCount}{" "}
+            {pluralize(evidence.inspectedCount, "page checked", "pages checked")}
+          </Fact>
+          {opp.snoozeUntil && opp.status === "snoozed" && (
+            <Fact label="Returns">{formatDate(opp.snoozeUntil)}</Fact>
           )}
         </dl>
       </header>
 
+      {actionData?.error && (
+        <div className="notice err" role="alert">
+          <Icon name="alert" size={15} />
+          <span>{actionData.error}</span>
+        </div>
+      )}
+
       <section className="section">
-        <h2 className="title-section">What we found</h2>
-        <p className="prose" style={{ marginTop: "0.5rem" }}>
-          {opp.detected}
-        </p>
-
-        <h3 className="subhead">Why it matters</h3>
-        <p className="prose" style={{ marginTop: "0.4rem" }}>
-          {opp.rationale}
-        </p>
-
-        {opp.suggestedScope.length > 0 && (
-          <>
-            <h3 className="subhead">Proposed scope</h3>
-            <ul className="scope-list">
-              {opp.suggestedScope.map((line, index) => (
-                <li key={index}>{line}</li>
-              ))}
-            </ul>
-          </>
-        )}
+        <h2 className="title-section">The case</h2>
+        <div className="case">
+          <div className="case-block">
+            <h3 className="subhead">What was found</h3>
+            <p className="prose">{opp.detected}</p>
+          </div>
+          <div className="case-block">
+            <h3 className="subhead">Why it matters to the client</h3>
+            <p className="prose">{opp.rationale}</p>
+          </div>
+          {opp.suggestedScope.length > 0 && (
+            <div className="case-block">
+              <h3 className="subhead">What the work would be</h3>
+              <ul className="scope-list">
+                {opp.suggestedScope.map((line, index) => (
+                  <li key={index}>{line}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
       </section>
 
       <section className="section">
         <div className="section-head">
           <div>
             <h2 className="title-section">Evidence</h2>
-            <p>Pages read during the latest analysis. Every claim above traces back to these.</p>
+            <p>{evidence.headline}</p>
           </div>
-          {capturedAt && <span className="faint" style={{ fontSize: "0.78rem" }}>{formatDate(capturedAt, true)}</span>}
         </div>
-        {pageRefs.length > 0 ? (
-          <ul className="source-list">
-            {pageRefs.map((ref) => (
-              <li key={ref}>
-                <a href={ref} target="_blank" rel="noreferrer">
-                  <Icon name="link" size={13} />
-                  <span>{shortUrl(ref)}</span>
-                </a>
+        {evidenceShown.length > 0 ? (
+          <ul className="evidence-list">
+            {evidenceShown.map((item) => (
+              <li key={item.kind + (item.url ?? item.title)} className={"ev ev-" + item.kind}>
+                <span className="ev-mark" aria-hidden="true">
+                  <Icon
+                    name={
+                      item.kind === "defect"
+                        ? "alert"
+                        : item.kind === "nav"
+                          ? "sliders"
+                          : item.kind === "near-miss"
+                            ? "search"
+                            : "document"
+                    }
+                    size={13}
+                  />
+                </span>
+                <div className="ev-body">
+                  {item.url ? (
+                    <a className="ev-title" href={item.url} target="_blank" rel="noreferrer">
+                      {item.title}
+                      <Icon name="external" size={11} />
+                    </a>
+                  ) : (
+                    <span className="ev-title is-static">{item.title}</span>
+                  )}
+                  <p className="ev-note">{item.note}</p>
+                  {item.url && <p className="ev-url">{item.url}</p>}
+                </div>
               </li>
             ))}
           </ul>
         ) : (
-          <p className="prose">No page references were stored for this opportunity.</p>
+          <p className="prose faint">No provenance was stored with this finding.</p>
         )}
-        {navRefs.length > 0 && (
-          <p className="faint" style={{ marginTop: "0.85rem", fontSize: "0.8rem" }}>
-            Navigation checked: {navRefs.join(", ")}
-          </p>
+        {hiddenEvidence > 0 && (
+          <button
+            type="button"
+            className="disclose"
+            onClick={() => setShowAllEvidence((value) => !value)}
+            aria-expanded={showAllEvidence}
+          >
+            {showAllEvidence
+              ? "Show less"
+              : `Show all ${hiddenEvidence} supporting ${pluralize(hiddenEvidence, "check", "checks")}`}
+            <Icon name={showAllEvidence ? "chevron-down" : "chevron-right"} size={13} />
+          </button>
         )}
       </section>
 
@@ -208,60 +294,84 @@ export default function OpportunityDetail({ loaderData }: Route.ComponentProps) 
         <div className="section-head">
           <div>
             <h2 className="title-section">Decide</h2>
-            <p>Proposal drafts stay inside Client Growth until you copy them out. Nothing is sent.</p>
+            <p>Nothing here is sent. Drafts stay inside Client Growth until you copy them out.</p>
           </div>
         </div>
         <div className="actionbar">
-          <Form method="post" className="inline">
-            <input type="hidden" name="intent" value="prepare-proposal" />
-            <button type="submit" className="btn btn-primary" disabled={busy}>
-              <Icon name="document" size={14} />
-              {pending === "prepare-proposal"
-                ? "Preparing…"
-                : opp.proposalMd
-                  ? "Regenerate draft"
-                  : "Prepare proposal"}
-            </button>
-          </Form>
-          {opp.status !== "new" && (
+          {live ? (
             <Form method="post" className="inline">
-              <input type="hidden" name="intent" value="reopen" />
-              <button type="submit" className="btn" disabled={busy}>
-                Reopen
+              <input type="hidden" name="intent" value="prepare-proposal" />
+              <button type="submit" className="btn btn-primary" disabled={busy}>
+                <Icon
+                  name="document"
+                  size={14}
+                  className={pending === "prepare-proposal" ? "spin" : undefined}
+                />
+                {pending === "prepare-proposal"
+                  ? "Preparing…"
+                  : opp.proposalMd
+                    ? "Regenerate draft"
+                    : "Prepare proposal"}
               </button>
             </Form>
+          ) : (
+            opp.billableStatus === "billable" && (
+              <Form method="post" className="inline">
+                <input type="hidden" name="intent" value="reopen" />
+                <button type="submit" className="btn btn-primary" disabled={busy}>
+                  {pending === "reopen" ? "Reopening…" : "Reopen"}
+                </button>
+              </Form>
+            )
           )}
-          <Form method="post" className="inline">
-            <input type="hidden" name="intent" value="cover" />
-            <button type="submit" className="btn" disabled={busy}>
-              Already covered
-            </button>
-          </Form>
-          <Form method="post" className="row-tight">
-            <input type="hidden" name="intent" value="snooze" />
-            <span className="snooze-field">
-              <input
-                type="number"
-                name="days"
-                defaultValue={30}
-                min={1}
-                aria-label="Number of days to snooze"
-              />
-            </span>
-            <span className="faint" style={{ fontSize: "0.78rem" }}>
-              days
-            </span>
-            <button type="submit" className="btn" disabled={busy}>
-              Snooze
-            </button>
-          </Form>
-          <span className="spacer" />
-          <Form method="post" className="inline">
-            <input type="hidden" name="intent" value="dismiss" />
-            <button type="submit" className="btn btn-danger" disabled={busy}>
-              Dismiss
-            </button>
-          </Form>
+
+          {live && (
+            <>
+              <Form method="post" className="inline">
+                <input type="hidden" name="intent" value="cover" />
+                <button type="submit" className="btn" disabled={busy}>
+                  Already covered
+                </button>
+              </Form>
+              <Form method="post" className="row-tight snooze-form">
+                <input type="hidden" name="intent" value="snooze" />
+                <label className="sr-only" htmlFor="snooze-days">
+                  Snooze for how many days
+                </label>
+                <span className="snooze-field">
+                  <input id="snooze-days" type="number" name="days" defaultValue={30} min={1} max={365} />
+                </span>
+                <span className="faint snooze-unit">days</span>
+                <button type="submit" className="btn" disabled={busy}>
+                  Snooze
+                </button>
+              </Form>
+              <span className="spacer" />
+              <Form method="post" className="inline">
+                <input type="hidden" name="intent" value="dismiss" />
+                <button type="submit" className="btn btn-danger" disabled={busy}>
+                  Dismiss
+                </button>
+              </Form>
+            </>
+          )}
+
+          {opp.status === "already_covered" && (
+            <p className="action-note">
+              This work is marked as covered by {client ? client.name + "'s" : "the client's"}{" "}
+              contract, so it is not offered as billable.{" "}
+              {client && (
+                <Link className="link" to={"/clients/" + client.id}>
+                  Change contract coverage
+                </Link>
+              )}
+            </p>
+          )}
+          {opp.status === "snoozed" && opp.snoozeUntil && (
+            <p className="action-note">
+              Hidden from the feed until {formatDate(opp.snoozeUntil)}.
+            </p>
+          )}
         </div>
       </section>
 
@@ -270,20 +380,28 @@ export default function OpportunityDetail({ loaderData }: Route.ComponentProps) 
           <div className="section-head">
             <div>
               <h2 className="title-section">Proposal draft</h2>
-              <p>Edit before you take it into your proposal tool.</p>
+              <p>Built from the evidence above. Edit it here, then take it to the client.</p>
             </div>
-            <span className="pill">Editable</span>
+            <button type="button" className="btn btn-sm" onClick={copyDraft}>
+              <Icon name={copied ? "check" : "copy"} size={13} />
+              {copied ? "Copied" : "Copy draft"}
+            </button>
           </div>
           <Form method="post">
             <input type="hidden" name="intent" value="save-proposal" />
-            <textarea name="proposalMd" defaultValue={opp.proposalMd} aria-label="Proposal draft" />
+            <label className="sr-only" htmlFor="proposal-draft">
+              Proposal draft
+            </label>
+            <textarea id="proposal-draft" name="proposalMd" defaultValue={opp.proposalMd} rows={18} />
             <div className="form-actions">
               <button type="submit" className="btn btn-primary" disabled={busy}>
                 {pending === "save-proposal" ? "Saving…" : "Save draft"}
               </button>
-              <span className="faint" style={{ fontSize: "0.78rem" }}>
+              <span className="faint form-actions-note">
                 {opp.suggestedScope.length}{" "}
-                {pluralize(opp.suggestedScope.length, "scope line", "scope lines")} included
+                {pluralize(opp.suggestedScope.length, "scope line", "scope lines")} ·{" "}
+                {evidence.inspectedCount}{" "}
+                {pluralize(evidence.inspectedCount, "source", "sources")} cited
               </span>
             </div>
           </Form>

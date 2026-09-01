@@ -1,7 +1,7 @@
 import { Form, Link, redirect } from "react-router";
 
 import { getAuth } from "../lib/auth.server";
-import { Icon } from "../components/ui";
+import { AxiomCredit, Icon } from "../components/ui";
 import type { Route } from "./+types/reset-password";
 
 const INVALID_RESET = "That reset link is invalid or expired. Request a new one.";
@@ -57,6 +57,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 export default function ResetPassword({ loaderData, actionData }: Route.ComponentProps) {
   return (
     <main className="auth">
+      <span className="auth-eyebrow">Account recovery</span>
       <h1>Choose a new password</h1>
       <p className="auth-sub">
         Use a password you will be comfortable keeping for your Client Growth account.
@@ -121,6 +122,9 @@ export default function ResetPassword({ loaderData, actionData }: Route.Componen
           </p>
         </>
       )}
+      <div className="auth-credit">
+        <AxiomCredit />
+      </div>
     </main>
   );
 }

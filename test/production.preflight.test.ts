@@ -3,13 +3,15 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { validateProductionConfig } from "../scripts/production-preflight";
+import { stripJsonComments, validateProductionConfig } from "../scripts/production-preflight";
 
 const configPath = join(process.cwd(), "wrangler.jsonc");
 
 describe("production Wrangler configuration", () => {
   it("declares an isolated production Worker and D1 environment", () => {
-    const config = JSON.parse(readFileSync(configPath, "utf8")) as {
+    // wrangler.jsonc is JSONC. Parse it exactly the way the preflight script
+    // does, so a legitimate config comment cannot fail this guard.
+    const config = JSON.parse(stripJsonComments(readFileSync(configPath, "utf8"))) as {
       compatibility_date?: string;
       compatibility_flags?: string[];
       assets?: { binding?: string; directory?: string };

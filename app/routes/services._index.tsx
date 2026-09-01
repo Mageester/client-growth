@@ -12,10 +12,41 @@ import {
   pluralize,
 } from "../components/ui";
 import { requireTenant } from "../lib/session.server";
+import { validateServiceInput } from "../lib/validation";
 import type { Route } from "./+types/services._index";
 
 export function meta() {
   return [{ title: "Services · Client Growth" }];
+}
+
+/**
+ * What kind of website gap this offering answers.
+ *
+ * The engine matches a finding to a service through machine tags. Exposing a
+ * free-text "tags" box asked agency owners to guess at an internal contract; a
+ * fixed set of product-language choices says what the setting actually decides.
+ */
+const MATCHES = [
+  {
+    tag: "landing-page",
+    label: "A missing service page",
+    hint: "Sell this when the client offers something their website never gives its own page.",
+  },
+  {
+    tag: "conversion-fix",
+    label: "A broken conversion path",
+    hint: "Sell this when a call-to-action, form or phone link on the site is broken.",
+  },
+] as const;
+
+type MatchTag = (typeof MATCHES)[number]["tag"];
+
+const MATCH_LABEL: Record<string, string> = Object.fromEntries(
+  MATCHES.map((match) => [match.tag, match.label]),
+);
+
+function matchesOf(service: Service): string[] {
+  return service.tags.filter((tag) => tag in MATCH_LABEL);
 }
 
 function slugId(name: string): string {
@@ -24,7 +55,7 @@ function slugId(name: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 40);
-  return "svc-" + (base || "service");
+  return "svc-" + (base || "service") + "-" + Math.random().toString(36).slice(2, 6);
 }
 
 export async function loader({ request, context }: Route.LoaderArgs) {
@@ -38,33 +69,59 @@ export async function action({ request, context }: Route.ActionArgs) {
   const intent = String(form.get("intent") ?? "");
 
   if (intent === "toggle-active") {
-    await repo.setServiceActive(t.scope, String(form.get("id")), form.get("active") === "on");
-    return { ok: true as const, message: "Service status updated." };
+    const id = String(form.get("id") ?? "");
+    const active = form.get("active") === "on";
+    const changed = await repo.setServiceActive(t.scope, id, active);
+    if (!changed) return { ok: false as const, error: "That service is no longer in your catalog." };
+    return {
+      ok: true as const,
+      message: active
+        ? "Service reactivated — it can be matched to findings again."
+        : "Service deactivated. Existing findings keep their price; new ones will not use it.",
+    };
   }
 
   if (intent === "save") {
-    const name = String(form.get("name") ?? "").trim();
-    const priceMin = Number(form.get("priceMin"));
-    const priceMax = Number(form.get("priceMax"));
-    if (!name) return { ok: false as const, error: "Name is required." };
-    if (!(priceMax >= priceMin) || priceMin < 0) {
-      return { ok: false as const, error: "Price range is invalid." };
-    }
-    const idInput = String(form.get("id") ?? "").trim();
-    const service = ServiceSchema.parse({
-      id: idInput || slugId(name),
-      name,
+    const input = {
+      name: String(form.get("name") ?? ""),
+      priceMin: Number(form.get("priceMin")),
+      priceMax: Number(form.get("priceMax")),
       description: String(form.get("description") ?? "").trim(),
-      priceMin,
-      priceMax,
-      tags: String(form.get("tags") ?? "")
-        .split(",")
-        .map((tag) => tag.trim())
-        .filter(Boolean),
-      active: true,
-    });
-    await repo.upsertService(t.scope, service);
-    return { ok: true as const, message: idInput ? "Service changes saved." : "Service added." };
+    };
+    const problem = validateServiceInput(input);
+    if (problem) return { ok: false as const, error: problem };
+
+    const idInput = String(form.get("id") ?? "").trim();
+    const existing = idInput ? await repo.getService(t.scope, idInput) : null;
+    if (idInput && !existing) {
+      return { ok: false as const, error: "That service is no longer in your catalog." };
+    }
+
+    const chosen = form
+      .getAll("matches")
+      .map(String)
+      .filter((tag): tag is MatchTag => MATCHES.some((match) => match.tag === tag));
+    // Tags this form does not own (imported or legacy) are the user's data, not
+    // ours to drop just because this screen has no checkbox for them.
+    const preserved = (existing?.tags ?? []).filter((tag) => !(tag in MATCH_LABEL));
+    const tags = [...new Set([...chosen, ...preserved])];
+
+    await repo.upsertService(
+      t.scope,
+      ServiceSchema.parse({
+        id: idInput || slugId(input.name),
+        name: input.name.trim(),
+        description: input.description,
+        priceMin: input.priceMin,
+        priceMax: input.priceMax,
+        tags,
+        active: existing ? existing.active : true,
+      }),
+    );
+    return {
+      ok: true as const,
+      message: existing ? "Service saved." : `${input.name.trim()} added to your catalog.`,
+    };
   }
 
   throw new Response("Unknown action", { status: 400 });
@@ -86,7 +143,14 @@ export default function ServicesIndex({ loaderData, actionData }: Route.Componen
     }
   }, [navigation.state, actionData]);
 
-  const activeCount = services.filter((service) => service.active).length;
+  const active = services.filter((service) => service.active);
+  const unmatched = active.filter((service) => matchesOf(service).length === 0);
+  // Each rule picks the first active service claiming its gap, so a second claim
+  // is silently unreachable. Say so rather than letting a price never be used.
+  const contested = MATCHES.map((match) => ({
+    label: match.label.toLowerCase(),
+    claimants: active.filter((service) => service.tags.includes(match.tag)),
+  })).filter((entry) => entry.claimants.length > 1);
   const ordered = [...services].sort(
     (a, b) => Number(b.active) - Number(a.active) || a.name.localeCompare(b.name),
   );
@@ -98,14 +162,16 @@ export default function ServicesIndex({ loaderData, actionData }: Route.Componen
           <span className="eyebrow">Catalog</span>
           <h1 className="title-page">Services</h1>
           <p className="summary-line">
-            <span>What your agency can sell when a client site shows a real gap</span>
-            {services.length > 0 && (
+            {services.length === 0 ? (
+              <span>The work your agency can sell when a client site shows a real gap</span>
+            ) : (
               <>
-                <span className="dot-sep">·</span>
-                <b>{activeCount}</b>
+                <b className="num">{active.length}</b>
                 <span>
-                  active of {services.length}{" "}
-                  {pluralize(services.length, "offering", "offerings")}
+                  {pluralize(active.length, "service", "services")} you can sell
+                  {services.length !== active.length
+                    ? ` · ${services.length - active.length} inactive`
+                    : ""}
                 </span>
               </>
             )}
@@ -133,6 +199,28 @@ export default function ServicesIndex({ loaderData, actionData }: Route.Componen
           <span>{actionData.error}</span>
         </div>
       )}
+      {unmatched.length > 0 && (
+        <div className="notice" role="status">
+          <Icon name="alert" size={15} />
+          <span>
+            {unmatched.length} active {pluralize(unmatched.length, "service is", "services are")} not
+            connected to any kind of website gap, so {unmatched.length === 1 ? "it" : "they"} will
+            never be matched to a finding. Open{" "}
+            {unmatched.length === 1 ? unmatched[0]!.name : "each one"} to set what it answers.
+          </span>
+        </div>
+      )}
+
+      {contested.map((entry) => (
+        <div className="notice" role="status" key={entry.label}>
+          <Icon name="alert" size={15} />
+          <span>
+            {entry.claimants.length} active services are offered for {entry.label}. Only{" "}
+            <b>{entry.claimants[0]!.name}</b> will be matched and priced — deactivate the others or
+            change what they are offered for.
+          </span>
+        </div>
+      ))}
 
       {services.length === 0 ? (
         <EmptyState
@@ -145,8 +233,8 @@ export default function ServicesIndex({ loaderData, actionData }: Route.Componen
             </button>
           }
         >
-          List the work you actually sell, with the price range you would quote. Opportunities are
-          matched to these offerings so every finding carries a realistic value.
+          List the work you actually sell and what you would quote for it. Every finding is priced
+          from this catalog, so nothing is surfaced that you could not deliver.
         </EmptyState>
       ) : (
         <ul className="records">
@@ -162,7 +250,7 @@ export default function ServicesIndex({ loaderData, actionData }: Route.Componen
         open={editing !== null}
         onClose={() => setEditing(null)}
         title={editing === "new" ? "New service" : "Edit service"}
-        description="How you describe this offering, and what you would charge for it."
+        description="How you describe this work, what you charge, and when it should be offered."
       >
         {editing !== null && (
           <ServiceForm
@@ -185,25 +273,34 @@ function ServiceRow({
   onEdit: () => void;
   busy: boolean;
 }) {
+  const matches = matchesOf(service);
   return (
     <div className={"record service-record" + (service.active ? "" : " is-off")}>
       <div className="record-main">
         <div className="record-name">{service.name}</div>
-        {service.description && <p className="offer-line">{service.description}</p>}
-        {service.tags.length > 0 && (
-          <div className="tag-row">
-            {service.tags.map((tag) => (
-              <span className="pill quiet" key={tag}>
-                <Icon name="tag" size={10} />
-                {tag}
-              </span>
-            ))}
-          </div>
+        {service.description ? (
+          <p className="offer-line">{service.description}</p>
+        ) : (
+          <p className="offer-line faint">
+            No description yet — this text goes straight into proposal drafts.
+          </p>
         )}
+        <div className="tag-row">
+          {matches.length > 0 ? (
+            matches.map((tag) => (
+              <span className="pill quiet" key={tag}>
+                <Icon name="target" size={10} />
+                Offered for {MATCH_LABEL[tag]!.toLowerCase()}
+              </span>
+            ))
+          ) : (
+            <span className="pill warn">Not matched to any finding</span>
+          )}
+        </div>
       </div>
       <div className="record-end">
         <div className="record-stat wide">
-          <b>{formatCurrencyRange(service.priceMin, service.priceMax)}</b>
+          <b className="num">{formatCurrencyRange(service.priceMin, service.priceMax)}</b>
           <span>typical range</span>
         </div>
         <Form method="post" className="inline">
@@ -214,7 +311,9 @@ function ServiceRow({
             type="submit"
             className={"state-toggle" + (service.active ? " on" : "")}
             disabled={busy}
-            aria-label={(service.active ? "Deactivate " : "Activate ") + service.name}
+            aria-label={
+              (service.active ? "Deactivate " : "Activate ") + service.name
+            }
           >
             <span className={"dot" + (service.active ? "" : " hollow")} />
             {service.active ? "Active" : "Inactive"}
@@ -254,17 +353,21 @@ function ServiceForm({
           defaultValue={service?.name}
           placeholder="Service Landing Page"
           required
+          autoComplete="off"
         />
       </div>
       <div className="field-row">
         <div className="field">
-          <label htmlFor={prefix + "-min"}>From</label>
+          <label htmlFor={prefix + "-min"}>Typically from</label>
           <input
             id={prefix + "-min"}
             name="priceMin"
             type="number"
             min={0}
+            step={50}
+            inputMode="numeric"
             defaultValue={service?.priceMin ?? 0}
+            required
           />
         </div>
         <div className="field">
@@ -274,32 +377,44 @@ function ServiceForm({
             name="priceMax"
             type="number"
             min={0}
+            step={50}
+            inputMode="numeric"
             defaultValue={service?.priceMax ?? 0}
+            required
           />
         </div>
       </div>
       <div className="field">
-        <label htmlFor={prefix + "-description"}>Description</label>
+        <label htmlFor={prefix + "-description"}>What the client gets</label>
         <textarea
           id={prefix + "-description"}
           name="description"
+          rows={4}
           defaultValue={service?.description}
-          placeholder="What the client gets, in a sentence or two."
+          placeholder="A dedicated, conversion-focused page for one service line: copy, on-page SEO, and a lead-capture call to action."
         />
+        <div className="field-hint">This wording is reused verbatim in proposal drafts.</div>
       </div>
-      <div className="field">
-        <label htmlFor={prefix + "-tags"}>Tags</label>
-        <input
-          id={prefix + "-tags"}
-          name="tags"
-          type="text"
-          defaultValue={service?.tags.join(", ")}
-          placeholder="landing-page, conversion-fix"
-        />
+      <fieldset className="field fieldset">
+        <legend>Offer this when a site shows</legend>
+        {MATCHES.map((match) => (
+          <label className="choice" key={match.tag}>
+            <input
+              type="checkbox"
+              name="matches"
+              value={match.tag}
+              defaultChecked={service ? service.tags.includes(match.tag) : false}
+            />
+            <span className="choice-body">
+              <span className="choice-label">{match.label}</span>
+              <span className="choice-hint">{match.hint}</span>
+            </span>
+          </label>
+        ))}
         <div className="field-hint">
-          Comma separated. Tags connect a finding to the right offering.
+          A service connected to nothing is never matched to a finding.
         </div>
-      </div>
+      </fieldset>
       <div className="form-actions">
         <button type="submit" className="btn btn-primary" disabled={busy}>
           {busy ? "Saving…" : service ? "Save changes" : "Add service"}

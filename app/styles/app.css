@@ -1,50 +1,138 @@
 /* ==========================================================================
    Client Growth — interface system
-   Quiet instrument: hairlines over boxes, one deliberate accent, tight type.
+   An Axiom product. The palette, display face and micro-label treatment are
+   Axiom's (getaxiom.ca): warm neutrals rather than cool grey, Fraunces for
+   display type, letterspaced mono for labels, hairlines instead of boxes.
+
+   Every colour is a token defined on bare :root and re-declared for dark, so a
+   theme change never has to touch a component rule.
    ========================================================================== */
 
 :root {
-  color-scheme: light;
+  color-scheme: light dark;
 
-  --bg: #fbfbfc;
+  /* Ground and surfaces — warm, not blue-grey. */
+  --bg: #faf9f7;
   --surface: #ffffff;
-  --raised: #f4f5f7;
-  --raised-strong: #ebedf1;
+  --raised: #f3f2ee;
+  --raised-strong: #e9e7e1;
 
-  --ink: #17191f;
-  --ink-2: #565c68;
-  --ink-3: #868c99;
-  --ink-4: #adb3be;
+  /* Ink, warm-neutral to match Axiom's bone-on-black inverted. */
+  --ink: #14140f;
+  --ink-2: #56534a;
+  --ink-3: #85817a;
+  --ink-4: #aeaaa1;
 
-  --line: #e9eaee;
-  --line-strong: #d8dae1;
+  --line: #e8e6df;
+  --line-strong: #d6d3ca;
 
-  --accent: #2563eb;
-  --accent-strong: #1d4ed8;
-  --accent-wash: #eff4ff;
+  /* One accent, spent only on signal: links, the active surface, focus.
+     Primary actions are ink, so colour always means something. */
+  --accent: #2554d4;
+  --accent-strong: #1c41ab;
+  --accent-wash: #eef2fd;
+  --accent-ring: rgba(37, 84, 212, 0.16);
+
+  --solid: #14140f;
+  --solid-hover: #2c2a24;
+  --on-solid: #f2f0ea;
 
   --pos: #0e7a53;
-  --pos-wash: #e8f6ef;
-  --warn: #96590a;
-  --warn-wash: #fdf4e6;
+  --pos-wash: #e7f4ee;
+  --pos-line: #b9ded0;
+  --warn: #8a5308;
+  --warn-wash: #fbf2e3;
+  --warn-line: #ecdcbc;
+  --warn-mark: #f6e5c8;
   --neg: #b3271b;
-  --neg-wash: #fdf1ef;
+  --neg-wash: #fcf0ee;
+  --neg-line: #efc9c3;
+
+  /* "Needs attention" is its own state and must never read as an error. */
+  --attn: #a4610b;
+
+  --scrim: rgba(20, 20, 15, 0.3);
+  --hairline-soft: rgba(20, 20, 15, 0.07);
+  --selection: #dfe6fb;
+  --field-line: #c4c1b8;
+  --pop: 0 16px 40px -16px rgba(20, 20, 15, 0.26), 0 2px 6px rgba(20, 20, 15, 0.05);
+  --lift: 0 1px 2px rgba(20, 20, 15, 0.09);
+  --topbar-bg: rgba(250, 249, 247, 0.86);
+  --segment-on: var(--surface);
 
   --r-xs: 4px;
   --r-sm: 6px;
-  --r-md: 8px;
+  --r-md: 10px;
   --r-lg: 12px;
+  --r-pill: 999px;
 
-  --pop: 0 16px 40px -16px rgba(17, 20, 28, 0.28), 0 2px 6px rgba(17, 20, 28, 0.05);
-
-  --font: Inter, "SF Pro Text", -apple-system, BlinkMacSystemFont,
+  --font: "Inter Display", Inter, "SF Pro Text", -apple-system, BlinkMacSystemFont,
     "Segoe UI Variable Text", "Segoe UI", Roboto, system-ui, sans-serif;
-  --mono: ui-monospace, SFMono-Regular, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+  /* Axiom's display face. Falls back to a serif so the editorial voice survives
+     a blocked font request rather than collapsing into the body face. */
+  --font-display: Fraunces, "Iowan Old Style", Georgia, "Times New Roman", serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", "Cascadia Mono", Menlo,
+    Consolas, monospace;
 
   --shell: 1200px;
   --read: 42rem;
-  --topbar: 54px;
+  --topbar: 56px;
   --ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-premium: cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+/*
+ * Dark is Axiom's actual brand ground: #0a0a0a with bone text. Bare
+ * `prefers-color-scheme` only — the app has no theme switch, so there is
+ * nothing to override.
+ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0a0a0a;
+    --surface: #101010;
+    --raised: rgba(255, 255, 255, 0.045);
+    --raised-strong: rgba(255, 255, 255, 0.085);
+
+    --ink: #f2f0ea;
+    --ink-2: #a8a49b;
+    --ink-3: #7d786f;
+    --ink-4: #625e57;
+
+    --line: rgba(255, 255, 255, 0.09);
+    --line-strong: rgba(255, 255, 255, 0.16);
+
+    --accent: #9db4ef;
+    --accent-strong: #c2d0f7;
+    --accent-wash: rgba(126, 155, 231, 0.14);
+    --accent-ring: rgba(157, 180, 239, 0.3);
+
+    /* On black, the primary action inverts to Axiom's bone. */
+    --solid: #f2f0ea;
+    --solid-hover: #ffffff;
+    --on-solid: #0a0a0a;
+
+    --pos: #6dc79c;
+    --pos-wash: rgba(109, 199, 156, 0.13);
+    --pos-line: rgba(109, 199, 156, 0.28);
+    --warn: #e0b271;
+    --warn-wash: rgba(224, 178, 113, 0.11);
+    --warn-line: rgba(224, 178, 113, 0.26);
+    --warn-mark: rgba(224, 178, 113, 0.2);
+    --neg: #e6a49a;
+    --neg-wash: rgba(230, 164, 154, 0.11);
+    --neg-line: rgba(230, 164, 154, 0.26);
+
+    --attn: #e0b271;
+
+    --scrim: rgba(0, 0, 0, 0.66);
+    --hairline-soft: rgba(255, 255, 255, 0.09);
+    --selection: rgba(255, 255, 255, 0.16);
+    --field-line: rgba(255, 255, 255, 0.2);
+    --pop: 0 24px 60px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.4);
+    --lift: 0 1px 2px rgba(0, 0, 0, 0.5);
+    --topbar-bg: rgba(10, 10, 10, 0.86);
+    --segment-on: rgba(255, 255, 255, 0.13);
+  }
 }
 
 *,
@@ -131,7 +219,7 @@ button:disabled {
 }
 
 ::selection {
-  background: #d6e2ff;
+  background: var(--selection);
   color: var(--ink);
 }
 
@@ -158,7 +246,7 @@ button:disabled {
   padding: 0.6rem 0.85rem;
   border-radius: var(--r-sm);
   background: var(--ink);
-  color: #fff;
+  color: var(--bg);
   font-size: 0.82rem;
   font-weight: 600;
   transition: top 160ms var(--ease);
@@ -173,6 +261,7 @@ button:disabled {
    -------------------------------------------------------------------------- */
 
 .eyebrow {
+  font-family: var(--mono);
   display: block;
   color: var(--ink-3);
   font-size: 0.69rem;
@@ -182,18 +271,23 @@ button:disabled {
 }
 
 .title-page {
+  /* Fraunces is a serif: it needs looser tracking and lighter weight than the
+     sans it replaced, or the counters close up at display sizes. */
+  font-family: var(--font-display);
   color: var(--ink);
-  font-size: 1.45rem;
-  font-weight: 640;
-  letter-spacing: -0.033em;
-  line-height: 1.18;
+  font-size: 1.7rem;
+  font-weight: 500;
+  letter-spacing: -0.016em;
+  line-height: 1.14;
 }
 
 .title-lg {
-  font-size: 1.75rem;
-  font-weight: 650;
-  letter-spacing: -0.038em;
-  line-height: 1.15;
+  font-family: var(--font-display);
+  font-size: 2.05rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  text-wrap: balance;
 }
 
 .title-section {
@@ -294,17 +388,16 @@ button:disabled {
 
 .btn-primary {
   border-color: transparent;
-  background: var(--accent);
-  color: #fff;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  background: var(--solid);
+  color: var(--on-solid);
 }
 
 .btn-primary:hover {
-  background: var(--accent-strong);
+  background: var(--solid-hover);
 }
 
 .btn-primary:disabled {
-  background: var(--accent);
+  background: var(--solid);
 }
 
 .btn-ghost {
@@ -408,7 +501,7 @@ textarea::placeholder {
 input:hover,
 textarea:hover,
 select:hover {
-  border-color: #c6cad3;
+  border-color: var(--field-line);
 }
 
 input:focus,
@@ -416,7 +509,7 @@ textarea:focus,
 select:focus {
   border-color: var(--accent);
   outline: 0;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.13);
+  box-shadow: 0 0 0 3px var(--accent-ring);
 }
 
 textarea {
@@ -507,7 +600,7 @@ input[type="checkbox"] {
   position: sticky;
   top: 0;
   z-index: 40;
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--topbar-bg);
   border-bottom: 1px solid var(--line);
   backdrop-filter: saturate(180%) blur(8px);
 }
@@ -541,7 +634,7 @@ input[type="checkbox"] {
   height: 24px;
   border-radius: 7px;
   background: var(--ink);
-  color: #fff;
+  color: var(--bg);
 }
 
 .brand-rule {
@@ -836,7 +929,7 @@ input[type="checkbox"] {
   position: absolute;
   inset: 0;
   width: 100%;
-  background: rgba(17, 20, 28, 0.28);
+  background: var(--scrim);
   animation: fade-in 180ms var(--ease) both;
 }
 
@@ -929,13 +1022,13 @@ input[type="checkbox"] {
 }
 
 .notice.ok {
-  border-color: #bce5d1;
+  border-color: var(--pos-line);
   background: var(--pos-wash);
   color: var(--pos);
 }
 
 .notice.err {
-  border-color: #f2c7c2;
+  border-color: var(--neg-line);
   background: var(--neg-wash);
   color: var(--neg);
 }
@@ -1227,6 +1320,9 @@ input[type="checkbox"] {
 }
 
 .rail-item-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1595,15 +1691,24 @@ a.record:hover .record-name {
   height: 7px;
 }
 
-.state-dot.live {
-  color: var(--accent);
+.state-dot.attention {
+  color: var(--attn);
 }
 
 .state-dot.clean {
   color: var(--pos);
 }
 
-.state-dot.idle {
+.state-dot.inconclusive {
+  color: var(--ink-3);
+}
+
+.state-dot.inconclusive .dot {
+  border-radius: 1px;
+  transform: rotate(45deg);
+}
+
+.state-dot.never {
   color: var(--ink-4);
 }
 
@@ -1678,7 +1783,7 @@ a.record:hover .record-name {
 .check-toggle.on {
   border-color: var(--accent);
   background: var(--accent);
-  color: #fff;
+  color: var(--on-solid);
 }
 
 /* --------------------------------------------------------------------------
@@ -1744,6 +1849,16 @@ a.record:hover .record-name {
   font-size: 0.815rem;
 }
 
+.detail-meta a.row-tight {
+  display: inline;
+}
+
+.detail-meta a.row-tight svg {
+  display: inline-block;
+  margin-left: 0.25rem;
+  vertical-align: -1px;
+}
+
 .detail-meta a:hover {
   color: var(--ink);
   text-decoration: underline;
@@ -1772,6 +1887,7 @@ a.record:hover .record-name {
 }
 
 .fact dt {
+  font-family: var(--mono);
   color: var(--ink-3);
   font-size: 0.7rem;
   font-weight: 560;
@@ -1878,6 +1994,7 @@ a.record:hover .record-name {
 }
 
 .snooze-field input {
+  min-height: 34px;
   min-height: 29px;
   padding: 0.2rem 0.45rem;
   font-size: 0.78rem;
@@ -1954,7 +2071,7 @@ a.record:hover .record-name {
 .step.is-current .step-num {
   border-color: var(--ink);
   background: var(--ink);
-  color: #fff;
+  color: var(--bg);
 }
 
 .step-rule {
@@ -2030,6 +2147,744 @@ a.record:hover .record-name {
 /* --------------------------------------------------------------------------
    Responsive
    -------------------------------------------------------------------------- */
+
+/* ==========================================================================
+   Analysis result — the honest read-out
+   ========================================================================== */
+
+.runcard {
+  display: flex;
+  gap: 0.7rem;
+  margin-top: 1.15rem;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+
+.runcard.warn {
+  border-color: var(--warn-line);
+  background: var(--warn-wash);
+}
+
+.runcard-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--raised);
+  color: var(--ink-2);
+}
+
+.runcard.ok .runcard-mark {
+  background: var(--pos-wash);
+  color: var(--pos);
+}
+
+.runcard.warn .runcard-mark {
+  background: var(--warn-mark);
+  color: var(--warn);
+}
+
+.runcard-body {
+  min-width: 0;
+}
+
+.runcard-title {
+  font-size: 0.83rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.runcard-client {
+  color: var(--ink-3);
+  font-weight: 500;
+}
+
+.runcard-summary {
+  margin-top: 0.2rem;
+  color: var(--ink-2);
+  font-size: 0.83rem;
+  line-height: 1.55;
+}
+
+.runcard-limit {
+  max-width: 46rem;
+  margin-top: 0.4rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid var(--hairline-soft);
+  color: var(--ink-2);
+  font-size: 0.79rem;
+  line-height: 1.6;
+}
+
+.runcard-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 560;
+}
+
+/* ==========================================================================
+   Evidence
+   ========================================================================== */
+
+.evidence-strip {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.7rem;
+}
+
+.evidence-strip-label {
+  font-family: var(--mono);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--ink-4);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.evidence-chips {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  list-style: none;
+}
+
+.chip.is-static {
+  cursor: default;
+}
+
+.chip.is-more {
+  color: var(--ink-3);
+}
+
+.evidence-list {
+  margin-top: 0.85rem;
+  list-style: none;
+}
+
+.ev {
+  display: flex;
+  gap: 0.65rem;
+  padding: 0.7rem 0;
+  border-top: 1px solid var(--line);
+}
+
+.ev:first-child {
+  border-top: 0;
+  padding-top: 0.2rem;
+}
+
+.ev-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--r-sm);
+  background: var(--raised);
+  color: var(--ink-3);
+}
+
+.ev-defect .ev-mark {
+  background: var(--neg-wash);
+  color: var(--neg);
+}
+
+.ev-inspected .ev-mark {
+  background: var(--accent-wash);
+  color: var(--accent-strong);
+}
+
+.ev-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.ev-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  max-width: 100%;
+  color: var(--ink);
+  font-size: 0.855rem;
+  font-weight: 570;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+
+a.ev-title:hover {
+  color: var(--accent-strong);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.ev-title.is-static {
+  color: var(--ink-2);
+}
+
+.ev-note {
+  margin-top: 0.15rem;
+  color: var(--ink-2);
+  font-size: 0.805rem;
+  line-height: 1.55;
+}
+
+.ev-url {
+  margin-top: 0.2rem;
+  color: var(--ink-4);
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  overflow-wrap: anywhere;
+}
+
+.disclose {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.85rem;
+  padding: 0.3rem 0;
+  color: var(--ink-2);
+  font-size: 0.8rem;
+  font-weight: 560;
+}
+
+.disclose:hover {
+  color: var(--ink);
+}
+
+/* ==========================================================================
+   Feed controls
+   ========================================================================== */
+
+.segmented {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--raised);
+}
+
+.segmented button {
+  min-height: 26px;
+  padding: 0 0.6rem;
+  border-radius: 4px;
+  color: var(--ink-3);
+  font-size: 0.765rem;
+  font-weight: 560;
+  white-space: nowrap;
+  transition: background-color 120ms var(--ease), color 120ms var(--ease);
+}
+
+.segmented button:hover {
+  color: var(--ink);
+}
+
+.segmented button.on {
+  background: var(--segment-on);
+  box-shadow: var(--lift);
+  color: var(--ink);
+}
+
+.feed-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  width: 100%;
+  margin-top: 0.4rem;
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--line);
+  color: var(--ink-3);
+  font-size: 0.79rem;
+  font-weight: 560;
+}
+
+.feed-more:hover {
+  color: var(--ink);
+}
+
+.rail-head-note {
+  color: var(--ink-4);
+  font-size: 0.7rem;
+  font-weight: 550;
+  letter-spacing: -0.005em;
+}
+
+/* ==========================================================================
+   Finding row
+   ========================================================================== */
+
+.finding-body {
+  min-width: 0;
+}
+
+.finding-title-row {
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+.finding-service {
+  color: var(--ink-3);
+}
+
+.finding-value-block {
+  min-width: 0;
+}
+
+.finding-next {
+  color: var(--ink-4);
+  font-size: 0.72rem;
+  line-height: 1.4;
+  text-wrap: balance;
+}
+
+/* ==========================================================================
+   Detail: the case
+   ========================================================================== */
+
+.detail-head-copy {
+  min-width: 0;
+}
+
+.detail-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 0 0 auto;
+}
+
+.detail-meta-top {
+  margin-top: 0;
+  margin-bottom: 0.4rem;
+}
+
+.detail-next {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.55rem;
+  color: var(--ink-2);
+  font-size: 0.83rem;
+  font-weight: 545;
+}
+
+.detail-next svg {
+  color: var(--ink-4);
+}
+
+.case {
+  display: grid;
+  gap: 1.35rem;
+  margin-top: 0.9rem;
+  max-width: 46rem;
+}
+
+.case-block .subhead {
+  margin-top: 0;
+}
+
+.case-block .prose {
+  margin-top: 0.35rem;
+}
+
+.action-note {
+  flex-basis: 100%;
+  max-width: 44rem;
+  color: var(--ink-2);
+  font-size: 0.81rem;
+  line-height: 1.6;
+}
+
+.snooze-form {
+  gap: 0.35rem;
+}
+
+.snooze-unit {
+  font-size: 0.78rem;
+}
+
+.form-actions-note {
+  font-size: 0.78rem;
+}
+
+/* ==========================================================================
+   Analysis history
+   ========================================================================== */
+
+.runlog {
+  margin-top: 0.9rem;
+  list-style: none;
+}
+
+.runlog-item {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--line);
+}
+
+.runlog-item:first-child {
+  border-top: 0;
+}
+
+.runlog-mark {
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  margin-top: 0.45rem;
+  border-radius: 50%;
+  background: var(--ink-4);
+}
+
+.runlog-item.findings .runlog-mark {
+  background: var(--attn);
+}
+
+.runlog-item.clean .runlog-mark {
+  background: var(--pos);
+}
+
+.runlog-item.inconclusive .runlog-mark {
+  border-radius: 1px;
+  background: var(--ink-3);
+  transform: rotate(45deg);
+}
+
+.runlog-body {
+  min-width: 0;
+}
+
+.runlog-top {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  color: var(--ink-3);
+  font-size: 0.76rem;
+}
+
+.runlog-outcome {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.runlog-summary {
+  margin-top: 0.2rem;
+  color: var(--ink-2);
+  font-size: 0.83rem;
+  line-height: 1.55;
+}
+
+.runlog-limit {
+  max-width: 46rem;
+  margin-top: 0.25rem;
+  color: var(--ink-3);
+  font-size: 0.79rem;
+  line-height: 1.6;
+}
+
+/* ==========================================================================
+   Forms: choices and the starter catalog
+   ========================================================================== */
+
+.fieldset {
+  min-width: 0;
+  margin-inline: 0;
+  padding: 0;
+  border: 0;
+}
+
+.fieldset legend {
+  padding: 0;
+  color: var(--ink-2);
+  font-size: 0.78rem;
+  font-weight: 570;
+  letter-spacing: -0.005em;
+}
+
+.choice {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.55rem;
+  padding: 0.65rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  cursor: pointer;
+  transition: border-color 120ms var(--ease), background-color 120ms var(--ease);
+}
+
+.choice:hover {
+  border-color: var(--line-strong);
+  background: var(--raised);
+}
+
+.choice:focus-within {
+  border-color: var(--accent);
+}
+
+.choice input {
+  margin-top: 0.15rem;
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+  accent-color: var(--solid);
+}
+
+.choice-body {
+  min-width: 0;
+}
+
+.choice-label {
+  display: block;
+  color: var(--ink);
+  font-size: 0.83rem;
+  font-weight: 560;
+}
+
+.choice-hint {
+  display: block;
+  margin-top: 0.15rem;
+  color: var(--ink-3);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.starter-list {
+  overflow: hidden;
+  margin-top: 0.95rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  list-style: none;
+}
+
+.starter {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.25rem;
+  padding: 0.95rem 1rem;
+  border-top: 1px solid var(--line);
+}
+
+.starter:first-child {
+  border-top: 0;
+}
+
+.starter-toggle {
+  display: flex;
+  gap: 0.65rem;
+  flex: 1 1 18rem;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.starter-toggle input[type="checkbox"] {
+  margin-top: 0.5rem;
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+  accent-color: var(--solid);
+}
+
+.starter-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.starter-name {
+  width: 100%;
+  min-height: 32px;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--ink);
+  font-size: 0.9rem;
+  font-weight: 570;
+  letter-spacing: -0.012em;
+}
+
+.starter-name:hover {
+  border-color: var(--line);
+}
+
+.starter-name:focus {
+  border-color: var(--accent);
+  background: var(--surface);
+  outline: none;
+}
+
+.starter-when {
+  display: block;
+  margin-top: 0.1rem;
+  padding-inline: 0.5rem;
+  color: var(--ink-3);
+  font-size: 0.79rem;
+  line-height: 1.5;
+}
+
+.starter-price {
+  display: grid;
+  grid-template-columns: 7rem 7rem;
+  gap: 0.6rem;
+  flex: 0 0 auto;
+}
+
+.starter-price .field + .field {
+  margin-top: 0;
+}
+
+/* ==========================================================================
+   Onboarding + misc
+   ========================================================================== */
+
+.onboarding {
+  max-width: 48rem;
+}
+
+.onboarding-title {
+  margin-top: 0.3rem;
+}
+
+.onboarding-lede {
+  max-width: 38rem;
+  margin-top: 0.55rem;
+}
+
+.onboarding-field {
+  max-width: 34rem;
+}
+
+.onboarding .title-section {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tag-row-lg {
+  gap: 0.35rem;
+  margin-top: 0.75rem;
+  list-style: none;
+}
+
+.tag-row-lg .pill {
+  height: 24px;
+  padding-inline: 0.55rem;
+  font-size: 0.78rem;
+}
+
+.client-notes {
+  max-width: 42rem;
+  margin-top: 0.95rem;
+  padding-left: 0.8rem;
+  border-left: 2px solid var(--line-strong);
+  color: var(--ink-2);
+  font-size: 0.855rem;
+}
+
+.record-domain {
+  overflow-wrap: anywhere;
+}
+
+.record.is-quiet .record-name {
+  color: var(--ink-2);
+}
+
+.fact-wide {
+  flex: 1 1 14rem;
+}
+
+/* ==========================================================================
+   Axiom credit
+   ========================================================================== */
+
+.axiom-credit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--ink-4);
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: opacity 140ms var(--ease);
+}
+
+.axiom-credit img {
+  width: auto;
+  height: 15px;
+  /* The wordmark is chrome, drawn for a dark ground. On the light theme it is
+     flattened to ink so it reads as a mark rather than a glare. */
+  filter: grayscale(1) brightness(0.28) contrast(1.6);
+  opacity: 0.75;
+}
+
+@media (prefers-color-scheme: dark) {
+  .axiom-credit img {
+    filter: none;
+    opacity: 0.9;
+  }
+}
+
+.axiom-credit:hover {
+  color: var(--ink-2);
+}
+
+.axiom-credit:hover img {
+  opacity: 1;
+}
+
+.menu-foot {
+  padding: 0.6rem 0.8rem 0.5rem;
+}
+
+.auth-credit {
+  display: flex;
+  justify-content: center;
+  margin-top: 1.6rem;
+}
+
+/* ==========================================================================
+   Auth pages — editorial, brand-forward
+   ========================================================================== */
+
+.auth h1 {
+  font-family: var(--font-display);
+  font-size: 1.85rem;
+  font-weight: 500;
+  letter-spacing: -0.018em;
+  line-height: 1.12;
+  text-wrap: balance;
+}
+
+.auth-eyebrow {
+  display: block;
+  margin-bottom: 0.7rem;
+  color: var(--ink-3);
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  font-weight: 500;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
 
 @media (max-width: 1080px) {
   .portfolio {
@@ -2238,6 +3093,184 @@ a.record:hover .record-name {
 
   .auth {
     padding-top: 2.5rem;
+  }
+}
+
+@media (max-width: 900px) {
+  .detail-head-row {
+    align-items: flex-start;
+  }
+
+  .starter {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .starter-price {
+    width: 100%;
+    grid-template-columns: 1fr 1fr;
+    padding-left: 1.9rem;
+  }
+
+  .feed-head-actions {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 640px) {
+  .detail-head-actions {
+    width: 100%;
+  }
+
+  .detail-head-actions .btn,
+  .detail-head-actions form {
+    flex: 1;
+  }
+
+  .detail-head-actions form .btn {
+    width: 100%;
+  }
+
+  .segmented {
+    width: 100%;
+  }
+
+  .segmented button {
+    flex: 1;
+  }
+
+  .feed-head-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.6rem;
+  }
+
+  .feed-head-actions form,
+  .feed-head-actions .menu {
+    width: 100%;
+  }
+
+  .feed-head-actions .menu > .btn,
+  .feed-head-actions form > .btn {
+    width: 100%;
+  }
+
+  .starter-price {
+    padding-left: 0;
+  }
+
+  .actionbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .actionbar .spacer {
+    display: none;
+  }
+
+  .actionbar form,
+  .actionbar .btn {
+    width: 100%;
+  }
+
+  .actionbar form > .btn {
+    width: 100%;
+  }
+
+  .snooze-form {
+    flex-wrap: nowrap;
+  }
+
+  .snooze-form .btn {
+    flex: 1;
+  }
+
+  .runcard {
+    padding: 0.75rem 0.8rem;
+  }
+
+  .evidence-strip-label {
+    display: none;
+  }
+
+  .record-end {
+    flex-wrap: wrap;
+    row-gap: 0.6rem;
+  }
+}
+
+/* Coarse pointers get real hit areas, not hover-revealed 12px targets. */
+@media (pointer: coarse) {
+  .btn,
+  .btn-sm {
+    min-height: 40px;
+  }
+
+  .icon-btn,
+  .check-toggle,
+  .state-toggle {
+    min-height: 36px;
+    min-width: 36px;
+  }
+
+  .segmented button {
+    min-height: 34px;
+  }
+
+  .menu-item {
+    min-height: 42px;
+  }
+}
+
+@media (max-width: 640px) {
+  /* Two facts per row keeps the header from becoming a column of four cards. */
+  .factbar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    flex-direction: unset;
+  }
+
+  .fact {
+    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .fact:nth-child(2n) {
+    border-right: 0;
+  }
+
+  .fact:nth-last-child(-n + 2):nth-child(2n + 1),
+  .fact:last-child {
+    border-bottom: 0;
+  }
+
+  /* Wrapped meta lines must not begin with an orphaned separator dot. */
+  .detail-meta {
+    gap: 0.1rem 0.55rem;
+  }
+
+  .detail-meta .dot-sep {
+    display: none;
+  }
+
+  .rail-item-name {
+    max-width: 11rem;
+  }
+}
+
+/* Coarse pointers get real hit areas on the shell controls too. */
+@media (pointer: coarse) {
+  .brand,
+  .ws-trigger,
+  .topnav a,
+  .disclose,
+  .feed-more,
+  .rail-item {
+    min-height: 40px;
+  }
+
+  .brand {
+    align-items: center;
   }
 }
 

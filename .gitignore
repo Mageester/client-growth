@@ -11,3 +11,6 @@ coverage/
 .env.*
 !.dev.vars.example
 .DS_Store
+
+# local browser-automation scratch
+.playwright-cli/

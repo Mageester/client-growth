@@ -1,7 +1,7 @@
 /**
  * Canonical **application** schema (tenant + workspace tables). Applied verbatim
  * by the node:sqlite adapter in tests and by the local seed. The migration files
- * (0001..0006) must converge on this exact shape — test/db.schema-parity.test.ts
+ * (0001..0007) must converge on this exact shape — test/db.schema-parity.test.ts
  * compares table columns AND foreign keys.
  *
  * The Better Auth tables (user / session / account / verification / rateLimit)
@@ -103,4 +103,26 @@ CREATE TABLE IF NOT EXISTS opportunities (
 );
 
 CREATE INDEX IF NOT EXISTS idx_opp_ws ON opportunities (workspace_id, client_id);
+
+CREATE TABLE IF NOT EXISTS analysis_runs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  workspace_id TEXT NOT NULL,
+  client_id TEXT NOT NULL,
+  started_at TEXT NOT NULL,
+  finished_at TEXT NOT NULL,
+  source TEXT NOT NULL,
+  outcome TEXT NOT NULL,
+  summary TEXT NOT NULL,
+  limitation TEXT,
+  pages_read INTEGER NOT NULL DEFAULT 0,
+  pages_fetched INTEGER NOT NULL DEFAULT 0,
+  blocked_events INTEGER NOT NULL DEFAULT 0,
+  inconclusive_events INTEGER NOT NULL DEFAULT 0,
+  surfaced INTEGER NOT NULL DEFAULT 0,
+  stats TEXT NOT NULL DEFAULT '{}',
+  FOREIGN KEY (workspace_id, client_id) REFERENCES clients (workspace_id, id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_analysis_runs_ws
+  ON analysis_runs (workspace_id, client_id, finished_at DESC);
 `;

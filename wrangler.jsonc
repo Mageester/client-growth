@@ -4,6 +4,11 @@
   "compatibility_date": "2026-08-31",
   "compatibility_flags": ["nodejs_compat"],
   "main": "./workers/app.ts",
+  // Pinned so `pnpm dev`, .dev.vars' BETTER_AUTH_URL, and .claude/launch.json
+  // always agree. A drifting dev port breaks Better Auth's trusted-origin check.
+  "dev": {
+    "port": 8788
+  },
   "assets": {
     "directory": "./build/client",
     "binding": "ASSETS"
