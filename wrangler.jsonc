@@ -41,7 +41,7 @@
         "DEEPSEEK_MODEL": "deepseek-chat",
         "MAX_AI_CALLS_PER_RUN": "10",
         "BETTER_AUTH_URL": "https://client-growth-production.aidan-magee2.workers.dev",
-        "RESEND_FROM_EMAIL": "Client Growth noreply@getaxiom.ca"
+        "RESEND_FROM_EMAIL": "Client Growth <noreply@getaxiom.ca>"
       },
       "secrets": {
         "required": ["BETTER_AUTH_SECRET", "RESEND_API_KEY"]
