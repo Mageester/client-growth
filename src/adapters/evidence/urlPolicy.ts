@@ -116,11 +116,12 @@ function isNonPublicIpv6(hostname: string): boolean {
   const isLoopback = words.slice(0, 7).every((word) => word === 0) && words[7] === 1;
   const first = words[0] ?? 0;
   const isLinkLocal = (first & 0xffc0) === 0xfe80;
+  const isSiteLocal = (first & 0xffc0) === 0xfec0;
   const isUniqueLocal = (first & 0xfe00) === 0xfc00;
   const isMulticast = (first & 0xff00) === 0xff00;
   const isDocumentation = first === 0x2001 && words[1] === 0x0db8;
 
-  if (isAllZero || isLoopback || isLinkLocal || isUniqueLocal || isMulticast || isDocumentation) return true;
+  if (isAllZero || isLoopback || isLinkLocal || isSiteLocal || isUniqueLocal || isMulticast || isDocumentation) return true;
 
   // IPv4-mapped and IPv4-compatible IPv6 addresses inherit the IPv4 policy.
   const mapped = words.slice(0, 5).every((word) => word === 0) && words[5] === 0xffff;

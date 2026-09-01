@@ -118,6 +118,7 @@ describe("HttpEvidenceProvider network policy", () => {
     "http://[fc00::1]",
     "http://[fd12:3456::1]",
     "http://[fe80::1]",
+    "http://[fec0::1]",
     "http://[FE80:0:0:0:0:0:0:1]",
     "http://[FD00:0000:0000:0000:0000:0000:0000:0001]",
     "http://[2001:db8::1]",
@@ -377,6 +378,26 @@ describe("HttpEvidenceProvider redirect safety", () => {
 
     expect(page).toMatchObject({ kind: "network-failure", outcome: "inconclusive" });
     expect((page as { reason: string }).reason).toMatch(/manual|redirect/i);
+  });
+
+  it.each([401, 403, 429, 500, 503])(
+    "treats targeted HTTP %i as an inconclusive fetch failure rather than absence evidence",
+    async (status) => {
+      const fetchImpl = vi.fn(async () => new Response("", { status })) as unknown as typeof fetch;
+      const provider = new HttpEvidenceProvider({ fetchImpl });
+
+      const page = await provider.fetchPage(`${PUBLIC}/service`);
+
+      expect(page).toMatchObject({ kind: "network-failure", outcome: "inconclusive" });
+      expect((page as { reason: string }).reason).toMatch(new RegExp(`HTTP ${status}`));
+    },
+  );
+
+  it.each([404, 410])("keeps targeted HTTP %i as a definite missing-page result", async (status) => {
+    const fetchImpl = vi.fn(async () => new Response("", { status })) as unknown as typeof fetch;
+    const provider = new HttpEvidenceProvider({ fetchImpl });
+
+    expect(await provider.fetchPage(`${PUBLIC}/missing`)).toBeNull();
   });
 });
 

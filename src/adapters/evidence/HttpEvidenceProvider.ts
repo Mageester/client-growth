@@ -646,7 +646,11 @@ export class HttpEvidenceProvider implements EvidenceProvider {
     const { response, finalUrl } = fetched;
     if (!response.ok) {
       await cancelResponseBody(response);
-      return null;
+      if (response.status === 404 || response.status === 410) return null;
+
+      const reason = `targeted page returned HTTP ${response.status}`;
+      this.recordNetworkEvent(finalUrl, "inconclusive", reason);
+      return pageFetchFailure(finalUrl, { outcome: "inconclusive", reason });
     }
     const contentType = (response.headers.get("content-type") ?? "").toLowerCase();
     if (!isHtmlContentType(contentType)) {
