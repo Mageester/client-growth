@@ -10,6 +10,7 @@ import {
 import type { TenantScope } from "@/db/tenant";
 import { Icon } from "../components/ui";
 import { d1Db } from "../lib/d1.server";
+import { checkClientDomain } from "../lib/clientDomain";
 import { requireSession } from "../lib/session.server";
 import { runAnalysis } from "../lib/analysis.server";
 import type { Route } from "./+types/onboarding";
@@ -56,41 +57,44 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
   const scope: TenantScope = { db, workspaceId: ws.id };
 
-  const serviceIds: string[] = [];
+  // Validate the WHOLE form before writing anything. Writing the services first
+  // and only then rejecting the client left half-finished setup behind, and a
+  // corrected re-submit created a second copy of every service.
+  const services = [];
   for (let i = 0; i < 3; i++) {
     const field = "svc" + i;
     const name = String(form.get(field + "Name") ?? "").trim();
     if (!name) continue;
-    const min = Number(form.get(field + "Min")) || 0;
-    const max = Number(form.get(field + "Max")) || min;
-    const service = ServiceSchema.parse({
-      id: slug("svc", name),
-      name,
-      description: "",
-      priceMin: Math.max(0, Math.min(min, max)),
-      priceMax: Math.max(min, max),
-      tags: String(form.get(field + "Tags") ?? "")
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean),
-      active: true,
-    });
-    await repo.upsertService(scope, service);
-    serviceIds.push(service.id);
+    const min = Math.max(0, Number(form.get(field + "Min")) || 0);
+    const max = Math.max(0, Number(form.get(field + "Max")) || min);
+    services.push(
+      ServiceSchema.parse({
+        id: slug("svc", name),
+        name,
+        description: "",
+        priceMin: Math.min(min, max),
+        priceMax: Math.max(min, max),
+        tags: String(form.get(field + "Tags") ?? "")
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
+        active: true,
+      }),
+    );
   }
-  if (serviceIds.length === 0) return { error: "Add at least one agency service." };
+  if (services.length === 0) return { error: "Add at least one agency service." };
 
   const name = String(form.get("clientName") ?? "").trim();
-  const domain = String(form.get("clientDomain") ?? "")
-    .trim()
-    .replace(/^https?:\/\//, "")
-    .replace(/\/+$/, "");
-  if (!name || !domain) return { error: "Enter the client's name and website domain." };
+  if (!name) return { error: "Enter the client's name and website domain." };
+  const checkedDomain = checkClientDomain(String(form.get("clientDomain") ?? ""));
+  if (!checkedDomain.ok) return { error: checkedDomain.error! };
+
+  for (const service of services) await repo.upsertService(scope, service);
 
   const client = ClientSchema.parse({
     id: slug("client", name),
     name,
-    domain,
+    domain: checkedDomain.domain,
     offerings: String(form.get("clientOfferings") ?? "")
       .split("\n")
       .map((s) => s.trim())

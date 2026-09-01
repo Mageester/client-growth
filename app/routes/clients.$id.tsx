@@ -1,9 +1,11 @@
 import { Form, Link, redirect, useNavigation } from "react-router";
 
 import { ClientSchema } from "@/core/schema";
+import { assessReachability } from "@/core/reachability";
 import * as repo from "@/db/repositories";
 import { formatCurrencyRange, formatDate, Icon } from "../components/ui";
 import { runAnalysis } from "../lib/analysis.server";
+import { checkClientDomain } from "../lib/clientDomain";
 import { requireTenant } from "../lib/session.server";
 import type { Route } from "./+types/clients.$id";
 
@@ -21,11 +23,14 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
     repo.getLatestEvidence(t.scope, client.id),
     repo.listOpportunities(t.scope, client.id),
   ]);
+  const reachability = evidence ? assessReachability(evidence) : null;
   return {
     client,
     services,
     coveredIds: coverage.map((c) => c.serviceId),
     lastCapturedAt: evidence?.capturedAt ?? null,
+    lastScanReached: reachability?.reached ?? null,
+    lastScanReason: reachability?.reason ?? null,
     opportunityCount: opportunities.filter(
       (o) => o.billableStatus === "billable" && (o.status === "new" || o.status === "proposal_prepared"),
     ).length,
@@ -40,13 +45,12 @@ export async function action({ params, request, context }: Route.ActionArgs) {
   const intent = String(form.get("intent") ?? "");
 
   if (intent === "save") {
+    const checked = checkClientDomain(String(form.get("domain") ?? existing.domain));
+    if (!checked.ok) return { ok: false as const, error: checked.error! };
     const updated = ClientSchema.parse({
       id: existing.id,
       name: String(form.get("name") ?? existing.name).trim(),
-      domain: String(form.get("domain") ?? existing.domain)
-        .trim()
-        .replace(/^https?:\/\//, "")
-        .replace(/\/+$/, ""),
+      domain: checked.domain,
       offerings: String(form.get("offerings") ?? "")
         .split("\n")
         .map((s) => s.trim())
@@ -69,7 +73,14 @@ export async function action({ params, request, context }: Route.ActionArgs) {
 
   if (intent === "analyze") {
     try {
-      await runAnalysis(t.scope, context.cloudflare.env as never, existing.id);
+      const result = await runAnalysis(t.scope, context.cloudflare.env as never, existing.id);
+      // A run that never reached the site must not look like a clean scan.
+      if (!result.reachability.reached) {
+        return {
+          ok: false as const,
+          error: `The website could not be read, so nothing was checked. ${result.reachability.reason}`,
+        };
+      }
       return redirect("/opportunities");
     } catch (err) {
       const error =
@@ -86,7 +97,8 @@ export async function action({ params, request, context }: Route.ActionArgs) {
 }
 
 export default function ClientDetail({ loaderData, actionData }: Route.ComponentProps) {
-  const { client, services, coveredIds, lastCapturedAt, opportunityCount } = loaderData;
+  const { client, services, coveredIds, lastCapturedAt, opportunityCount, lastScanReached, lastScanReason } =
+    loaderData;
   const navigation = useNavigation();
   const busy = navigation.state !== "idle";
 
@@ -126,11 +138,25 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
             <h2>Website analysis</h2>
             <p className="muted">Scan the site for evidence-backed opportunities you can review with the client.</p>
           </div>
-          <span className={lastCapturedAt ? "status proposal" : "status"}>{lastCapturedAt ? "Scanned" : "Not scanned"}</span>
+          <span
+            className={
+              !lastCapturedAt ? "status" : lastScanReached ? "status proposal" : "status dismissed"
+            }
+          >
+            {!lastCapturedAt ? "Not scanned" : lastScanReached ? "Scanned" : "Unreachable"}
+          </span>
         </div>
+        {lastCapturedAt && !lastScanReached && (
+          <div className="notice err" role="alert">
+            <Icon name="x" size={17} />
+            <span>{lastScanReason}</span>
+          </div>
+        )}
         <div className="row-actions">
           <span className="cell-muted">
-            {lastCapturedAt ? "Last scanned " + formatDate(lastCapturedAt, true) : "No analysis has been run yet"}
+            {lastCapturedAt
+              ? (lastScanReached ? "Last scanned " : "Last attempted ") + formatDate(lastCapturedAt, true)
+              : "No analysis has been run yet"}
           </span>
           {opportunityCount > 0 && (
             <Link className="btn btn-quiet btn-sm" to="/opportunities">

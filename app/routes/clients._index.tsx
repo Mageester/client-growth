@@ -2,8 +2,10 @@ import { Form, Link } from "react-router";
 import { useState } from "react";
 
 import { ClientSchema } from "@/core/schema";
+import { assessReachability } from "@/core/reachability";
 import * as repo from "@/db/repositories";
 import { formatDate, getInitials, Icon } from "../components/ui";
+import { checkClientDomain } from "../lib/clientDomain";
 import { requireTenant } from "../lib/session.server";
 import type { Route } from "./+types/clients._index";
 
@@ -32,6 +34,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       return {
         ...client,
         lastCapturedAt: evidence?.capturedAt ?? null,
+        lastScanReached: evidence ? assessReachability(evidence).reached : null,
         opportunityCount: opportunities.filter(
           (opp) =>
             opp.billableStatus === "billable" &&
@@ -47,11 +50,10 @@ export async function action({ request, context }: Route.ActionArgs) {
   const t = await requireTenant(request, context);
   const form = await request.formData();
   const name = String(form.get("name") ?? "").trim();
-  const domain = String(form.get("domain") ?? "")
-    .trim()
-    .replace(/^https?:\/\//, "")
-    .replace(/\/+$/, "");
-  if (!name || !domain) return { ok: false as const, error: "Name and domain are required." };
+  if (!name) return { ok: false as const, error: "Name and domain are required." };
+  const checked = checkClientDomain(String(form.get("domain") ?? ""));
+  if (!checked.ok) return { ok: false as const, error: checked.error! };
+  const domain = checked.domain;
 
   const offerings = String(form.get("offerings") ?? "")
     .split("\n")
@@ -145,8 +147,12 @@ export default function ClientsIndex({ loaderData, actionData }: Route.Component
                     </td>
                     <td><span className="cell-secondary">{client.offerings.length} listed</span></td>
                     <td>
-                      <span className={lastCapturedAt ? "cell-secondary" : "cell-muted"}>
-                        {lastCapturedAt ? formatDate(lastCapturedAt) : "Not analyzed"}
+                      <span className={lastCapturedAt && client.lastScanReached ? "cell-secondary" : "cell-muted"}>
+                        {!lastCapturedAt
+                          ? "Not analyzed"
+                          : client.lastScanReached
+                            ? formatDate(lastCapturedAt)
+                            : "Site unreachable"}
                       </span>
                     </td>
                     <td>

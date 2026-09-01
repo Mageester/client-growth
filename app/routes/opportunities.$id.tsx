@@ -1,6 +1,7 @@
 import { Form, Link, redirect, useNavigation } from "react-router";
 
 import * as repo from "@/db/repositories";
+import { describeEvidenceRef } from "@/core/evidenceRef";
 import { generateProposalDraft } from "@/core/proposal";
 import { formatCurrencyRange, formatDate, Icon } from "../components/ui";
 import { requireTenant } from "../lib/session.server";
@@ -74,6 +75,7 @@ export async function action({ params, request, context }: Route.ActionArgs) {
 
 function statusLabel(opp: Awaited<ReturnType<typeof loader>>["opportunity"]) {
   if (opp.status === "proposal_prepared") return { label: "Proposal ready", tone: "proposal" };
+  if (opp.status === "resolved") return { label: "Resolved", tone: "covered" };
   if (opp.status === "dismissed") return { label: "Dismissed", tone: "dismissed" };
   if (opp.status === "snoozed") return { label: "Snoozed", tone: "snoozed" };
   if (opp.billableStatus === "already_covered" || opp.status === "already_covered") {
@@ -155,11 +157,19 @@ export default function OpportunityDetail({ loaderData }: Route.ComponentProps) 
         </div>
         {pageRefs.length > 0 ? (
           <ul className="evidence-list">
-            {pageRefs.map((ref) => (
-              <li key={ref}>
-                <a href={ref} target="_blank" rel="noreferrer">{ref}</a>
-              </li>
-            ))}
+            {pageRefs.map((ref) => {
+              const { label, value, href } = describeEvidenceRef(ref);
+              return (
+                <li key={ref}>
+                  {label && <span className="cell-muted">{label}: </span>}
+                  {href ? (
+                    <a href={href} target="_blank" rel="noreferrer">{value}</a>
+                  ) : (
+                    <span>{value}</span>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         ) : (
           <p className="muted">No page references were stored for this opportunity.</p>

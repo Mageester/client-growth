@@ -233,6 +233,12 @@ export const OpportunityStatusSchema = z.enum([
   "dismissed",
   "already_covered",
   "snoozed",
+  /**
+   * Previously surfaced, but the latest analysis that could actually see the
+   * site no longer detects it (the client fixed the defect, or published the
+   * page). Kept for history; never counted as active billable work.
+   */
+  "resolved",
 ]);
 export type OpportunityStatus = z.infer<typeof OpportunityStatusSchema>;
 

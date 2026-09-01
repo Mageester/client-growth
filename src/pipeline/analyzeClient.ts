@@ -11,6 +11,7 @@ import type {
 } from "@/core/schema";
 import { runRules } from "@/core/rules";
 import { assessServiceCoverage, type CoverageAssessment } from "@/core/absenceVerification";
+import { assessReachability, type SiteReachability } from "@/core/reachability";
 import { passesEvidenceThreshold } from "@/core/threshold";
 import { resolveBillability } from "@/core/billability";
 import { dedupeKey } from "@/core/dedupe";
@@ -57,6 +58,13 @@ export interface AnalyzeClientStats {
   evaluatorErrors: number;
   surfaced: number;
   aiCalls: number;
+  /**
+   * Candidates that were never evaluated because the per-run evaluator budget
+   * ran out. They are neither surfaced nor suppressed — they are simply unseen.
+   */
+  skippedForAiBudget: number;
+  /** Previously surfaced opportunities this run no longer detects. */
+  resolved: number;
 }
 
 export interface AnalyzeClientResult {
@@ -64,6 +72,11 @@ export interface AnalyzeClientResult {
   opportunities: Opportunity[];
   /** Kept but not resurfaced: covered, dismissed, or actively snoozed. */
   suppressed: Opportunity[];
+  /**
+   * Previously surfaced opportunities the site no longer exhibits, marked
+   * `resolved`. Only ever populated when the run actually reached the site.
+   */
+  resolved: Opportunity[];
   /** The evidence the run was based on (for caching and display). */
   evidence: EvidenceBundle;
   /**
@@ -72,6 +85,11 @@ export interface AnalyzeClientResult {
    * missing.
    */
   coverage: CoverageAssessment;
+  /**
+   * Whether the site was actually reached. A run that reached nothing must not
+   * be reported as "no opportunities found".
+   */
+  reachability: SiteReachability;
   stats: AnalyzeClientStats;
 }
 
@@ -110,9 +128,12 @@ export async function analyzeClient(
     evaluatorErrors: 0,
     surfaced: 0,
     aiCalls: 0,
+    skippedForAiBudget: 0,
+    resolved: 0,
   };
 
   const evidence = await input.evidenceProvider.getEvidence(input.client);
+  const reachability = assessReachability(evidence);
 
   // 0. crawl service-coverage assessment. This gates missing-service-page (it
   //    must not claim a page is missing from a crawl that never reached the
@@ -185,7 +206,10 @@ export async function analyzeClient(
   // 5. evaluator runs only for remaining billable candidates, capped
   const opportunities: Opportunity[] = [];
   for (const { candidate, billableStatus, prior } of pending) {
-    if (stats.aiCalls >= maxAiCalls) break;
+    if (stats.aiCalls >= maxAiCalls) {
+      stats.skippedForAiBudget++;
+      continue;
+    }
     stats.aiCalls++;
     stats.evaluated++;
 
@@ -228,5 +252,27 @@ export async function analyzeClient(
   }
   stats.surfaced = opportunities.length;
 
-  return { opportunities, suppressed, evidence, coverage, stats };
+  // 6. Resolution. A prior opportunity that this run no longer detects has most
+  //    likely been fixed by the client. It must stop being counted as active
+  //    billable work — but ONLY when the run could actually see the site, and
+  //    only when the candidate was genuinely absent rather than merely unseen
+  //    (evaluator error, or the AI budget running out).
+  const resolved: Opportunity[] = [];
+  if (reachability.reached && stats.evaluatorErrors === 0 && stats.skippedForAiBudget === 0) {
+    // Use every candidate the rules produced, not just those that cleared the
+    // evidence threshold: "still detected but thin" is not "fixed".
+    const stillDetected = new Set<string>([
+      ...candidates.map((c) => dedupeKey(input.client.id, c.ruleId, c.subject)),
+      ...suppressed.map((o) => o.dedupeKey),
+      ...opportunities.map((o) => o.dedupeKey),
+    ]);
+    for (const prior of input.existing ?? []) {
+      if (prior.status !== "new" && prior.status !== "proposal_prepared") continue;
+      if (stillDetected.has(prior.dedupeKey)) continue;
+      resolved.push({ ...prior, status: "resolved", updatedAt: now.toISOString() });
+    }
+  }
+  stats.resolved = resolved.length;
+
+  return { opportunities, suppressed, resolved, evidence, coverage, reachability, stats };
 }

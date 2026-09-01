@@ -34,6 +34,7 @@ function confidenceTone(confidence: number): "high" | "medium" | "low" {
 
 function statusLabel(opp: Opportunity): { label: string; tone: string } {
   if (opp.status === "proposal_prepared") return { label: "Proposal ready", tone: "proposal" };
+  if (opp.status === "resolved") return { label: "Resolved", tone: "covered" };
   if (opp.status === "dismissed") return { label: "Dismissed", tone: "dismissed" };
   if (opp.status === "snoozed") return { label: "Snoozed", tone: "snoozed" };
   if (opp.billableStatus === "already_covered" || opp.status === "already_covered") {
@@ -77,6 +78,8 @@ export async function action({ request, context }: Route.ActionArgs) {
       clientId,
       stats: result.stats,
       surfaced: result.opportunities.length,
+      reached: result.reachability.reached,
+      reachReason: result.reachability.reason,
     };
   } catch (err) {
     const error =
@@ -148,13 +151,29 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
         )}
       </div>
 
-      {actionData?.ok && (
+      {actionData?.ok && !actionData.reached && (
+        <div className="notice err" role="alert">
+          <Icon name="x" size={17} />
+          <span>
+            Analysis could not read this client&rsquo;s website, so nothing was checked.{" "}
+            {actionData.reachReason}
+          </span>
+        </div>
+      )}
+      {actionData?.ok && actionData.reached && (
         <div className="notice ok" role="status">
           <Icon name="check" size={17} />
           <span>
             Analysis complete — {actionData.surfaced} surfaced from {actionData.stats.candidates}{" "}
             candidates. {actionData.stats.aiCalls} evaluator call
             {actionData.stats.aiCalls === 1 ? "" : "s"} made.
+            {actionData.stats.resolved > 0
+              ? ` ${actionData.stats.resolved} previously surfaced opportunit${
+                  actionData.stats.resolved === 1 ? "y is" : "ies are"
+                } no longer present and ${
+                  actionData.stats.resolved === 1 ? "was" : "were"
+                } marked resolved.`
+              : ""}
           </span>
         </div>
       )}

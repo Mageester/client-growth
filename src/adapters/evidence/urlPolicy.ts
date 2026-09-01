@@ -211,8 +211,11 @@ export function normalizeOrigin(domain: string): UrlPolicyResult {
   }
 
   // Preserve an explicit scheme so file:/, ftp:/, javascript:, and custom
-  // schemes are rejected by the same policy as every other user URL.
-  const hasExplicitScheme = /^[a-z][a-z0-9+.-]*:/i.test(trimmed);
+  // schemes are rejected by the same policy as every other user URL. A bare
+  // "host:port" ("example.com:8443") is NOT a scheme: a scheme is followed by
+  // "//" or by something other than a bare port number.
+  const hasExplicitScheme =
+    /^[a-z][a-z0-9+.-]*:/i.test(trimmed) && !/^[a-z][a-z0-9+.-]*:\d+(?:[/?#]|$)/i.test(trimmed);
   const candidate = hasExplicitScheme ? trimmed : `https://${trimmed}`;
   return normalizeAndValidateUrl(candidate);
 }

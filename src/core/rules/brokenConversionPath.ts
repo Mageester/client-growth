@@ -274,6 +274,7 @@ export async function brokenConversionPathRule(ctx: RuleContext): Promise<Candid
         pageUrl: target,
         elementText: `${intent} page`,
         elementHref: target,
+        target,
         observedStatus: page.status,
         seenOn: [target],
         note: `${intent} page returns HTTP ${page.status} (confirmed)`,
@@ -325,8 +326,13 @@ function toCandidate(d: ConversionDefect, serviceId: string): Candidate {
         : `The "${d.elementText}" conversion button on ${d.pageUrl} points to an unconfigured placeholder URL (${d.target}).${also}`;
   }
 
+  // The defective element's own href IS primary evidence — for a malformed
+  // tel: link it is the entire finding. Omitting it meant a genuinely broken
+  // click-to-call CTA that happened to appear on only one page cited a single
+  // ref and was silently dropped by the evidence threshold.
   const evidenceRefs = [
     ...d.seenOn.map((u) => `page:${u}`),
+    ...(d.elementHref ? [`element:${d.elementHref}`] : []),
     ...(d.target ? [`target:${d.target}`] : []),
     ...(d.observedStatus !== undefined ? [`status:${d.observedStatus}`] : []),
   ];

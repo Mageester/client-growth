@@ -1,4 +1,5 @@
 import type { Client, Opportunity, Service } from "@/core/schema";
+import { formatEvidenceRef } from "@/core/evidenceRef";
 
 export interface ProposalInputs {
   opportunity: Opportunity;
@@ -23,7 +24,7 @@ export function generateProposalDraft({ opportunity, client, service }: Proposal
   const evidenceLines = opportunity.evidenceRefs
     .filter((ref) => !ref.startsWith("nav:"))
     .slice(0, 12)
-    .map((ref) => `- ${ref}`);
+    .map((ref) => `- ${formatEvidenceRef(ref)}`);
   const navRefs = opportunity.evidenceRefs
     .filter((ref) => ref.startsWith("nav:"))
     .map((ref) => ref.slice(4));

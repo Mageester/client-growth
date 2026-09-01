@@ -45,8 +45,23 @@ export async function action({ request, context }: Route.ActionArgs) {
       return { ok: false as const, error: "Price range is invalid." };
     }
     const idInput = String(form.get("id") ?? "").trim();
+    // Creating: the slug is derived from the name, so two services whose names
+    // slug the same ("Landing Page" / "landing page", or any two names sharing
+    // a 40-character prefix) used to collide and silently overwrite the first.
+    // Editing: keep the row's existing id and its active flag.
+    let id = idInput;
+    let active = true;
+    if (idInput) {
+      active = (await repo.getService(t.scope, idInput))?.active ?? true;
+    } else {
+      const base = slugId(name);
+      id = base;
+      for (let n = 2; (await repo.getService(t.scope, id)) !== null; n++) {
+        id = `${base}-${n}`;
+      }
+    }
     const service = ServiceSchema.parse({
-      id: idInput || slugId(name),
+      id,
       name,
       description: String(form.get("description") ?? "").trim(),
       priceMin,
@@ -55,7 +70,7 @@ export async function action({ request, context }: Route.ActionArgs) {
         .split(",")
         .map((tag) => tag.trim())
         .filter(Boolean),
-      active: true,
+      active,
     });
     await repo.upsertService(t.scope, service);
     return { ok: true as const, message: idInput ? "Service changes saved." : "Service added." };

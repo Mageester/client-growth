@@ -51,13 +51,23 @@ Three layers, kept deliberately separate:
 ## Pipeline order (cost control is structural)
 
 ```
+reachability check             (did we actually read the site? if not, claim nothing)
 crawl service-coverage gate    (missing-service-page only; claim nothing from a thin crawl)
 deterministic rules            (missing-service-page, broken-conversion-path)
   -> evidence threshold        (drop thin candidates before any spend)
   -> resolve billability       (is the mapped service already covered?)
   -> suppress                  (prior dismiss/cover/snooze, or covered work)
   -> ONLY THEN call the evaluator
+  -> reconcile                 (a defect the site no longer shows is marked resolved)
 ```
+
+A run that could not read the site is reported as a failure, never as "nothing
+found" — the two are indistinguishable in the output otherwise, and only one of
+them means there is no work to sell. Nothing is marked resolved from such a run.
+
+Client domains are validated on entry against the same URL policy the crawler
+uses, so a value that could never be analyzed is rejected where the agency can
+see it rather than failing silently inside a later scan.
 
 `AI_PROVIDER` defaults to `mock`. Nothing costs money unless the environment opts in.
 
@@ -65,7 +75,7 @@ deterministic rules            (missing-service-page, broken-conversion-path)
 
 ```bash
 pnpm install
-pnpm test                 # 140 tests — zero network, zero paid calls
+pnpm test                 # 262 tests — zero network, zero paid calls
 pnpm typecheck            # react-router typegen && tsc
 pnpm build                # react-router build -> build/client + build/server
 
@@ -114,6 +124,9 @@ pnpm deploy:production
 - **Rule #2** `broken-conversion-path` — V0 complete (dead CTA / broken form / malformed `tel:` / placeholder booking link, all deterministically established before AI).
 - **Multi-tenancy** — Better Auth + per-workspace isolation enforced at the repo
   and DB level; aggressive isolation test matrix (repo + route/HTTP + unauthenticated).
+- **Re-analysis** — an opportunity the site no longer exhibits is marked
+  `resolved` and stops counting as active billable work; agency decisions
+  (dismissed / covered / snoozed) are never overwritten by a re-run.
 - **Password reset** — Better Auth token/session behavior, enumeration-safe
   routes, and Worker-compatible Resend transport implemented; live Worker + D1
   + Resend smoke remains required before an external pilot.
