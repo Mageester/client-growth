@@ -1,7 +1,7 @@
 import { Form, useNavigation } from "react-router";
 
 import { renameWorkspace } from "@/db/workspaces";
-import { Icon } from "../components/ui";
+import { AxiomCredit, Icon } from "../components/ui";
 import { requireTenant } from "../lib/session.server";
 import type { Route } from "./+types/settings";
 
@@ -102,6 +102,19 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
             </button>
           </Form>
         </div>
+      </section>
+
+      <section className="section">
+        <div className="section-head">
+          <div>
+            <h2 className="title-section">About</h2>
+            <p>
+              Client Growth watches the websites of the clients you already look after and surfaces
+              evidence-backed work worth bringing up.
+            </p>
+          </div>
+        </div>
+        <AxiomCredit />
       </section>
     </div>
   );

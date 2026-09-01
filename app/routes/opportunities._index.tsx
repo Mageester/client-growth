@@ -17,6 +17,7 @@ import {
 import { buildEvidenceCase } from "../lib/evidence";
 import {
   AnalysisBanner,
+  AnalysisRunning,
   EmptyState,
   EvidenceStrip,
   Icon,
@@ -101,6 +102,9 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
     navigation.state === "submitting"
       ? (navigation.formData?.get("clientId")?.toString() ?? null)
       : null;
+
+  const analyzingClient =
+    groups.find((group) => group.client.id === analyzingId) ?? null;
 
   const rawFilter = params.get("show");
   const filter: FeedFilter =
@@ -200,7 +204,13 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
         </p>
       </PageHead>
 
-      {actionData?.ok && (
+      {analyzingClient && (
+        <AnalysisRunning
+          clientName={analyzingClient.client.name}
+          domain={analyzingClient.client.domain}
+        />
+      )}
+      {!analyzingClient && actionData?.ok && (
         <AnalysisBanner
           outcome={actionData.outcome}
           summary={actionData.summary}
@@ -210,7 +220,7 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
           }
         />
       )}
-      {actionData && !actionData.ok && (
+      {!analyzingClient && actionData && !actionData.ok && (
         <div className="notice err" role="alert">
           <Icon name="alert" size={15} />
           <span>{actionData.error}</span>

@@ -83,6 +83,30 @@ describe("evidence case", () => {
     expect(result.primary.length + result.secondary.length).toBeGreaterThanOrEqual(9);
   });
 
+  it("does not list the defect page again as a generic evidence ref", () => {
+    const result = buildEvidenceCase(
+      opp({
+        ruleId: "broken-conversion-path",
+        evidenceRefs: ["https://acme.example/", "https://acme.example/contact"],
+        conversionDefect: {
+          kind: "dead-conversion-link",
+          pageUrl: "https://acme.example/",
+          elementText: "Book now",
+          elementHref: "/book",
+          target: "https://acme.example/book",
+          observedStatus: 404,
+          seenOn: ["https://acme.example/"],
+          note: "",
+        },
+      }),
+    );
+    const all = [...result.primary, ...result.secondary];
+    const urls = all.map((item) => item.url).filter(Boolean);
+    expect(new Set(urls).size).toBe(urls.length);
+    // The defect framing survives; the plain duplicate is the one dropped.
+    expect(all.find((item) => item.url === "https://acme.example/")?.kind).toBe("defect");
+  });
+
   it("never repeats the same URL twice", () => {
     const result = buildEvidenceCase(
       opp({
@@ -101,7 +125,34 @@ describe("evidence case", () => {
     expect(new Set(urls).size).toBe(urls.length);
   });
 
-  it("explains the near-misses that were ruled out", () => {
+  it("explains a near-miss on a page that was not otherwise listed", () => {
+    const result = buildEvidenceCase(
+      opp({
+        verification: {
+          conclusion: "absent",
+          inspectedUrls: ["https://acme.example/services"],
+          closeMatches: [
+            {
+              where: "heading",
+              value: "Heating & cooling",
+              url: "https://acme.example/heating",
+              score: 0.4,
+              satisfied: false,
+              reason: "covers furnaces, never heat pumps",
+            },
+          ],
+          reason: "",
+        },
+      }),
+    );
+    const nearMiss = result.secondary.find((item) => item.kind === "near-miss");
+    expect(nearMiss?.title).toBe("Heating & cooling");
+    expect(nearMiss?.note).toContain("Heading on the site");
+    expect(nearMiss?.note).toContain("never heat pumps");
+    expect(result.headline).toContain("ruled out");
+  });
+
+  it("folds a near-miss into the page it names instead of listing that page twice", () => {
     const result = buildEvidenceCase(
       opp({
         verification: {
@@ -121,11 +172,15 @@ describe("evidence case", () => {
         },
       }),
     );
-    const nearMiss = result.secondary.find((item) => item.kind === "near-miss");
-    expect(nearMiss?.title).toBe("Heating & cooling");
-    expect(nearMiss?.note).toContain("Heading on the site");
-    expect(nearMiss?.note).toContain("never heat pumps");
-    expect(result.headline).toContain("ruled out");
+    const all = [...result.primary, ...result.secondary];
+    const urls = all.map((item) => item.url).filter(Boolean);
+    expect(new Set(urls).size).toBe(urls.length);
+
+    // The page is listed once, and the reasoning is not lost to deduplication.
+    const page = all.find((item) => item.url === "https://acme.example/services");
+    expect(page).toBeDefined();
+    expect(page!.note).toContain("Heating & cooling");
+    expect(page!.note).toContain("never heat pumps");
   });
 
   it("groups navigation labels into one readable statement, not one row each", () => {

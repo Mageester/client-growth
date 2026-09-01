@@ -2167,6 +2167,38 @@ a.record:hover .record-name {
   background: var(--warn-wash);
 }
 
+.runcard.running {
+  border-color: var(--line-strong);
+}
+
+.runbar {
+  display: block;
+  overflow: hidden;
+  width: min(100%, 22rem);
+  height: 2px;
+  margin-top: 0.7rem;
+  border-radius: 2px;
+  background: var(--raised-strong);
+}
+
+.runbar > span {
+  display: block;
+  width: 38%;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--ink-3);
+  animation: runbar 1.5s var(--ease-premium) infinite;
+}
+
+@keyframes runbar {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(365%);
+  }
+}
+
 .runcard-mark {
   display: inline-flex;
   align-items: center;
@@ -2981,6 +3013,18 @@ a.ev-title:hover {
     text-align: left;
   }
 
+  /* Laid out as a row the next-action line competes with the button it
+     describes, so the button label carries it alone. */
+  .finding-next {
+    display: none;
+  }
+
+  /* One long client name must not crowd every other client out of the
+     horizontal rail. */
+  .rail-item-name {
+    max-width: 12rem;
+  }
+
   .finding-side .btn {
     width: auto;
     margin-top: 0;
@@ -3217,6 +3261,10 @@ a.ev-title:hover {
     min-height: 34px;
   }
 
+  .chip {
+    min-height: 32px;
+  }
+
   .menu-item {
     min-height: 42px;
   }
@@ -3253,9 +3301,6 @@ a.ev-title:hover {
     display: none;
   }
 
-  .rail-item-name {
-    max-width: 11rem;
-  }
 }
 
 /* Coarse pointers get real hit areas on the shell controls too. */

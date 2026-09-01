@@ -657,3 +657,30 @@ export function AxiomCredit({ className = "" }: { className?: string }) {
     </a>
   );
 }
+
+/**
+ * Shown while an analysis request is in flight.
+ *
+ * The crawl runs inside one request, so there is no real progress to report.
+ * Rather than fake a step-by-step bar, this states what the run is doing and
+ * roughly how long it takes, and announces itself to assistive technology.
+ */
+export function AnalysisRunning({ clientName, domain }: { clientName: string; domain?: string }) {
+  return (
+    <div className="runcard running" role="status" aria-live="polite">
+      <span className="runcard-mark">
+        <Icon name="refresh" size={15} className="spin" />
+      </span>
+      <div className="runcard-body">
+        <p className="runcard-title">Reading {clientName}</p>
+        <p className="runcard-summary">
+          Fetching pages from {domain ?? "the site"}, then checking every offering against what the
+          site actually shows. This usually takes a few seconds.
+        </p>
+        <span className="runbar" aria-hidden="true">
+          <span />
+        </span>
+      </div>
+    </div>
+  );
+}

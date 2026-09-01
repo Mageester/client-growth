@@ -14,6 +14,7 @@ import {
 } from "../lib/portfolio";
 import {
   AnalysisBanner,
+  AnalysisRunning,
   EmptyState,
   Fact,
   Icon,
@@ -228,7 +229,8 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
         </dl>
       </header>
 
-      {actionData && "run" in actionData && actionData.run && (
+      {analyzing && <AnalysisRunning clientName={client.name} domain={client.domain} />}
+      {!analyzing && actionData && "run" in actionData && actionData.run && (
         <AnalysisBanner
           outcome={actionData.run.outcome}
           summary={actionData.run.summary}
@@ -242,20 +244,20 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
           )}
         </AnalysisBanner>
       )}
-      {actionData && actionData.ok && "message" in actionData && actionData.message && (
+      {!analyzing && actionData && actionData.ok && "message" in actionData && actionData.message && (
         <div className="notice ok" role="status">
           <Icon name="check" size={15} />
           <span>{actionData.message}</span>
         </div>
       )}
-      {actionData && !actionData.ok && (
+      {!analyzing && actionData && !actionData.ok && (
         <div className="notice err" role="alert">
           <Icon name="alert" size={15} />
           <span>{actionData.error}</span>
         </div>
       )}
 
-      {!actionData && firstRunFailed && (
+      {!analyzing && !actionData && firstRunFailed && (
         <div className="notice err" role="alert">
           <Icon name="alert" size={15} />
           <span>
@@ -265,7 +267,7 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
         </div>
       )}
 
-      {!actionData && !firstRunFailed && latest?.outcome === "inconclusive" && (
+      {!analyzing && !actionData && !firstRunFailed && latest?.outcome === "inconclusive" && (
         <AnalysisBanner
           outcome="inconclusive"
           summary={latest.summary}

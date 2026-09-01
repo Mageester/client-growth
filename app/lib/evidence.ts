@@ -115,20 +115,35 @@ function defectItem(defect: ConversionDefect): EvidenceItem {
 }
 
 /**
- * Build the readable case. Ordering is deliberate: the concrete defect first
- * (it is the strongest single fact), then pages actually fetched to confirm,
- * then the near-misses that were considered and ruled out, then navigation.
+ * Build the readable case.
+ *
+ * Ordering is deliberate: the concrete defect first (it is the strongest single
+ * fact), then pages actually fetched to confirm, then the near-misses that were
+ * considered and ruled out, then navigation.
+ *
+ * One URL appears at most once. When the same page is both fetched and a
+ * near-miss, the near-miss reasoning is merged into that page's note rather than
+ * dropped — losing "and here is why it did not count" would weaken the case,
+ * while repeating the URL would make curated provenance look like a log dump.
  */
 export function buildEvidenceCase(opp: Opportunity): EvidenceCase {
   const primary: EvidenceItem[] = [];
   const secondary: EvidenceItem[] = [];
-  const seen = new Set<string>();
+  const byUrl = new Map<string, EvidenceItem>();
+  const seenLabels = new Set<string>();
 
-  const push = (bucket: EvidenceItem[], item: EvidenceItem) => {
-    const key = item.kind + "|" + (item.url ?? item.title);
-    if (seen.has(key)) return;
-    seen.add(key);
+  const push = (bucket: EvidenceItem[], item: EvidenceItem): EvidenceItem | null => {
+    if (item.url) {
+      const existing = byUrl.get(item.url);
+      if (existing) return existing;
+      byUrl.set(item.url, item);
+    } else {
+      const key = item.kind + "|" + item.title;
+      if (seenLabels.has(key)) return null;
+      seenLabels.add(key);
+    }
     bucket.push(item);
+    return item;
   };
 
   if (opp.conversionDefect) push(primary, defectItem(opp.conversionDefect));
@@ -155,12 +170,20 @@ export function buildEvidenceCase(opp: Opportunity): EvidenceCase {
   }
 
   for (const match of verification?.closeMatches ?? []) {
-    push(secondary, {
+    const note = `${WHERE_LABEL[match.where]} — ${match.reason}`;
+    const item: EvidenceItem = {
       title: match.value || WHERE_LABEL[match.where],
       url: match.url ?? null,
-      note: `${WHERE_LABEL[match.where]} — ${match.reason}`,
+      note,
       kind: match.where === "sitemap-url" ? "sitemap" : "near-miss",
-    });
+    };
+    const existing = push(secondary, item);
+    // The URL was already listed: keep the page in place and fold this
+    // near-miss's reasoning into it, so no reasoning is lost to deduplication.
+    if (existing && existing !== item) {
+      const detail = `“${item.title}” — ${match.reason}`;
+      if (!existing.note.includes(detail)) existing.note = `${existing.note} ${detail}`;
+    }
   }
 
   const navRefs = opp.evidenceRefs
@@ -171,20 +194,16 @@ export function buildEvidenceCase(opp: Opportunity): EvidenceCase {
     push(secondary, {
       title: navRefs.join(" · "),
       url: null,
-      note: `Site navigation was checked for this offering and did not list it.`,
+      note: "Site navigation was checked for this offering and did not list it.",
       kind: "nav",
     });
   }
 
-  const inspectedCount = new Set(
-    [...inspected, ...pageRefs, ...(opp.conversionDefect ? [opp.conversionDefect.pageUrl] : [])],
-  ).size;
-
   return {
-    headline: headlineFor(opp, inspectedCount, verification),
+    headline: headlineFor(opp, byUrl.size, verification),
     primary: primary.slice(0, 4),
     secondary: [...primary.slice(4), ...secondary],
-    inspectedCount,
+    inspectedCount: byUrl.size,
   };
 }
 
