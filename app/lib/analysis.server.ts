@@ -69,7 +69,11 @@ export async function runAnalysis(
   });
 
   await repo.saveEvidence(t, result.evidence);
-  await repo.saveAnalysis(t, [...result.opportunities, ...result.suppressed]);
+  await repo.saveAnalysis(t, [
+    ...result.opportunities,
+    ...result.suppressed,
+    ...result.resolved,
+  ]);
   await repo.recordAnalysisRun(t, {
     clientId,
     startedAt,

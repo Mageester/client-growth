@@ -56,6 +56,8 @@ export interface AnalyzeClientStats {
   rejectedByEvaluator: number;
   /** Evaluator threw (unreachable provider, malformed output). Failed closed. */
   evaluatorErrors: number;
+  /** Previously-open findings this run re-checked and no longer sees. */
+  resolved: number;
   surfaced: number;
   aiCalls: number;
 }
@@ -65,6 +67,11 @@ export interface AnalyzeClientResult {
   opportunities: Opportunity[];
   /** Kept but not resurfaced: covered, dismissed, or actively snoozed. */
   suppressed: Opportunity[];
+  /**
+   * Previously-open findings this run re-checked and no longer sees — the client
+   * fixed them. Empty whenever the run was not in a position to tell.
+   */
+  resolved: Opportunity[];
   /** The evidence the run was based on (for caching and display). */
   evidence: EvidenceBundle;
   /**
@@ -115,6 +122,7 @@ export async function analyzeClient(
     evaluated: 0,
     rejectedByEvaluator: 0,
     evaluatorErrors: 0,
+    resolved: 0,
     surfaced: 0,
     aiCalls: 0,
   };
@@ -237,12 +245,90 @@ export async function analyzeClient(
   }
   stats.surfaced = opportunities.length;
 
+  const catalogCoverage = assessCatalogCoverage(input.catalog);
+  const resolved = reconcileResolved({
+    clientId: input.client.id,
+    existing: input.existing ?? [],
+    candidates,
+    catalogCoverage,
+    analyzable: coverage.analyzable,
+    evidence,
+    stats,
+    maxAiCalls,
+    now,
+  });
+  stats.resolved = resolved.length;
+
   return {
     opportunities,
     suppressed,
+    resolved,
     evidence,
     coverage,
-    catalogCoverage: assessCatalogCoverage(input.catalog),
+    catalogCoverage,
     stats,
   };
+}
+
+/**
+ * Close out findings the client has actually fixed.
+ *
+ * Re-analysis only ever upserted what it found, so a repaired 404 CTA stayed
+ * `new` and `billable` forever: it kept counting toward the client's open
+ * opportunities and toward "estimated potential value", and the agency had no
+ * way to tell a live gap from one they had already talked the client through.
+ *
+ * The dangerous version of this is a run that resolves everything because it
+ * could not look. So a rule's findings are only eligible when THAT rule
+ * demonstrably ran and completed this time:
+ *
+ *   - the catalog still matches it (a deactivated service means it never ran);
+ *   - for missing-service-page, the crawl reached the service section;
+ *   - the site was actually readable;
+ *   - no evaluator error and no call-cap truncation left candidates unjudged.
+ *
+ * Presence is tested against ALL candidates, before the evidence threshold, so a
+ * defect whose evidence merely got thinner is not mistaken for one that is gone.
+ * Agency decisions are never overwritten — a dismissed or covered finding stays
+ * exactly as the agency left it.
+ */
+function reconcileResolved(input: {
+  clientId: string;
+  existing: Opportunity[];
+  candidates: Candidate[];
+  catalogCoverage: CatalogCoverage;
+  analyzable: boolean;
+  evidence: EvidenceBundle;
+  stats: AnalyzeClientStats;
+  maxAiCalls: number;
+  now: Date;
+}): Opportunity[] {
+  const readSomething = input.evidence.site.pages.some(
+    (page) => page.status >= 200 && page.status < 300 && page.wordCount > 0,
+  );
+  const complete =
+    input.stats.evaluatorErrors === 0 && input.stats.aiCalls < input.maxAiCalls;
+  if (!readSomething || !complete) return [];
+
+  const ranThisTime = new Set<string>();
+  for (const rule of input.catalogCoverage.rules) {
+    if (rule.serviceId === null) continue;
+    if (rule.ruleId === "missing-service-page" && !input.analyzable) continue;
+    ranThisTime.add(rule.ruleId);
+  }
+  if (ranThisTime.size === 0) return [];
+
+  const stillPresent = new Set(
+    input.candidates.map((c) => dedupeKey(input.clientId, c.ruleId, c.subject)),
+  );
+
+  const resolved: Opportunity[] = [];
+  for (const opp of input.existing) {
+    if (opp.billableStatus !== "billable") continue;
+    if (opp.status !== "new" && opp.status !== "proposal_prepared") continue;
+    if (!ranThisTime.has(opp.ruleId)) continue;
+    if (stillPresent.has(opp.dedupeKey)) continue;
+    resolved.push({ ...opp, status: "resolved", updatedAt: input.now.toISOString() });
+  }
+  return resolved;
 }

@@ -143,7 +143,9 @@ describe("preparing a proposal", () => {
     expect(saved?.proposalMd).toContain("Client A");
   });
 
-  for (const status of ["dismissed", "snoozed", "already_covered"] as const) {
+  // "resolved" is set by a re-analysis that confirmed the client fixed the work.
+  // Drafting a proposal for it would put a price on work that no longer exists.
+  for (const status of ["dismissed", "snoozed", "already_covered", "resolved"] as const) {
     it(`refuses to draft for a ${status} finding and leaves its status alone`, async () => {
       await repo.saveAnalysis(scope, [opp({ status })]);
       const res = (await act("prepare-proposal")) as { error?: string };

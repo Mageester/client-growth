@@ -233,6 +233,12 @@ export const OpportunityStatusSchema = z.enum([
   "dismissed",
   "already_covered",
   "snoozed",
+  /**
+   * The client fixed it. Set only by a re-analysis that demonstrably re-checked
+   * this finding and no longer sees it — never by a run that could not look.
+   * Distinct from "dismissed", which is the agency deciding not to sell it.
+   */
+  "resolved",
 ]);
 export type OpportunityStatus = z.infer<typeof OpportunityStatusSchema>;
 
