@@ -105,4 +105,31 @@ describe("production Wrangler configuration", () => {
       ]),
     );
   });
+
+  it("rejects secret-like values from plaintext Wrangler vars", () => {
+    const config = JSON.parse(stripJsonComments(readFileSync(configPath, "utf8"))) as {
+      vars?: Record<string, string>;
+      env?: { production?: { vars?: Record<string, string> } };
+    };
+    config.vars = { ...config.vars, INTERNAL_TOKEN: "token-fixture" };
+    config.env = {
+      ...config.env,
+      production: {
+        ...config.env?.production,
+        vars: {
+          ...config.env?.production?.vars,
+          RESEND_API_KEY: "re_test_fixture",
+        },
+      },
+    };
+
+    const errors = validateProductionConfig(config);
+
+    expect(errors).toEqual(
+      expect.arrayContaining([
+        'root vars must not contain secret-like key "INTERNAL_TOKEN"; use a Wrangler secret binding',
+        'production vars must not contain secret-like key "RESEND_API_KEY"; use a Wrangler secret binding',
+      ]),
+    );
+  });
 });
