@@ -28,6 +28,8 @@ const surface = (confidence: number): Evaluation => ({
   confidence,
   rationale: "Worth raising with the client.",
   suggestedScope: ["Build the page"],
+  subjectType: "distinct_service",
+  commerciallyActionable: true,
 });
 
 /**
@@ -113,6 +115,43 @@ describe("evaluator judgment", () => {
     expect(result.opportunities).toHaveLength(3);
     expect(result.stats.rejectedByEvaluator).toBe(0);
   });
+
+  it("refuses to surface a subject the evaluator did not classify", async () => {
+    // Fail closed. An evaluator that answers "surface" without saying WHAT the
+    // subject is has not done the job the judgment layer exists for, so nothing
+    // reaches the client.
+    const result = await analyze(
+      evaluator(() => ({
+        verdict: "surface",
+        confidence: 0.9,
+        rationale: "Looks good to me.",
+        suggestedScope: ["Build the page"],
+      })),
+    );
+
+    expect(result.opportunities).toHaveLength(0);
+    expect(result.stats.rejectedByEvaluator).toBe(3);
+    expect(result.stats.evaluatorErrors).toBe(0);
+  });
+
+  it.each(["trust_signal", "promotion", "generic_claim", "ambiguous"] as const)(
+    "refuses to price a %s as a landing page",
+    async (subjectType) => {
+      const result = await analyze(
+        evaluator(() => ({
+          verdict: "surface",
+          confidence: 0.9,
+          rationale: "The client mentions this on the site.",
+          suggestedScope: ["Build the page"],
+          subjectType,
+          commerciallyActionable: true,
+        })),
+      );
+
+      expect(result.opportunities).toHaveLength(0);
+      expect(result.stats.rejectedByEvaluator).toBe(3);
+    },
+  );
 
   it("stops at the per-run call cap instead of spending without a limit", async () => {
     const evaluate = vi.fn(() => Promise.resolve(surface(0.8)));

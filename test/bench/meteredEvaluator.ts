@@ -1,5 +1,5 @@
 import type { EvaluatorInput, OpportunityEvaluator } from "@/ports/OpportunityEvaluator";
-import type { Evaluation } from "@/core/schema";
+import type { Evaluation, SubjectType } from "@/core/schema";
 import { DeepSeekEvaluator } from "@/adapters/evaluator/DeepSeekEvaluator";
 
 /**
@@ -31,8 +31,13 @@ export interface EvaluatorMeter {
   completionTokens: number;
   /** Estimated spend in USD, from list pricing. Zero for offline evaluators. */
   costUsd: number;
-  /** Every verdict returned, in call order, for the mock-vs-real comparison. */
-  verdicts: Array<{ subject: string; verdict: Evaluation["verdict"]; confidence: number }>;
+  /** Every judgment returned, in call order, for the mock-vs-real comparison. */
+  verdicts: Array<{
+    subject: string;
+    verdict: Evaluation["verdict"];
+    subjectType: SubjectType | null;
+    commerciallyActionable: boolean | null;
+  }>;
 }
 
 export function newMeter(): EvaluatorMeter {
@@ -60,7 +65,8 @@ export function metered(
         meter.verdicts.push({
           subject: input.candidate.subject,
           verdict: evaluation.verdict,
-          confidence: evaluation.confidence,
+          subjectType: evaluation.subjectType ?? null,
+          commerciallyActionable: evaluation.commerciallyActionable ?? null,
         });
         if (inner instanceof DeepSeekEvaluator && inner.lastUsage) {
           meter.promptTokens += inner.lastUsage.promptTokens;

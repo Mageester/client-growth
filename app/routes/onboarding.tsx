@@ -295,7 +295,7 @@ export default function Onboarding({ loaderData, actionData }: Route.ComponentPr
               </div>
             </div>
             <div className="field">
-              <label htmlFor="clientOfferings">What this business sells</label>
+              <label htmlFor="clientOfferings">What customers hire this business for</label>
               <textarea
                 id="clientOfferings"
                 name="clientOfferings"
@@ -303,9 +303,12 @@ export default function Onboarding({ loaderData, actionData }: Route.ComponentPr
                 placeholder={"heat pump installation\nair conditioning repair\nduct cleaning"}
               />
               <div className="field-hint">
-                One per line, in the words their customers would use. This is what the website gets
-                checked against — with fewer than two, Client Growth will not claim anything is
-                missing.
+                One per line: things customers actually hire or pay them for, in the words those
+                customers would use. Not claims about the business — no "free quotes", "fully
+                insured", "family owned", "financing available" or "satisfaction guarantee". Every
+                line here can become a priced page recommendation, so a claim in this box becomes a
+                pitch for a page about a claim. With fewer than two, Client Growth will not claim
+                anything is missing.
               </div>
             </div>
           </div>

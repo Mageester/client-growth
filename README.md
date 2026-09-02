@@ -57,9 +57,50 @@ deterministic rules            (missing-service-page, broken-conversion-path)
   -> resolve billability       (is the mapped service already covered?)
   -> suppress                  (prior dismiss/cover/snooze, or covered work)
   -> ONLY THEN call the evaluator
+  -> judgment gate             (is this distinct, sellable work? fail closed)
 ```
 
 `AI_PROVIDER` defaults to `mock`. Nothing costs money unless the environment opts in.
+
+## The judgment gate
+
+The deterministic rules answer "is there evidence?". They cannot answer the
+question that decides whether a finding is safe to put in front of a client:
+**is the subject a distinct piece of work someone hires this business for?**
+The offerings box is free text, so it routinely contains "fully insured" or
+"free quotes" — and a missing page for one of those is otherwise priced exactly
+like a missing page for "heat pump installation".
+
+So the evaluator is asked for a classification, not a vibe:
+
+```jsonc
+{
+  "subjectType": "distinct_service" | "trust_signal" | "promotion"
+               | "generic_claim" | "ambiguous",
+  "commerciallyActionable": true,
+  "verdict": "surface" | "reject",
+  "rationale": "...",
+  "suggestedScope": ["..."]
+}
+```
+
+`src/core/judgment.ts` then surfaces a missing-service-page finding **only** when
+the subject is positively classified `distinct_service` AND
+`commerciallyActionable`. Everything else fails closed — including `ambiguous`,
+and including an evaluator that simply did not answer. A provider that returns
+the wrong shape is a malformed response, and the pipeline already fails closed on
+those.
+
+There is no model-reported confidence anywhere in this path. A measured
+calibration run showed the provider's own numbers did not separate a real service
+line from a trust claim, so the field was removed rather than left in place
+looking meaningful; the `confidence` on an opportunity is the deterministic
+evidence strength the rules computed.
+
+`MockEvaluator` applies none of this — it *asserts* `distinct_service` for every
+candidate. That is deliberate (offline tests need a free, deterministic
+evaluator) and it is measured: `pnpm bench` shows exactly what the mock costs on
+the adversarial set.
 
 ## Commands
 
@@ -75,8 +116,12 @@ pnpm db:seed:local        # demo workspace (ws_demo) only — real workspaces ar
 pnpm seed:generate        # regenerate scripts/seed.sql from fixtures/hvac/*
 pnpm dev                  # react-router build && wrangler dev
 
+pnpm bench                      # offline engine scorecard: core cases + adversarial judgment set
 pnpm eval:live                  # LIVE DeepSeek smoke test (needs DEEPSEEK_API_KEY)
 CG_LIVE_SCAN=1 pnpm eval:live   # also run the LIVE real-website + conversion-probe crawls
+
+# paid, opt-in: judge every case with the real provider and measure stability
+CG_BENCH_MAX_CALLS=200 pnpm bench --deepseek --samples=3
 ```
 
 Node 24 is the supported runtime; `.node-version` and `package.json` keep local
@@ -116,6 +161,10 @@ pnpm deploy:production
 
 ## Status
 
+- **Commercial judgment layer** — structured `subjectType` /
+  `commerciallyActionable` contract with a fail-closed gate, plus a 37-case
+  adversarial judgment benchmark (true services, trust signals, promotions,
+  generic claims, ambiguous edges). Production still runs `AI_PROVIDER=mock`.
 - **Rule #1** `missing-service-page` — V0 complete (absence verification + crawl-coverage gate).
 - **Rule #2** `broken-conversion-path` — V0 complete (dead CTA / broken form / malformed `tel:` / placeholder booking link, all deterministically established before AI).
 - **Multi-tenancy** — Better Auth + per-workspace isolation enforced at the repo

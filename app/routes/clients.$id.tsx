@@ -30,7 +30,7 @@ import {
   pluralize,
 } from "../components/ui";
 import { requireTenant } from "../lib/session.server";
-import { normalizeDomain, validateClientInput } from "../lib/validation";
+import { normalizeDomain, offeringWarnings, validateClientInput } from "../lib/validation";
 import type { Route } from "./+types/clients.$id";
 
 export function meta({ data }: Route.MetaArgs) {
@@ -468,13 +468,16 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
             actually does — so it will not claim anything is missing.
           </EmptyState>
         ) : (
-          <ul className="tag-row tag-row-lg">
-            {client.offerings.map((offering) => (
-              <li key={offering} className="pill quiet">
-                {offering}
-              </li>
-            ))}
-          </ul>
+          <>
+            <ul className="tag-row tag-row-lg">
+              {client.offerings.map((offering) => (
+                <li key={offering} className="pill quiet">
+                  {offering}
+                </li>
+              ))}
+            </ul>
+            <OfferingQuality offerings={client.offerings} onEdit={() => setEditOpen(true)} />
+          </>
         )}
         {client.notes && <p className="prose client-notes">{client.notes}</p>}
       </section>
@@ -542,14 +545,18 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
             <div className="field-hint">Just the domain — https:// is optional.</div>
           </div>
           <div className="field">
-            <label htmlFor="edit-offerings">What this business sells</label>
+            <label htmlFor="edit-offerings">What customers hire this business for</label>
             <textarea
               id="edit-offerings"
               name="offerings"
               rows={6}
               defaultValue={client.offerings.join("\n")}
             />
-            <div className="field-hint">One per line. Two or more makes the analysis far better.</div>
+            <div className="field-hint">
+              One per line: things customers actually hire or pay them for. Not claims about the
+              business — no "free quotes", "fully insured", "family owned" or "financing available".
+              Two or more makes the analysis far better.
+            </div>
           </div>
           <div className="field">
             <label htmlFor="edit-notes">Notes</label>
@@ -659,5 +666,53 @@ function Readiness({
         </div>
       ))}
     </>
+  );
+}
+
+/**
+ * Says out loud when the offerings list contains things nobody buys.
+ *
+ * Every line in that box is checked against the site and a gap becomes a priced
+ * page recommendation, so "fully insured" sitting in there is one analysis away
+ * from a proposal for a page about the client's insurance. The warning is
+ * advisory and nothing is removed — the agency may have a good reason — but it
+ * is stated plainly, before a run turns it into a number.
+ */
+function OfferingQuality({
+  offerings,
+  onEdit,
+}: {
+  offerings: string[];
+  onEdit: () => void;
+}) {
+  const warnings = offeringWarnings(offerings);
+  if (warnings.length === 0) return null;
+
+  return (
+    <div className="notice warn offering-quality">
+      <Icon name="alert" size={14} />
+      <div>
+        <p>
+          {warnings.length === 1
+            ? "One entry looks like a claim about the business rather than work customers buy:"
+            : `${warnings.length} entries look like claims about the business rather than work customers buy:`}
+        </p>
+        <ul className="tag-row">
+          {warnings.map((w) => (
+            <li key={w.value} className="pill">
+              {w.value} <span className="faint">— {w.kind}</span>
+            </li>
+          ))}
+        </ul>
+        <p className="faint">
+          Nothing has been changed. Left in the list, each of these is checked against the site like
+          a service, and a missing page for one would be priced like a service.{" "}
+          <button type="button" className="btn-link" onClick={onEdit}>
+            Edit the list
+          </button>
+          .
+        </p>
+      </div>
+    </div>
   );
 }

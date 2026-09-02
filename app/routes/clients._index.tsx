@@ -228,7 +228,7 @@ export default function ClientsIndex({ loaderData, actionData }: Route.Component
             <div className="field-hint">Just the domain — https:// is optional.</div>
           </div>
           <div className="field">
-            <label htmlFor="new-client-offerings">What this business sells</label>
+            <label htmlFor="new-client-offerings">What customers hire this business for</label>
             <textarea
               id="new-client-offerings"
               name="offerings"
@@ -236,8 +236,10 @@ export default function ClientsIndex({ loaderData, actionData }: Route.Component
               placeholder={"heat pump installation\nair conditioning repair\nduct cleaning"}
             />
             <div className="field-hint">
-              One per line. This is what the site gets checked against, so it matters more than
-              anything else on this form.
+              One per line: things customers actually hire or pay them for. Not claims about the
+              business — no "free quotes", "fully insured", "family owned" or "financing available".
+              This is what the site gets checked against and what findings get priced from, so it
+              matters more than anything else on this form.
             </div>
           </div>
           <div className="field">

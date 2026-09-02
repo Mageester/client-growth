@@ -19,18 +19,37 @@ export interface ExpectedOpportunity {
   subject: string;
 }
 
+/**
+ * What KIND of commercial call a case is testing. Only the adversarial set uses
+ * it; the core cases are about deterministic behaviour and leave it unset.
+ */
+export type JudgmentCategory =
+  | "true_service"
+  | "trust_signal"
+  | "promotion"
+  | "generic_claim"
+  | "ambiguous";
+
 export interface BenchCase {
   id: string;
   clientName: string;
   what: string;
   /** Why a human labeled the expectation this way. */
   rationale: string;
+  category?: JudgmentCategory;
   site: SiteSpec;
   offerings: string[];
   coverage?: Array<{ serviceId: string }>;
   existing?: Array<Partial<Opportunity> & { subject: string; ruleId: Opportunity["ruleId"] }>;
   expectOutcome: "findings" | "clean" | "inconclusive";
   expect: ExpectedOpportunity[];
+  /**
+   * Findings that are neither required nor penalised, for subjects where a
+   * careful human would also hesitate. They are excluded from false positives
+   * AND from false negatives, so a genuinely two-sided call never scores as a
+   * failure in either direction — its surface rate is reported instead.
+   */
+  tolerate?: ExpectedOpportunity[];
 }
 
 const CONTACT_OK = { href: "/contact", label: "Contact us", foundOn: ["/"] };

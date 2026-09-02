@@ -15,6 +15,7 @@ import { assessServiceCoverage, type CoverageAssessment } from "@/core/absenceVe
 import { passesEvidenceThreshold } from "@/core/threshold";
 import { resolveBillability } from "@/core/billability";
 import { dedupeKey } from "@/core/dedupe";
+import { judge } from "@/core/judgment";
 import {
   assembleCoveredOpportunity,
   assembleOpportunity,
@@ -53,6 +54,7 @@ export interface AnalyzeClientStats {
   suppressedByPriorDecision: number;
   suppressedByCoverage: number;
   evaluated: number;
+  /** Judged and not surfaced: rejected verdict, or failed the judgment gate. */
   rejectedByEvaluator: number;
   /** Evaluator threw (unreachable provider, malformed output). Failed closed. */
   evaluatorErrors: number;
@@ -88,8 +90,6 @@ export interface AnalyzeClientResult {
   catalogCoverage: CatalogCoverage;
   stats: AnalyzeClientStats;
 }
-
-const CONFIDENCE_FLOOR = 0.5;
 
 function isSuppressed(opp: Opportunity, now: Date): boolean {
   if (opp.status === "dismissed" || opp.status === "already_covered") return true;
@@ -225,7 +225,11 @@ export async function analyzeClient(
       continue;
     }
 
-    if (evaluation.verdict === "reject" || evaluation.confidence < CONFIDENCE_FLOOR) {
+    // The commercial gate. A candidate surfaces only when the evaluator
+    // positively identifies it as distinct, actionable work; an unclassified,
+    // ambiguous or non-service subject fails closed here. See core/judgment.ts.
+    const decision = judge(candidate, evaluation);
+    if (!decision.surface) {
       stats.rejectedByEvaluator++;
       continue;
     }
