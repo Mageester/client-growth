@@ -8,6 +8,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const CONFIG_PATH = join(ROOT, "wrangler.jsonc");
 const PRODUCTION_DATABASE_NAME = "client-growth-production";
 const REQUIRED_SECRETS = ["BETTER_AUTH_SECRET", "RESEND_API_KEY"] as const;
+const SECRET_LIKE_VAR_NAME = /(?:^|_)(?:API_KEY|KEY|SECRET|TOKEN|PASSWORD|CREDENTIALS?|PRIVATE_KEY)$/i;
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -25,6 +26,16 @@ function stringValue(value: unknown): string | undefined {
 
 function arrayValue(value: unknown): unknown[] {
   return Array.isArray(value) ? value : [];
+}
+
+function rejectPlaintextSecretVars(vars: JsonObject, scope: string, errors: string[]): void {
+  for (const key of Object.keys(vars)) {
+    if (SECRET_LIKE_VAR_NAME.test(key)) {
+      errors.push(
+        `${scope} vars must not contain secret-like key "${key}"; use a Wrangler secret binding`,
+      );
+    }
+  }
 }
 
 function containsPlaceholder(value: string): boolean {
@@ -138,6 +149,8 @@ export function validateProductionConfig(config: unknown): string[] {
   const productionDbs = arrayValue(production.d1_databases).map(objectValue);
   const productionDb = productionDbs[0] ?? {};
   const productionVars = objectValue(production.vars);
+  rejectPlaintextSecretVars(objectValue(root.vars), "root", errors);
+  rejectPlaintextSecretVars(productionVars, "production", errors);
   const declaredSecrets = arrayValue(objectValue(production.secrets).required).filter(
     (secret): secret is string => typeof secret === "string",
   );

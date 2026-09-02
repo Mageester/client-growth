@@ -64,12 +64,13 @@ deterministic rules            (missing-service-page, broken-conversion-path)
 ## Commands
 
 ```bash
-pnpm install
-pnpm test                 # 140 tests — zero network, zero paid calls
+pnpm install --frozen-lockfile
+pnpm verify               # local-only release gate: safety, preflight, tests, typecheck, build
+pnpm test                 # offline tests — zero network, zero paid calls
 pnpm typecheck            # react-router typegen && tsc
 pnpm build                # react-router build -> build/client + build/server
 
-pnpm db:migrate:local     # apply migrations 0001..0006 to local D1
+pnpm db:migrate:local     # apply migrations 0001..latest to local D1
 pnpm db:seed:local        # demo workspace (ws_demo) only — real workspaces are never seeded
 pnpm seed:generate        # regenerate scripts/seed.sql from fixtures/hvac/*
 pnpm dev                  # react-router build && wrangler dev
@@ -77,6 +78,11 @@ pnpm dev                  # react-router build && wrangler dev
 pnpm eval:live                  # LIVE DeepSeek smoke test (needs DEEPSEEK_API_KEY)
 CG_LIVE_SCAN=1 pnpm eval:live   # also run the LIVE real-website + conversion-probe crawls
 ```
+
+Node 24 is the supported runtime; `.node-version` and `package.json` keep local
+development and CI on the same major version. `pnpm verify` never contacts
+Cloudflare, remote D1, Resend, or paid AI providers and does not require
+production secrets.
 
 ### Local setup
 

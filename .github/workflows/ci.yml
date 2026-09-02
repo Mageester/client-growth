@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: client-growth-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Release safety
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check pull request patch whitespace
+        if: github.event_name == 'pull_request'
+        run: git diff --check "${{ github.event.pull_request.base.sha }}...${{ github.sha }}"
+
+      - name: Check pushed patch whitespace
+        if: github.event_name == 'push'
+        run: git diff --check "${{ github.event.before }}...${{ github.sha }}"
+
+      - name: Repository safety
+        run: pnpm verify:repo
+
+      - name: Production configuration preflight
+        run: pnpm production:preflight
+
+      - name: Tests
+        run: pnpm test
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Production build
+        run: pnpm build
