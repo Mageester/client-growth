@@ -59,6 +59,78 @@ export function validateClientInput(input: ClientInput): string | null {
   return null;
 }
 
+/**
+ * Entries that are almost certainly not services.
+ *
+ * The offerings box is free text, and what goes in it is priced: every entry is
+ * checked against the site and a genuine gap becomes a landing-page quote. So
+ * "fully insured" typed into this box is how a client ends up being pitched a
+ * $900-$1,800 page for a claim about their insurance.
+ *
+ * This is a deliberately SMALL phrase list, not a taxonomy of industries. It
+ * only catches the marketing furniture agencies actually paste in - credentials,
+ * offers and filler - and it never edits or drops what was typed. It warns; the
+ * agency decides. The evaluator is the layer that judges genuinely borderline
+ * subjects; this one just stops the obvious cases early, for free.
+ */
+const NON_SERVICE_PATTERNS: Array<{ kind: OfferingWarning["kind"]; test: RegExp }> = [
+  // Credentials and reassurances the business states about itself.
+  { kind: "trust signal", test: /\b(fully\s+)?insured\b/ },
+  { kind: "trust signal", test: /\b(fully\s+)?licen[cs]ed\b/ },
+  { kind: "trust signal", test: /\b(certified|accredited|approved installer)\b/ },
+  { kind: "trust signal", test: /\bfamily[\s-](owned|run|business)\b/ },
+  { kind: "trust signal", test: /\baward[\s-]winning\b/ },
+  { kind: "trust signal", test: /\b\d+\+?\s*years?\b[\s\S]*\bexperience\b/ },
+  { kind: "trust signal", test: /\bexperienced\s+(team|staff|engineers?|technicians?)\b/ },
+  { kind: "trust signal", test: /\b((dbs|crb)\s*checked|vetted|police\s*checked)\b/ },
+  { kind: "trust signal", test: /\b(gas\s*safe|niceic|checkatrade|trustmark)\b/ },
+
+  // Offers and commercial mechanics.
+  { kind: "promotion", test: /\bfree\s+(quotes?|quotation|consultations?|estimates?|surveys?|advice|call[\s-]?outs?)\b/ },
+  { kind: "promotion", test: /\bno\s+(obligation|call[\s-]?out\s+fee|hidden\s+(costs?|fees?))\b/ },
+  { kind: "promotion", test: /\b(financing|finance available|pay\s+monthly)\b|\b0%\s*(apr|interest)\b/ },
+  { kind: "promotion", test: /\b(satisfaction\s+)?guarantee[ds]?\b|\bwarrant(y|ies)\b/ },
+  { kind: "promotion", test: /\bdiscounts?\b|\b\d+%\s*off\b|\bspecial offers?\b/ },
+
+  // Claims that name no specific work.
+  { kind: "generic claim", test: /\bquality\s+(service|work|workmanship)\b|\bhigh[\s-]quality\b/ },
+  { kind: "generic claim", test: /\b(fast|quick|rapid|same[\s-]day)\s+(response|turnaround|service)\b/ },
+  { kind: "generic claim", test: /\b(affordable|cheap)\b|\bcompetitive\s+(prices?|pricing|rates?)\b|\bbest\s+prices?\b/ },
+  { kind: "generic claim", test: /\b(friendly|reliable|professional|trusted)\s+(service|team|staff)\b/ },
+  { kind: "generic claim", test: /\bcustomer\s+(satisfaction|service)\b|\b5[\s-]star\b/ },
+];
+
+export interface OfferingWarning {
+  /** The line exactly as the agency typed it. Never rewritten. */
+  value: string;
+  kind: "trust signal" | "promotion" | "generic claim";
+}
+
+/**
+ * Flag entries that look like marketing copy rather than work customers buy.
+ *
+ * Advisory only: it returns what to say, changes nothing, and blocks no save.
+ */
+export function offeringWarnings(offerings: string[]): OfferingWarning[] {
+  const warnings: OfferingWarning[] = [];
+  for (const raw of offerings) {
+    const value = raw.trim();
+    if (!value) continue;
+    const lower = value.toLowerCase();
+    const hit = NON_SERVICE_PATTERNS.find((p) => p.test.test(lower));
+    if (hit) warnings.push({ value, kind: hit.kind });
+  }
+  return warnings;
+}
+
+/** Split a textarea's contents into trimmed, non-empty offering lines. */
+export function parseOfferings(raw: string): string[] {
+  return raw
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
 export const MAX_PRICE = 10_000_000;
 
 export interface ServiceInput {

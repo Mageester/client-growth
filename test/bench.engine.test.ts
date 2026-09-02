@@ -104,13 +104,15 @@ describe("opportunity engine benchmark", () => {
  * tracked number instead of a surprise: when a real evaluator is switched on,
  * this suite fails and the numbers get updated deliberately.
  *
- * Measured against DeepSeek (deepseek-chat, temperature 0, 15 trials) during the
- * core-value sprint:
- *   - "ev charger installation" (a real service line)   surfaced 5/5
- *   - "fully insured"           (a trust claim)         surfaced 0/5
- *   - "free quotes"             (genuinely ambiguous)   surfaced 3/5
- * So a real evaluator removes the clear-cut false positive reliably, and is
- * unstable exactly where a human would also hesitate.
+ * Measured against DeepSeek (deepseek-chat, temperature 0) after the structured
+ * judgment contract landed — 37 adversarial cases x 3 samples, 114 calls, $0.05:
+ *   - 12/12 real service lines surfaced, 3/3 samples each
+ *   - 0/7 trust signals, 0/7 promotions, 0/4 generic claims surfaced, ever
+ *   - "free quotes", previously surfaced 3/5, is now rejected as a promotion
+ *     in every sample
+ * The instability the previous sprint measured came from asking for a verdict
+ * and a confidence number; asking WHAT THE SUBJECT IS removed it. See
+ * `pnpm bench --deepseek --samples=N` and test/bench/adversarialCases.ts.
  */
 describe("judgment cases — what the deterministic engine cannot decide alone", () => {
   it("still refuses to invent a gap the rules cannot prove", async () => {

@@ -21,6 +21,14 @@ const REPAIR_VERB: Record<NonNullable<Candidate["conversionDefect"]>["kind"], st
 /**
  * Deterministic, offline evaluator. Default for development and the entire
  * default test suite. Makes no network calls and costs nothing.
+ *
+ * It applies NO commercial judgment and must not be mistaken for it. It ASSERTS
+ * `subjectType: "distinct_service"` for every missing-service-page candidate
+ * rather than deciding it, which is exactly why it will happily price a landing
+ * page for "fully insured" (see the judgment cases in the benchmark). Its value
+ * is that it is deterministic and free, so the rest of the suite can test the
+ * pipeline without a provider; its judgment layer is a stub, and the benchmark
+ * records what that stub costs.
  */
 export class MockEvaluator implements OpportunityEvaluator {
   evaluate({ candidate }: EvaluatorInput): Promise<Evaluation> {
@@ -35,6 +43,8 @@ export class MockEvaluator implements OpportunityEvaluator {
           `generic pages and convert poorly. A focused landing page with ` +
           `service-specific proof and a single call to action is well-scoped, ` +
           `individually sellable work.`,
+        subjectType: "distinct_service",
+        commerciallyActionable: true,
         suggestedScope: [
           `Design and build a dedicated "${label}" landing page`,
           `Service-specific copy: benefits, process, pricing guidance, FAQs`,
@@ -54,6 +64,8 @@ export class MockEvaluator implements OpportunityEvaluator {
           `${sentence(d.note)} on ${d.pageUrl}. This sits directly on the path a visitor ` +
           `takes to become a lead, so every affected visit is a lost enquiry ` +
           `until it is fixed. The defect is specific and reproducible.`,
+        subjectType: "conversion_defect",
+        commerciallyActionable: true,
         suggestedScope: [
           `Reproduce and confirm the broken element (${d.elementHref || d.target})`,
           `${REPAIR_VERB[d.kind]} and re-point it at the correct working target`,
@@ -67,6 +79,8 @@ export class MockEvaluator implements OpportunityEvaluator {
       verdict: "reject",
       confidence: 0,
       rationale: "No mock evaluation is defined for this rule.",
+      subjectType: "ambiguous",
+      commerciallyActionable: false,
       suggestedScope: [],
     });
   }

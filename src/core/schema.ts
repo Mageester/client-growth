@@ -213,13 +213,87 @@ export type Candidate = z.infer<typeof CandidateSchema>;
 // ---------------------------------------------------------------------------
 // Evaluator output (cheap AI judgement + explanation)
 // ---------------------------------------------------------------------------
+/**
+ * What the evaluator decided the candidate's subject actually IS.
+ *
+ * The deterministic rules already answer "is there evidence?". This is the
+ * question they cannot answer: is the thing we are about to price a $900-$1,800
+ * landing page for a service a customer hires this business for, or is it
+ * something the business merely says about itself?
+ *
+ *   distinct_service  heat pump installation, drain cleaning, Invisalign
+ *   trust_signal      fully insured, family owned, licensed technicians
+ *   promotion         free quotes, financing available, satisfaction guarantee
+ *   generic_claim     quality service, fast response, affordable pricing
+ *   ambiguous         the evaluator cannot confidently place it
+ *   conversion_defect not a subject classification at all - the candidate is a
+ *                     probed broken conversion element, so the taxonomy above
+ *                     does not apply
+ *
+ * Only `distinct_service` may become a missing-service-page opportunity;
+ * everything else - `ambiguous` included - fails closed. See core/judgment.ts.
+ */
+export const SubjectTypeSchema = z.enum([
+  "distinct_service",
+  "trust_signal",
+  "promotion",
+  "generic_claim",
+  "ambiguous",
+  "conversion_defect",
+]);
+export type SubjectType = z.infer<typeof SubjectTypeSchema>;
+
 export const EvaluationSchema = z.object({
   verdict: z.enum(["surface", "reject"]),
+  /**
+   * Evidence strength for the surfaced finding, 0..1.
+   *
+   * NOT a model self-report. A measured calibration run showed provider-supplied
+   * confidence carried no usable signal (near-identical values for a real
+   * service line and for "fully insured"), so DeepSeekEvaluator no longer asks
+   * for one and derives this from the deterministic candidate instead.
+   */
   confidence: z.number().min(0).max(1),
   rationale: z.string().min(1),
   suggestedScope: z.array(z.string().min(1)).default([]),
+  /**
+   * Structured judgment. Optional on the type so offline/legacy evaluators stay
+   * constructible, but a missing-service-page candidate with no `subjectType`
+   * is REJECTED by the judgment policy rather than trusted.
+   */
+  subjectType: SubjectTypeSchema.optional(),
+  commerciallyActionable: z.boolean().optional(),
 });
 export type Evaluation = z.infer<typeof EvaluationSchema>;
+
+/**
+ * The wire contract a real provider must satisfy for a missing-service-page
+ * candidate. Deliberately different from `EvaluationSchema`: the model is asked
+ * for a classification and a verdict, never for a confidence number, and every
+ * field here is required so a partial answer fails closed instead of being
+ * quietly defaulted into a surfaced opportunity.
+ */
+export const ServiceJudgmentSchema = z.object({
+  subjectType: SubjectTypeSchema.exclude(["conversion_defect"]),
+  commerciallyActionable: z.boolean(),
+  verdict: z.enum(["surface", "reject"]),
+  rationale: z.string().min(1),
+  suggestedScope: z.array(z.string().min(1)).default([]),
+});
+export type ServiceJudgment = z.infer<typeof ServiceJudgmentSchema>;
+
+/**
+ * The wire contract for a broken-conversion-path candidate. The defect is a
+ * probed HTTP fact, so there is no subject to classify - only whether it is
+ * worth raising and what the fix is.
+ */
+export const DefectJudgmentSchema = z.object({
+  commerciallyActionable: z.boolean(),
+  verdict: z.enum(["surface", "reject"]),
+  rationale: z.string().min(1),
+  suggestedScope: z.array(z.string().min(1)).default([]),
+});
+export type DefectJudgment = z.infer<typeof DefectJudgmentSchema>;
 
 // ---------------------------------------------------------------------------
 // Opportunity (surfaced output + persisted agency decision)

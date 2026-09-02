@@ -54,8 +54,9 @@ describe("DeepSeekEvaluator", () => {
       fetchImpl: stubFetch(
         completion(
           JSON.stringify({
+            subjectType: "distinct_service",
+            commerciallyActionable: true,
             verdict: "surface",
-            confidence: 0.74,
             rationale: "Focused landing page is sellable work.",
             suggestedScope: ["Build the page", "On-page SEO"],
           }),
@@ -65,12 +66,75 @@ describe("DeepSeekEvaluator", () => {
 
     const result = await evaluator.evaluate(input);
     expect(result.verdict).toBe("surface");
-    expect(result.confidence).toBeCloseTo(0.74);
+    expect(result.confidence).toBe(input.candidate.rawConfidence);
+    expect(result.subjectType).toBe("distinct_service");
+    expect(result.commerciallyActionable).toBe(true);
     expect(evaluator.lastUsage).toEqual({
       promptTokens: 700,
       completionTokens: 120,
       totalTokens: 820,
     });
+  });
+
+  it("refuses the old, unclassified contract instead of surfacing on it", async () => {
+    // A provider (or a rolled-back prompt) answering the previous shape - a
+    // verdict and a self-reported confidence, with no subject classification -
+    // must be treated as malformed. Accepting it would put "fully insured" back
+    // in front of a client at $900-$1,800.
+    const evaluator = new DeepSeekEvaluator({
+      apiKey: "sk-test",
+      fetchImpl: stubFetch(
+        completion(
+          JSON.stringify({
+            verdict: "surface",
+            confidence: 0.92,
+            rationale: "Looks worth doing.",
+            suggestedScope: ["Build the page"],
+          }),
+        ),
+      ),
+    });
+    await expect(evaluator.evaluate(input)).rejects.toBeInstanceOf(MalformedEvaluationError);
+  });
+
+  it("fails closed on a classification outside the taxonomy", async () => {
+    const evaluator = new DeepSeekEvaluator({
+      apiKey: "sk-test",
+      fetchImpl: stubFetch(
+        completion(
+          JSON.stringify({
+            subjectType: "probably_a_service",
+            commerciallyActionable: true,
+            verdict: "surface",
+            rationale: "Sure.",
+            suggestedScope: [],
+          }),
+        ),
+      ),
+    });
+    await expect(evaluator.evaluate(input)).rejects.toBeInstanceOf(MalformedEvaluationError);
+  });
+
+  it("keeps a rejection with its classification, so the reason survives", async () => {
+    const evaluator = new DeepSeekEvaluator({
+      apiKey: "sk-test",
+      fetchImpl: stubFetch(
+        completion(
+          JSON.stringify({
+            subjectType: "trust_signal",
+            commerciallyActionable: false,
+            verdict: "reject",
+            rationale: "Being insured is a reassurance, not work the client sells.",
+            suggestedScope: [],
+          }),
+        ),
+      ),
+    });
+
+    const result = await evaluator.evaluate(input);
+    expect(result.verdict).toBe("reject");
+    expect(result.subjectType).toBe("trust_signal");
+    expect(result.commerciallyActionable).toBe(false);
   });
 
   it("fails closed when the content is not JSON", async () => {

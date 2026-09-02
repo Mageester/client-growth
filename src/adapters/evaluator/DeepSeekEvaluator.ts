@@ -1,9 +1,10 @@
 import type { EvaluatorInput, OpportunityEvaluator } from "@/ports/OpportunityEvaluator";
-import { EvaluationSchema, type Evaluation } from "@/core/schema";
 import {
-  EVALUATOR_SYSTEM_PROMPT,
-  buildEvaluatorUserPrompt,
-} from "@/adapters/evaluator/prompt";
+  DefectJudgmentSchema,
+  ServiceJudgmentSchema,
+  type Evaluation,
+} from "@/core/schema";
+import { buildEvaluatorUserPrompt, systemPromptFor } from "@/adapters/evaluator/prompt";
 
 /**
  * Real, paid provider (DeepSeek chat completions, OpenAI-compatible).
@@ -113,7 +114,7 @@ export class DeepSeekEvaluator implements OpportunityEvaluator {
           temperature: 0,
           response_format: { type: "json_object" },
           messages: [
-            { role: "system", content: EVALUATOR_SYSTEM_PROMPT },
+            { role: "system", content: systemPromptFor(input) },
             { role: "user", content: buildEvaluatorUserPrompt(input) },
           ],
         }),
@@ -156,20 +157,63 @@ export class DeepSeekEvaluator implements OpportunityEvaluator {
       );
     }
 
-    const parsed = EvaluationSchema.safeParse(raw);
-    if (!parsed.success) {
-      throw new MalformedEvaluationError(
-        "DeepSeekEvaluator: model output did not match the Evaluation contract",
-        parsed.error.issues,
-      );
-    }
-
     this.lastUsage = {
       promptTokens: json.usage?.prompt_tokens ?? 0,
       completionTokens: json.usage?.completion_tokens ?? 0,
       totalTokens: json.usage?.total_tokens ?? 0,
     };
 
-    return parsed.data;
+    return toEvaluation(input, raw);
   }
+}
+
+/**
+ * Map a provider answer onto the pipeline's Evaluation contract.
+ *
+ * Strict by rule: a missing-service-page answer MUST carry a subject
+ * classification and an actionability boolean, or it is malformed and the
+ * pipeline fails closed. Nothing is defaulted into existence.
+ *
+ * `confidence` is taken from the deterministic candidate, not from the model.
+ * The provider is no longer asked for one - measured calibration showed its
+ * numbers did not separate a real service line from a trust claim - so the
+ * number that reaches an opportunity is the evidence strength the rules
+ * computed, which is a statement the agency can actually defend.
+ */
+function toEvaluation(input: EvaluatorInput, raw: unknown): Evaluation {
+  const { candidate } = input;
+
+  if (candidate.conversionDefect) {
+    const parsed = DefectJudgmentSchema.safeParse(raw);
+    if (!parsed.success) {
+      throw new MalformedEvaluationError(
+        "DeepSeekEvaluator: model output did not match the defect judgment contract",
+        parsed.error.issues,
+      );
+    }
+    return {
+      verdict: parsed.data.verdict,
+      confidence: candidate.rawConfidence,
+      rationale: parsed.data.rationale,
+      suggestedScope: parsed.data.suggestedScope,
+      subjectType: "conversion_defect",
+      commerciallyActionable: parsed.data.commerciallyActionable,
+    };
+  }
+
+  const parsed = ServiceJudgmentSchema.safeParse(raw);
+  if (!parsed.success) {
+    throw new MalformedEvaluationError(
+      "DeepSeekEvaluator: model output did not match the service judgment contract",
+      parsed.error.issues,
+    );
+  }
+  return {
+    verdict: parsed.data.verdict,
+    confidence: candidate.rawConfidence,
+    rationale: parsed.data.rationale,
+    suggestedScope: parsed.data.suggestedScope,
+    subjectType: parsed.data.subjectType,
+    commerciallyActionable: parsed.data.commerciallyActionable,
+  };
 }

@@ -121,6 +121,18 @@ describe("every analysis persists a truthful outcome", () => {
     expect(["findings", "clean"]).toContain(run!.outcome);
   });
 
+  it("honours MAX_AI_CALLS_PER_RUN from the environment", async () => {
+    // The per-run spend ceiling is configuration, not a constant, so the wiring
+    // from env -> pipeline is asserted rather than assumed. Candidates beyond the
+    // cap are left unjudged, never surfaced unjudged.
+    vi.stubGlobal("fetch", siteFetch());
+    const capped = await runAnalysis(scope, { ...env, MAX_AI_CALLS_PER_RUN: "1" }, "cli_a");
+
+    expect(capped.stats.aiCalls).toBe(1);
+    expect(capped.stats.evaluated).toBe(1);
+    expect(capped.opportunities.length).toBeLessThanOrEqual(1);
+  });
+
   it("records inconclusive — never clean — when the domain cannot be reached", async () => {
     vi.stubGlobal(
       "fetch",

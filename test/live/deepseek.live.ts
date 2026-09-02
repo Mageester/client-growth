@@ -46,9 +46,13 @@ describe.skipIf(!apiKey)("LIVE DeepSeek evaluation", () => {
     });
 
     expect(["surface", "reject"]).toContain(evaluation.verdict);
-    expect(evaluation.confidence).toBeGreaterThanOrEqual(0);
-    expect(evaluation.confidence).toBeLessThanOrEqual(1);
     expect(evaluation.rationale.length).toBeGreaterThan(0);
+    // The structured judgment is the contract now: the provider must say what
+    // the subject IS, and confidence is the deterministic evidence strength
+    // rather than anything the model reported about itself.
+    expect(evaluation.subjectType).toBeDefined();
+    expect(typeof evaluation.commerciallyActionable).toBe("boolean");
+    expect(evaluation.confidence).toBe(candidates[0]!.rawConfidence);
 
     const usage = evaluator.lastUsage;
     const costUsd =
@@ -59,7 +63,8 @@ describe.skipIf(!apiKey)("LIVE DeepSeek evaluation", () => {
 
     // eslint-disable-next-line no-console
     console.log(
-      `[live] verdict=${evaluation.verdict} confidence=${evaluation.confidence} ` +
+      `[live] verdict=${evaluation.verdict} subjectType=${evaluation.subjectType} ` +
+        `actionable=${evaluation.commerciallyActionable} confidence=${evaluation.confidence} ` +
         `tokens=${JSON.stringify(usage)} approxCostUSD=${costUsd.toFixed(6)}`,
     );
     // eslint-disable-next-line no-console

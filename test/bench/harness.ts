@@ -7,7 +7,15 @@ import { MockEvaluator } from "@/adapters/evaluator/MockEvaluator";
 
 import { agencyCatalog } from "./agency";
 import { BenchEvidenceProvider } from "./site";
-import { CASES, clientIdOf, clientOf, coverageOf, type BenchCase, type Grade } from "./cases";
+import {
+  CASES,
+  clientIdOf,
+  clientOf,
+  coverageOf,
+  type BenchCase,
+  type Grade,
+  type JudgmentCategory,
+} from "./cases";
 
 /**
  * Runs every labeled case through the real pipeline and grades the result
@@ -52,6 +60,7 @@ function priorOpportunity(
 export interface CaseResult {
   id: string;
   clientName: string;
+  category: JudgmentCategory | null;
   what: string;
   rationale: string;
   outcome: AnalysisOutcome;
@@ -66,6 +75,8 @@ export interface CaseResult {
   truePositives: number;
   falsePositives: string[];
   falseNegatives: string[];
+  /** Two-sided findings that were surfaced and deliberately not scored. */
+  tolerated: string[];
   grade: Grade;
   why: string;
 }
@@ -108,25 +119,36 @@ export async function runCase(
   const unmatched = [...surfaced];
   const falseNegatives: string[] = [];
   let truePositives = 0;
-  for (const want of c.expect) {
+  const take = (want: { ruleId: string; subject: string }): boolean => {
     const hitIndex = unmatched.findIndex(
       (s) =>
         s.ruleId === want.ruleId &&
         (s.dedupeKey.includes(slug(want.subject)) ||
           s.title.toLowerCase().includes(want.subject.toLowerCase())),
     );
-    if (hitIndex === -1) {
-      falseNegatives.push(`${want.ruleId}: ${want.subject}`);
-    } else {
-      truePositives++;
-      unmatched.splice(hitIndex, 1);
-    }
+    if (hitIndex === -1) return false;
+    unmatched.splice(hitIndex, 1);
+    return true;
+  };
+
+  for (const want of c.expect) {
+    if (take(want)) truePositives++;
+    else falseNegatives.push(`${want.ruleId}: ${want.subject}`);
+  }
+  // Tolerated findings are removed from the ledger entirely: not a hit to be
+  // credited, not a miss to be counted, and never a false positive.
+  const tolerated: string[] = [];
+  for (const maybe of c.tolerate ?? []) {
+    if (take(maybe)) tolerated.push(`${maybe.ruleId}: ${maybe.subject}`);
   }
   const falsePositives = unmatched.map((s) => `${s.ruleId}: ${s.title}`);
 
-  const overclaimed =
-    verdict.outcome !== c.expectOutcome && c.expectOutcome === "inconclusive";
-  const underclaimed = verdict.outcome !== c.expectOutcome && !overclaimed;
+  // A tolerated finding legitimately turns a "clean" run into a "findings" one,
+  // so the expected outcome moves with it rather than scoring as a miss.
+  const expectOutcome =
+    tolerated.length > 0 && c.expectOutcome === "clean" ? "findings" : c.expectOutcome;
+  const overclaimed = verdict.outcome !== expectOutcome && expectOutcome === "inconclusive";
+  const underclaimed = verdict.outcome !== expectOutcome && !overclaimed;
 
   let grade: Grade;
   let why: string;
@@ -141,7 +163,7 @@ export async function runCase(
     why = `Missed real, sellable work: ${falseNegatives.join("; ")}.`;
   } else if (underclaimed) {
     grade = "QUESTIONABLE";
-    why = `Expected outcome "${c.expectOutcome}" but reported "${verdict.outcome}".`;
+    why = `Expected outcome "${expectOutcome}" but reported "${verdict.outcome}".`;
   } else {
     grade = "GOOD";
     why =
@@ -153,10 +175,11 @@ export async function runCase(
   return {
     id: c.id,
     clientName: c.clientName,
+    category: c.category ?? null,
     what: c.what,
     rationale: c.rationale,
     outcome: verdict.outcome,
-    expectOutcome: c.expectOutcome,
+    expectOutcome,
     summary: verdict.summary,
     limitation: verdict.limitation,
     stats: result.stats,
@@ -167,6 +190,7 @@ export async function runCase(
     truePositives,
     falsePositives,
     falseNegatives,
+    tolerated,
     grade,
     why,
   };
