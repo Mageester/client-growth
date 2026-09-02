@@ -4,7 +4,7 @@
   "type": "module",
   "packageManager": "pnpm@10.12.1",
   "engines": {
-    "node": ">=20"
+    "node": "24.x"
   },
   "scripts": {
     "dev": "react-router build && wrangler dev",
@@ -21,7 +21,9 @@
     "db:migrate:production": "pnpm production:preflight && wrangler d1 migrations apply client-growth-production --env production --remote",
     "deploy:production": "pnpm production:preflight && pnpm typecheck && pnpm build && wrangler deploy --env production --experimental-provision=false --experimental-auto-create=false",
     "preview": "wrangler dev",
-    "dev:fixture": "tsx scripts/dev-fixture.ts"
+    "dev:fixture": "tsx scripts/dev-fixture.ts",
+    "verify:repo": "tsx scripts/repo-safety.ts",
+    "verify": "pnpm verify:repo && pnpm production:preflight && pnpm test && pnpm typecheck && pnpm build"
   },
   "dependencies": {
     "better-auth": "1.7.2",
