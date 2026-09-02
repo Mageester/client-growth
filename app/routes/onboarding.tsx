@@ -1,7 +1,8 @@
 import { Form, redirect, useNavigation } from "react-router";
 
 import * as repo from "@/db/repositories";
-import { ClientSchema, ServiceSchema } from "@/core/schema";
+import { ClientSchema, ServiceSchema, type RuleId } from "@/core/schema";
+import { RULE_SERVICE_LINKS } from "@/core/rules/registry";
 import {
   createWorkspaceForOwner,
   getWorkspaceForUser,
@@ -20,28 +21,38 @@ export function meta() {
 }
 
 /**
- * The two services the engine can actually match today, pre-filled with
- * defensible mid-market prices. Onboarding teaches the product by showing the
- * two shapes of finding it can produce, rather than asking for abstract config.
+ * The services the engine can actually match today, pre-filled with defensible
+ * mid-market prices. Onboarding teaches the product by showing the shapes of
+ * finding it can produce, rather than asking for abstract config.
+ *
+ * Built from the rule registry so this list cannot fall behind it: adding a rule
+ * without a starter here is a type error, and a workspace that finishes
+ * onboarding is guaranteed to be able to reach every rule.
  */
-const STARTER_SERVICES = [
-  {
+const STARTER_DEFAULTS: Record<
+  RuleId,
+  { field: string; name: string; min: number; max: number; when: string }
+> = {
+  "missing-service-page": {
     field: "landing",
-    tag: "landing-page",
     name: "Service Landing Page",
     min: 900,
     max: 1800,
     when: "a client sells something their website never gives its own page",
   },
-  {
+  "broken-conversion-path": {
     field: "conversion",
-    tag: "conversion-fix",
     name: "Conversion Path Fix",
     min: 300,
     max: 900,
     when: "a call-to-action, form or phone link on the site is broken",
   },
-] as const;
+};
+
+const STARTER_SERVICES = RULE_SERVICE_LINKS.map((link) => ({
+  tag: link.tag,
+  ...STARTER_DEFAULTS[link.ruleId],
+}));
 
 function slug(prefix: string, name: string): string {
   const base = name

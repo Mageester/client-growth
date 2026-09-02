@@ -1,4 +1,5 @@
 import type { EvidenceBundle } from "@/core/schema";
+import type { CatalogCoverage } from "@/core/rules/registry";
 
 /**
  * The truthful result of one analysis run.
@@ -49,6 +50,8 @@ export interface OutcomeInput {
   surfaced: number;
   /** Evaluator invocations that threw. Failing closed hides real work. */
   evaluatorErrors: number;
+  /** Which of today's rules the agency's catalog can actually reach. */
+  catalog: CatalogCoverage;
 }
 
 export interface AnalysisOutcomeResult {
@@ -66,6 +69,22 @@ export interface AnalysisOutcomeResult {
  */
 export function classifyAnalysis(input: OutcomeInput): AnalysisOutcomeResult {
   const reach = measureEvidenceReach(input.evidence);
+
+  // Before anything about the website: could this catalog have produced a
+  // finding at all? Every finding is priced from an active service that is
+  // offered for that kind of gap, so with none the rules never run and the site
+  // is never actually assessed. Calling that "clean" is the most misleading
+  // thing the product could say, and it is exactly what a brand-new workspace
+  // would have heard on its very first run.
+  if (input.catalog.matched === 0) {
+    return {
+      outcome: "inconclusive",
+      summary: "Nothing could be checked — no service in your catalog is offered for a website gap.",
+      limitation:
+        "Client Growth prices every finding from something you sell, so a service has to say which kind of gap it answers before a site can be assessed. Add or edit a service, set what it is offered for, then re-analyze.",
+      reach,
+    };
+  }
 
   if (input.surfaced > 0) {
     return {
@@ -117,13 +136,25 @@ export function classifyAnalysis(input: OutcomeInput): AnalysisOutcomeResult {
     };
   }
 
+  // "Clean" is a claim about what was checked, so anything that narrowed the
+  // check has to travel with it. A partly-matched catalog silently skips a whole
+  // rule; saying nothing would let the agency read "clean" as "fully checked".
+  const limits: string[] = [];
+  if (reach.inconclusiveEvents > 0) {
+    limits.push(
+      `${reach.inconclusiveEvents} ${reach.inconclusiveEvents === 1 ? "request" : "requests"} during this run could not be completed, so a small part of the site was not assessed.`,
+    );
+  }
+  if (input.catalog.unmatchedLabels.length > 0) {
+    limits.push(
+      `Only ${input.catalog.matched} of ${input.catalog.total} kinds of gap were checked — no active service is offered for ${input.catalog.unmatchedLabels.map((l) => l.toLowerCase()).join(" or ")}.`,
+    );
+  }
+
   return {
     outcome: "clean",
     summary: `Read ${reach.readablePages} ${reach.readablePages === 1 ? "page" : "pages"} and found no unmet billable work.`,
-    limitation:
-      reach.inconclusiveEvents > 0
-        ? `${reach.inconclusiveEvents} request(s) during this run could not be completed, so a small part of the site was not assessed.`
-        : null,
+    limitation: limits.length > 0 ? limits.join(" ") : null,
     reach,
   };
 }

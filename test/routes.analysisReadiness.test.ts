@@ -1,0 +1,209 @@
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+import Database from "better-sqlite3";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+
+import * as repo from "@/db/repositories";
+import { createWorkspaceForOwner } from "@/db/workspaces";
+import { SCHEMA_SQL } from "@/db/schema";
+import { ClientSchema, ServiceSchema } from "@/core/schema";
+import { __setSessionResolver } from "../app/lib/session.server";
+import { d1LikeOver } from "./helpers/testAuth";
+
+import * as clientDetail from "../app/routes/clients.$id";
+
+/**
+ * Readiness is shown BEFORE a run, not explained afterwards.
+ *
+ * The failure this guards against is a brand-new workspace pressing "Analyze
+ * site" with a catalog that cannot match anything, waiting for a crawl, and
+ * being told the site is clean. The button is disabled for that, but a form post
+ * must not be able to start the run either.
+ */
+
+const migrationsDir = join(dirname(fileURLToPath(import.meta.url)), "..", "migrations");
+
+let raw: Database.Database;
+let scope: { db: never; workspaceId: string };
+let ctx: { cloudflare: { env: Record<string, unknown> } };
+
+function sqlDbOver(db: Database.Database) {
+  const stmt = (sql: string, bound: unknown[]) => ({
+    bind: (...v: unknown[]) => stmt(sql, v),
+    all: async () => db.prepare(sql).all(...(bound as never[])),
+    first: async () => db.prepare(sql).get(...(bound as never[])) ?? null,
+    run: async () => ({ rowsAffected: db.prepare(sql).run(...(bound as never[])).changes }),
+  });
+  return { prepare: (sql: string) => stmt(sql, []), exec: async (s: string) => void db.exec(s) };
+}
+
+function formReq(fields: Record<string, string>) {
+  const body = new URLSearchParams(fields);
+  return new Request("http://localhost/", {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body,
+  });
+}
+
+const CLIENT_ID = "client-meridian";
+
+async function addClient(offerings: string[]) {
+  await repo.upsertClient(
+    scope,
+    ClientSchema.parse({
+      id: CLIENT_ID,
+      name: "Meridian Dental",
+      // Not a resolvable host: nothing in this file may reach the network.
+      domain: "meridiandental.invalid",
+      offerings,
+      notes: "",
+    }),
+  );
+}
+
+async function addService(tags: string[]) {
+  await repo.upsertService(
+    scope,
+    ServiceSchema.parse({
+      id: "svc-" + (tags[0] ?? "none"),
+      name: "A service",
+      description: "",
+      priceMin: 300,
+      priceMax: 1000,
+      tags,
+      active: true,
+    }),
+  );
+}
+
+const loadClient = () =>
+  clientDetail.loader({
+    params: { id: CLIENT_ID },
+    request: new Request("http://localhost/clients/" + CLIENT_ID),
+    context: ctx,
+  } as never) as Promise<{
+    readiness: { matched: number; total: number; unmatchedLabels: string[]; offerings: number };
+  }>;
+
+const analyze = () =>
+  clientDetail.action({
+    params: { id: CLIENT_ID },
+    request: formReq({ intent: "analyze" }),
+    context: ctx,
+  } as never) as Promise<{ ok: boolean; error?: string }>;
+
+beforeEach(async () => {
+  raw = new Database(":memory:");
+  raw.pragma("foreign_keys = ON");
+  raw.exec(readFileSync(join(migrationsDir, "0004_better_auth.sql"), "utf8"));
+  raw.exec(SCHEMA_SQL);
+  const db = sqlDbOver(raw) as never;
+  await createWorkspaceForOwner(db, { id: "ws_a", name: "A", ownerUserId: "u_a" });
+  scope = { db, workspaceId: "ws_a" };
+  __setSessionResolver(async () => ({
+    userId: "u_a",
+    user: { id: "u_a", email: "a@x.example", name: "A" },
+  }));
+  ctx = {
+    cloudflare: {
+      env: {
+        DB: d1LikeOver(raw),
+        BETTER_AUTH_SECRET: "x".repeat(40),
+        BETTER_AUTH_URL: "http://localhost:8787",
+        AI_PROVIDER: "mock",
+      },
+    },
+  };
+});
+
+afterEach(() => {
+  __setSessionResolver(null);
+  raw.close();
+});
+
+describe("pre-analysis readiness", () => {
+  it("refuses to start a run when no service is offered for any gap", async () => {
+    await addClient(["dental implants", "invisalign"]);
+
+    const result = await analyze();
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatch(/no active service is offered/i);
+    // Nothing was crawled and nothing was recorded, so the client page cannot
+    // later present this as a run that happened.
+    expect(await repo.listAnalysisRuns(scope, CLIENT_ID, 5)).toHaveLength(0);
+  });
+
+  it("refuses when the only service answers no kind of gap", async () => {
+    await addClient(["dental implants", "invisalign"]);
+    await addService(["seo", "retainer"]);
+
+    const result = await analyze();
+
+    expect(result.ok).toBe(false);
+    expect(await repo.listAnalysisRuns(scope, CLIENT_ID, 5)).toHaveLength(0);
+  });
+
+  it("refuses when the only matching service has been deactivated", async () => {
+    await addClient(["dental implants", "invisalign"]);
+    await addService(["landing-page"]);
+    await repo.setServiceActive(scope, "svc-landing-page", false);
+
+    const result = await analyze();
+
+    expect(result.ok).toBe(false);
+    expect(await repo.listAnalysisRuns(scope, CLIENT_ID, 5)).toHaveLength(0);
+  });
+
+  it("tells the client page nothing can be checked yet", async () => {
+    await addClient(["dental implants", "invisalign"]);
+
+    const { readiness } = await loadClient();
+
+    expect(readiness.matched).toBe(0);
+    expect(readiness.total).toBe(2);
+    expect(readiness.unmatchedLabels).toEqual([
+      "A missing service page",
+      "A broken conversion path",
+    ]);
+  });
+
+  it("reports a partly-set-up catalog so the skipped rule is visible", async () => {
+    await addClient(["dental implants", "invisalign"]);
+    await addService(["landing-page"]);
+
+    const { readiness } = await loadClient();
+
+    expect(readiness.matched).toBe(1);
+    expect(readiness.unmatchedLabels).toEqual(["A broken conversion path"]);
+  });
+
+  it("reports a thin client so the likely inconclusive run is warned about first", async () => {
+    await addClient(["dental implants"]);
+    await addService(["landing-page"]);
+    await addService(["conversion-fix"]);
+
+    const { readiness } = await loadClient();
+
+    expect(readiness.matched).toBe(2);
+    expect(readiness.unmatchedLabels).toEqual([]);
+    // One offering: missing-service-page will almost never be able to prove the
+    // crawl reached the service section, so the page says so before the run.
+    expect(readiness.offerings).toBe(1);
+  });
+
+  it("has nothing to warn about once the workspace is properly set up", async () => {
+    await addClient(["dental implants", "invisalign", "teeth whitening"]);
+    await addService(["landing-page"]);
+    await addService(["conversion-fix"]);
+
+    const { readiness } = await loadClient();
+
+    expect(readiness.matched).toBe(readiness.total);
+    expect(readiness.unmatchedLabels).toEqual([]);
+    expect(readiness.offerings).toBeGreaterThanOrEqual(2);
+  });
+});

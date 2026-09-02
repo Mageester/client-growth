@@ -65,6 +65,7 @@ export async function runAnalysis(
     coverageReason: result.coverage.reason,
     surfaced: result.opportunities.length,
     evaluatorErrors: result.stats.evaluatorErrors,
+    catalog: result.catalogCoverage,
   });
 
   await repo.saveEvidence(t, result.evidence);

@@ -7,6 +7,7 @@ import {
   type ConversionIntent,
 } from "@/core/conversionIntent";
 import { normalizeAndValidateUrl, normalizeOrigin } from "@/adapters/evidence/urlPolicy";
+import { serviceForRule } from "@/core/rules/registry";
 
 /**
  * broken-conversion-path
@@ -30,11 +31,23 @@ import { normalizeAndValidateUrl, normalizeOrigin } from "@/adapters/evidence/ur
 const CONVERSION_FIX_TAG = "conversion-fix";
 const REPEAT_5XX = new Set([500, 502, 503]);
 
+/**
+ * How each conversion intent is named to a human. The raw intent key reads as
+ * jargon in a finding an agency shows a client ("book link returns HTTP 404"),
+ * so nothing user-visible is built from the key itself.
+ */
 const INTENT_WORD: Record<ConversionIntent, string> = {
   contact: "contact link",
   quote: "quote request button",
   book: "booking button",
   call: "click-to-call link",
+};
+
+const INTENT_PAGE: Record<ConversionIntent, string> = {
+  contact: "contact page",
+  quote: "quote request page",
+  book: "booking page",
+  call: "call page",
 };
 
 function toOrigin(domain: string): string | null {
@@ -72,9 +85,7 @@ function elementLabel(link: EvidenceLink): string {
 }
 
 export async function brokenConversionPathRule(ctx: RuleContext): Promise<Candidate[]> {
-  const service = ctx.catalog.find(
-    (s) => s.active && s.tags.includes(CONVERSION_FIX_TAG),
-  );
+  const service = serviceForRule(ctx.catalog, CONVERSION_FIX_TAG);
   if (!service) return [];
 
   const origin = toOrigin(ctx.client.domain);
@@ -112,7 +123,7 @@ export async function brokenConversionPathRule(ctx: RuleContext): Promise<Candid
       elementText: elementLabel(link),
       elementHref: link.href,
       seenOn: link.foundOn,
-      note: "tel: link is not a dialable phone number",
+      note: "the click-to-call link is not a dialable phone number",
     });
   }
 
@@ -141,7 +152,7 @@ export async function brokenConversionPathRule(ctx: RuleContext): Promise<Candid
           elementHref: action,
           target,
           seenOn: [page.url],
-          note: "form action is an unconfigured placeholder / default value",
+          note: "the enquiry form submits to an unconfigured placeholder address",
         });
         continue;
       }
@@ -163,7 +174,7 @@ export async function brokenConversionPathRule(ctx: RuleContext): Promise<Candid
           target,
           observedStatus: r.status,
           seenOn: [page.url],
-          note: `form GET action returns HTTP ${r.status}`,
+          note: `the enquiry form submits to an address that returns HTTP ${r.status}`,
         });
       } else if (REPEAT_5XX.has(r.status) && (await confirm5xx(target))) {
         add({
@@ -174,7 +185,7 @@ export async function brokenConversionPathRule(ctx: RuleContext): Promise<Candid
           target,
           observedStatus: r.status,
           seenOn: [page.url],
-          note: `form GET action returns HTTP ${r.status} (confirmed)`,
+          note: `the enquiry form submits to an address that returns HTTP ${r.status} (confirmed)`,
         });
       }
     }
@@ -210,7 +221,7 @@ export async function brokenConversionPathRule(ctx: RuleContext): Promise<Candid
           elementHref: link.href,
           target,
           seenOn: link.foundOn,
-          note: `${intent} link points to an unconfigured external placeholder`,
+          note: `the ${INTENT_WORD[intent]} points to an unconfigured external placeholder`,
         });
       }
       continue; // never probe arbitrary external providers
@@ -261,22 +272,22 @@ export async function brokenConversionPathRule(ctx: RuleContext): Promise<Candid
       add({
         kind: "conversion-page-error",
         pageUrl: target,
-        elementText: `${intent} page`,
+        elementText: INTENT_PAGE[intent],
         elementHref: target,
         target,
         observedStatus: page.status,
         seenOn: [target],
-        note: `${intent} page returns HTTP ${page.status}`,
+        note: `the ${INTENT_PAGE[intent]} returns HTTP ${page.status}`,
       });
     } else if (REPEAT_5XX.has(page.status) && (await confirm5xx(target))) {
       add({
         kind: "conversion-page-error",
         pageUrl: target,
-        elementText: `${intent} page`,
+        elementText: INTENT_PAGE[intent],
         elementHref: target,
         observedStatus: page.status,
         seenOn: [target],
-        note: `${intent} page returns HTTP ${page.status} (confirmed)`,
+        note: `the ${INTENT_PAGE[intent]} returns HTTP ${page.status} (confirmed)`,
       });
     }
   }
@@ -298,7 +309,7 @@ function deadLink(
     target,
     observedStatus: status,
     seenOn: link.foundOn,
-    note: `${intent} link returns HTTP ${status}`,
+    note: `the ${INTENT_WORD[intent]} links to an address that returns HTTP ${status}`,
   };
 }
 
@@ -325,8 +336,14 @@ function toCandidate(d: ConversionDefect, serviceId: string): Candidate {
         : `The "${d.elementText}" conversion button on ${d.pageUrl} points to an unconfigured placeholder URL (${d.target}).${also}`;
   }
 
+  // The broken element itself is cited, not just the pages it sits on. Without
+  // it a defect whose proof IS its href — a malformed `tel:` with no target and
+  // no status — carried a single ref and was dropped by the evidence threshold,
+  // so the identical defect surfaced or vanished purely on how many pages the
+  // link happened to appear on.
   const evidenceRefs = [
     ...d.seenOn.map((u) => `page:${u}`),
+    ...(d.elementHref ? [`element:${d.elementHref}`] : []),
     ...(d.target ? [`target:${d.target}`] : []),
     ...(d.observedStatus !== undefined ? [`status:${d.observedStatus}`] : []),
   ];

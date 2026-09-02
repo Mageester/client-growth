@@ -1,4 +1,5 @@
 import type { ConversionDefect, Opportunity, Verification } from "@/core/schema";
+import { isDefectRef, isPageRef, parseEvidenceRef } from "@/core/evidenceRef";
 
 /**
  * Turns the raw provenance stored on an opportunity into something an agency
@@ -94,22 +95,32 @@ const WHERE_LABEL: Record<Verification["closeMatches"][number]["where"], string>
   "fetched-page": "Page fetched to confirm",
 };
 
+/** What the visitor loses, per defect kind. The consequence, not the mechanism. */
+const DEFECT_IMPACT: Record<ConversionDefect["kind"], string> = {
+  "dead-conversion-link": "Anyone who clicks it never reaches the page.",
+  "conversion-page-error": "Visitors cannot reach this page at all.",
+  "malformed-tel": "Tapping it on a phone does not start a call.",
+  "broken-form-target": "Enquiries submitted through it are not delivered.",
+};
+
 function defectItem(defect: ConversionDefect): EvidenceItem {
-  const kindNote: Record<ConversionDefect["kind"], string> = {
-    "dead-conversion-link": "This call-to-action links somewhere that does not load.",
-    "conversion-page-error": "The page this path leads to returns an error.",
-    "malformed-tel": "This click-to-call link is not a dialable number.",
-    "broken-form-target": "This form submits to a target that does not accept it.",
-  };
+  // The rule's own note is the specific fact; the impact line says why it
+  // matters. Restating the mechanism a third time (a generic kind sentence, the
+  // status, and the note) read as padding and made the evidence look generated.
+  const fact = defect.note
+    ? defect.note.charAt(0).toUpperCase() + defect.note.slice(1)
+    : "This conversion element is broken";
   const status =
-    defect.observedStatus && defect.observedStatus > 0
+    defect.observedStatus &&
+    defect.observedStatus > 0 &&
+    !defect.note.includes(String(defect.observedStatus))
       ? ` Returned HTTP ${defect.observedStatus}.`
       : "";
   const element = defect.elementText ? `“${defect.elementText}” — ` : "";
   return {
     title: element + titleFromUrl(defect.pageUrl),
     url: defect.pageUrl,
-    note: kindNote[defect.kind] + status + (defect.note ? ` ${defect.note}` : ""),
+    note: `${fact}.${status} ${DEFECT_IMPACT[defect.kind]}`,
     kind: "defect",
   };
 }
@@ -159,13 +170,24 @@ export function buildEvidenceCase(opp: Opportunity): EvidenceCase {
     });
   }
 
-  const pageRefs = opp.evidenceRefs.filter((ref) => !ref.startsWith("nav:"));
-  for (const ref of pageRefs) {
+  // Only refs that name a page become page items. `element:` / `target:` /
+  // `status:` describe the defect itself and are already stated by the defect
+  // item above — repeating them here produced a dead `href="status:404"` link
+  // and inflated the "pages checked" count with things that are not pages.
+  const parsed = opp.evidenceRefs.map(parseEvidenceRef);
+  for (const ref of parsed) {
+    if (ref.kind === "nav" || isDefectRef(ref)) continue;
+    if (!isPageRef(ref) || !ref.url) continue;
     push(primary.length < 4 ? primary : secondary, {
-      title: titleFromUrl(ref),
-      url: ref,
-      note: "Read during the analysis.",
-      kind: "inspected",
+      title: titleFromUrl(ref.url),
+      url: ref.url,
+      note:
+        ref.kind === "verified"
+          ? "Fetched during the check and did not cover this offering."
+          : ref.kind === "considered"
+            ? "Considered as a near match and ruled out."
+            : "Read during the analysis.",
+      kind: ref.kind === "considered" ? "near-miss" : "inspected",
     });
   }
 
@@ -186,9 +208,9 @@ export function buildEvidenceCase(opp: Opportunity): EvidenceCase {
     }
   }
 
-  const navRefs = opp.evidenceRefs
-    .filter((ref) => ref.startsWith("nav:"))
-    .map((ref) => ref.slice(4))
+  const navRefs = parsed
+    .filter((ref) => ref.kind === "nav")
+    .map((ref) => ref.value)
     .filter(Boolean);
   if (navRefs.length > 0) {
     push(secondary, {

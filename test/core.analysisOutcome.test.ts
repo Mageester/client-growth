@@ -1,7 +1,16 @@
 import { describe, expect, it } from "vitest";
 
 import { classifyAnalysis, measureEvidenceReach } from "@/core/analysisOutcome";
-import type { EvidenceBundle } from "@/core/schema";
+import { assessCatalogCoverage } from "@/core/rules/registry";
+import { ServiceSchema, type EvidenceBundle } from "@/core/schema";
+
+/** A catalog that can reach both of today's rules. */
+function fullCatalog() {
+  return assessCatalogCoverage([
+    ServiceSchema.parse({ id: "s1", name: "Page", priceMin: 900, priceMax: 1800, tags: ["landing-page"] }),
+    ServiceSchema.parse({ id: "s2", name: "Fix", priceMin: 300, priceMax: 1000, tags: ["conversion-fix"] }),
+  ]);
+}
 
 function bundle(overrides: Partial<EvidenceBundle["site"]> = {}, networkEvents: EvidenceBundle["networkEvents"] = []): EvidenceBundle {
   return {
@@ -31,6 +40,7 @@ const CLEAN_INPUT = {
   coverageReason: "Service coverage confirmed.",
   surfaced: 0,
   evaluatorErrors: 0,
+  catalog: fullCatalog(),
 };
 
 describe("analysis outcome classification", () => {

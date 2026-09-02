@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Form, useNavigation } from "react-router";
 
 import type { Service } from "@/core/schema";
+import { RULE_SERVICE_LINKS } from "@/core/rules/registry";
 import { ServiceSchema } from "@/core/schema";
 import * as repo from "@/db/repositories";
 import {
@@ -25,19 +26,12 @@ export function meta() {
  * The engine matches a finding to a service through machine tags. Exposing a
  * free-text "tags" box asked agency owners to guess at an internal contract; a
  * fixed set of product-language choices says what the setting actually decides.
+ *
+ * The list comes from the rule registry rather than being restated here: a
+ * checkbox whose tag no rule reads would silently save a service that can never
+ * be matched to a finding.
  */
-const MATCHES = [
-  {
-    tag: "landing-page",
-    label: "A missing service page",
-    hint: "Sell this when the client offers something their website never gives its own page.",
-  },
-  {
-    tag: "conversion-fix",
-    label: "A broken conversion path",
-    hint: "Sell this when a call-to-action, form or phone link on the site is broken.",
-  },
-] as const;
+const MATCHES = RULE_SERVICE_LINKS;
 
 type MatchTag = (typeof MATCHES)[number]["tag"];
 

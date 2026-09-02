@@ -1,7 +1,9 @@
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { Form, Link, useNavigation } from "react-router";
 
 import { ClientSchema } from "@/core/schema";
+import { assessCatalogCoverage } from "@/core/rules/registry";
 import * as repo from "@/db/repositories";
 import { runAnalysis } from "../lib/analysis.server";
 import {
@@ -50,6 +52,7 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
   ]);
   const totals = totalsFor(opportunities);
   const latest = runs[0] ?? null;
+  const catalog = assessCatalogCoverage(services);
   return {
     client,
     services,
@@ -58,6 +61,14 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
     totals,
     runs,
     firstRunFailed,
+    // What this analysis would actually be able to check, worked out before the
+    // user spends a run finding out. See <Readiness/>.
+    readiness: {
+      matched: catalog.matched,
+      total: catalog.total,
+      unmatchedLabels: catalog.unmatchedLabels,
+      offerings: client.offerings.length,
+    },
     state: clientState({ outcome: latest?.outcome ?? null, openCount: totals.open }),
   };
 }
@@ -110,6 +121,15 @@ export async function action({ params, request, context }: Route.ActionArgs) {
   }
 
   if (intent === "analyze") {
+    // The button is disabled for this, but a form post must not be able to
+    // start a run that provably cannot check anything.
+    if (assessCatalogCoverage(await repo.listServices(t.scope)).matched === 0) {
+      return {
+        ok: false as const,
+        error:
+          "No active service is offered for a kind of website gap, so an analysis could not check anything. Set that up in your catalog first.",
+      };
+    }
     try {
       const result = await runAnalysis(t.scope, context.cloudflare.env as never, existing.id);
       return {
@@ -136,7 +156,7 @@ export async function action({ params, request, context }: Route.ActionArgs) {
 }
 
 export default function ClientDetail({ loaderData, actionData }: Route.ComponentProps) {
-  const { client, services, coveredIds, opportunities, totals, runs, state, firstRunFailed } =
+  const { client, services, coveredIds, opportunities, totals, runs, state, firstRunFailed, readiness } =
     loaderData;
   const navigation = useNavigation();
   const intent = navigation.formData?.get("intent");
@@ -145,6 +165,7 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
   const busy = navigation.state !== "idle";
   const [editOpen, setEditOpen] = useState(false);
 
+  const canAnalyze = readiness.matched > 0;
   const latest = runs[0] ?? null;
   const open = opportunities.filter(isOpen).sort(byPotentialValue);
   const closed = opportunities.filter((opp) => !isOpen(opp)).sort(byPotentialValue);
@@ -189,7 +210,16 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
             </button>
             <Form method="post">
               <input type="hidden" name="intent" value="analyze" />
-              <button type="submit" className="btn btn-primary" disabled={busy}>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={busy || !canAnalyze}
+                title={
+                  canAnalyze
+                    ? undefined
+                    : "Add a service that is offered for a website gap before analyzing."
+                }
+              >
                 <Icon name="refresh" size={15} className={analyzing ? "spin" : undefined} />
                 {analyzing ? "Reading the site…" : latest ? "Re-analyze" : "Analyze site"}
               </button>
@@ -228,6 +258,8 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
           </Fact>
         </dl>
       </header>
+
+      <Readiness readiness={readiness} clientName={client.name} onEditClient={() => setEditOpen(true)} />
 
       {analyzing && <AnalysisRunning clientName={client.name} domain={client.domain} />}
       {!analyzing && actionData && "run" in actionData && actionData.run && (
@@ -540,5 +572,92 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
         </Form>
       </SidePanel>
     </div>
+  );
+}
+
+/**
+ * What this analysis would actually be able to check — shown BEFORE the run,
+ * not explained afterwards.
+ *
+ * Every finding is priced from an active service that says which kind of gap it
+ * answers, so a catalog matching none of them makes the run incapable of
+ * producing anything. That used to be indistinguishable from a healthy site: the
+ * rules returned nothing, and the run was reported as "read N pages and found no
+ * unmet billable work". The engine now calls that inconclusive; this says so one
+ * step earlier, while it is still cheap to fix.
+ *
+ * Offerings are a warning rather than a block: the crawl needs to see the site's
+ * service section to claim a page is missing, and with fewer than two offerings
+ * it usually cannot — but a broken conversion path is still findable, so the run
+ * is worth allowing.
+ */
+function Readiness({
+  readiness,
+  clientName,
+  onEditClient,
+}: {
+  readiness: {
+    matched: number;
+    total: number;
+    unmatchedLabels: string[];
+    offerings: number;
+  };
+  clientName: string;
+  onEditClient: () => void;
+}) {
+  if (readiness.matched === 0) {
+    return (
+      <div className="notice err" role="alert">
+        <Icon name="alert" size={15} />
+        <span>
+          An analysis cannot check anything yet. Every finding is priced from something you sell,
+          and no active service says which kind of website gap it answers.{" "}
+          <Link className="link" to="/services">
+            Set that up in your catalog
+          </Link>
+          , then analyze.
+        </span>
+      </div>
+    );
+  }
+
+  const notes: ReactNode[] = [];
+  if (readiness.unmatchedLabels.length > 0) {
+    notes.push(
+      <>
+        Only {readiness.matched} of {readiness.total} kinds of gap will be checked — no active
+        service is offered for{" "}
+        {readiness.unmatchedLabels.map((label) => label.toLowerCase()).join(" or ")}.{" "}
+        <Link className="link" to="/services">
+          Open the catalog
+        </Link>
+        .
+      </>,
+    );
+  }
+  if (readiness.offerings < 2) {
+    notes.push(
+      <>
+        {clientName} has {readiness.offerings === 0 ? "no offerings" : "one offering"} recorded.
+        Client Growth will not claim a service page is missing unless the crawl can confirm it
+        reached the site&rsquo;s service section, which usually needs two or more.{" "}
+        <button type="button" className="linkbtn" onClick={onEditClient}>
+          Add what this business sells
+        </button>
+        .
+      </>,
+    );
+  }
+  if (notes.length === 0) return null;
+
+  return (
+    <>
+      {notes.map((note, index) => (
+        <div className="notice" role="status" key={index}>
+          <Icon name="alert" size={15} />
+          <span>{note}</span>
+        </div>
+      ))}
+    </>
   );
 }

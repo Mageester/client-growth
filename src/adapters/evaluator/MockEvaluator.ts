@@ -1,6 +1,22 @@
 import type { EvaluatorInput, OpportunityEvaluator } from "@/ports/OpportunityEvaluator";
-import type { Evaluation } from "@/core/schema";
+import type { Candidate, Evaluation } from "@/core/schema";
 import { titleCase } from "@/core/text";
+
+/** Defect notes are stored as fragments; a rationale is read as a sentence. */
+function sentence(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+/**
+ * What the repair actually is, per defect kind. The schema key ("malformed-tel")
+ * is an internal identifier and must never reach a proposal scope line.
+ */
+const REPAIR_VERB: Record<NonNullable<Candidate["conversionDefect"]>["kind"], string> = {
+  "dead-conversion-link": "Repair the dead call-to-action link",
+  "conversion-page-error": "Restore the page this path leads to",
+  "malformed-tel": "Replace the click-to-call link with a dialable number",
+  "broken-form-target": "Point the enquiry form at a working submission endpoint",
+};
 
 /**
  * Deterministic, offline evaluator. Default for development and the entire
@@ -35,12 +51,12 @@ export class MockEvaluator implements OpportunityEvaluator {
         verdict: "surface",
         confidence: Math.min(0.9, Number((candidate.rawConfidence + 0.05).toFixed(2))),
         rationale:
-          `${d.note} on ${d.pageUrl}. This sits directly on the path a visitor ` +
+          `${sentence(d.note)} on ${d.pageUrl}. This sits directly on the path a visitor ` +
           `takes to become a lead, so every affected visit is a lost enquiry ` +
           `until it is fixed. The defect is specific and reproducible.`,
         suggestedScope: [
           `Reproduce and confirm the broken element (${d.elementHref || d.target})`,
-          `Repair the ${d.kind.replace(/-/g, " ")} and point it at the correct working target`,
+          `${REPAIR_VERB[d.kind]} and re-point it at the correct working target`,
           `Test the full conversion path end to end (click → destination → submit → confirmation)`,
           `Check the rest of the site for the same broken element and fix consistently`,
         ],

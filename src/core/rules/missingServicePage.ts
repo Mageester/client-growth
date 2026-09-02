@@ -2,9 +2,19 @@ import type { Candidate } from "@/core/schema";
 import { significantTokens } from "@/core/text";
 import { verifyOfferingAbsence } from "@/core/absenceVerification";
 import type { RuleContext } from "@/core/rules/context";
+import { serviceForRule } from "@/core/rules/registry";
 
 /** Agency services tagged like this are what this rule proposes. */
 const LANDING_PAGE_TAG = "landing-page";
+
+/**
+ * `detected` is copied verbatim into the client-facing proposal draft, so it is
+ * written as prose. "6 crawled page(s)" reads as a machine report and undermines
+ * evidence that is in fact solid.
+ */
+function count(n: number, singular: string, plural = singular + "s"): string {
+  return `${n} ${n === 1 ? singular : plural}`;
+}
 
 /**
  * missing-service-page
@@ -23,9 +33,7 @@ export async function missingServicePageRule(ctx: RuleContext): Promise<Candidat
   // portion of the site, claim nothing missing.
   if (ctx.coverage && !ctx.coverage.analyzable) return [];
 
-  const service = catalog.find(
-    (s) => s.active && s.tags.includes(LANDING_PAGE_TAG),
-  );
+  const service = serviceForRule(catalog, LANDING_PAGE_TAG);
   if (!service) return [];
 
   const pageCount = evidence.site.pages.length;
@@ -46,7 +54,7 @@ export async function missingServicePageRule(ctx: RuleContext): Promise<Candidat
 
     const inspectedNote =
       verification.inspectedUrls.length > 0
-        ? ` Verification fetched ${verification.inspectedUrls.length} candidate page(s); none covered it.`
+        ? ` Verification fetched ${count(verification.inspectedUrls.length, "candidate page")}; none covered it.`
         : "";
     const consideredNote =
       verification.closeMatches.length > 0
@@ -70,10 +78,10 @@ export async function missingServicePageRule(ctx: RuleContext): Promise<Candidat
       subject: offering,
       detected:
         `The client offers "${offering}" but targeted verification found no dedicated page for it. ` +
-        `Checked ${pageCount} crawled page(s), ${evidence.site.nav.length} navigation label(s), ` +
-        `${evidence.site.links.length} discovered link(s)` +
+        `Checked ${count(pageCount, "crawled page")}, ${count(evidence.site.nav.length, "navigation label")}, ` +
+        `${count(evidence.site.links.length, "discovered link")}` +
         (evidence.site.sitemapUrls.length > 0
-          ? `, and ${evidence.site.sitemapUrls.length} sitemap URL(s)`
+          ? `, and ${count(evidence.site.sitemapUrls.length, "sitemap URL")}`
           : "") +
         `.${inspectedNote}${consideredNote}`,
       evidenceRefs: [

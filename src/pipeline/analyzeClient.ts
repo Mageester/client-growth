@@ -10,6 +10,7 @@ import type {
   Service,
 } from "@/core/schema";
 import { runRules } from "@/core/rules";
+import { assessCatalogCoverage, type CatalogCoverage } from "@/core/rules/registry";
 import { assessServiceCoverage, type CoverageAssessment } from "@/core/absenceVerification";
 import { passesEvidenceThreshold } from "@/core/threshold";
 import { resolveBillability } from "@/core/billability";
@@ -72,6 +73,12 @@ export interface AnalyzeClientResult {
    * missing.
    */
   coverage: CoverageAssessment;
+  /**
+   * Which of today's rules this agency's catalog can reach. With none matched
+   * no rule runs at all, so callers must not read an empty result as "the site
+   * is fine".
+   */
+  catalogCoverage: CatalogCoverage;
   stats: AnalyzeClientStats;
 }
 
@@ -230,5 +237,12 @@ export async function analyzeClient(
   }
   stats.surfaced = opportunities.length;
 
-  return { opportunities, suppressed, evidence, coverage, stats };
+  return {
+    opportunities,
+    suppressed,
+    evidence,
+    coverage,
+    catalogCoverage: assessCatalogCoverage(input.catalog),
+    stats,
+  };
 }

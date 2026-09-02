@@ -1,4 +1,5 @@
 import type { Client, Opportunity, Service } from "@/core/schema";
+import { describeEvidenceRef, isDefectRef, parseEvidenceRef } from "@/core/evidenceRef";
 
 export interface ProposalInputs {
   opportunity: Opportunity;
@@ -20,13 +21,27 @@ export function generateProposalDraft({ opportunity, client, service }: Proposal
     ? opportunity.suggestedScope
     : [`Design and build a dedicated page for ${opportunity.title}.`];
 
-  const evidenceLines = opportunity.evidenceRefs
-    .filter((ref) => !ref.startsWith("nav:"))
-    .slice(0, 12)
-    .map((ref) => `- ${ref}`);
-  const navRefs = opportunity.evidenceRefs
-    .filter((ref) => ref.startsWith("nav:"))
-    .map((ref) => ref.slice(4));
+  // This section goes in front of the client, so every line has to read as a
+  // fact rather than as the internal tag it is stored as. The defect's own
+  // facts (element, target, HTTP status) are listed after the pages, because
+  // they are the point of the finding rather than more provenance.
+  const parsed = opportunity.evidenceRefs.map(parseEvidenceRef);
+  const elementHref = parsed.find((ref) => ref.kind === "element")?.value;
+  const seen = new Set<string>();
+  const pageLines: string[] = [];
+  const defectLines: string[] = [];
+  for (const ref of parsed) {
+    if (ref.kind === "nav") continue;
+    // A CTA's element and its resolved target are usually the same address;
+    // listing it twice under two labels reads like the draft was not checked.
+    if (ref.kind === "target" && ref.value === elementHref) continue;
+    const line = describeEvidenceRef(ref);
+    if (seen.has(line)) continue;
+    seen.add(line);
+    (isDefectRef(ref) ? defectLines : pageLines).push(`- ${line}`);
+  }
+  const evidenceLines = [...pageLines.slice(0, 12), ...defectLines];
+  const navRefs = parsed.filter((ref) => ref.kind === "nav").map((ref) => ref.value);
 
   return [
     `# Proposal: ${opportunity.title}`,

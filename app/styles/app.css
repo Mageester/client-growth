@@ -344,6 +344,27 @@ button:disabled {
   text-underline-offset: 2px;
 }
 
+/* A link that performs an action rather than navigating (opens a panel). Styled
+   as a link because that is what it is to the reader, but kept a <button> so it
+   is announced and activated as one. */
+.linkbtn {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 550;
+  cursor: pointer;
+  transition: color 120ms var(--ease);
+}
+
+.linkbtn:hover {
+  color: var(--accent-strong);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .dot-sep {
   color: var(--ink-4);
 }
