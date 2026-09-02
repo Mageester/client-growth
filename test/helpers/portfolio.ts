@@ -2,14 +2,14 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import Database from "better-sqlite3";
 import { vi } from "vitest";
 
 import { ClientSchema, ServiceSchema } from "@/core/schema";
 import type { MonitoringCadence } from "@/core/monitoring";
+import { nodeSqliteDb, type NodeSqliteDb } from "@/db/nodeSqlite";
 import * as repo from "@/db/repositories";
 import { SCHEMA_SQL } from "@/db/schema";
-import type { RunResult, SqlDb, SqlStatement, SqlValue } from "@/db/sql";
+import type { SqlDb } from "@/db/sql";
 import type { TenantScope } from "@/db/tenant";
 import { createWorkspaceForOwner } from "@/db/workspaces";
 
@@ -26,21 +26,30 @@ const migrationsDir = join(dirname(fileURLToPath(import.meta.url)), "..", "..", 
  * scheduler rather than about luck.
  */
 
-export function sqlDbOver(raw: Database.Database): SqlDb {
-  const stmt = (sql: string, bound: SqlValue[]): SqlStatement => ({
-    bind: (...v: SqlValue[]) => stmt(sql, v),
-    all: <T,>() => Promise.resolve(raw.prepare(sql).all(...(bound as never[])) as T[]),
-    first: <T,>() =>
-      Promise.resolve((raw.prepare(sql).get(...(bound as never[])) ?? null) as T | null),
-    run: (): Promise<RunResult> =>
-      Promise.resolve({ rowsAffected: Number(raw.prepare(sql).run(...(bound as never[])).changes) }),
+/**
+ * A Cloudflare-D1-shaped binding over the same database, for the route tests
+ * that go through `requireTenant` and therefore need `context.cloudflare.env.DB`.
+ */
+export function d1LikeOver(handle: NodeSqliteDb): unknown {
+  const stmt = (sql: string, bound: unknown[]): unknown => ({
+    bind: (...values: unknown[]) => stmt(sql, values),
+    all: async () => ({ results: handle.raw.prepare(sql).all(...(bound as never[])) }),
+    first: async (column?: string) => {
+      const row = handle.raw.prepare(sql).get(...(bound as never[])) as
+        | Record<string, unknown>
+        | undefined;
+      if (!row) return null;
+      return column ? (row[column] ?? null) : row;
+    },
+    run: async () => ({
+      meta: { changes: Number(handle.raw.prepare(sql).run(...(bound as never[])).changes ?? 0) },
+    }),
   });
   return {
-    exec: (sql: string) => {
-      raw.exec(sql);
-      return Promise.resolve();
-    },
     prepare: (sql: string) => stmt(sql, []),
+    exec: async (sql: string) => {
+      handle.raw.exec(sql);
+    },
   };
 }
 
@@ -110,7 +119,8 @@ export function portfolioFetch(clients: FixtureClient[]): typeof fetch {
 }
 
 export interface Portfolio {
-  raw: Database.Database;
+  /** A D1-shaped binding over the same database, for route-level tests. */
+  d1: unknown;
   db: SqlDb;
   /** Workspace id -> scope. Every assertion about isolation uses these. */
   scopes: Map<string, TenantScope>;
@@ -148,11 +158,13 @@ export async function buildPortfolio(input: {
   const perWorkspace = input.perWorkspace ?? 10;
   const now = input.now ?? new Date();
 
-  const raw = new Database(":memory:");
-  raw.pragma("foreign_keys = ON");
-  raw.exec(readFileSync(join(migrationsDir, "0004_better_auth.sql"), "utf8"));
-  raw.exec(SCHEMA_SQL);
-  const db = sqlDbOver(raw);
+  // node:sqlite, not better-sqlite3: the fixture builds a fresh database per
+  // test, and a native addon's Database finalizer running after the vitest
+  // worker's environment is torn down aborts the whole run.
+  const handle = nodeSqliteDb(":memory:");
+  await handle.exec(readFileSync(join(migrationsDir, "0004_better_auth.sql"), "utf8"));
+  await handle.exec(SCHEMA_SQL);
+  const db: SqlDb = handle;
 
   const scopes = new Map<string, TenantScope>();
   const clients: FixtureClient[] = [];
@@ -212,7 +224,7 @@ export async function buildPortfolio(input: {
   }
 
   return {
-    raw,
+    d1: d1LikeOver(handle),
     db,
     scopes,
     clients,
@@ -221,7 +233,7 @@ export async function buildPortfolio(input: {
       if (!scope) throw new Error(`no scope for ${workspaceId}`);
       return scope;
     },
-    close: () => raw.close(),
+    close: () => handle.close(),
   };
 }
 

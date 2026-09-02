@@ -5,7 +5,6 @@ import * as monitoring from "@/db/monitoring";
 import * as repo from "@/db/repositories";
 import type { TenantScope } from "@/db/tenant";
 import { __setSessionResolver } from "../app/lib/session.server";
-import { d1LikeOver } from "./helpers/testAuth";
 import { buildPortfolio, portfolioFetch, type Portfolio } from "./helpers/portfolio";
 
 import * as clientDetail from "../app/routes/clients.$id";
@@ -50,7 +49,7 @@ beforeEach(async () => {
   ctx = {
     cloudflare: {
       env: {
-        DB: d1LikeOver(portfolio.raw) as never,
+        DB: portfolio.d1 as never,
         AI_PROVIDER: "mock",
         MAX_AI_CALLS_PER_RUN: "10",
       },
