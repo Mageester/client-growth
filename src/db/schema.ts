@@ -46,11 +46,20 @@ CREATE TABLE IF NOT EXISTS clients (
   domain TEXT NOT NULL,
   offerings TEXT NOT NULL DEFAULT '[]',
   notes TEXT NOT NULL DEFAULT '',
-  updated_at TEXT NOT NULL
+  updated_at TEXT NOT NULL,
+  monitoring_cadence TEXT NOT NULL DEFAULT 'off',
+  monitoring_next_due_at TEXT,
+  monitoring_last_attempt_at TEXT,
+  monitoring_last_success_at TEXT,
+  monitoring_last_outcome TEXT,
+  monitoring_consecutive_failures INTEGER NOT NULL DEFAULT 0,
+  monitoring_claimed_at TEXT
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS clients_ws_id ON clients (workspace_id, id);
 CREATE INDEX IF NOT EXISTS idx_clients_ws ON clients (workspace_id);
+CREATE INDEX IF NOT EXISTS idx_clients_monitoring_due
+  ON clients (monitoring_cadence, monitoring_next_due_at);
 
 CREATE TABLE IF NOT EXISTS client_coverage (
   workspace_id TEXT NOT NULL,
@@ -120,9 +129,17 @@ CREATE TABLE IF NOT EXISTS analysis_runs (
   inconclusive_events INTEGER NOT NULL DEFAULT 0,
   surfaced INTEGER NOT NULL DEFAULT 0,
   stats TEXT NOT NULL DEFAULT '{}',
+  trigger TEXT NOT NULL DEFAULT 'manual',
+  new_count INTEGER NOT NULL DEFAULT 0,
+  resolved_count INTEGER NOT NULL DEFAULT 0,
+  evaluator_calls INTEGER NOT NULL DEFAULT 0,
+  evaluator_rejections INTEGER NOT NULL DEFAULT 0,
+  evaluator_errors INTEGER NOT NULL DEFAULT 0,
   FOREIGN KEY (workspace_id, client_id) REFERENCES clients (workspace_id, id) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_analysis_runs_ws
   ON analysis_runs (workspace_id, client_id, finished_at DESC);
+CREATE INDEX IF NOT EXISTS idx_analysis_runs_trigger
+  ON analysis_runs (workspace_id, trigger, finished_at DESC);
 `;

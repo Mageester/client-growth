@@ -2,6 +2,8 @@ import type { ReactNode } from "react";
 import { Form, Link, useNavigation, useSearchParams } from "react-router";
 
 import type { Opportunity } from "@/core/schema";
+import { changeHeadline, type MonitoringOutcome } from "@/core/monitoring";
+import * as monitoringRepo from "@/db/monitoring";
 import * as repo from "@/db/repositories";
 import {
   CLIENT_STATE_LABEL,
@@ -26,6 +28,7 @@ import {
   StateDot,
   formatCompactRange,
   formatCurrencyRange,
+  formatDue,
   formatRelative,
   pluralize,
 } from "../components/ui";
@@ -39,13 +42,17 @@ export function meta() {
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const t = await requireTenant(request, context);
-  // Four queries for the whole portfolio, not four plus one per client.
-  const [clients, services, runsByClient, oppsByClient] = await Promise.all([
-    repo.listClients(t.scope),
-    repo.listServices(t.scope),
-    repo.latestAnalysisRunByClient(t.scope),
-    repo.listOpportunitiesByClient(t.scope),
-  ]);
+  // Six queries for the whole portfolio, not six plus one per client.
+  const since = new Date(Date.now() - RECENT_WINDOW_MS).toISOString();
+  const [clients, services, runsByClient, oppsByClient, monitoringByClient, health] =
+    await Promise.all([
+      repo.listClients(t.scope),
+      repo.listServices(t.scope),
+      repo.latestAnalysisRunByClient(t.scope),
+      repo.listOpportunitiesByClient(t.scope),
+      monitoringRepo.listMonitoringByClient(t.scope),
+      monitoringRepo.scheduledRunHealth(t.scope, { since }),
+    ]);
   const serviceName = Object.fromEntries(services.map((s) => [s.id, s.name]));
   const groups = clients.map((client) => {
     const opportunities = oppsByClient.get(client.id) ?? [];
@@ -56,10 +63,24 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       opportunities,
       totals,
       run,
+      monitoring: monitoringByClient.get(client.id) ?? monitoringRepo.MONITORING_OFF,
       state: clientState({ outcome: run?.outcome ?? null, openCount: totals.open }),
     };
   });
-  return { groups, serviceName };
+
+  // The smallest portfolio-level fact that makes monitoring worth having: how
+  // much is watched, how much is waiting, and what changed while you were away.
+  const portfolio = monitoringRepo.summarizePortfolio(monitoringByClient.values());
+  return {
+    groups,
+    serviceName,
+    monitoring: {
+      ...portfolio,
+      newFindings: health.newFindings,
+      resolvedFindings: health.resolvedFindings,
+      checks: health.runs,
+    },
+  };
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
@@ -87,6 +108,9 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
 }
 
+/** "Recently" for the portfolio summary. Long enough that a weekly client counts. */
+const RECENT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+
 type Group = Awaited<ReturnType<typeof loader>>["groups"][number];
 type Entry = { opp: Opportunity; group: Group };
 type FeedFilter = "open" | "strongest" | "all";
@@ -94,7 +118,7 @@ type FeedFilter = "open" | "strongest" | "all";
 const STRONG_CONFIDENCE = 0.75;
 
 export default function OpportunitiesIndex({ loaderData, actionData }: Route.ComponentProps) {
-  const { groups, serviceName } = loaderData;
+  const { groups, serviceName, monitoring } = loaderData;
   const navigation = useNavigation();
   const [params, setParams] = useSearchParams();
 
@@ -202,6 +226,7 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
           <span className="dot-sep">·</span>
           <span>{lastRun ? "last analyzed " + formatRelative(lastRun) : "never analyzed"}</span>
         </p>
+        <MonitoringSummary monitoring={monitoring} />
       </PageHead>
 
       {analyzingClient && (
@@ -313,6 +338,12 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
                         <span>{formatRelative(selected.run.finishedAt)}</span>
                       </>
                     )}
+                    {selected.monitoring.cadence !== "off" && (
+                      <>
+                        <span className="dot-sep">·</span>
+                        <span>next check {formatDue(selected.monitoring.nextDueAt)}</span>
+                      </>
+                    )}
                   </>
                 ) : (
                   <span>
@@ -355,6 +386,8 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
               <AnalyzeControl groups={groups} selected={selected} analyzingId={analyzingId} />
             </div>
           </div>
+
+          {selected?.run && <LastCheck group={selected} />}
 
           {selected?.run?.outcome === "inconclusive" && shown.length > 0 && (
             <AnalysisBanner
@@ -400,6 +433,94 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
         </section>
       </div>
     </div>
+  );
+}
+
+/**
+ * The portfolio's monitoring line. One sentence, and only when monitoring is
+ * actually on for something — an agency that has not enabled it should not be
+ * shown a row of zeroes to explain a feature they are not using.
+ */
+function MonitoringSummary({
+  monitoring,
+}: {
+  monitoring: Awaited<ReturnType<typeof loader>>["monitoring"];
+}) {
+  if (monitoring.monitored === 0) return null;
+
+  const changed: string[] = [];
+  if (monitoring.newFindings > 0) {
+    changed.push(
+      `${monitoring.newFindings} new ${pluralize(monitoring.newFindings, "opportunity", "opportunities")}`,
+    );
+  }
+  if (monitoring.resolvedFindings > 0) {
+    changed.push(`${monitoring.resolvedFindings} fixed`);
+  }
+
+  return (
+    <p className="monitorline">
+      <Icon name="refresh" size={13} />
+      <span>
+        {monitoring.monitored} {pluralize(monitoring.monitored, "client", "clients")} monitored
+      </span>
+      {monitoring.due > 0 && (
+        <>
+          <span className="dot-sep">·</span>
+          <span>
+            {monitoring.due} {pluralize(monitoring.due, "check", "checks")} due
+          </span>
+        </>
+      )}
+      <span className="dot-sep">·</span>
+      <span>
+        {changed.length > 0
+          ? changed.join(" and ") + " in the last 7 days"
+          : monitoring.checks > 0
+            ? "nothing new in the last 7 days"
+            : "no checks have run yet"}
+      </span>
+      {monitoring.unhealthy > 0 && (
+        <>
+          <span className="dot-sep">·</span>
+          <span className="monitorline-warn">
+            {monitoring.unhealthy}{" "}
+            {monitoring.unhealthy === 1 ? "site could not" : "sites could not"} be fully analyzed
+          </span>
+        </>
+      )}
+    </p>
+  );
+}
+
+/**
+ * What the selected client's most recent check changed.
+ *
+ * The feed's job is to show work worth doing, so this deliberately reports the
+ * delta rather than restating the totals already visible below it. A run that
+ * could not read the site says so instead of implying the site is clean.
+ */
+function LastCheck({ group }: { group: Group }) {
+  const run = group.run;
+  if (!run) return null;
+
+  const outcome: MonitoringOutcome = run.outcome;
+  const headline = changeHeadline(outcome, {
+    newCount: run.newCount,
+    stillOpenCount: Math.max(0, group.totals.open - run.newCount),
+    resolvedCount: run.resolvedCount,
+  });
+  const interesting = run.newCount > 0 || run.resolvedCount > 0;
+
+  return (
+    <p className={"lastcheck" + (interesting ? " is-change" : "")}>
+      <span className="lastcheck-headline">{headline}</span>
+      <span className="dot-sep">·</span>
+      <span>
+        {run.trigger === "scheduled" ? "Monitoring checked" : "You analyzed"} this site{" "}
+        {formatRelative(run.finishedAt)}
+      </span>
+    </p>
   );
 }
 
@@ -584,10 +705,17 @@ function FeedEmpty({
     );
   }
 
+  // "Everything is clean" is a claim about what was checked, so a site that
+  // could not be read has to travel with it. Monitoring makes this matter: a
+  // client whose crawl keeps failing would otherwise sit here indefinitely,
+  // silently counted as clean by the one screen the agency works from.
+  const unreadable = groups.filter((group) => group.state === "inconclusive");
+  const readable = groups.length - unreadable.length - neverAnalyzed.length;
+
   return (
     <EmptyState
-      icon="check"
-      title="No open opportunities"
+      icon={unreadable.length > 0 ? "alert" : "check"}
+      title={unreadable.length > 0 ? "Nothing open to work on" : "No open opportunities"}
       actions={
         closedCount > 0 && filter !== "all" ? (
           <button className="btn" type="button" onClick={() => onFilter("all")}>
@@ -596,8 +724,12 @@ function FeedEmpty({
         ) : undefined
       }
     >
-      Every site you have analyzed is clean right now. Re-analyze a client after they ship changes
-      to their website.
+      {readable > 0
+        ? `${readable} ${pluralize(readable, "site", "sites")} read cleanly with nothing billable to raise. `
+        : ""}
+      {unreadable.length > 0
+        ? `${unreadable.length} ${pluralize(unreadable.length, "site", "sites")} could not be read, so nothing is claimed about ${unreadable.length === 1 ? "it" : "them"} either way — pick ${unreadable.length === 1 ? "it" : "one"} from the list to see why.`
+        : "Re-analyze a client after they ship changes to their website."}
     </EmptyState>
   );
 }

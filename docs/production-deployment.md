@@ -243,6 +243,79 @@ These checks are intentionally not claimed complete in this preparation commit b
 - The current server-render error path and evaluator-failure path use `console.error`. They do not intentionally log reset URLs or credentials, but error objects must not be expanded to include requests or provider payloads. In particular, the current DeepSeek evaluator’s truncated provider-error message is a separate network/provider logging review item before enabling real DeepSeek traffic; it is outside this deployment-preparation slice.
 - D1 will contain account emails, authentication records, session metadata, workspace/client data, evidence, and opportunity/proposal content. Restrict Cloudflare account access and define an operational retention/access policy before inviting external agencies.
 
+## Recurring monitoring rollout (canary first)
+
+Monitoring ships **off for every client**, including every client already in
+production. Migration `0008_monitoring.sql` adds the columns with
+`DEFAULT 'off'` and performs no `UPDATE`, so deploying the scheduler starts no
+paid background work. Broad activation is a deliberate, later, human decision.
+
+### Cost ceilings in production
+
+| Control | Value | Where |
+| --- | --- | --- |
+| Cron frequency | hourly (`0 * * * *`) | `wrangler.jsonc` `triggers.crons` |
+| Clients per tick | 3 | `MONITORING_MAX_CLIENTS_PER_RUN` (production var) |
+| Evaluator calls per client | 10 | `MAX_AI_CALLS_PER_RUN` |
+| Worst case per tick | 30 DeepSeek calls | the product of the two above |
+
+`pnpm production:preflight` fails the deploy if production does not declare
+exactly one cron trigger, or if the batch size is outside 1..25.
+
+### Sequence
+
+1. **Migrate.** `pnpm db:migrations:production` to review, then
+   `pnpm db:migrate:production`. Confirm afterwards that nothing was enabled:
+
+   ```
+   wrangler d1 execute client-growth-production --env production --remote      --command "SELECT COUNT(*) AS monitored FROM clients WHERE monitoring_cadence != 'off';"
+   ```
+
+   This must return `0`. If it does not, stop and investigate before deploying.
+
+2. **Set the operator trigger secret.** 32+ random characters:
+
+   ```
+   wrangler secret put MONITORING_TRIGGER_TOKEN --env production
+   ```
+
+   Without it, `POST /internal/monitoring/run` returns 404 and cannot be used.
+
+3. **Deploy.** `pnpm deploy:production`. The cron is now registered. Because
+   every client is `off`, the hourly tick selects nothing and costs nothing.
+   Confirm from the Worker logs that a tick logs `considered=0`.
+
+4. **Canary.** Pick ONE low-risk QA client in a workspace you control. Turn
+   monitoring to Weekly from that client's page. Its first check is scheduled
+   one interval after its last completed analysis, or immediately if it has
+   never been analyzed.
+
+5. **Verify the canary without waiting for the cron boundary:**
+
+   ```
+   curl -X POST -H "Authorization: Bearer $MONITORING_TRIGGER_TOKEN"      https://client-growth-production.aidan-magee2.workers.dev/internal/monitoring/run
+   ```
+
+   This runs the same `runMonitoringTick` the cron calls. Expect
+   `considered: 1`, `scanned: 1`, and an `outcomes` entry. Call it again: the
+   second call must report `considered: 0`, proving the schedule advanced and
+   no duplicate work or duplicate spend is possible.
+
+6. **Check the evidence.** On the canary client: the analysis history shows the
+   run tagged `Monitoring`, "last checked" and "next check" are populated, and
+   `evaluatorErrors` is 0 in the Worker's scheduled log line. Leave the canary
+   running for at least one real cron-driven cycle before widening.
+
+7. **Widen deliberately**, a few clients at a time, watching `failed`,
+   `inconclusive` and `evaluatorErrors` in the tick log after each step.
+
+### Rollback
+
+Turn monitoring off for the affected clients (the product control), which
+unschedules them immediately. To stop all scheduled work at once, remove
+`triggers.crons` from the production block and redeploy; the columns and history
+are unaffected and monitoring can be re-enabled later without a migration.
+
 ## Current blockers and stop conditions
 
 The repository is prepared but not deployable from the committed placeholders until these are completed manually:

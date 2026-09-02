@@ -1,7 +1,8 @@
 import { Form, useNavigation } from "react-router";
 
+import * as monitoringRepo from "@/db/monitoring";
 import { renameWorkspace } from "@/db/workspaces";
-import { AxiomCredit, Icon } from "../components/ui";
+import { AxiomCredit, Icon, pluralize } from "../components/ui";
 import { requireTenant } from "../lib/session.server";
 import type { Route } from "./+types/settings";
 
@@ -9,9 +10,22 @@ export function meta() {
   return [{ title: "Settings · Client Growth" }];
 }
 
+/** The window the monitoring health section reports on. */
+const HEALTH_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
+
 export async function loader({ request, context }: Route.LoaderArgs) {
   const t = await requireTenant(request, context);
-  return { email: t.user.email, workspaceName: t.workspace.name };
+  const [states, health] = await Promise.all([
+    monitoringRepo.listMonitoringByClient(t.scope),
+    monitoringRepo.scheduledRunHealth(t.scope, {
+      since: new Date(Date.now() - HEALTH_WINDOW_MS).toISOString(),
+    }),
+  ]);
+  return {
+    email: t.user.email,
+    workspaceName: t.workspace.name,
+    monitoring: { ...monitoringRepo.summarizePortfolio(states.values()), ...health },
+  };
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
@@ -74,6 +88,8 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
         </Form>
       </section>
 
+      <MonitoringHealth monitoring={loaderData.monitoring} />
+
       <section className="section">
         <div className="section-head">
           <div>
@@ -117,5 +133,86 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
         <AxiomCredit />
       </section>
     </div>
+  );
+}
+
+/**
+ * Whether monitoring is actually working, in the agency's language.
+ *
+ * The operator-facing version of these numbers (evaluator calls, rejections,
+ * errors) is deliberately separate: it lives in the Worker's scheduled-run log
+ * line and in the operator trigger's JSON. What belongs here is only what an
+ * agency owner can act on — how much is watched, how much it found, and whether
+ * any site could not be read.
+ */
+function MonitoringHealth({
+  monitoring,
+}: {
+  monitoring: Awaited<ReturnType<typeof loader>>["monitoring"];
+}) {
+  return (
+    <section className="section">
+      <div className="section-head">
+        <div>
+          <h2 className="title-section">Monitoring</h2>
+          <p>
+            Client Growth re-checks monitored clients on their own schedule. Turn it on for a
+            client from that client&rsquo;s page.
+          </p>
+        </div>
+      </div>
+
+      {monitoring.monitored === 0 ? (
+        <p className="prose faint">
+          No client is monitored yet, so nothing is checked automatically and nothing runs in the
+          background.
+        </p>
+      ) : (
+        <dl>
+          <div className="kv-row">
+            <dt>Clients monitored</dt>
+            <dd>
+              {monitoring.monitored}
+              {monitoring.due > 0 && (
+                <span className="faint">
+                  {" "}
+                  · {monitoring.due} {pluralize(monitoring.due, "check", "checks")} due
+                </span>
+              )}
+            </dd>
+          </div>
+          <div className="kv-row">
+            <dt>Checks in the last 30 days</dt>
+            <dd>
+              {monitoring.runs}
+              {monitoring.inconclusive > 0 && (
+                <span className="faint">
+                  {" "}
+                  · {monitoring.inconclusive} could not be fully analyzed
+                </span>
+              )}
+            </dd>
+          </div>
+          <div className="kv-row">
+            <dt>What they changed</dt>
+            <dd>
+              {monitoring.newFindings + monitoring.resolvedFindings === 0
+                ? "Nothing new"
+                : `${monitoring.newFindings} new · ${monitoring.resolvedFindings} fixed by the client`}
+            </dd>
+          </div>
+          {monitoring.evaluatorErrors > 0 && (
+            <div className="kv-row">
+              <dt>Incomplete checks</dt>
+              <dd>
+                {monitoring.evaluatorErrors}{" "}
+                {pluralize(monitoring.evaluatorErrors, "finding", "findings")} could not be assessed
+                and {monitoring.evaluatorErrors === 1 ? "was" : "were"} dropped rather than guessed.
+              </dd>
+            </div>
+          )}
+        </dl>
+      )}
+    </section>
   );
 }

@@ -15,6 +15,10 @@ export default [
   // authed, workspace not required yet
   route("onboarding", "routes/onboarding.tsx"),
 
+  // operator-only: runs the scheduled monitoring path on demand. Inert unless
+  // MONITORING_TRIGGER_TOKEN is configured. Not a user-facing page.
+  route("internal/monitoring/run", "routes/internal.monitoring.run.tsx"),
+
   // authed + workspace required — each loader/action calls requireTenant itself
   route("opportunities", "routes/opportunities._index.tsx"),
   route("opportunities/:id", "routes/opportunities.$id.tsx"),

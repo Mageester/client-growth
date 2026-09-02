@@ -61,12 +61,25 @@ export interface AnalyzeClientStats {
   /** Previously-open findings this run re-checked and no longer sees. */
   resolved: number;
   surfaced: number;
+  /** Surfaced findings the client did not already have open. See `newlyFound`. */
+  newlyFound: number;
+  /** Surfaced findings that were already open before this run. */
+  stillOpen: number;
   aiCalls: number;
 }
 
 export interface AnalyzeClientResult {
   /** Billable, surfaced opportunities (status new / proposal_prepared). */
   opportunities: Opportunity[];
+  /**
+   * The subset of `opportunities` this client did not already have open — a
+   * first-time detection, or one that was resolved and has genuinely come back.
+   * Recurring monitoring announces exactly these; anything already known is not
+   * news, however many times it is re-detected.
+   */
+  newlyFound: Opportunity[];
+  /** The subset of `opportunities` that was already open before this run. */
+  stillOpen: Opportunity[];
   /** Kept but not resurfaced: covered, dismissed, or actively snoozed. */
   suppressed: Opportunity[];
   /**
@@ -124,6 +137,8 @@ export async function analyzeClient(
     evaluatorErrors: 0,
     resolved: 0,
     surfaced: 0,
+    newlyFound: 0,
+    stillOpen: 0,
     aiCalls: 0,
   };
 
@@ -201,6 +216,8 @@ export async function analyzeClient(
 
   // 5. evaluator runs only for remaining billable candidates, capped
   const opportunities: Opportunity[] = [];
+  const newlyFound: Opportunity[] = [];
+  const stillOpen: Opportunity[] = [];
   for (const { candidate, billableStatus, prior } of pending) {
     if (stats.aiCalls >= maxAiCalls) break;
     stats.aiCalls++;
@@ -245,9 +262,20 @@ export async function analyzeClient(
       clientId: input.client.id,
       now,
     });
-    opportunities.push(reconcile(prior, fresh));
+    const opportunity = reconcile(prior, fresh);
+    opportunities.push(opportunity);
+
+    // Change detection. "New" is about the agency's knowledge, not the run: a
+    // finding they already have open is not news no matter how many times it is
+    // re-detected. A finding they had marked resolved and that the site now
+    // genuinely shows again IS news — it reuses the same row (same id, same
+    // dedupe key), so it becomes actionable again without forking its history.
+    if (!prior || prior.status === "resolved") newlyFound.push(opportunity);
+    else stillOpen.push(opportunity);
   }
   stats.surfaced = opportunities.length;
+  stats.newlyFound = newlyFound.length;
+  stats.stillOpen = stillOpen.length;
 
   const catalogCoverage = assessCatalogCoverage(input.catalog);
   const resolved = reconcileResolved({
@@ -265,6 +293,8 @@ export async function analyzeClient(
 
   return {
     opportunities,
+    newlyFound,
+    stillOpen,
     suppressed,
     resolved,
     evidence,

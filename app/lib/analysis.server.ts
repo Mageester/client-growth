@@ -6,6 +6,8 @@ import { parseEnv } from "@/config/env";
 import { classifyAnalysis, type AnalysisOutcomeResult } from "@/core/analysisOutcome";
 import { analyzeClient, type AnalyzeClientResult } from "@/pipeline/analyzeClient";
 import * as repo from "@/db/repositories";
+import type { RunTrigger } from "@/db/repositories";
+import type { MonitoringChange } from "@/core/monitoring";
 import type { TenantScope } from "@/db/tenant";
 
 import hvacEvidence from "../../fixtures/hvac/evidence.json";
@@ -27,6 +29,13 @@ function evidenceProviderFor(client: Client, workspaceId: string) {
 export interface RunAnalysisResult extends AnalyzeClientResult {
   /** The truthful, persisted classification of this run. */
   verdict: AnalysisOutcomeResult;
+  /** What this run changed relative to what the agency already knew. */
+  change: MonitoringChange;
+}
+
+export interface RunAnalysisOptions {
+  /** Defaults to "manual" — a person pressed Analyze and is waiting. */
+  trigger?: RunTrigger;
 }
 
 /**
@@ -43,6 +52,7 @@ export async function runAnalysis(
   t: TenantScope,
   env: Record<string, unknown>,
   clientId: string,
+  options: RunAnalysisOptions = {},
 ): Promise<RunAnalysisResult> {
   const client = await repo.getClient(t, clientId);
   if (!client) throw new Response("Client not found", { status: 404 });
@@ -68,6 +78,12 @@ export async function runAnalysis(
     catalog: result.catalogCoverage,
   });
 
+  const change: MonitoringChange = {
+    newCount: result.newlyFound.length,
+    stillOpenCount: result.stillOpen.length,
+    resolvedCount: result.resolved.length,
+  };
+
   await repo.saveEvidence(t, result.evidence);
   await repo.saveAnalysis(t, [
     ...result.opportunities,
@@ -88,7 +104,13 @@ export async function runAnalysis(
     inconclusiveEvents: verdict.reach.inconclusiveEvents,
     surfaced: result.opportunities.length,
     stats: { ...result.stats },
+    trigger: options.trigger ?? "manual",
+    newCount: change.newCount,
+    resolvedCount: change.resolvedCount,
+    evaluatorCalls: result.stats.aiCalls,
+    evaluatorRejections: result.stats.rejectedByEvaluator,
+    evaluatorErrors: result.stats.evaluatorErrors,
   });
 
-  return { ...result, verdict };
+  return { ...result, verdict, change };
 }

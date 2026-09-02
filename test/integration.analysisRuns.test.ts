@@ -233,6 +233,12 @@ describe("analysis runs are workspace-scoped", () => {
         inconclusiveEvents: 0,
         surfaced: 0,
         stats: {},
+        trigger: "manual",
+        newCount: 0,
+        resolvedCount: 0,
+        evaluatorCalls: 0,
+        evaluatorRejections: 0,
+        evaluatorErrors: 0,
       }),
     ).rejects.toBeInstanceOf(CrossWorkspaceError);
   });

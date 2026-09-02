@@ -1,5 +1,8 @@
 import { createRequestHandler, type ServerBuild } from "react-router";
 
+import { parseEnv } from "@/config/env";
+import { d1Db } from "../app/lib/d1.server";
+import { runMonitoringTick } from "../app/lib/monitoring.server";
 import { runWithWorkerExecutionContext } from "../app/lib/workerContext.server";
 
 /**
@@ -23,6 +26,14 @@ declare global {
     DEEPSEEK_BASE_URL?: string;
     DEEPSEEK_MODEL?: string;
     MAX_AI_CALLS_PER_RUN?: string;
+    /** Clients one scheduled monitoring tick may analyze. */
+    MONITORING_MAX_CLIENTS_PER_RUN?: string;
+    /**
+     * Operator-only trigger for the scheduled monitoring path. Absent (the
+     * default) means the trigger route does not exist at all.
+     * `wrangler secret put`.
+     */
+    MONITORING_TRIGGER_TOKEN?: string;
   }
 }
 
@@ -36,6 +47,36 @@ export default {
   fetch(request: Request, env: CloudflareEnvironment, ctx: ExecutionContext) {
     return runWithWorkerExecutionContext(ctx, () =>
       handler(request, { cloudflare: { env, ctx } }),
+    );
+  },
+
+  /**
+   * Recurring monitoring. One cron trigger for the whole product, not one per
+   * client: this fires on a fixed schedule and each tick asks the database which
+   * monitored clients are actually due, then processes a bounded batch of them.
+   *
+   * The scheduler's frequency and a client's cadence are independent. An hourly
+   * tick can serve weekly clients precisely because being due, not being ticked,
+   * is what selects a client.
+   *
+   * `waitUntil` keeps the invocation alive for the whole tick; the tick's own
+   * wall-clock budget is what actually ends it, well inside the platform limit.
+   */
+  async scheduled(_controller: ScheduledController, env: CloudflareEnvironment, ctx: ExecutionContext) {
+    const tick = runWithWorkerExecutionContext(ctx, () =>
+      runMonitoringTick({
+        db: d1Db(env.DB as never),
+        env: env as unknown as Record<string, unknown>,
+        limit: parseEnv(env as unknown as Record<string, unknown>).MONITORING_MAX_CLIENTS_PER_RUN,
+      }),
+    );
+    ctx.waitUntil(tick);
+    const result = await tick;
+    console.log(
+      `[monitoring] considered=${result.considered} scanned=${result.scanned} ` +
+        `skipped=${result.skipped} failed=${result.failed} new=${result.newFindings} ` +
+        `resolved=${result.resolvedFindings} evaluatorCalls=${result.evaluatorCalls} ` +
+        `budgetExhausted=${result.budgetExhausted}`,
     );
   },
 } satisfies ExportedHandler<CloudflareEnvironment>;
