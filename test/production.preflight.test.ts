@@ -49,12 +49,18 @@ describe("production Wrangler configuration", () => {
       database_name: "client-growth-production",
       migrations_dir: "migrations",
     });
+    // Production runs the real evaluator. This is pinned deliberately: an
+    // accidental provider change - in either direction - must fail CI rather
+    // than ship quietly. A rollback to "mock" flips this line and the wrangler
+    // var together, in one commit.
     expect(production?.vars).toMatchObject({
-      AI_PROVIDER: "mock",
+      AI_PROVIDER: "deepseek",
+      DEEPSEEK_BASE_URL: "https://api.deepseek.com",
+      DEEPSEEK_MODEL: "deepseek-chat",
       MAX_AI_CALLS_PER_RUN: "10",
     });
     expect(production?.secrets?.required).toEqual(
-      expect.arrayContaining(["BETTER_AUTH_SECRET", "RESEND_API_KEY"]),
+      expect.arrayContaining(["BETTER_AUTH_SECRET", "RESEND_API_KEY", "DEEPSEEK_API_KEY"]),
     );
   });
 
