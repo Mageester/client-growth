@@ -2682,6 +2682,129 @@ a.ev-title:hover {
   line-height: 1.6;
 }
 
+.runlog-change {
+  margin-top: 0.25rem;
+  color: var(--ink-2);
+  font-size: 0.79rem;
+  font-weight: 550;
+}
+
+.runlog-trigger {
+  padding-block: 0.05rem;
+  font-size: 0.68rem;
+}
+
+/* ==========================================================================
+   Monitoring: one quiet line saying whether this client is watched
+   ========================================================================== */
+
+.monitorbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem 0.9rem;
+  margin-top: 1rem;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-2, transparent);
+}
+
+.monitorbar.is-on {
+  border-color: color-mix(in srgb, var(--accent) 32%, var(--line));
+}
+
+.monitorbar-copy {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  min-width: 0;
+  flex: 1 1 22rem;
+  color: var(--ink-3);
+  font-size: 0.79rem;
+}
+
+.monitorbar-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--ink-2);
+  font-weight: 600;
+}
+
+.monitorbar-state {
+  color: var(--ink);
+  font-weight: 620;
+}
+
+.monitorbar-meta {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.monitorbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.monitorbar-select {
+  min-width: 7.5rem;
+  padding-block: 0.3rem;
+  font-size: 0.8rem;
+}
+
+.monitorbar-note {
+  flex: 1 1 100%;
+  margin: 0;
+  color: var(--ink-3);
+  font-size: 0.78rem;
+  line-height: 1.55;
+}
+
+.monitorline {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.4rem;
+  color: var(--ink-3);
+  font-size: 0.79rem;
+}
+
+.monitorline svg {
+  color: var(--ink-4);
+}
+
+.monitorline-warn {
+  color: var(--attn);
+}
+
+.lastcheck {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: var(--ink-3);
+  font-size: 0.79rem;
+}
+
+.lastcheck.is-change {
+  border-color: color-mix(in srgb, var(--accent) 34%, var(--line));
+}
+
+.lastcheck-headline {
+  color: var(--ink);
+  font-weight: 600;
+}
+
 /* ==========================================================================
    Forms: choices and the starter catalog
    ========================================================================== */

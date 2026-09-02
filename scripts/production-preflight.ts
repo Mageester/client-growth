@@ -209,6 +209,28 @@ export function validateProductionConfig(config: unknown): string[] {
     }
   }
 
+  // Recurring monitoring runs unattended against production data, so its two
+  // controls — that it is scheduled at all, and how much one tick may spend —
+  // are checked here rather than discovered after a deploy.
+  const crons = arrayValue(objectValue(production.triggers ?? root.triggers).crons).filter(
+    (cron): cron is string => typeof cron === "string" && cron.trim().length > 0,
+  );
+  if (crons.length !== 1) {
+    errors.push(
+      "production must declare exactly one cron trigger for recurring monitoring; " +
+        "the tick selects due clients itself, so one schedule serves every cadence",
+    );
+  }
+
+  const batch = stringValue(productionVars.MONITORING_MAX_CLIENTS_PER_RUN);
+  const batchSize = batch === undefined ? undefined : Number(batch);
+  if (
+    batchSize !== undefined &&
+    (!Number.isInteger(batchSize) || batchSize < 1 || batchSize > 25)
+  ) {
+    errors.push("MONITORING_MAX_CLIENTS_PER_RUN must be a whole number between 1 and 25");
+  }
+
   if (!flags.includes("nodejs_compat")) {
     errors.push('compatibility_flags must include "nodejs_compat"');
   }

@@ -138,4 +138,56 @@ describe("production Wrangler configuration", () => {
       ]),
     );
   });
+
+  it("requires exactly one cron trigger for recurring monitoring", () => {
+    const config = clone(readConfig());
+    expect(validateProductionConfig(config)).toEqual([]);
+
+    // One trigger for the whole product. The tick selects due clients itself, so
+    // a second schedule is duplicated unattended spend, and none is a scheduler
+    // that silently never runs.
+    for (const triggers of [undefined, { crons: [] }, { crons: ["0 * * * *", "30 * * * *"] }]) {
+      const broken = clone(config);
+      // Remove the inheritable root trigger too, or production would inherit it.
+      delete broken.triggers;
+      if (triggers === undefined) delete broken.env.production.triggers;
+      else broken.env.production.triggers = triggers;
+
+      expect(validateProductionConfig(broken)).toEqual(
+        expect.arrayContaining([expect.stringMatching(/exactly one cron trigger/)]),
+      );
+    }
+  });
+
+  it("rejects a monitoring batch size that could surprise a bill", () => {
+    const config = clone(readConfig());
+    for (const value of ["0", "-1", "40", "many", "2.5"]) {
+      const broken = clone(config);
+      broken.env.production.vars.MONITORING_MAX_CLIENTS_PER_RUN = value;
+      expect(validateProductionConfig(broken), value).toEqual(
+        expect.arrayContaining([
+          expect.stringMatching(/MONITORING_MAX_CLIENTS_PER_RUN must be a whole number/),
+        ]),
+      );
+    }
+  });
 });
+
+/** The parts of wrangler.jsonc these two cases mutate. */
+interface MutableConfig {
+  triggers?: { crons?: string[] };
+  env: {
+    production: {
+      triggers?: { crons?: string[] };
+      vars: Record<string, string>;
+    };
+  };
+}
+
+function readConfig(): MutableConfig {
+  return JSON.parse(stripJsonComments(readFileSync(configPath, "utf8"))) as MutableConfig;
+}
+
+function clone(config: MutableConfig): MutableConfig {
+  return structuredClone(config);
+}

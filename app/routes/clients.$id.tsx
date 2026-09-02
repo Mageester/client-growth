@@ -4,6 +4,15 @@ import { Form, Link, useNavigation } from "react-router";
 
 import { ClientSchema } from "@/core/schema";
 import { assessCatalogCoverage } from "@/core/rules/registry";
+import {
+  CADENCE_LABEL,
+  SELECTABLE_CADENCES,
+  changeHeadline,
+  isMonitoringCadence,
+  type MonitoringCadence,
+  type MonitoringState,
+} from "@/core/monitoring";
+import * as monitoringRepo from "@/db/monitoring";
 import * as repo from "@/db/repositories";
 import { runAnalysis } from "../lib/analysis.server";
 import {
@@ -26,6 +35,7 @@ import {
   formatCompactRange,
   formatCurrencyRange,
   formatDate,
+  formatDue,
   formatRelative,
   pluralize,
 } from "../components/ui";
@@ -44,11 +54,12 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
   const firstRunFailed = new URL(request.url).searchParams.get("firstRun") === "failed";
   const client = await repo.getClient(t.scope, params.id);
   if (!client) throw new Response("Client not found", { status: 404 });
-  const [services, coverage, opportunities, runs] = await Promise.all([
+  const [services, coverage, opportunities, runs, monitoring] = await Promise.all([
     repo.listServices(t.scope),
     repo.listCoverage(t.scope, client.id),
     repo.listOpportunities(t.scope, client.id),
     repo.listAnalysisRuns(t.scope, client.id, 6),
+    monitoringRepo.getMonitoring(t.scope, client.id),
   ]);
   const totals = totalsFor(opportunities);
   const latest = runs[0] ?? null;
@@ -60,6 +71,7 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
     opportunities,
     totals,
     runs,
+    monitoring: monitoring ?? monitoringRepo.MONITORING_OFF,
     firstRunFailed,
     // What this analysis would actually be able to check, worked out before the
     // user spends a run finding out. See <Readiness/>.
@@ -120,6 +132,29 @@ export async function action({ params, request, context }: Route.ActionArgs) {
     return { ok: true as const, message: "Coverage removed. Future gaps here become billable." };
   }
 
+  if (intent === "set-monitoring") {
+    const cadence = String(form.get("cadence") ?? "");
+    if (!isMonitoringCadence(cadence)) {
+      return { ok: false as const, error: "That is not a monitoring option." };
+    }
+    // The first scheduled check is measured from the last completed analysis, so
+    // enabling monitoring right after analyzing does not immediately re-scan.
+    const latest = await repo.getLatestAnalysisRun(t.scope, existing.id);
+    const state = await monitoringRepo.setMonitoringCadence(t.scope, existing.id, cadence, {
+      lastAnalyzedAt: latest?.finishedAt ?? null,
+    });
+    if (!state) return { ok: false as const, error: "Client not found." };
+    return {
+      ok: true as const,
+      message:
+        state.cadence === "off"
+          ? "Monitoring turned off. This client is only checked when you press Analyze."
+          : `Monitoring on. ${existing.name} will be checked ${CADENCE_LABEL[
+              state.cadence
+            ].toLowerCase()}, starting ${formatDate(state.nextDueAt, true)}.`,
+    };
+  }
+
   if (intent === "analyze") {
     // The button is disabled for this, but a form post must not be able to
     // start a run that provably cannot check anything.
@@ -156,8 +191,18 @@ export async function action({ params, request, context }: Route.ActionArgs) {
 }
 
 export default function ClientDetail({ loaderData, actionData }: Route.ComponentProps) {
-  const { client, services, coveredIds, opportunities, totals, runs, state, firstRunFailed, readiness } =
-    loaderData;
+  const {
+    client,
+    services,
+    coveredIds,
+    opportunities,
+    totals,
+    runs,
+    monitoring,
+    state,
+    firstRunFailed,
+    readiness,
+  } = loaderData;
   const navigation = useNavigation();
   const intent = navigation.formData?.get("intent");
   const analyzing = intent === "analyze";
@@ -258,6 +303,8 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
           </Fact>
         </dl>
       </header>
+
+      <MonitoringRow monitoring={monitoring} busy={busy} canAnalyze={canAnalyze} />
 
       <Readiness readiness={readiness} clientName={client.name} onEditClient={() => setEditOpen(true)} />
 
@@ -486,7 +533,10 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
         <div className="section-head">
           <div>
             <h2 className="title-section">Analysis history</h2>
-            <p>Every run and what it concluded, including the runs that concluded nothing.</p>
+            <p>
+              Every check and what it concluded, including the ones that concluded nothing and the
+              ones that ran while nobody was watching.
+            </p>
           </div>
         </div>
         {runs.length === 0 ? (
@@ -511,8 +561,28 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
                     <span className="faint">
                       {run.pagesRead} {pluralize(run.pagesRead, "page", "pages")} read
                     </span>
+                    {run.trigger === "scheduled" && (
+                      <>
+                        <span className="dot-sep">·</span>
+                        <span className="pill quiet runlog-trigger">Monitoring</span>
+                      </>
+                    )}
                   </div>
                   <p className="runlog-summary">{run.summary}</p>
+                  {(run.newCount > 0 || run.resolvedCount > 0) && (
+                    <p className="runlog-change">
+                      {[
+                        run.newCount > 0
+                          ? `${run.newCount} new ${pluralize(run.newCount, "opportunity", "opportunities")}`
+                          : null,
+                        run.resolvedCount > 0
+                          ? `${run.resolvedCount} fixed since the previous check`
+                          : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </p>
+                  )}
                   {run.limitation && <p className="runlog-limit">{run.limitation}</p>}
                 </div>
               </li>
@@ -578,6 +648,114 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
           </div>
         </Form>
       </SidePanel>
+    </div>
+  );
+}
+
+/**
+ * Monitoring, stated in one line.
+ *
+ * The whole feature is "you do not have to remember to press Analyze", so the
+ * only things worth showing are whether it is on, when it last looked, when it
+ * looks next, and how to change that. Everything a run produced already has a
+ * home in the findings and the history below.
+ *
+ * The last outcome is only shown when it is something the agency should know
+ * about: a check that could not read the site, or a run of failures. A healthy
+ * weekly check should be quiet.
+ */
+function MonitoringRow({
+  monitoring,
+  busy,
+  canAnalyze,
+}: {
+  monitoring: MonitoringState;
+  busy: boolean;
+  canAnalyze: boolean;
+}) {
+  const on = monitoring.cadence !== "off";
+  const troubled =
+    monitoring.lastOutcome === "failed" || monitoring.lastOutcome === "inconclusive";
+
+  return (
+    <div className={"monitorbar" + (on ? " is-on" : "")}>
+      <div className="monitorbar-copy">
+        <span className="monitorbar-label">
+          <Icon name="refresh" size={13} />
+          Monitoring
+        </span>
+        <span className="monitorbar-state">{CADENCE_LABEL[monitoring.cadence]}</span>
+        {on ? (
+          <span className="monitorbar-meta">
+            <span className="dot-sep">·</span>
+            <span>
+              {monitoring.lastSuccessAt
+                ? "last checked " + formatRelative(monitoring.lastSuccessAt)
+                : "not checked yet"}
+            </span>
+            {monitoring.nextDueAt && (
+              <>
+                <span className="dot-sep">·</span>
+                <span>next check {formatDue(monitoring.nextDueAt)}</span>
+              </>
+            )}
+          </span>
+        ) : (
+          <span className="monitorbar-meta">
+            <span className="dot-sep">·</span>
+            <span>this client is only checked when you press Analyze</span>
+          </span>
+        )}
+      </div>
+
+      <Form method="post" className="monitorbar-actions">
+        <input type="hidden" name="intent" value="set-monitoring" />
+        <label className="sr-only" htmlFor="monitoring-cadence">
+          Monitoring frequency
+        </label>
+        <select
+          id="monitoring-cadence"
+          name="cadence"
+          defaultValue={monitoring.cadence}
+          disabled={busy || !canAnalyze}
+          className="monitorbar-select"
+        >
+          {(SELECTABLE_CADENCES as readonly MonitoringCadence[]).map((cadence) => (
+            <option key={cadence} value={cadence}>
+              {CADENCE_LABEL[cadence]}
+            </option>
+          ))}
+          {/* Keeps a cadence set elsewhere visible instead of silently rewriting it. */}
+          {!(SELECTABLE_CADENCES as readonly string[]).includes(monitoring.cadence) && (
+            <option value={monitoring.cadence}>{CADENCE_LABEL[monitoring.cadence]}</option>
+          )}
+        </select>
+        <button
+          type="submit"
+          className="btn btn-sm"
+          disabled={busy || !canAnalyze}
+          title={
+            canAnalyze
+              ? undefined
+              : "Add a service that is offered for a website gap before turning monitoring on."
+          }
+        >
+          Save
+        </button>
+      </Form>
+
+      {on && troubled && (
+        <p className="monitorbar-note">
+          {changeHeadline(monitoring.lastOutcome ?? "failed", {
+            newCount: 0,
+            stillOpenCount: 0,
+            resolvedCount: 0,
+          })}
+          {monitoring.consecutiveFailures > 1 &&
+            ` The last ${monitoring.consecutiveFailures} checks in a row could not be completed.`}{" "}
+          Nothing was concluded and no finding was changed.
+        </p>
+      )}
     </div>
   );
 }

@@ -22,6 +22,13 @@ Three layers, kept deliberately separate:
   D1 for persistence, [Better Auth](https://better-auth.com) (email + password,
   native D1, DB-backed sessions and rate limiting). Every protected loader/action
   calls `requireTenant()` and uses only the returned `scope`.
+- **Recurring monitoring** — an hourly Cloudflare Cron Trigger runs one
+  `scheduled` handler that asks D1 which monitored clients are *due*, claims a
+  bounded batch, and analyzes each one through the normal pipeline. Scheduler
+  frequency and client cadence are independent concepts; monitoring is per client
+  and defaults to **off**. Policy lives in `src/core/monitoring.ts` (pure),
+  storage in `src/db/monitoring.ts`, orchestration in
+  `app/lib/monitoring.server.ts`.
 - **HTTP evidence boundary** — the real crawler's URL policy, redirect rules,
   resource/request budgets, failure semantics, and DNS residual limitation are
   documented in [`docs/security/http-evidence-network-boundary.md`](docs/security/http-evidence-network-boundary.md).
@@ -159,6 +166,45 @@ pnpm db:migrate:production
 pnpm deploy:production
 ```
 
+## Recurring monitoring
+
+Monitoring is opt-in per client and defaults to `off`, including for every client
+that already exists. Nothing is scanned in the background until someone turns it
+on from the client's page.
+
+```
+cron (hourly)  ->  scheduled()  ->  runMonitoringTick()
+                                      |
+                                      |- listDueClients(limit)      bounded selection
+                                      |- claimClient(...)           one owner per client
+                                      |- runAnalysis(trigger=scheduled)
+                                      \- finishMonitoringRun(...)   outcome + next due
+```
+
+Cost ceilings, all enforced in code:
+
+| Control | Where | Default |
+| --- | --- | --- |
+| Clients per scheduled tick | `MONITORING_MAX_CLIENTS_PER_RUN` | 5 (production: 3) |
+| Evaluator calls per client | `MAX_AI_CALLS_PER_RUN` | 10 |
+| Wall-clock per tick | `MONITORING_INVOCATION_BUDGET_MS` | 5 min |
+| Retries after a failed scan | `MONITORING_FAILURE_BACKOFF_MS` | 1h, 6h, 24h, then cadence |
+
+A completed scan — findings, clean, or inconclusive — always costs one full
+cadence interval. Only a scan that *threw* retries sooner, at most three times.
+
+**Operator trigger.** `POST /internal/monitoring/run` runs the same
+`runMonitoringTick` the cron calls, for verifying a canary without waiting for a
+cron boundary. It is inert unless `MONITORING_TRIGGER_TOKEN` is set as a Wrangler
+secret (32+ chars), requires `Authorization: Bearer <token>`, processes only
+clients that are genuinely due, and returns counts only.
+
+```bash
+curl -X POST -H "Authorization: Bearer $MONITORING_TRIGGER_TOKEN"   https://client-growth-production.aidan-magee2.workers.dev/internal/monitoring/run
+```
+
+Locally: `wrangler dev --test-scheduled`, then `curl -X POST localhost:8788/__scheduled`.
+
 ## Status
 
 - **Commercial judgment layer** — structured `subjectType` /
@@ -173,6 +219,11 @@ pnpm deploy:production
   routes, and Worker-compatible Resend transport implemented; live Worker + D1
   + Resend smoke remains required before an external pilot.
 
+- **Recurring monitoring** — opt-in per client (`off` / `weekly`), hourly
+  scheduler, bounded batches, claim-based duplicate prevention, bounded failure
+  backoff, and change detection (new / still open / resolved) recorded on every
+  run. Ships with monitoring **off for every existing client**; canary first.
+
 Not built: Stripe/billing, pricing enforcement, team invites/RBAC, email
-verification, client portal, autonomous outreach, Morrow execution,
-notifications, scheduled monitoring, a third opportunity rule.
+verification, client portal, autonomous outreach, Morrow execution, email or
+Slack digests, a third opportunity rule.

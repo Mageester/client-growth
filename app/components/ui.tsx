@@ -494,6 +494,27 @@ export function formatRelative(value: string | null | undefined, now = Date.now(
   return formatDate(value);
 }
 
+/**
+ * A scheduled time, phrased forwards. `formatRelative` is past-tense by
+ * construction ("2 hours ago"), which reads as nonsense for a next check that is
+ * overdue — the honest phrasing there is "due now", because the scheduler picks
+ * it up on its next tick.
+ */
+export function formatDue(value: string | null | undefined, now = Date.now()): string {
+  if (!value) return "not scheduled";
+  const time = new Date(value).getTime();
+  if (Number.isNaN(time)) return "not scheduled";
+  const seconds = Math.round((time - now) / 1000);
+  if (seconds <= 0) return "due now";
+  const minutes = Math.max(1, Math.round(seconds / 60));
+  if (minutes < 60) return `in ${minutes} ${pluralize(minutes, "minute", "minutes")}`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `in ${hours} ${pluralize(hours, "hour", "hours")}`;
+  const days = Math.round(hours / 24);
+  if (days <= 14) return `in ${days} ${pluralize(days, "day", "days")}`;
+  return "on " + formatDate(value);
+}
+
 export function formatDate(value: string | null | undefined, withTime = false): string {
   if (!value) return "Not analyzed yet";
   const date = new Date(value);

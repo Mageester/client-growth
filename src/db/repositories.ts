@@ -532,7 +532,17 @@ interface AnalysisRunRow {
   inconclusive_events: number;
   surfaced: number;
   stats: string;
+  trigger: string;
+  new_count: number;
+  resolved_count: number;
+  evaluator_calls: number;
+  evaluator_rejections: number;
+  evaluator_errors: number;
 }
+
+/** What started a run. Scheduled runs are the only ones nobody was watching. */
+export const RUN_TRIGGERS = ["manual", "scheduled"] as const;
+export type RunTrigger = (typeof RUN_TRIGGERS)[number];
 
 export interface AnalysisRun {
   id: number;
@@ -549,6 +559,16 @@ export interface AnalysisRun {
   inconclusiveEvents: number;
   surfaced: number;
   stats: Record<string, number>;
+  trigger: RunTrigger;
+  /** Findings this run surfaced that the client did not already have open. */
+  newCount: number;
+  /** Previously open findings this run confirmed are gone. */
+  resolvedCount: number;
+  evaluatorCalls: number;
+  /** Judged and not surfaced — the commercial gate working as intended. */
+  evaluatorRejections: number;
+  /** Evaluator threw. Failed closed; the run is incomplete. */
+  evaluatorErrors: number;
 }
 
 export type NewAnalysisRun = Omit<AnalysisRun, "id">;
@@ -579,6 +599,14 @@ function toAnalysisRun(row: AnalysisRunRow): AnalysisRun {
     inconclusiveEvents: row.inconclusive_events,
     surfaced: row.surfaced,
     stats,
+    trigger: (RUN_TRIGGERS as readonly string[]).includes(row.trigger)
+      ? (row.trigger as RunTrigger)
+      : "manual",
+    newCount: Number(row.new_count) || 0,
+    resolvedCount: Number(row.resolved_count) || 0,
+    evaluatorCalls: Number(row.evaluator_calls) || 0,
+    evaluatorRejections: Number(row.evaluator_rejections) || 0,
+    evaluatorErrors: Number(row.evaluator_errors) || 0,
   };
 }
 
@@ -590,8 +618,9 @@ export async function recordAnalysisRun(t: TenantScope, run: NewAnalysisRun): Pr
     .prepare(
       `INSERT INTO analysis_runs (
          workspace_id, client_id, started_at, finished_at, source, outcome, summary, limitation,
-         pages_read, pages_fetched, blocked_events, inconclusive_events, surfaced, stats
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         pages_read, pages_fetched, blocked_events, inconclusive_events, surfaced, stats,
+         trigger, new_count, resolved_count, evaluator_calls, evaluator_rejections, evaluator_errors
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .bind(
       t.workspaceId,
@@ -608,6 +637,12 @@ export async function recordAnalysisRun(t: TenantScope, run: NewAnalysisRun): Pr
       run.inconclusiveEvents,
       run.surfaced,
       JSON.stringify(run.stats),
+      run.trigger,
+      run.newCount,
+      run.resolvedCount,
+      run.evaluatorCalls,
+      run.evaluatorRejections,
+      run.evaluatorErrors,
     )
     .run();
 }
