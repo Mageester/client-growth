@@ -1,6 +1,11 @@
 import type { EvidenceBundle, EvidencePage, Verification } from "@/core/schema";
 import type { PageFetchFailure, PageFetchResult } from "@/ports/EvidenceProvider";
 import { coreTokens, significantTokens, singularize, slugTokens } from "@/core/text";
+import {
+  looksLikeServiceUrl,
+  pathSegments,
+  slugSaysNonService,
+} from "@/core/siteStructure";
 
 /**
  * Targeted "does a page for this offering already exist?" check.
@@ -359,27 +364,6 @@ function inconclusive(
 // Crawl / service-coverage adequacy
 // ---------------------------------------------------------------------------
 
-/**
- * Path segments that mean a page is NOT a service page. A large generic nav,
- * lots of these, or raw page count alone must never qualify a crawl as adequate.
- */
-const NON_SERVICE_SEGMENTS = new Set([
-  "", "home", "index", "about", "about-us", "our-story", "contact", "contact-us",
-  "blog", "news", "articles", "resources", "careers", "career", "jobs",
-  "reviews", "testimonials", "financing", "finance", "specials", "special-offers",
-  "offers", "coupons", "promotions", "locations", "location", "service-area",
-  "service-areas", "areas-served", "areas-we-serve", "privacy", "privacy-policy",
-  "terms", "terms-of-service", "team", "our-team", "staff", "gallery", "photos",
-  "projects", "portfolio", "shop", "store", "cart", "account", "login", "faq",
-  "faqs", "sitemap", "search", "book", "booking", "schedule", "schedule-online",
-  "request-appointment", "get-a-quote", "quote", "estimate", "buy-a-home",
-  "sell-a-home", "for-homeowners",
-]);
-
-const SERVICE_PATH_HINT = /\/(services?|our-services|what-we-do|solutions|expertise)(\/|$)/i;
-const SERVICE_WORD_IN_SEGMENT =
-  /(repair|install|installation|replacement|cleaning|control|removal|treatment|maintenance|remediation|restoration|inspection|encapsulation|pruning|grinding|rewiring|lighting|irrigation)/i;
-
 function offeringHead(offering: string): string[] {
   return significantTokens(offering);
 }
@@ -399,22 +383,42 @@ function slugCoversOffering(slug: string, head: string[]): boolean {
   return overlap / head.length >= STRONG_SCORE && overlap >= 1;
 }
 
+function isHomepage(url: string): boolean {
+  return pathSegments(url).length === 0;
+}
+
+/**
+ * Is this a page that describes something the business sells?
+ *
+ * The test is STRUCTURAL, and deliberately so. It used to accept a page whose
+ * title or headings covered one of the client's offerings, and on a real site
+ * that is exactly backwards: a five-page brochure site whose Contact page is
+ * titled "Social Skill Groups Near Me" scored four service pages and was
+ * reported as fully assessed. Titles are marketing copy; the URL is where the
+ * site itself says what a page is for.
+ *
+ * Two ways in:
+ *   - the site files it under a services section, or its slug names work being
+ *     done (/furnace-repair, /services/heat-pumps, /treatments/veneers);
+ *   - the slug matches one of this client's offerings and is not one of the
+ *     boring pages (/heat-pumps for a client who sells heat pumps).
+ *
+ * The homepage never counts. Every business's homepage says what it does, so
+ * counting it makes "we fetched one page" mean "we reached the services".
+ */
 function isServiceLikePage(page: EvidencePage, heads: string[][]): boolean {
-  let path = "/";
-  try {
-    path = new URL(page.url).pathname.toLowerCase();
-  } catch {
-    /* ignore */
-  }
-  if (SERVICE_PATH_HINT.test(path)) return true;
-  const text = [page.title, ...page.h1s, ...page.headings].join(" ");
-  if (heads.some((h) => textCoversOffering(text, h))) return true;
-  const segs = path.split("/").filter(Boolean);
-  const last = segs[segs.length - 1] ?? "";
-  if (segs.length >= 1 && !NON_SERVICE_SEGMENTS.has(last) && SERVICE_WORD_IN_SEGMENT.test(last)) {
-    return true;
-  }
-  return false;
+  if (isHomepage(page.url)) return false;
+  if (looksLikeServiceUrl(page.url)) return true;
+  if (slugSaysNonService(page.url)) return false;
+  return heads.some((head) => slugCoversOffering(page.url, head));
+}
+
+/** The same question for a URL the crawl only knows about from the sitemap. */
+function isServiceLikeUrl(url: string, heads: string[][]): boolean {
+  if (isHomepage(url)) return false;
+  if (looksLikeServiceUrl(url)) return true;
+  if (slugSaysNonService(url)) return false;
+  return heads.some((head) => slugCoversOffering(url, head));
 }
 
 export interface CoverageAssessment {
@@ -427,12 +431,20 @@ export interface CoverageAssessment {
 
 /**
  * Do we actually have evidence that the SERVICE portion of the site was reached?
- * A large generic nav, or a pile of About/Blog/Location pages, does NOT count.
- * Adequate iff any of:
- *   - >= 2 distinct offerings are represented somewhere (page text, nav label,
- *     link label/href, or sitemap slug) by a strong deterministic match
- *   - >= 2 crawled pages look like service pages
- *   - >= 3 sitemap URLs look like service pages
+ *
+ * A large generic nav, or a pile of About/Blog/Location pages, does not count,
+ * and neither does the homepage on its own. Adequate iff any of:
+ *
+ *   - >= 2 distinct offerings are represented in the site's STRUCTURE — a
+ *     navigation label, a link label or href, a sitemap slug, or the headings of
+ *     a page that is itself a service page;
+ *   - >= 2 crawled pages are service pages;
+ *   - >= 3 sitemap URLs are service pages.
+ *
+ * Homepage prose is not structure. It used to count, and it is why a site with
+ * four pages and no services at all could be called covered: every small
+ * business writes what it does on its front page. What has to be demonstrated
+ * is that the crawl found where those things LIVE.
  */
 export function assessServiceCoverage(input: {
   client: { offerings: string[] };
@@ -442,40 +454,51 @@ export function assessServiceCoverage(input: {
   const offerings = input.client.offerings.filter((o) => offeringHead(o).length > 0);
   const heads = offerings.map(offeringHead);
 
-  const haystack: string[] = [
+  // Navigation and link labels are structure: they are the site's own index of
+  // what it sells, and each one carries an href a later targeted fetch can
+  // check. A label alone never proves a page exists — that is absence
+  // verification's job — it proves the crawl found the index.
+  const labelHaystack: string[] = [
     ...evidence.site.nav,
     ...evidence.site.links.map((l) => l.label),
   ];
   const slugHaystack: string[] = [
-    ...evidence.site.links.map((l) => l.href),
+    ...evidence.site.links.filter((l) => l.scheme === "http").map((l) => l.href),
     ...evidence.site.sitemapUrls,
   ];
-  const pageText = evidence.site.pages.map((p) =>
+  // Page text counts only from pages that are themselves service pages.
+  const serviceLikePages = evidence.site.pages.filter((page) =>
+    isServiceLikePage(page, heads),
+  );
+  const servicePageText = serviceLikePages.map((p) =>
     [p.title, ...p.h1s, ...p.headings].join(" "),
   );
 
   let representedOfferings = 0;
   for (const head of heads) {
     const represented =
-      pageText.some((t) => textCoversOffering(t, head)) ||
-      haystack.some((h) => textCoversOffering(h, head)) ||
+      servicePageText.some((t) => textCoversOffering(t, head)) ||
+      labelHaystack.some((h) => textCoversOffering(h, head)) ||
       slugHaystack.some((s) => slugCoversOffering(s, head));
     if (represented) representedOfferings++;
   }
 
-  const serviceLikePages = evidence.site.pages.filter((p) =>
-    isServiceLikePage(p, heads),
-  ).length;
-  const serviceLikeSitemapUrls = evidence.site.sitemapUrls.filter(
-    (u) => heads.some((h) => slugCoversOffering(u, h)) || SERVICE_PATH_HINT.test(u),
+  const serviceLikeSitemapUrls = evidence.site.sitemapUrls.filter((u) =>
+    isServiceLikeUrl(u, heads),
   ).length;
 
   const analyzable =
-    representedOfferings >= 2 || serviceLikePages >= 2 || serviceLikeSitemapUrls >= 3;
+    representedOfferings >= 2 || serviceLikePages.length >= 2 || serviceLikeSitemapUrls >= 3;
 
   const reason = analyzable
-    ? `Service coverage confirmed: ${representedOfferings} offering(s) represented on the site, ${serviceLikePages} service-like crawled page(s), ${serviceLikeSitemapUrls} service-like sitemap URL(s).`
-    : `Insufficient service coverage: only ${representedOfferings} offering(s) represented, ${serviceLikePages} service-like crawled page(s), ${serviceLikeSitemapUrls} service-like sitemap URL(s) — the crawl did not demonstrably reach the site's service pages, so no absence can be claimed.`;
+    ? `Service coverage confirmed: ${representedOfferings} offering(s) represented in the site's navigation, links or sitemap, ${serviceLikePages.length} service page(s) read, ${serviceLikeSitemapUrls} service URL(s) in the sitemap.`
+    : `Insufficient service coverage: only ${representedOfferings} offering(s) represented in the site's navigation, links or sitemap, ${serviceLikePages.length} service page(s) read, ${serviceLikeSitemapUrls} service URL(s) in the sitemap — the crawl did not demonstrably reach the site's service pages, so no absence can be claimed.`;
 
-  return { analyzable, reason, representedOfferings, serviceLikePages, serviceLikeSitemapUrls };
+  return {
+    analyzable,
+    reason,
+    representedOfferings,
+    serviceLikePages: serviceLikePages.length,
+    serviceLikeSitemapUrls,
+  };
 }

@@ -1,0 +1,1219 @@
+{
+  "generatedAt": "2026-09-02T18:53:55.520Z",
+  "reports": [
+    {
+      "id": "getaxiom",
+      "domain": "getaxiom.ca",
+      "vertical": "agency",
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 1 offering(s) represented on the site, 7 service-like crawled page(s), 0 service-like sitemap URL(s).",
+      "pagesFetched": 10,
+      "pagesReadable": 9,
+      "sitemapAvailable": false,
+      "sitemapUrls": 0,
+      "linksDiscovered": 27,
+      "serviceLikePages": 7,
+      "serviceLikeSitemapUrls": 0,
+      "serviceContentPagesRead": 1,
+      "representedOfferings": 1,
+      "offerings": 1,
+      "blockedEvents": 0,
+      "inconclusiveEvents": 0,
+      "requests": 19,
+      "reviewerSaysServicePagesExist": true,
+      "crawlerMissedObviousPages": false,
+      "falseAnalyzable": false,
+      "failure": null,
+      "failureNote": "",
+      "suggestions": [
+        {
+          "label": "View service",
+          "confidence": "medium",
+          "evidence": [
+            "Listed under the site's services section (https://getaxiom.ca/services/conversion-sites)",
+            "Listed under the site's services section (https://getaxiom.ca/services/local-business-websites)",
+            "Listed under the site's services section (https://getaxiom.ca/services/rebuilds)"
+          ]
+        }
+      ],
+      "errored": null
+    },
+    {
+      "id": "kids-connect",
+      "domain": "kids-connect.ca",
+      "vertical": "childcare",
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 2 offering(s) represented on the site, 6 service-like crawled page(s), 2 service-like sitemap URL(s).",
+      "pagesFetched": 6,
+      "pagesReadable": 6,
+      "sitemapAvailable": true,
+      "sitemapUrls": 74,
+      "linksDiscovered": 6,
+      "serviceLikePages": 6,
+      "serviceLikeSitemapUrls": 2,
+      "serviceContentPagesRead": 0,
+      "representedOfferings": 2,
+      "offerings": 4,
+      "blockedEvents": 0,
+      "inconclusiveEvents": 0,
+      "requests": 16,
+      "reviewerSaysServicePagesExist": false,
+      "crawlerMissedObviousPages": false,
+      "falseAnalyzable": true,
+      "failure": null,
+      "failureNote": "",
+      "suggestions": [],
+      "errored": null
+    },
+    {
+      "id": "morrisjenkins",
+      "domain": "morrisjenkins.com",
+      "vertical": "hvac",
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 6 offering(s) represented on the site, 10 service-like crawled page(s), 20 service-like sitemap URL(s).",
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "sitemapAvailable": true,
+      "sitemapUrls": 100,
+      "linksDiscovered": 196,
+      "serviceLikePages": 10,
+      "serviceLikeSitemapUrls": 20,
+      "serviceContentPagesRead": 7,
+      "representedOfferings": 6,
+      "offerings": 6,
+      "blockedEvents": 0,
+      "inconclusiveEvents": 0,
+      "requests": 11,
+      "reviewerSaysServicePagesExist": true,
+      "crawlerMissedObviousPages": false,
+      "falseAnalyzable": false,
+      "failure": null,
+      "failureNote": "",
+      "suggestions": [
+        {
+          "label": "Air Purifiers",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://morrisjenkins.com/home-performance/air-purifier-installation",
+            "Listed in the site's main navigation",
+            "Has its own page at https://morrisjenkins.com/greenville/home-performance/air-purifier-installation",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Backflow Preventer Maintenance",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://morrisjenkins.com/plumbing/backflow-services/backflow-preventer-maintenance",
+            "Listed in the site's main navigation",
+            "Has its own page at https://morrisjenkins.com/plumbing/backflow-services/backflow-preventer-repair",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Cooling",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://morrisjenkins.com/cooling",
+            "Listed in the site's main navigation",
+            "Shown as a service card on the homepage",
+            "Has its own page at https://morrisjenkins.com/greenville/cooling"
+          ]
+        },
+        {
+          "label": "Drain Cleaning",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://morrisjenkins.com/plumbing/drain-cleaning",
+            "Listed in the site's main navigation",
+            "Has its own page at https://morrisjenkins.com/greenville/plumbing/drain-cleaning",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Ductless AC Services",
+          "confidence": "high",
+          "evidence": [
+            "Listed in the site's main navigation",
+            "Has its own page at https://morrisjenkins.com/cooling/ductless-ac-repair",
+            "Listed in the site's main navigation",
+            "Has its own page at https://morrisjenkins.com/cooling/ductless-ac-maintenance"
+          ]
+        },
+        {
+          "label": "Electrical",
+          "confidence": "high",
+          "evidence": [
+            "Listed in the site's main navigation",
+            "Has its own page at https://morrisjenkins.com/electrical/electrical-repairs",
+            "Listed in the site's main navigation",
+            "Shown as a service card on the homepage"
+          ]
+        },
+        {
+          "label": "Electrical Safety Inspections",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://morrisjenkins.com/electrical/electrical-inspections",
+            "Listed in the site's main navigation",
+            "Shown as a service card on the homepage",
+            "Has its own page at https://morrisjenkins.com/greenville/electrical/electrical-inspections"
+          ]
+        },
+        {
+          "label": "Emergency AC Repair",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://morrisjenkins.com/cooling/emergency-ac-repair",
+            "Listed in the site's main navigation",
+            "Has its own page at https://morrisjenkins.com/greenville/cooling/emergency-ac-repair",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Encapsulation",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://morrisjenkins.com/home-performance/crawl-space-encapsulation",
+            "Listed in the site's main navigation",
+            "Has its own page at https://morrisjenkins.com/greenville/home-performance/crawl-space-encapsulation",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "EV Charger Installation",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://morrisjenkins.com/electrical/ev-charger-installation",
+            "Listed in the site's main navigation",
+            "Has its own page at https://morrisjenkins.com/greenville/electrical/ev-charger-installation",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Gas Pack Service",
+          "confidence": "high",
+          "evidence": [
+            "Listed in the site's main navigation",
+            "Has its own page at https://morrisjenkins.com/cooling/gas-pack-repair",
+            "Listed in the site's main navigation",
+            "Has its own page at https://morrisjenkins.com/cooling/gas-pack-installation"
+          ]
+        },
+        {
+          "label": "Heating",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://morrisjenkins.com/heating",
+            "Listed in the site's main navigation",
+            "Shown as a service card on the homepage",
+            "Has its own page at https://morrisjenkins.com/greenville/heating"
+          ]
+        }
+      ],
+      "errored": null
+    },
+    {
+      "id": "michaelandson",
+      "domain": "michaelandson.com",
+      "vertical": "hvac",
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 6 offering(s) represented on the site, 1 service-like crawled page(s), 25 service-like sitemap URL(s).",
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "sitemapAvailable": true,
+      "sitemapUrls": 100,
+      "linksDiscovered": 405,
+      "serviceLikePages": 1,
+      "serviceLikeSitemapUrls": 25,
+      "serviceContentPagesRead": 0,
+      "representedOfferings": 6,
+      "offerings": 6,
+      "blockedEvents": 0,
+      "inconclusiveEvents": 0,
+      "requests": 18,
+      "reviewerSaysServicePagesExist": true,
+      "crawlerMissedObviousPages": false,
+      "falseAnalyzable": false,
+      "failure": null,
+      "failureNote": "",
+      "suggestions": [
+        {
+          "label": "All Cooling Services",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://michaelandson.com/cooling",
+            "Listed in the site's main navigation",
+            "Has its own page at https://michaelandson.com/alexandria/cooling",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "All Heating Services",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://michaelandson.com/heating",
+            "Listed in the site's main navigation",
+            "Has its own page at https://michaelandson.com/alexandria/heating",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "All Plumbing Services",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://michaelandson.com/plumbing",
+            "Listed in the site's main navigation",
+            "Has its own page at https://michaelandson.com/alexandria/plumbing",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "All Restoration Services",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://michaelandson.com/restoration",
+            "Listed in the site's main navigation",
+            "Has its own page at https://michaelandson.com/alexandria/restoration",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Ceiling Fan Installation",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://michaelandson.com/electrical/ceiling-fan-installation",
+            "Listed in the site's main navigation",
+            "Has its own page at https://michaelandson.com/alexandria/electrical/ceiling-fan-installation",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Central AC Repair",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://michaelandson.com/cooling/central-ac-repair",
+            "Listed in the site's main navigation",
+            "Has its own page at https://michaelandson.com/cooling/central-ac-installation",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Circuit Breaker Replacement",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://michaelandson.com/electrical/circuit-breaker-replacement",
+            "Listed in the site's main navigation",
+            "Has its own page at https://michaelandson.com/alexandria/electrical/circuit-breaker-replacement",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Cooling Tune Ups",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://michaelandson.com/cooling/furnace-ac-tune-ups",
+            "Listed in the site's main navigation",
+            "Has its own page at https://michaelandson.com/alexandria/cooling/furnace-ac-tune-ups",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Crawlspace Encapsulation",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://michaelandson.com/restoration/crawlspace-encapsulation",
+            "Listed in the site's main navigation",
+            "Has its own page at https://michaelandson.com/alexandria/restoration/crawlspace-encapsulation",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Garbage Disposal Installation",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://michaelandson.com/plumbing/garbage-disposal-installations",
+            "Listed in the site's main navigation",
+            "Has its own page at https://michaelandson.com/alexandria/plumbing/garbage-disposal-installations",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Gas Line Repair",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://michaelandson.com/plumbing/gas-line-repairs",
+            "Listed in the site's main navigation",
+            "Has its own page at https://michaelandson.com/plumbing/gas-line-installation",
+            "Has its own page at https://michaelandson.com/alexandria/plumbing/gas-line-repairs"
+          ]
+        },
+        {
+          "label": "Generator Installation",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://michaelandson.com/electrical/generator-installation",
+            "Listed in the site's main navigation",
+            "Has its own page at https://michaelandson.com/alexandria/electrical/generator-installation",
+            "Listed in the site's main navigation"
+          ]
+        }
+      ],
+      "errored": null
+    },
+    {
+      "id": "aireserv",
+      "domain": "aireserv.com",
+      "vertical": "hvac",
+      "analyzable": false,
+      "reason": "Insufficient service coverage: only 0 offering(s) represented, 0 service-like crawled page(s), 0 service-like sitemap URL(s) — the crawl did not demonstrably reach the site's service pages, so no absence can be claimed.",
+      "pagesFetched": 1,
+      "pagesReadable": 0,
+      "sitemapAvailable": false,
+      "sitemapUrls": 0,
+      "linksDiscovered": 0,
+      "serviceLikePages": 0,
+      "serviceLikeSitemapUrls": 0,
+      "serviceContentPagesRead": 0,
+      "representedOfferings": 0,
+      "offerings": 6,
+      "blockedEvents": 1,
+      "inconclusiveEvents": 1,
+      "requests": 2,
+      "reviewerSaysServicePagesExist": true,
+      "crawlerMissedObviousPages": true,
+      "falseAnalyzable": false,
+      "failure": "BLOCKED",
+      "failureNote": "The URL policy refused every request to this domain.",
+      "suggestions": [],
+      "errored": null
+    },
+    {
+      "id": "cambridgeheating",
+      "domain": "cambridgeheating.ca",
+      "vertical": "hvac",
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 3 offering(s) represented on the site, 6 service-like crawled page(s), 0 service-like sitemap URL(s).",
+      "pagesFetched": 8,
+      "pagesReadable": 8,
+      "sitemapAvailable": false,
+      "sitemapUrls": 0,
+      "linksDiscovered": 10,
+      "serviceLikePages": 6,
+      "serviceLikeSitemapUrls": 0,
+      "serviceContentPagesRead": 4,
+      "representedOfferings": 3,
+      "offerings": 4,
+      "blockedEvents": 0,
+      "inconclusiveEvents": 0,
+      "requests": 9,
+      "reviewerSaysServicePagesExist": true,
+      "crawlerMissedObviousPages": false,
+      "falseAnalyzable": false,
+      "failure": null,
+      "failureNote": "",
+      "suggestions": [
+        {
+          "label": "Air Conditioner Installation",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://cambridgeheating.ca/airconditioner-installation.html",
+            "Has its own page at https://cambridgeheating.ca/air-conditioner-repair.html",
+            "Has its own page at https://cambridgeheating.ca/airconditioner-installation.html",
+            "Has its own page at https://cambridgeheating.ca/air-conditioner-repair.html"
+          ]
+        }
+      ],
+      "errored": null
+    },
+    {
+      "id": "mrrooter",
+      "domain": "mrrooter.com",
+      "vertical": "plumbing",
+      "analyzable": false,
+      "reason": "Insufficient service coverage: only 0 offering(s) represented, 0 service-like crawled page(s), 0 service-like sitemap URL(s) — the crawl did not demonstrably reach the site's service pages, so no absence can be claimed.",
+      "pagesFetched": 1,
+      "pagesReadable": 0,
+      "sitemapAvailable": false,
+      "sitemapUrls": 0,
+      "linksDiscovered": 0,
+      "serviceLikePages": 0,
+      "serviceLikeSitemapUrls": 0,
+      "serviceContentPagesRead": 0,
+      "representedOfferings": 0,
+      "offerings": 6,
+      "blockedEvents": 1,
+      "inconclusiveEvents": 1,
+      "requests": 2,
+      "reviewerSaysServicePagesExist": true,
+      "crawlerMissedObviousPages": true,
+      "falseAnalyzable": false,
+      "failure": "BLOCKED",
+      "failureNote": "The URL policy refused every request to this domain.",
+      "suggestions": [],
+      "errored": null
+    },
+    {
+      "id": "drainworks",
+      "domain": "drainworks.com",
+      "vertical": "plumbing",
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 5 offering(s) represented on the site, 1 service-like crawled page(s), 0 service-like sitemap URL(s).",
+      "pagesFetched": 1,
+      "pagesReadable": 1,
+      "sitemapAvailable": false,
+      "sitemapUrls": 0,
+      "linksDiscovered": 79,
+      "serviceLikePages": 1,
+      "serviceLikeSitemapUrls": 0,
+      "serviceContentPagesRead": 0,
+      "representedOfferings": 5,
+      "offerings": 5,
+      "blockedEvents": 10,
+      "inconclusiveEvents": 0,
+      "requests": 11,
+      "reviewerSaysServicePagesExist": true,
+      "crawlerMissedObviousPages": false,
+      "falseAnalyzable": false,
+      "failure": null,
+      "failureNote": "",
+      "suggestions": [
+        {
+          "label": "Waterproofing",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://drainworks.com/waterproofing-services",
+            "Listed in the site's main navigation",
+            "Shown as a service card on the homepage"
+          ]
+        },
+        {
+          "label": "About",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://drainworks.com/about-drainworks-toronto-plumbers-drain-cleaning",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Basement Crack Repairs",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://drainworks.com/basement-cracks-repairs",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Blog",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://drainworks.com/plumbing-blog",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Drain Replacement Excavation",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://drainworks.com/drain-sewer-services-toronto/drain-replacement-excavation",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "External Waterproofing",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://drainworks.com/external-waterproofing",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Frozen Pipes",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://drainworks.com/plumbing-services-in-toronto/frozen-pipes-repair",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Internal Waterproofing",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://drainworks.com/internal-waterproofing",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Leaking Ceiling Repair",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://drainworks.com/plumbing-services-in-toronto/leaking-ceiling-repair",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Outdoor Faucet Repair",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://drainworks.com/plumbing-services-in-toronto/outdoor-faucet-repair",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Pipe Repair",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://drainworks.com/plumbing-services-in-toronto/leaky-pipe-repair",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Plumbing Coupons/Promos",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://drainworks.com/plumbing-coupons-promotions",
+            "Listed in the site's main navigation"
+          ]
+        }
+      ],
+      "errored": null
+    },
+    {
+      "id": "atlasplumbing",
+      "domain": "atlasplumbing.ca",
+      "vertical": "plumbing",
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 1 offering(s) represented on the site, 5 service-like crawled page(s), 0 service-like sitemap URL(s).",
+      "pagesFetched": 9,
+      "pagesReadable": 9,
+      "sitemapAvailable": false,
+      "sitemapUrls": 0,
+      "linksDiscovered": 10,
+      "serviceLikePages": 5,
+      "serviceLikeSitemapUrls": 0,
+      "serviceContentPagesRead": 0,
+      "representedOfferings": 1,
+      "offerings": 4,
+      "blockedEvents": 0,
+      "inconclusiveEvents": 0,
+      "requests": 12,
+      "reviewerSaysServicePagesExist": false,
+      "crawlerMissedObviousPages": false,
+      "falseAnalyzable": true,
+      "failure": null,
+      "failureNote": "",
+      "suggestions": [],
+      "errored": null
+    },
+    {
+      "id": "fixitright",
+      "domain": "fixitrightplumbing.com.au",
+      "vertical": "plumbing",
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 6 offering(s) represented on the site, 1 service-like crawled page(s), 0 service-like sitemap URL(s).",
+      "pagesFetched": 1,
+      "pagesReadable": 1,
+      "sitemapAvailable": false,
+      "sitemapUrls": 0,
+      "linksDiscovered": 6,
+      "serviceLikePages": 1,
+      "serviceLikeSitemapUrls": 0,
+      "serviceContentPagesRead": 0,
+      "representedOfferings": 6,
+      "offerings": 6,
+      "blockedEvents": 4,
+      "inconclusiveEvents": 0,
+      "requests": 6,
+      "reviewerSaysServicePagesExist": true,
+      "crawlerMissedObviousPages": false,
+      "falseAnalyzable": false,
+      "failure": null,
+      "failureNote": "",
+      "suggestions": [],
+      "errored": null
+    },
+    {
+      "id": "mrelectric",
+      "domain": "mrelectric.com",
+      "vertical": "electrician",
+      "analyzable": false,
+      "reason": "Insufficient service coverage: only 0 offering(s) represented, 0 service-like crawled page(s), 0 service-like sitemap URL(s) — the crawl did not demonstrably reach the site's service pages, so no absence can be claimed.",
+      "pagesFetched": 1,
+      "pagesReadable": 0,
+      "sitemapAvailable": false,
+      "sitemapUrls": 0,
+      "linksDiscovered": 0,
+      "serviceLikePages": 0,
+      "serviceLikeSitemapUrls": 0,
+      "serviceContentPagesRead": 0,
+      "representedOfferings": 0,
+      "offerings": 6,
+      "blockedEvents": 0,
+      "inconclusiveEvents": 2,
+      "requests": 2,
+      "reviewerSaysServicePagesExist": true,
+      "crawlerMissedObviousPages": true,
+      "falseAnalyzable": false,
+      "failure": "BLOCKED",
+      "failureNote": "No page returned readable HTML — bot protection, a JavaScript-only shell, or a transport failure.",
+      "suggestions": [],
+      "errored": null
+    },
+    {
+      "id": "altimadental",
+      "domain": "altimadental.com",
+      "vertical": "dentist",
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 4 offering(s) represented on the site, 1 service-like crawled page(s), 0 service-like sitemap URL(s).",
+      "pagesFetched": 1,
+      "pagesReadable": 1,
+      "sitemapAvailable": false,
+      "sitemapUrls": 0,
+      "linksDiscovered": 0,
+      "serviceLikePages": 1,
+      "serviceLikeSitemapUrls": 0,
+      "serviceContentPagesRead": 0,
+      "representedOfferings": 4,
+      "offerings": 5,
+      "blockedEvents": 1,
+      "inconclusiveEvents": 0,
+      "requests": 2,
+      "reviewerSaysServicePagesExist": true,
+      "crawlerMissedObviousPages": false,
+      "falseAnalyzable": false,
+      "failure": null,
+      "failureNote": "",
+      "suggestions": [],
+      "errored": null
+    },
+    {
+      "id": "smiledesign",
+      "domain": "smiledesigndentistry.com",
+      "vertical": "dentist",
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 3 offering(s) represented on the site, 1 service-like crawled page(s), 0 service-like sitemap URL(s).",
+      "pagesFetched": 2,
+      "pagesReadable": 2,
+      "sitemapAvailable": false,
+      "sitemapUrls": 0,
+      "linksDiscovered": 11,
+      "serviceLikePages": 1,
+      "serviceLikeSitemapUrls": 0,
+      "serviceContentPagesRead": 0,
+      "representedOfferings": 3,
+      "offerings": 5,
+      "blockedEvents": 5,
+      "inconclusiveEvents": 0,
+      "requests": 8,
+      "reviewerSaysServicePagesExist": true,
+      "crawlerMissedObviousPages": false,
+      "falseAnalyzable": false,
+      "failure": null,
+      "failureNote": "",
+      "suggestions": [],
+      "errored": null
+    },
+    {
+      "id": "bloordental",
+      "domain": "bloordental.com",
+      "vertical": "dentist",
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 5 offering(s) represented on the site, 1 service-like crawled page(s), 0 service-like sitemap URL(s).",
+      "pagesFetched": 1,
+      "pagesReadable": 1,
+      "sitemapAvailable": false,
+      "sitemapUrls": 0,
+      "linksDiscovered": 2,
+      "serviceLikePages": 1,
+      "serviceLikeSitemapUrls": 0,
+      "serviceContentPagesRead": 0,
+      "representedOfferings": 5,
+      "offerings": 6,
+      "blockedEvents": 2,
+      "inconclusiveEvents": 0,
+      "requests": 3,
+      "reviewerSaysServicePagesExist": true,
+      "crawlerMissedObviousPages": false,
+      "falseAnalyzable": false,
+      "failure": null,
+      "failureNote": "",
+      "suggestions": [],
+      "errored": null
+    },
+    {
+      "id": "yorkvilledental",
+      "domain": "yorkvilledental.ca",
+      "vertical": "dentist",
+      "analyzable": false,
+      "reason": "Insufficient service coverage: only 0 offering(s) represented, 0 service-like crawled page(s), 0 service-like sitemap URL(s) — the crawl did not demonstrably reach the site's service pages, so no absence can be claimed.",
+      "pagesFetched": 1,
+      "pagesReadable": 0,
+      "sitemapAvailable": false,
+      "sitemapUrls": 0,
+      "linksDiscovered": 0,
+      "serviceLikePages": 0,
+      "serviceLikeSitemapUrls": 0,
+      "serviceContentPagesRead": 0,
+      "representedOfferings": 0,
+      "offerings": 4,
+      "blockedEvents": 0,
+      "inconclusiveEvents": 0,
+      "requests": 2,
+      "reviewerSaysServicePagesExist": "unknown",
+      "crawlerMissedObviousPages": false,
+      "falseAnalyzable": false,
+      "failure": "BLOCKED",
+      "failureNote": "No page returned readable HTML — bot protection, a JavaScript-only shell, or a transport failure.",
+      "suggestions": [],
+      "errored": null
+    },
+    {
+      "id": "physiomed",
+      "domain": "physiomed.ca",
+      "vertical": "clinic",
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 5 offering(s) represented on the site, 1 service-like crawled page(s), 0 service-like sitemap URL(s).",
+      "pagesFetched": 1,
+      "pagesReadable": 1,
+      "sitemapAvailable": false,
+      "sitemapUrls": 0,
+      "linksDiscovered": 2,
+      "serviceLikePages": 1,
+      "serviceLikeSitemapUrls": 0,
+      "serviceContentPagesRead": 0,
+      "representedOfferings": 5,
+      "offerings": 5,
+      "blockedEvents": 1,
+      "inconclusiveEvents": 0,
+      "requests": 3,
+      "reviewerSaysServicePagesExist": true,
+      "crawlerMissedObviousPages": false,
+      "falseAnalyzable": false,
+      "failure": null,
+      "failureNote": "",
+      "suggestions": [],
+      "errored": null
+    },
+    {
+      "id": "renoduck",
+      "domain": "renoduck.com",
+      "vertical": "contractor",
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 5 offering(s) represented on the site, 1 service-like crawled page(s), 0 service-like sitemap URL(s).",
+      "pagesFetched": 1,
+      "pagesReadable": 1,
+      "sitemapAvailable": false,
+      "sitemapUrls": 0,
+      "linksDiscovered": 18,
+      "serviceLikePages": 1,
+      "serviceLikeSitemapUrls": 0,
+      "serviceContentPagesRead": 0,
+      "representedOfferings": 5,
+      "offerings": 5,
+      "blockedEvents": 9,
+      "inconclusiveEvents": 0,
+      "requests": 11,
+      "reviewerSaysServicePagesExist": true,
+      "crawlerMissedObviousPages": false,
+      "falseAnalyzable": false,
+      "failure": null,
+      "failureNote": "",
+      "suggestions": [
+        {
+          "label": "Bathroom",
+          "confidence": "medium",
+          "evidence": [
+            "Has its own page at https://renoduck.com/bathroom-renovation/"
+          ]
+        },
+        {
+          "label": "Kitchen",
+          "confidence": "medium",
+          "evidence": [
+            "Has its own page at https://renoduck.com/kitchen-renovation/"
+          ]
+        },
+        {
+          "label": "Whole Home",
+          "confidence": "medium",
+          "evidence": [
+            "Has its own page at https://renoduck.com/home-renovation/"
+          ]
+        }
+      ],
+      "errored": null
+    },
+    {
+      "id": "nusite",
+      "domain": "nusite.ca",
+      "vertical": "contractor",
+      "analyzable": false,
+      "reason": "Insufficient service coverage: only 0 offering(s) represented, 0 service-like crawled page(s), 0 service-like sitemap URL(s) — the crawl did not demonstrably reach the site's service pages, so no absence can be claimed.",
+      "pagesFetched": 1,
+      "pagesReadable": 1,
+      "sitemapAvailable": false,
+      "sitemapUrls": 0,
+      "linksDiscovered": 1,
+      "serviceLikePages": 0,
+      "serviceLikeSitemapUrls": 0,
+      "serviceContentPagesRead": 0,
+      "representedOfferings": 0,
+      "offerings": 4,
+      "blockedEvents": 0,
+      "inconclusiveEvents": 0,
+      "requests": 2,
+      "reviewerSaysServicePagesExist": false,
+      "crawlerMissedObviousPages": false,
+      "falseAnalyzable": false,
+      "failure": "SITE_TOO_THIN",
+      "failureNote": "The site genuinely has no service content to reach.",
+      "suggestions": [],
+      "errored": null
+    },
+    {
+      "id": "nerdsonsite",
+      "domain": "nerdsonsite.com",
+      "vertical": "agency",
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 5 offering(s) represented on the site, 10 service-like crawled page(s), 0 service-like sitemap URL(s).",
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "sitemapAvailable": false,
+      "sitemapUrls": 0,
+      "linksDiscovered": 45,
+      "serviceLikePages": 10,
+      "serviceLikeSitemapUrls": 0,
+      "serviceContentPagesRead": 4,
+      "representedOfferings": 5,
+      "offerings": 5,
+      "blockedEvents": 0,
+      "inconclusiveEvents": 0,
+      "requests": 11,
+      "reviewerSaysServicePagesExist": true,
+      "crawlerMissedObviousPages": false,
+      "falseAnalyzable": false,
+      "failure": null,
+      "failureNote": "",
+      "suggestions": [
+        {
+          "label": "IT Consulting Services",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://nerdsonsite.com/business-solutions/it-consulting-services/",
+            "Has its own page at https://nerdsonsite.com/business-solutions/it-consulting-services/",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Computer Repair &#038; Service",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://nerdsonsite.com/residential-services/computer-repair/",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Mac Repair &#038; Service",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://nerdsonsite.com/residential-services/onsite-mac-repair/",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Virus &#038; Malware Removal",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://nerdsonsite.com/residential-services/malware-removal/",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Mac Service & Repair",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://nerdsonsite.com/residential-services/onsite-mac-repair/"
+          ]
+        },
+        {
+          "label": "Virus Removal Services",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://nerdsonsite.com/residential-services/malware-removal/"
+          ]
+        }
+      ],
+      "errored": null
+    },
+    {
+      "id": "goddardschool",
+      "domain": "goddardschool.com",
+      "vertical": "childcare",
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 4 offering(s) represented on the site, 1 service-like crawled page(s), 0 service-like sitemap URL(s).",
+      "pagesFetched": 1,
+      "pagesReadable": 1,
+      "sitemapAvailable": false,
+      "sitemapUrls": 0,
+      "linksDiscovered": 36,
+      "serviceLikePages": 1,
+      "serviceLikeSitemapUrls": 0,
+      "serviceContentPagesRead": 0,
+      "representedOfferings": 4,
+      "offerings": 6,
+      "blockedEvents": 10,
+      "inconclusiveEvents": 0,
+      "requests": 11,
+      "reviewerSaysServicePagesExist": true,
+      "crawlerMissedObviousPages": false,
+      "falseAnalyzable": false,
+      "failure": null,
+      "failureNote": "",
+      "suggestions": [],
+      "errored": null
+    },
+    {
+      "id": "thelawnsalon",
+      "domain": "thelawnsalon.ca",
+      "vertical": "landscaping",
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 5 offering(s) represented on the site, 1 service-like crawled page(s), 0 service-like sitemap URL(s).",
+      "pagesFetched": 1,
+      "pagesReadable": 1,
+      "sitemapAvailable": false,
+      "sitemapUrls": 0,
+      "linksDiscovered": 3,
+      "serviceLikePages": 1,
+      "serviceLikeSitemapUrls": 0,
+      "serviceContentPagesRead": 0,
+      "representedOfferings": 5,
+      "offerings": 6,
+      "blockedEvents": 1,
+      "inconclusiveEvents": 0,
+      "requests": 2,
+      "reviewerSaysServicePagesExist": true,
+      "crawlerMissedObviousPages": false,
+      "falseAnalyzable": false,
+      "failure": null,
+      "failureNote": "",
+      "suggestions": [],
+      "errored": null
+    },
+    {
+      "id": "davey",
+      "domain": "davey.com",
+      "vertical": "landscaping",
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 6 offering(s) represented on the site, 1 service-like crawled page(s), 0 service-like sitemap URL(s).",
+      "pagesFetched": 1,
+      "pagesReadable": 1,
+      "sitemapAvailable": false,
+      "sitemapUrls": 0,
+      "linksDiscovered": 107,
+      "serviceLikePages": 1,
+      "serviceLikeSitemapUrls": 0,
+      "serviceContentPagesRead": 0,
+      "representedOfferings": 6,
+      "offerings": 6,
+      "blockedEvents": 10,
+      "inconclusiveEvents": 0,
+      "requests": 11,
+      "reviewerSaysServicePagesExist": true,
+      "crawlerMissedObviousPages": false,
+      "falseAnalyzable": false,
+      "failure": null,
+      "failureNote": "",
+      "suggestions": [
+        {
+          "label": "Environmental Consulting",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://davey.com/utility-services/environmental-consulting-for-utilities/",
+            "Listed in the site's main navigation",
+            "Has its own page at https://davey.com/environmental-consulting-services/",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Class A",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://davey.com/commercial-services/class-a-property-landscaping-services/",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Commercial Grounds Maintenance",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://davey.com/commercial-services/commercial-grounds-maintenance/",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Commercial Snow & Ice Removal",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://davey.com/commercial-services/commercial-snow-ice-removal/",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Environmental Design & Ecosystem Restoration",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://davey.com/environmental-consulting-services/environmental-design-ecosystem-restoration/",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Expertise & Training",
+          "confidence": "high",
+          "evidence": [
+            "Listed under the site's services section (https://davey.com/about/expertise/)",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Golf Courses",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://davey.com/commercial-services/golf-course-tree-and-landscaping-services/",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Invasive Species Management & Control",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://davey.com/environmental-consulting-services/invasive-species-management-control/",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Landscape Architecture & Ecological Design",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://davey.com/environmental-consulting-services/landscape-architecture-ecological-design/",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Landscape Design & Installation",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://davey.com/professional-landscaping/",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Lawn Pest & Grub Control",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://davey.com/residential-tree-services/lawn-care-services/lawn-pest-grub-control/",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Shrub Pruning",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://davey.com/residential-tree-services/shrub-pruning/",
+            "Listed in the site's main navigation"
+          ]
+        }
+      ],
+      "errored": null
+    },
+    {
+      "id": "bartlett",
+      "domain": "bartlett.com",
+      "vertical": "landscaping",
+      "analyzable": false,
+      "reason": "Insufficient service coverage: only 1 offering(s) represented, 1 service-like crawled page(s), 0 service-like sitemap URL(s) — the crawl did not demonstrably reach the site's service pages, so no absence can be claimed.",
+      "pagesFetched": 1,
+      "pagesReadable": 1,
+      "sitemapAvailable": false,
+      "sitemapUrls": 0,
+      "linksDiscovered": 0,
+      "serviceLikePages": 1,
+      "serviceLikeSitemapUrls": 0,
+      "serviceContentPagesRead": 0,
+      "representedOfferings": 1,
+      "offerings": 5,
+      "blockedEvents": 1,
+      "inconclusiveEvents": 0,
+      "requests": 2,
+      "reviewerSaysServicePagesExist": true,
+      "crawlerMissedObviousPages": true,
+      "falseAnalyzable": false,
+      "failure": "CRAWLER_DISCOVERY",
+      "failureNote": "The reviewer says service pages exist; the crawl reached 1 service-like page(s) and 0 service-like sitemap URL(s).",
+      "suggestions": [],
+      "errored": null
+    },
+    {
+      "id": "activegreenross",
+      "domain": "activegreenross.com",
+      "vertical": "automotive",
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 4 offering(s) represented on the site, 1 service-like crawled page(s), 0 service-like sitemap URL(s).",
+      "pagesFetched": 1,
+      "pagesReadable": 1,
+      "sitemapAvailable": false,
+      "sitemapUrls": 0,
+      "linksDiscovered": 79,
+      "serviceLikePages": 1,
+      "serviceLikeSitemapUrls": 0,
+      "serviceContentPagesRead": 0,
+      "representedOfferings": 4,
+      "offerings": 5,
+      "blockedEvents": 10,
+      "inconclusiveEvents": 0,
+      "requests": 11,
+      "reviewerSaysServicePagesExist": true,
+      "crawlerMissedObviousPages": false,
+      "falseAnalyzable": false,
+      "failure": null,
+      "failureNote": "",
+      "suggestions": [
+        {
+          "label": "cooling system",
+          "confidence": "medium",
+          "evidence": [
+            "Has its own page at https://activegreenross.com/cooling-system"
+          ]
+        },
+        {
+          "label": "Fleet Maintenance",
+          "confidence": "medium",
+          "evidence": [
+            "Has its own page at https://activegreenross.com/fleet-maintenance"
+          ]
+        },
+        {
+          "label": "Heating & Cooling",
+          "confidence": "medium",
+          "evidence": [
+            "Has its own page at https://activegreenross.com/repair-services/cooling-system"
+          ]
+        },
+        {
+          "label": "Tune-up",
+          "confidence": "medium",
+          "evidence": [
+            "Has its own page at https://activegreenross.com/maintenance-services/tune-up"
+          ]
+        },
+        {
+          "label": "Vehicle Maintenance",
+          "confidence": "medium",
+          "evidence": [
+            "Has its own page at https://activegreenross.com/maintenance-services/vehicle-maintenance"
+          ]
+        }
+      ],
+      "errored": null
+    }
+  ]
+}

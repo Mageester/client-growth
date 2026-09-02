@@ -1,3 +1,5 @@
+import { isSameSite } from "@/adapters/evidence/urlPolicy";
+
 /**
  * Deliberately small, dependency-free HTML extraction. No DOM, no jsdom, no
  * browser. Regex-based and fully deterministic so it is trivially testable with
@@ -6,6 +8,10 @@
  * It extracts what the rules need: title, headings, every link (with anchor
  * text, aria-label/title, nav flag, and scheme so tel:/mailto: CTAs survive),
  * and every <form> (action / method / whether it has a submit control).
+ *
+ * Entities are decoded with a general numeric decoder as well as the named
+ * handful: real sites emit &#8211; and &#038; constantly, and a nav label of
+ * "Patios &#038; Walkways" matches nothing an agency would ever type.
  */
 
 export type LinkScheme = "http" | "tel" | "mailto";
@@ -37,7 +43,13 @@ export interface ParsedPage {
   };
   nav: string[];
   links: ParsedLink[];
-  sameOriginLinks: string[];
+  /**
+   * http(s) links that stay on this website. "Same site" here means the same
+   * host or its `www.` sibling — see isSameSite in urlPolicy.ts. Sites that
+   * canonicalise to www put their entire content tree on the sibling host, and
+   * dropping those links leaves a crawl with nothing but the homepage.
+   */
+  sameSiteLinks: string[];
 }
 
 const TEXT_EXCERPT_LENGTH = 600;
@@ -46,14 +58,35 @@ function stripTags(input: string): string {
   return input.replace(/<[^>]*>/g, " ");
 }
 
+/**
+ * Codepoints that must not come back out of an entity: decoding "&#60;script"
+ * into "<script" would put markup back into text this module has already
+ * stripped tags from.
+ */
+function safeCodePoint(code: number): string {
+  if (!Number.isFinite(code) || code < 0x20 || code > 0x10ffff) return " ";
+  if (code >= 0xd800 && code <= 0xdfff) return " ";
+  const char = String.fromCodePoint(code);
+  return /[<>&"'`]/.test(char) ? " " : char;
+}
+
 function decodeEntities(input: string): string {
   return input
     .replace(/&nbsp;/gi, " ")
+    .replace(/&#0?39;|&#x27;/gi, "'")
+    // Numeric entities, decimal and hex, run BEFORE the named ones so a
+    // doubly-encoded "&amp;#60;" cannot be assembled into markup across passes.
+    .replace(/&#x([0-9a-f]{1,6});/gi, (_, hex: string) => safeCodePoint(Number.parseInt(hex, 16)))
+    .replace(/&#(\d{1,7});/g, (_, dec: string) => safeCodePoint(Number.parseInt(dec, 10)))
     .replace(/&amp;/gi, "&")
     .replace(/&lt;/gi, "<")
     .replace(/&gt;/gi, ">")
     .replace(/&quot;/gi, '"')
-    .replace(/&#0?39;|&#x27;/gi, "'");
+    .replace(/&apos;|&rsquo;|&lsquo;/gi, "'")
+    .replace(/&mdash;|&ndash;/gi, "-")
+    .replace(/&hellip;/gi, "...")
+    .replace(/&ldquo;|&rdquo;/gi, '"')
+    .replace(/&(?:reg|trade|copy|middot|bull|times);/gi, " ");
 }
 
 function clean(input: string): string {
@@ -203,7 +236,7 @@ export function parseHtml(html: string, url: string): ParsedPage {
       continue;
     }
 
-    // http(s) — same-origin only, fragment stripped
+    // http(s) — same-site only (host or its www. sibling), fragment stripped
     const raw = a.href.split("#")[0]?.trim();
     if (!raw) continue;
     let resolved: URL;
@@ -213,7 +246,7 @@ export function parseHtml(html: string, url: string): ParsedPage {
       continue;
     }
     if (resolved.username || resolved.password) continue;
-    if (resolved.origin !== base.origin || !/^https?:$/.test(resolved.protocol)) continue;
+    if (!/^https?:$/.test(resolved.protocol) || !isSameSite(resolved, base)) continue;
     const key = resolved.toString();
     const existing = byKey.get(key);
     if (!existing) {
@@ -249,6 +282,6 @@ export function parseHtml(html: string, url: string): ParsedPage {
     },
     nav: [...navSet],
     links,
-    sameOriginLinks: links.filter((l) => l.scheme === "http").map((l) => l.href),
+    sameSiteLinks: links.filter((l) => l.scheme === "http").map((l) => l.href),
   };
 }
