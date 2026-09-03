@@ -292,16 +292,20 @@ export function Layout({ children }: { children: ReactNode }) {
         */}
         <meta property="og:site_name" content="Axiom Orbit" />
         <meta property="og:type" content="website" />
-        <meta
-          property="og:description"
-          content="The client growth platform for agencies."
-        />
-        <meta property="og:image" content="/brand/axiom-orbit-social-1200x630.png" />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta
-          name="description"
-          content="The client growth platform for agencies."
-        />
+        {!isMarketingRoute && (
+          <>
+            <meta
+              property="og:description"
+              content="The client growth platform for agencies."
+            />
+            <meta property="og:image" content="/brand/axiom-orbit-social-1200x630.png" />
+            <meta name="twitter:card" content="summary_large_image" />
+            <meta
+              name="description"
+              content="The client growth platform for agencies."
+            />
+          </>
+        )}
         <Meta />
         <Links />
       </head>

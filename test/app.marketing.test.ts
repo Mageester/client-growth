@@ -170,4 +170,24 @@ describe("Axiom Orbit marketing shell", () => {
     expect(css).toMatch(/\.marketing-button\s*\{[^}]*font-size:\s*clamp\(/s);
     expect(css).toMatch(/\.marketing-footer-credit\s*\{[^}]*font-size:\s*clamp\(/s);
   });
+
+  it("scopes generic document metadata away from marketing routes", () => {
+    const source = readFileSync(new URL("../app/root.tsx", import.meta.url), "utf8");
+    const genericMetadataBlock = source.match(
+      /\{!isMarketingRoute\s*&&\s*\(\s*<>[\s\S]*?<\/>\s*\)\}/,
+    )?.[0];
+
+    expect(genericMetadataBlock).toBeDefined();
+    for (const marker of [
+      'property="og:description"',
+      'property="og:image"',
+      'name="twitter:card"',
+      'name="description"',
+    ]) {
+      expect(genericMetadataBlock).toContain(marker);
+      expect(source.match(new RegExp(marker, "g"))).toHaveLength(1);
+    }
+    expect(source).toContain('property="og:site_name"');
+    expect(source).toContain('property="og:type"');
+  });
 });
