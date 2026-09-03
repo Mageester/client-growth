@@ -66,6 +66,28 @@ const MAX_SITEMAP_INDEX_CHILDREN = 2;
  */
 const MIN_PAGES_FOR_EXHAUSTIVE = 3;
 
+/**
+ * A decoder matching what the server said it sent.
+ *
+ * TextDecoder defaults to UTF-8, which turns every byte of a Windows-1252 page
+ * into U+FFFD. That is not cosmetic: the mangled text reaches offering
+ * suggestions and the `detected` sentence copied into a client-facing proposal
+ * draft. thelawnsalon.ca in the analyzability corpus produced the offering
+ * "Pool Removal � Riverview" this way.
+ *
+ * An unknown or unsupported label falls back to UTF-8, which is the behaviour
+ * this replaces, so a runtime without the legacy encodings is no worse off.
+ */
+function decoderFor(response: Response): TextDecoder {
+  const charset = /charset=\s*"?([\w-]+)"?/i.exec(response.headers.get("content-type") ?? "")?.[1];
+  if (!charset || /^utf-?8$/i.test(charset)) return new TextDecoder();
+  try {
+    return new TextDecoder(charset);
+  } catch {
+    return new TextDecoder();
+  }
+}
+
 export const DEFAULT_USER_AGENT =
   "ClientGrowthBot/0.1 (+website evidence; operated by the agency)";
 
@@ -474,7 +496,7 @@ export class HttpEvidenceProvider implements EvidenceProvider {
         // Best-effort cancellation only.
       }
     };
-    const decoder = new TextDecoder();
+    const decoder = decoderFor(response);
     const chunks: string[] = [];
     let totalBytes = 0;
     let timedOut = false;
