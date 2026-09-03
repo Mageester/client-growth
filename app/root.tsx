@@ -276,6 +276,7 @@ export function Layout({ children }: { children: ReactNode }) {
   const signedIn = data?.signedIn ?? false;
   const workspaceName = data?.workspaceName ?? null;
   const showAppNav = signedIn && Boolean(workspaceName) && location.pathname !== "/onboarding";
+  const isMarketingRoute = location.pathname === "/" || location.pathname === "/product";
   const busy = navigation.state === "loading";
 
   return (
@@ -309,7 +310,9 @@ export function Layout({ children }: { children: ReactNode }) {
           Skip to content
         </a>
         {busy && <div className="nav-progress" key={location.key} />}
-        {showAppNav ? (
+        {isMarketingRoute ? (
+          children
+        ) : showAppNav ? (
           <div className="app-frame">
             <aside className="app-sidebar">
               <Link className="brand app-brand" to="/opportunities">
