@@ -9,6 +9,7 @@ import {
   MarketingHeader,
 } from "../app/components/marketing-layout";
 import Landing, { meta as landingMeta } from "../app/routes/_index";
+import Product, { meta as productMeta } from "../app/routes/product";
 
 function renderMarketing(node: ReactNode) {
   return renderToStaticMarkup(
@@ -18,6 +19,10 @@ function renderMarketing(node: ReactNode) {
 
 function renderLanding() {
   return renderMarketing(createElement(Landing));
+}
+
+function renderProduct() {
+  return renderMarketing(createElement(Product));
 }
 
 describe("Axiom Orbit marketing shell", () => {
@@ -189,5 +194,72 @@ describe("Axiom Orbit marketing shell", () => {
     }
     expect(source).toContain('property="og:site_name"');
     expect(source).toContain('property="og:type"');
+  });
+});
+
+describe("Axiom Orbit public product detail", () => {
+  it("has one ordered product story with the five public chapters", () => {
+    const html = renderProduct();
+
+    expect(html).toContain("Grow the clients you’ve already won.");
+    for (const chapter of ["monitor", "understand", "find", "act", "grow"]) {
+      expect(html).toContain(`id=\"${chapter}\"`);
+    }
+    expect(html.indexOf('id="monitor"')).toBeLessThan(html.indexOf('id="understand"'));
+    expect(html.indexOf('id="understand"')).toBeLessThan(html.indexOf('id="find"'));
+    expect(html.indexOf('id="find"')).toBeLessThan(html.indexOf('id="act"'));
+    expect(html.indexOf('id="act"')).toBeLessThan(html.indexOf('id="grow"'));
+  });
+
+  it("keeps availability language adjacent to each chapter", () => {
+    const html = renderProduct();
+
+    expect(html).toContain("Available now · opt-in, per-client weekly monitoring");
+    expect(html).toContain("Available now · bounded public-site evidence");
+    expect(html).toContain("Available now · three detection categories");
+    expect(html).toContain("Available now · review + proposal draft");
+    expect(html).toContain("Direction · revenue and outcome tracking");
+  });
+
+  it("offers truthful product and pilot destinations", () => {
+    const html = renderProduct();
+
+    expect(html).toContain('href="/signup"');
+    expect(html).toContain('href="#monitor"');
+    expect(html).toContain("See how it works");
+    expect(html).toContain("Request access");
+  });
+
+  it("names the bounded workflow without fabricated proof or hype", () => {
+    const html = renderProduct();
+
+    expect(html).toContain("Not a CRM. Not a generic scanner.");
+    expect(html).toContain("focused post-sale growth workflow");
+    expect(html).toContain("Missing service page");
+    expect(html).toContain("No service pages only when the read supports it");
+    expect(html).toContain("Broken conversion path");
+    expect(html).toContain("Nothing is sent");
+    expect(html).not.toMatch(
+      /trusted by|case stud(?:y|ies)|testimonials?|revenue generated|\bROI\b|\d+%|10x|unlock hidden revenue|nothing gets missed|real-time monitoring|always-on monitoring/i,
+    );
+  });
+
+  it("publishes a route-specific absolute product metadata set", () => {
+    const metadata = productMeta();
+
+    expect(metadata).toEqual(
+      expect.arrayContaining([
+        { title: "Axiom Orbit Product — Grow the clients you’ve already won." },
+        { name: "description", content: expect.stringContaining("client sites") },
+        { tagName: "link", rel: "canonical", href: "https://orbit.getaxiom.ca/product" },
+        {
+          property: "og:image",
+          content: "https://orbit.getaxiom.ca/brand/axiom-orbit-social-1200x630.png",
+        },
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: expect.stringContaining("Axiom Orbit") },
+        { name: "twitter:description", content: expect.stringContaining("client sites") },
+      ]),
+    );
   });
 });

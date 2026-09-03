@@ -263,3 +263,230 @@ export function MonitoringTimeline() {
     </div>
   );
 }
+
+type ProductVisualFrameProps = {
+  children: ReactNode;
+  className?: string;
+};
+
+function ProductVisualFrame({ children, className = "" }: ProductVisualFrameProps) {
+  return (
+    <figure className={`marketing-product-visual ${className}`.trim()} aria-label="Illustrative product view">
+      <figcaption className="marketing-product-visual-label">Illustrative product view</figcaption>
+      {children}
+    </figure>
+  );
+}
+
+const productMonitorStates = [
+  { date: "APR 07", label: "New", tone: "new" },
+  { date: "APR 14", label: "Still open", tone: "open" },
+  { date: "APR 21", label: "Still open", tone: "open" },
+  { date: "APR 28", label: "Resolved", tone: "resolved" },
+  { date: "MAY 05", label: "Inconclusive", tone: "inconclusive" },
+] as const;
+
+export function ProductMonitorVisual() {
+  return (
+    <ProductVisualFrame className="marketing-product-visual--monitor">
+      <div className="marketing-product-visual-header">
+        <div>
+          <strong>Northstar HVAC</strong>
+          <span>northstarhvac.example</span>
+        </div>
+        <div className="marketing-product-visual-header-meta">
+          <strong>Monitoring · Weekly</strong>
+          <span>Opt-in · default Off</span>
+        </div>
+      </div>
+      <ol className="marketing-product-monitor-timeline" aria-label="Illustrative monitoring history">
+        {productMonitorStates.map((state, index) => (
+          <li key={`${state.date}-${state.label}`} className={`marketing-product-monitor-state marketing-product-monitor-state--${state.tone}`}>
+            <span className="marketing-product-monitor-date">{state.date}</span>
+            <span className="marketing-product-monitor-point" aria-hidden="true" />
+            <span className="marketing-product-monitor-status">{state.label}</span>
+            {index === 0 && <span className="marketing-product-monitor-detail">Finding surfaced</span>}
+            {index === 3 && <span className="marketing-product-monitor-detail">Re-analysis confirms</span>}
+            {index === 4 && <span className="marketing-product-monitor-detail">Read was incomplete</span>}
+          </li>
+        ))}
+      </ol>
+      <p className="marketing-product-visual-footnote">The agency chooses the client and cadence. A healthy check can stay quiet.</p>
+    </ProductVisualFrame>
+  );
+}
+
+export function ProductUnderstandVisual() {
+  return (
+    <ProductVisualFrame className="marketing-product-visual--understand">
+      <div className="marketing-product-visual-header marketing-product-visual-header--compact">
+        <div>
+          <strong>Northstar HVAC</strong>
+          <span>Public-site evidence</span>
+        </div>
+        <span className="marketing-product-visual-header-status">Bounded read</span>
+      </div>
+      <div className="marketing-product-understand-grid">
+        <div className="marketing-product-source-list">
+          <span className="marketing-product-field-label">Source URLs</span>
+          <ul aria-label="Illustrative public source URLs">
+            <li>https://northstarhvac.example/</li>
+            <li>https://northstarhvac.example/about</li>
+            <li>https://northstarhvac.example/services</li>
+            <li>https://northstarhvac.example/contact</li>
+          </ul>
+          <span className="marketing-product-source-note">Observed facts stay attached to their source.</span>
+        </div>
+        <dl className="marketing-product-context-list">
+          <div>
+            <dt>Recorded offerings</dt>
+            <dd>Heating · Maintenance · Heat pumps</dd>
+          </div>
+          <div>
+            <dt>Service catalog</dt>
+            <dd>Agency services and matching context</dd>
+          </div>
+          <div>
+            <dt>Contract coverage</dt>
+            <dd>Covered work stays distinct from a billable gap</dd>
+          </div>
+        </dl>
+      </div>
+      <p className="marketing-product-visual-footnote">Suggestions stay suggestions until a person confirms them.</p>
+    </ProductVisualFrame>
+  );
+}
+
+const productFindCategories = [
+  {
+    title: "Missing service page",
+    copy: "A recorded offering has no dedicated page.",
+    icon: "find",
+  },
+  {
+    title: "No service pages only when the read supports it",
+    copy: "The claim waits for an adequate public-site read.",
+    icon: "coverage",
+  },
+  {
+    title: "Broken conversion path",
+    copy: "A form, CTA, or journey does not complete.",
+    icon: "path",
+  },
+] as const;
+
+export function ProductFindVisual() {
+  return (
+    <ProductVisualFrame className="marketing-product-visual--find">
+      <div className="marketing-product-visual-header marketing-product-visual-header--compact">
+        <div>
+          <strong>Signal desk</strong>
+          <span>Current detection categories</span>
+        </div>
+        <span className="marketing-product-visual-header-status">Evidence gate</span>
+      </div>
+      <ul className="marketing-product-find-list" aria-label="Current Orbit detection categories">
+        {productFindCategories.map((category) => (
+          <li key={category.title}>
+            <span className="marketing-product-find-icon"><MarketingIcon name={category.icon} /></span>
+            <span className="marketing-product-find-copy">
+              <strong>{category.title}</strong>
+              <span>{category.copy}</span>
+            </span>
+            <button type="button" className="marketing-product-fragment-action" disabled>
+              View
+            </button>
+          </li>
+        ))}
+      </ul>
+      <p className="marketing-product-visual-footnote">Three focused rule families; more categories are direction, not a current claim.</p>
+    </ProductVisualFrame>
+  );
+}
+
+const productActReviewItems = [
+  { title: "What we found", copy: "Broken quote path", icon: "find" },
+  { title: "Why it matters", copy: "Visitors may abandon the request", icon: "understand" },
+  { title: "Proof from the site", copy: "Screenshots · source URLs", icon: "review" },
+  { title: "Recommended approach", copy: "Repair and validate", icon: "act" },
+] as const;
+
+export function ProductActVisual() {
+  return (
+    <ProductVisualFrame className="marketing-product-visual--act">
+      <div className="marketing-product-act-grid">
+        <section className="marketing-product-act-review" aria-labelledby="product-act-review-title">
+          <div className="marketing-product-panel-heading">
+            <span className="marketing-product-field-label">Evidence review</span>
+            <strong id="product-act-review-title">Broken quote path</strong>
+          </div>
+          <ol>
+            {productActReviewItems.map((item) => (
+              <li key={item.title}>
+                <MarketingIcon name={item.icon} />
+                <span>
+                  <strong>{item.title}</strong>
+                  <small>{item.copy}</small>
+                </span>
+                <span className="marketing-product-review-chevron" aria-hidden="true">›</span>
+              </li>
+            ))}
+          </ol>
+          <div className="marketing-product-potential-value">
+            <span className="marketing-product-field-label">Potential value · agency catalog</span>
+            <strong>$300–$900</strong>
+            <small>Illustrative range, not revenue.</small>
+          </div>
+        </section>
+        <section className="marketing-product-proposal" aria-labelledby="product-proposal-title">
+          <div className="marketing-product-panel-heading">
+            <span className="marketing-product-field-label">Editable proposal</span>
+            <strong id="product-proposal-title">Draft stays in Orbit</strong>
+          </div>
+          <label>
+            Mapped service
+            <input readOnly value="Website service page" aria-label="Mapped service" />
+          </label>
+          <label>
+            Scope
+            <input readOnly value="Strategy, copy, design, build" aria-label="Proposal scope" />
+          </label>
+          <label>
+            Next step
+            <input readOnly value="Discovery call" aria-label="Proposal next step" />
+          </label>
+          <p className="marketing-product-proposal-boundary">Nothing is sent.</p>
+        </section>
+      </div>
+      <p className="marketing-product-visual-footnote">Drafts stay inside Axiom Orbit until you copy them out.</p>
+    </ProductVisualFrame>
+  );
+}
+
+const productGrowSteps = [
+  { title: "Signal", copy: "Issue detected", icon: "states", direction: false },
+  { title: "Review", copy: "Evidence validated", icon: "review", direction: false },
+  { title: "Proposal", copy: "Draft prepared", icon: "prepare", direction: false },
+  { title: "Outcome", copy: "Revenue and outcome tracking", icon: "coverage", direction: true },
+] as const;
+
+export function ProductGrowVisual() {
+  return (
+    <ProductVisualFrame className="marketing-product-visual--grow">
+      <ol className="marketing-product-grow-flow" aria-label="Orbit product direction">
+        {productGrowSteps.map((step, index) => (
+          <li key={step.title} className={step.direction ? "marketing-product-grow-step--direction" : undefined}>
+            <div className="marketing-product-grow-icon"><MarketingIcon name={step.icon} /></div>
+            <div className="marketing-product-grow-copy">
+              {step.direction && <span className="marketing-product-direction-label">Direction</span>}
+              <strong>{step.title}</strong>
+              <span>{step.copy}</span>
+            </div>
+            {index < productGrowSteps.length - 1 && <span className="marketing-product-grow-arrow" aria-hidden="true">→</span>}
+          </li>
+        ))}
+      </ol>
+      <p className="marketing-product-visual-footnote">Today’s product gives you finding history and potential value; outcomes belong to the next layer.</p>
+    </ProductVisualFrame>
+  );
+}
