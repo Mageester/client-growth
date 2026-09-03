@@ -150,7 +150,7 @@ export default function ServicesIndex({ loaderData, actionData }: Route.Componen
   );
 
   return (
-    <div>
+    <div className="directory-page services-directory">
       <div className="pagehead">
         <div className="pagehead-copy">
           <span className="eyebrow">Catalog</span>

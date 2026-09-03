@@ -121,7 +121,7 @@ export default function ClientsIndex({ loaderData, actionData }: Route.Component
   );
 
   return (
-    <div>
+    <div className="directory-page clients-directory">
       <div className="pagehead">
         <div className="pagehead-copy">
           <span className="eyebrow">Portfolio</span>

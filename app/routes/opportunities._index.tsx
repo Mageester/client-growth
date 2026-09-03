@@ -11,23 +11,22 @@ import {
   byPotentialValue,
   clientState,
   isOpen,
-  nextAction,
-  statusBadge,
   sumTotals,
   totalsFor,
 } from "../lib/portfolio";
-import { buildEvidenceCase } from "../lib/evidence";
+import {
+  OpportunityInspector,
+  OpportunitySignalRow,
+  type SignalDeskEntry,
+} from "../components/signal-desk";
 import {
   AnalysisBanner,
   AnalysisRunning,
   EmptyState,
-  EvidenceStrip,
   Icon,
   Menu,
-  Meter,
   StateDot,
   formatCompactRange,
-  formatCurrencyRange,
   formatDue,
   formatRelative,
   pluralize,
@@ -153,6 +152,16 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
         ? open.filter((entry) => entry.opp.confidence >= STRONG_CONFIDENCE)
         : open;
 
+  const signalEntries: SignalDeskEntry[] = shown.map(({ opp, group }) => ({
+    opportunity: opp,
+    client: group.client,
+    serviceName: serviceName[opp.suggestedServiceId] ?? opp.suggestedServiceId,
+  }));
+  const requestedOpportunityId = params.get("opportunity");
+  const requestedEntry =
+    signalEntries.find((entry) => entry.opportunity.id === requestedOpportunityId) ?? null;
+  const activeEntry = requestedEntry ?? signalEntries[0] ?? null;
+
   const totals = sumTotals(scoped.map((group) => group.totals));
   const portfolioTotals = sumTotals(groups.map((group) => group.totals));
   const needsAttention = groups.filter((group) => group.state === "attention").length;
@@ -168,6 +177,7 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
     const next = new URLSearchParams(params);
     if (value === null) next.delete(key);
     else next.set(key, value);
+    if (key !== "opportunity") next.delete("opportunity");
     const query = next.toString();
     return query ? "?" + query : "?";
   }
@@ -176,6 +186,7 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
     const next = new URLSearchParams(params);
     if (value === "open") next.delete("show");
     else next.set("show", value);
+    next.delete("opportunity");
     setParams(next, { preventScrollReset: true });
   }
 
@@ -252,70 +263,9 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
         </div>
       )}
 
-      <div className="portfolio">
-        <aside className="rail" aria-label="Portfolio">
-          <div className="rail-head">
-            <span className="eyebrow">Clients</span>
-            <span className="rail-head-note">
-              {needsAttention > 0
-                ? `${needsAttention} need${needsAttention === 1 ? "s" : ""} attention`
-                : "all clear"}
-            </span>
-          </div>
-          <nav aria-label="Filter by client">
-            <ul className="rail-list">
-              <li>
-                <Link
-                  className={"rail-item" + (selected ? "" : " active")}
-                  to={withParam("client", null)}
-                  preventScrollReset
-                  aria-current={selected ? undefined : "page"}
-                >
-                  <span className="rail-item-name">All clients</span>
-                  <span className={"rail-count" + (portfolioTotals.open > 0 ? " has" : "")}>
-                    {portfolioTotals.open}
-                  </span>
-                </Link>
-              </li>
-              {[...groups]
-                .sort(
-                  (a, b) =>
-                    CLIENT_STATE_ORDER[a.state] - CLIENT_STATE_ORDER[b.state] ||
-                    b.totals.open - a.totals.open ||
-                    a.client.name.localeCompare(b.client.name),
-                )
-                .map((group) => {
-                  const active = group.client.id === selected?.client.id;
-                  return (
-                    <li key={group.client.id}>
-                      <Link
-                        className={"rail-item" + (active ? " active" : "")}
-                        to={withParam("client", group.client.id)}
-                        preventScrollReset
-                        aria-current={active ? "page" : undefined}
-                        title={group.client.name + " — " + CLIENT_STATE_LABEL[group.state]}
-                      >
-                        <StateDot state={group.state} />
-                        <span className="rail-item-name">{group.client.name}</span>
-                        <span className={"rail-count" + (group.totals.open > 0 ? " has" : "")}>
-                          {group.totals.open > 0 ? group.totals.open : "—"}
-                        </span>
-                      </Link>
-                    </li>
-                  );
-                })}
-            </ul>
-          </nav>
-          <div className="rail-foot">
-            <Link className="btn btn-ghost btn-sm" to="/clients">
-              <Icon name="plus" size={14} />
-              Add client
-            </Link>
-          </div>
-        </aside>
-
-        <section aria-label="Opportunities" className="feed">
-          <div className="feed-head">
+      <div className="signal-desk">
+        <section aria-label="Opportunities" className="signal-main">
+          <div className="signal-toolbar">
             <div className="feed-head-copy">
               <h2>{selected ? selected.client.name : "Everything worth a conversation"}</h2>
               <div className="feed-head-meta">
@@ -354,7 +304,14 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
                 )}
               </div>
             </div>
-            <div className="feed-head-actions">
+            <div className="signal-toolbar-actions">
+              <ClientScopeControl
+                groups={groups}
+                selected={selected}
+                portfolioOpen={portfolioTotals.open}
+                needsAttention={needsAttention}
+                hrefFor={(clientId) => withParam("client", clientId)}
+              />
               {open.length > 0 && (
                 <div className="segmented" role="group" aria-label="Filter findings">
                   <button
@@ -409,18 +366,24 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
               onFilter={setFilter}
             />
           ) : (
-            <ul className="findings">
-              {shown.map((entry) => (
-                <Finding
-                  key={entry.opp.id}
-                  entry={entry}
-                  showClient={!selected}
-                  serviceName={
-                    serviceName[entry.opp.suggestedServiceId] ?? entry.opp.suggestedServiceId
-                  }
-                />
-              ))}
-            </ul>
+            <>
+              <div className="signal-list-head" aria-hidden="true">
+                <span>Opportunity</span>
+                <span>Potential value</span>
+                <span>Evidence strength</span>
+                <span>Status</span>
+              </div>
+              <ul className="signal-list">
+                {signalEntries.map((entry) => (
+                  <OpportunitySignalRow
+                    key={entry.opportunity.id}
+                    entry={entry}
+                    selected={entry.opportunity.id === activeEntry?.opportunity.id}
+                    selectHref={withParam("opportunity", entry.opportunity.id)}
+                  />
+                ))}
+              </ul>
+            </>
           )}
 
           {shown.length > 0 && filter !== "all" && closed.length > 0 && (
@@ -431,8 +394,86 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
             </button>
           )}
         </section>
+        {activeEntry && (
+          <OpportunityInspector
+            entry={activeEntry}
+            closeHref={withParam("opportunity", null)}
+            openOnMobile={requestedEntry !== null}
+          />
+        )}
       </div>
     </div>
+  );
+}
+
+function ClientScopeControl({
+  groups,
+  selected,
+  portfolioOpen,
+  needsAttention,
+  hrefFor,
+}: {
+  groups: Group[];
+  selected: Group | null;
+  portfolioOpen: number;
+  needsAttention: number;
+  hrefFor: (clientId: string | null) => string;
+}) {
+  const ordered = [...groups].sort(
+    (a, b) =>
+      CLIENT_STATE_ORDER[a.state] - CLIENT_STATE_ORDER[b.state] ||
+      b.totals.open - a.totals.open ||
+      a.client.name.localeCompare(b.client.name),
+  );
+
+  return (
+    <Menu
+      align="end"
+      triggerClassName="btn signal-client-trigger"
+      triggerLabel="Filter opportunities by client"
+      trigger={
+        <>
+          <Icon name="users" size={15} />
+          <span>{selected ? selected.client.name : "All clients"}</span>
+          <span className="scope-count">{selected ? selected.totals.open : portfolioOpen}</span>
+          <Icon name="chevron-down" size={13} />
+        </>
+      }
+    >
+      <div className="menu-label">
+        {needsAttention > 0 ? `${needsAttention} need attention` : "Portfolio is clear"}
+      </div>
+      <Link
+        className={"menu-item" + (selected ? "" : " selected")}
+        to={hrefFor(null)}
+        role="menuitem"
+        preventScrollReset
+      >
+        <Icon name="users" size={14} />
+        <span>All clients</span>
+        <span className="menu-item-note">{portfolioOpen} open</span>
+      </Link>
+      {ordered.map((group) => (
+        <Link
+          key={group.client.id}
+          className={"menu-item" + (group.client.id === selected?.client.id ? " selected" : "")}
+          to={hrefFor(group.client.id)}
+          role="menuitem"
+          preventScrollReset
+        >
+          <StateDot state={group.state} />
+          <span>{group.client.name}</span>
+          <span className="menu-item-note">
+            {group.totals.open > 0 ? `${group.totals.open} open` : CLIENT_STATE_LABEL[group.state]}
+          </span>
+        </Link>
+      ))}
+      <div className="menu-sep" />
+      <Link className="menu-item" to="/clients" role="menuitem">
+        <Icon name="plus" size={14} />
+        <span>Manage clients</span>
+      </Link>
+    </Menu>
   );
 }
 
@@ -731,70 +772,5 @@ function FeedEmpty({
         ? `${unreadable.length} ${pluralize(unreadable.length, "site", "sites")} could not be read, so nothing is claimed about ${unreadable.length === 1 ? "it" : "them"} either way — pick ${unreadable.length === 1 ? "it" : "one"} from the list to see why.`
         : "Re-analyze a client after they ship changes to their website."}
     </EmptyState>
-  );
-}
-
-function Finding({
-  entry,
-  showClient,
-  serviceName,
-}: {
-  entry: Entry;
-  showClient: boolean;
-  serviceName: string;
-}) {
-  const { opp } = entry;
-  const client = entry.group.client;
-  const live = isOpen(opp);
-  const badge = statusBadge(opp);
-  const evidence = buildEvidenceCase(opp);
-  const href = "/opportunities/" + opp.id;
-
-  return (
-    <li className={"finding" + (live ? "" : " is-quiet")}>
-      <div className="finding-body">
-        <div className="finding-top">
-          {showClient && (
-            <>
-              <Link className="finding-client" to={"/clients/" + client.id}>
-                {client.name}
-              </Link>
-              <span className="dot-sep">·</span>
-            </>
-          )}
-          <span className="finding-service">{serviceName}</span>
-          {(!live || opp.status === "proposal_prepared") && (
-            <span className={"pill " + badge.tone}>{badge.label}</span>
-          )}
-        </div>
-
-        <h3 className="finding-title-row">
-          <Link className="finding-title" to={href}>
-            {opp.title}
-          </Link>
-        </h3>
-        <p className="finding-detected">{opp.detected}</p>
-        <p className="finding-why">
-          <b>Why it matters.</b> {opp.rationale}
-        </p>
-
-        <EvidenceStrip evidence={evidence} href={href} />
-      </div>
-
-      <div className="finding-side">
-        <div className="finding-value-block">
-          <div className="finding-value num">{formatCurrencyRange(opp.priceMin, opp.priceMax)}</div>
-          <div className="finding-value-note">potential value</div>
-        </div>
-        <div className="finding-confidence">
-          <Meter value={opp.confidence} />
-          <span>{Math.round(opp.confidence * 100)}% confident</span>
-        </div>
-        <Link className={"btn btn-block" + (live ? " btn-primary" : "")} to={href}>
-          {live ? (opp.proposalMd ? "Open draft" : "Review & propose") : "Review"}
-        </Link>
-        <p className="finding-next">{nextAction(opp)}</p>
-      </div>
-    </li>
   );
 }
