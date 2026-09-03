@@ -46,6 +46,12 @@ export interface OutcomeInput {
   analyzable: boolean;
   /** Why the coverage assessment concluded what it did. */
   coverageReason: string;
+  /**
+   * When coverage failed: was it the site or the crawl? These need opposite
+   * sentences, and the wrong one sends an agency to fix something that is not
+   * broken. Absent for callers that do not know, which keeps the old wording.
+   */
+  coverageLimitation?: "site-too-thin" | "coverage-limited" | null;
   /** Count of billable opportunities surfaced by this run. */
   surfaced: number;
   /** Evaluator invocations that threw. Failing closed hides real work. */
@@ -115,10 +121,20 @@ export function classifyAnalysis(input: OutcomeInput): AnalysisOutcomeResult {
   }
 
   if (!input.analyzable) {
+    // "We looked everywhere and this business has no service pages" and "we
+    // could not get far enough to tell" are the same silence with opposite
+    // meanings. A site that is genuinely a four-page brochure is not a crawl
+    // failure, and saying so invites the agency to go and fix their setup —
+    // which will change nothing, because there is nothing on the site to match.
+    const thin = input.coverageLimitation === "site-too-thin";
     return {
       outcome: "inconclusive",
-      summary: "The crawl never reached this site's service pages, so no gap can be claimed.",
-      limitation: input.coverageReason,
+      summary: thin
+        ? "This site has no pages describing what the business sells, so no gap can be claimed."
+        : "The crawl never reached this site's service pages, so no gap can be claimed.",
+      limitation: thin
+        ? `${input.coverageReason} Nothing in this client's setup would change that — the pages simply are not there. A missing-service-page finding needs a site that describes its services somewhere.`
+        : input.coverageReason,
       reach,
     };
   }

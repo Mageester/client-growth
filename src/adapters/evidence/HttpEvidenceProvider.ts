@@ -657,11 +657,24 @@ export class HttpEvidenceProvider implements EvidenceProvider {
       }
     }
 
+    // Did we see the whole site, or just as much of it as we could afford?
+    //
+    // The frontier being empty means every same-site link we found had already
+    // been fetched — we ran out of site, not out of budget. Combined with a
+    // clean network record and at least one readable page, that is the only
+    // honest basis for saying "this business has no service pages" rather than
+    // "we could not get far enough to tell".
+    const crawlExhaustive =
+      frontier.size === 0 &&
+      pageRequests < this.maxPages() &&
+      this.networkEvents.length === 0 &&
+      pages.some((page) => page.status >= 200 && page.status < 300 && page.wordCount > 0);
+
     const bundle = EvidenceBundleSchema.parse({
       clientId: client.id,
       source: "http",
       capturedAt,
-      site: { pages, nav, links: [...linksByKey.values()], sitemapUrls },
+      site: { pages, nav, links: [...linksByKey.values()], sitemapUrls, crawlExhaustive },
       networkEvents: this.networkEvents,
     });
     this.lastEvidence = bundle;

@@ -94,12 +94,14 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
   // actually managed rather than from the client's offering count alone. That
   // is what lets the page tell "your setup is thin" apart from "we could not
   // read this site" — two sentences that need two different reactions.
+  const crawlCoverage = evidence ? assessServiceCoverage({ client, evidence }) : null;
   const readiness = assessAnalysisReadiness({
     catalog: services,
     offerings: client.offerings.length,
     lastCrawl: evidence
       ? {
-          analyzable: assessServiceCoverage({ client, evidence }).analyzable,
+          analyzable: crawlCoverage?.analyzable ?? false,
+          limitation: crawlCoverage?.limitation ?? null,
           readablePages: evidence.site.pages.filter(
             (page) => page.status >= 200 && page.status < 300 && page.wordCount > 0,
           ).length,
