@@ -1133,6 +1133,24 @@
     font-size: 0.97rem;
   }
 
+  .marketing-evidence-compact-record dl {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .marketing-evidence-compact-record .marketing-evidence-field {
+    min-height: 0;
+    border-right: 0;
+  }
+
+  .marketing-evidence-compact-status {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .marketing-evidence-compact-status .marketing-evidence-field:first-child {
+    border-right: 1px solid var(--marketing-border);
+  }
+
   .marketing-cta-row:not(.marketing-cta-row--centered) {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
