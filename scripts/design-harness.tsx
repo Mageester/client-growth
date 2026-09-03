@@ -12,7 +12,7 @@
 import { createElement as h, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createMemoryRouter, RouterProvider } from "react-router";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import type { Client, Opportunity, Service } from "../src/core/schema";
@@ -335,7 +335,144 @@ const tourScreen = h(
   ),
 );
 
+/**
+ * The analyzability corpus rendered through the real screens.
+ *
+ * Everything here came out of scripts/analyzability/ui-fixture.ts: real crawls
+ * of 24 real websites, the product's own coverage assessment, and candidates
+ * from the actual rule modules. The AI evaluator does not run, so confidence is
+ * each candidate's raw score and nothing has been filtered by judgment.
+ */
+interface CorpusFixture {
+  clients: Array<{
+    client: Client;
+    outcome: string;
+    summary: string;
+    limitation: string | null;
+    open: number;
+    pagesRead?: number;
+  }>;
+  candidates: Array<{
+    clientId: string;
+    clientName: string;
+    clientDomain: string;
+    serviceName: string;
+    opportunity: Opportunity;
+  }>;
+}
+
+function corpusScreens(): Record<string, { nav: string; node: ReactNode }> {
+  const path = ".analyzability-ui.json";
+  if (!existsSync(path)) return {};
+  const fixture = JSON.parse(readFileSync(path, "utf8")) as CorpusFixture;
+
+  const byClient = new Map<string, typeof fixture.candidates>();
+  for (const row of fixture.candidates) {
+    byClient.set(row.clientId, [...(byClient.get(row.clientId) ?? []), row]);
+  }
+
+  const corpusClients = fixture.clients.map((row) => {
+    const found = byClient.get(row.client.id) ?? [];
+    return {
+      ...row.client,
+      totals: {
+        open: found.length,
+        closed: 0,
+        priceMin: found.reduce((n, r) => n + r.opportunity.priceMin, 0),
+        priceMax: found.reduce((n, r) => n + r.opportunity.priceMax, 0),
+      },
+      lastRunAt: "2026-09-03T16:00:00.000Z",
+      runSummary: row.summary,
+      state: clientState({
+        outcome: (row.outcome === "inconclusive" ? "inconclusive" : "ok") as never,
+        openCount: found.length,
+      }),
+    };
+  });
+
+  const corpusEntries: SignalDeskEntry[] = fixture.candidates.map((row) => ({
+    client: { id: row.clientId, name: row.clientName, domain: row.clientDomain },
+    opportunity: row.opportunity,
+    serviceName: row.serviceName,
+  }));
+
+  const readable = fixture.clients.filter((c) => c.outcome !== "inconclusive").length;
+
+  const feed = h(
+    "div",
+    { className: "page" },
+    h(
+      "div",
+      { className: "pagehead" },
+      h(
+        "div",
+        { className: "pagehead-copy" },
+        h("span", { className: "eyebrow" }, "Portfolio"),
+        h("h1", { className: "title-page" }, "Opportunities"),
+      ),
+    ),
+    h(
+      "div",
+      { className: "signal-desk" },
+      h(
+        "section",
+        { className: "signal-main" },
+        h(
+          "div",
+          { className: "signal-toolbar" },
+          h(
+            "div",
+            { className: "feed-head-copy" },
+            h("h2", null, "Everything worth a conversation"),
+            h(
+              "div",
+              { className: "feed-head-meta" },
+              h(
+                "span",
+                null,
+                `${readable} of ${fixture.clients.length} real sites analyzed · ranked by potential value`,
+              ),
+            ),
+          ),
+        ),
+        h(
+          "div",
+          { className: "signal-list-head", "aria-hidden": "true" },
+          h("span", null, "Opportunity"),
+          h("span", null, "Value"),
+          h("span", null, "Evidence"),
+          h("span", null, "Status"),
+        ),
+        h(
+          "ul",
+          { className: "signal-list" },
+          corpusEntries.map((entry) =>
+            h(OpportunitySignalRow, {
+              key: entry.opportunity.id,
+              entry,
+              selected: entry.opportunity.id === corpusEntries[0]?.opportunity.id,
+              selectHref: "#",
+            }),
+          ),
+        ),
+      ),
+      corpusEntries[0]
+        ? h(OpportunityInspector, { entry: corpusEntries[0], closeHref: "#" })
+        : null,
+    ),
+  );
+
+  return {
+    "corpus-opportunities": { nav: "Opportunities", node: feed },
+    "corpus-clients": {
+      nav: "Clients",
+      node: h(ClientsIndex, { loaderData: { clients: corpusClients } } as never),
+    },
+  };
+}
+
 const screens: Record<string, { nav: string; node: ReactNode }> = {
+  ...corpusScreens(),
   tour: { nav: "Opportunities", node: tourScreen },
   opportunities: { nav: "Opportunities", node: opportunitiesScreen },
   clients: {

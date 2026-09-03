@@ -1,0 +1,297 @@
+- generic [active] [ref=e1]:
+  - link "Skip to content" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - generic [ref=e5]:
+        - link "Axiom Orbit home" [ref=e6] [cursor=pointer]:
+          - /url: /
+          - img "Axiom Orbit" [ref=e7]
+        - navigation "Marketing navigation" [ref=e8]:
+          - link "Product" [ref=e9] [cursor=pointer]:
+            - /url: /product
+          - link "Sign in" [ref=e10] [cursor=pointer]:
+            - /url: /login
+          - link "Request access" [ref=e11] [cursor=pointer]:
+            - /url: /signup
+    - main [ref=e12]:
+      - generic [ref=e13]:
+        - region [ref=e14]:
+          - generic [ref=e15]:
+            - heading "Grow the clients you’ve already won." [level=1] [ref=e16]
+            - generic [ref=e17]:
+              - paragraph [ref=e18]: Axiom Orbit reviews the client sites your agency already manages, finds evidence-backed work worth a conversation, and keeps the next review in view.
+              - paragraph [ref=e19]: Pipeline Engine helps agencies acquire new clients. Orbit helps you grow and retain existing ones.
+            - generic [ref=e20]:
+              - link "Request access" [ref=e21] [cursor=pointer]:
+                - /url: /signup
+              - link "Explore the product" [ref=e22] [cursor=pointer]:
+                - /url: /product
+            - paragraph [ref=e23]: Evidence-backed opportunities. Human review. Optional Weekly monitoring.
+          - article "Illustrative product view" [ref=e26]:
+            - generic [ref=e27]:
+              - generic [ref=e28]:
+                - paragraph [ref=e29]: Illustrative product view
+                - paragraph [ref=e30]: Opportunity detail
+              - generic [ref=e31]: Illustrative data — not customer proof.
+            - generic [ref=e33]:
+              - generic [ref=e34]:
+                - term [ref=e35]: Account
+                - definition [ref=e36]: Northstar HVAC
+              - generic [ref=e37]:
+                - term [ref=e38]: Signal
+                - definition [ref=e39]: Broken quote path
+              - generic [ref=e40]:
+                - term [ref=e41]: Mapped service
+                - definition [ref=e42]: Conversion optimisation
+              - generic [ref=e43]:
+                - generic [ref=e44]:
+                  - term [ref=e45]: Status
+                  - definition [ref=e46]:
+                    - generic [ref=e47]: Open
+                - generic [ref=e48]:
+                  - term [ref=e49]: Evidence strength
+                  - definition [ref=e50]:
+                    - generic [ref=e51]: Strong evidence
+            - generic [ref=e52]:
+              - generic [ref=e53]:
+                - generic [ref=e54]: Evidence
+                - strong [ref=e55]: Checked source paths
+              - list "Checked source paths" [ref=e56]:
+                - listitem [ref=e57]: ↗ northstarhvac.ca/contact
+                - listitem [ref=e58]: ↗ northstarhvac.ca/services
+            - generic [ref=e59]:
+              - generic [ref=e60]:
+                - generic [ref=e61]: Recommended next step
+                - paragraph [ref=e62]: Review the evidence, then prepare a proposal.
+              - button "Review & prepare proposal" [disabled] [ref=e63]
+        - region [ref=e64]:
+          - generic [ref=e65]:
+            - generic [ref=e66]:
+              - paragraph [ref=e67]: THE PORTFOLIO PROBLEM
+              - heading "The work is already in your accounts." [level=2] [ref=e68]
+            - generic [ref=e69]:
+              - paragraph [ref=e70]: A client site can change between reviews. A quote path can break. A service the client sells can remain without a dedicated page. Across a portfolio, those gaps are easy to miss—and become missed conversations.
+              - paragraph [ref=e71]: Orbit turns the review into a visible, evidence-backed queue your team can qualify.
+        - region [ref=e72]:
+          - generic [ref=e73]:
+            - generic [ref=e74]:
+              - paragraph [ref=e75]: THE ORBIT LOOP
+              - heading "A review loop for the clients you already serve." [level=2] [ref=e76]
+              - paragraph [ref=e77]: Orbit handles the reading. Your agency decides what happens next.
+            - generic [ref=e78]:
+              - paragraph [aria-hidden] [ref=e79]:
+                - generic [ref=e80]:
+                  - text: Client portfolio
+                  - generic [aria-hidden] [ref=e81]: →
+                - generic [ref=e82]:
+                  - text: Monitor
+                  - generic [aria-hidden] [ref=e83]: →
+                - generic [ref=e84]:
+                  - text: Understand
+                  - generic [aria-hidden] [ref=e85]: →
+                - generic [ref=e86]:
+                  - text: Find
+                  - generic [aria-hidden] [ref=e87]: →
+                - generic [ref=e88]:
+                  - text: Review
+                  - generic [aria-hidden] [ref=e89]: →
+                - generic [ref=e90]: Act
+              - list [ref=e91]:
+                - listitem [ref=e92]:
+                  - heading "Client portfolio" [level=3] [ref=e96]
+                  - paragraph [ref=e97]: Add the client sites and the offerings those businesses sell.
+                  - generic [aria-hidden] [ref=e98]: →
+                - listitem [ref=e99]:
+                  - heading "Monitor" [level=3] [ref=e103]
+                  - paragraph [ref=e104]: Run Analyze site, or opt a chosen client into Weekly monitoring.
+                  - generic [aria-hidden] [ref=e105]: →
+                - listitem [ref=e106]:
+                  - heading "Understand" [level=3] [ref=e110]
+                  - paragraph [ref=e111]: Keep crawl evidence, client context, services, and contract coverage together.
+                  - generic [aria-hidden] [ref=e112]: →
+                - listitem [ref=e113]:
+                  - heading "Find" [level=3] [ref=e117]
+                  - paragraph [ref=e118]: Surface missing service coverage or a broken conversion path when evidence supports it.
+                  - generic [aria-hidden] [ref=e119]: →
+                - listitem [ref=e120]:
+                  - heading "Review" [level=3] [ref=e124]
+                  - paragraph [ref=e125]: Inspect what was found, why it matters, the evidence strength, and the mapped service.
+                  - generic [aria-hidden] [ref=e126]: →
+                - listitem [ref=e127]:
+                  - heading "Act" [level=3] [ref=e131]
+                  - paragraph [ref=e132]: Mark it covered, dismiss or snooze it, reopen it later, or prepare a proposal draft.
+              - paragraph [ref=e133]: The agency remains the decision-maker.
+        - region [ref=e134]:
+          - generic [ref=e135]:
+            - generic [ref=e136]:
+              - paragraph [ref=e137]: EVIDENCE BEFORE ACTION
+              - heading "Start with what the site actually returned." [level=2] [ref=e138]
+              - paragraph [ref=e139]: "An opportunity is not a score looking for a story. It starts with evidence the product inspected: a page the crawl read, a conversion path it probed, or an offering checked against the site. Orbit keeps the observation, the client rationale, and the agency’s next step together."
+              - paragraph [ref=e140]:
+                - text: If Orbit cannot read enough to conclude, it says
+                - strong [ref=e141]: Inconclusive
+                - text: . It does not turn missing evidence into a confident opportunity.
+            - article "Illustrative product view" [ref=e142]:
+              - generic [ref=e143]:
+                - generic [ref=e144]:
+                  - paragraph [ref=e145]: Illustrative product view
+                  - paragraph [ref=e146]: Opportunity detail
+                - generic [ref=e147]: Illustrative data — not customer proof.
+              - generic [ref=e148]:
+                - generic [ref=e150]:
+                  - generic [ref=e151]:
+                    - term [ref=e152]: Account
+                    - definition [ref=e153]: Northstar HVAC
+                  - generic [ref=e154]:
+                    - term [ref=e155]: Signal
+                    - definition [ref=e156]: Broken quote path
+                  - generic [ref=e157]:
+                    - term [ref=e158]: Mapped service
+                    - definition [ref=e159]: Conversion optimisation
+                  - generic [ref=e160]:
+                    - term [ref=e161]: Status
+                    - definition [ref=e162]:
+                      - generic [ref=e163]: Open
+                  - generic [ref=e164]:
+                    - term [ref=e165]: Evidence strength
+                    - definition [ref=e166]:
+                      - generic [ref=e167]: Strong evidence
+                - generic [ref=e168]:
+                  - generic [ref=e169]:
+                    - generic [ref=e170]: What was found
+                    - paragraph [ref=e171]: Quote request page returns an error.
+                  - generic [ref=e172]:
+                    - generic [ref=e173]: Why it matters to the client
+                    - paragraph [ref=e174]: Visitors may abandon the path before they can request a quote.
+                  - generic [ref=e175]:
+                    - generic [ref=e176]: What the work would be
+                    - paragraph [ref=e177]: Repair and validate the quote request journey.
+              - generic [ref=e178]:
+                - generic [ref=e179]:
+                  - generic [ref=e180]: Evidence
+                  - strong [ref=e181]: Checked source paths
+                - list "Checked source paths" [ref=e182]:
+                  - listitem [ref=e183]: ↗ northstarhvac.ca/contact
+                  - listitem [ref=e184]: ↗ northstarhvac.ca/services
+              - generic [ref=e185]:
+                - generic [ref=e186]:
+                  - generic [ref=e187]: Recommended next step
+                  - paragraph [ref=e188]: Review the evidence, then prepare a proposal.
+                - button "Review & prepare proposal" [disabled] [ref=e189]
+        - region [ref=e190]:
+          - generic [ref=e191]:
+            - generic [ref=e192]:
+              - paragraph [ref=e193]: WHAT ORBIT WATCHES
+              - heading "Know which account signals are worth reviewing." [level=2] [ref=e194]
+              - paragraph [ref=e195]: Orbit stays close to observable site behavior and the commercial context your agency supplies.
+            - generic [ref=e196]:
+              - article [ref=e197]:
+                - heading "Recurring site review" [level=3] [ref=e201]
+                - paragraph [ref=e202]: Revisit the client sites your agency chooses to monitor and record what is New, Still open, Resolved, or Inconclusive.
+              - article [ref=e203]:
+                - heading "Broken conversion paths" [level=3] [ref=e207]
+                - paragraph [ref=e208]: Check quote request, booking, contact, and click-to-call paths when a break can be established from the site evidence.
+              - article [ref=e209]:
+                - heading "Service coverage" [level=3] [ref=e213]
+                - paragraph [ref=e214]: Compare what a client says it sells with the pages the site actually gives those offerings.
+              - article [ref=e215]:
+                - heading "Honest opportunity states" [level=3] [ref=e219]
+                - paragraph [ref=e220]: Map a surfaced opportunity to your service catalog and contract coverage before calling it billable work.
+            - paragraph [ref=e221]:
+              - text: Monitoring is opt-in per client. The default is
+              - strong [ref=e222]: "Off"
+              - text: ; the selectable recurring cadence is
+              - strong [ref=e223]: Weekly
+              - text: . A client is also checked when an agency presses
+              - strong [ref=e224]: Analyze site
+              - text: .
+        - region [ref=e225]:
+          - generic [ref=e226]:
+            - generic [ref=e227]:
+              - paragraph [ref=e228]: CONTINUOUS MONITORING
+              - heading "Review the portfolio again—on purpose." [level=2] [ref=e229]
+              - paragraph [ref=e230]: For a client you choose, turn monitoring on and select Weekly. Orbit revisits the site, records the run as Monitoring checked, and makes the change legible to your team.
+            - generic [ref=e231]:
+              - generic "Monitoring setup" [ref=e232]:
+                - generic [ref=e233]:
+                  - generic [ref=e234]: Analyze site
+                  - strong [ref=e235]: Read the client site and capture evidence
+                - generic [ref=e236]:
+                  - generic [ref=e237]: Monitoring on · Weekly
+                  - strong [ref=e238]: Revisit the chosen client on its cadence
+                - generic [ref=e239]:
+                  - generic [ref=e240]: Monitoring checked
+                  - strong [ref=e241]: Record the completed run and its outcome
+              - list [ref=e242]:
+                - listitem [ref=e243]:
+                  - heading "New" [level=3] [ref=e245]
+                  - paragraph [ref=e246]: A finding is surfaced for the first time or returns.
+                - listitem [ref=e247]:
+                  - heading "Still open" [level=3] [ref=e249]
+                  - paragraph [ref=e250]: A known finding remains present.
+                - listitem [ref=e251]:
+                  - heading "Resolved" [level=3] [ref=e253]
+                  - paragraph [ref=e254]: Re-analysis confirms the client fixed it.
+                - listitem [ref=e255]:
+                  - heading "Inconclusive" [level=3] [ref=e257]
+                  - paragraph [ref=e258]: The site could not be read well enough to claim anything.
+              - paragraph [ref=e259]: A healthy weekly check can stay quiet. An incomplete read stays visible as Inconclusive.
+        - region [ref=e260]:
+          - generic [ref=e261]:
+            - generic [ref=e262]:
+              - paragraph [ref=e263]: THE AGENCY WORKFLOW
+              - heading "Evidence in. Conversation out." [level=2] [ref=e264]
+              - paragraph [ref=e265]: Orbit prepares the workbench; your team owns the commercial judgment.
+            - generic [ref=e266]:
+              - article [ref=e267]:
+                - heading "Review" [level=3] [ref=e271]
+                - paragraph [ref=e272]: Open the finding and inspect What was found, Why it matters to the client, and Evidence.
+              - article [ref=e273]:
+                - heading "Qualify" [level=3] [ref=e277]
+                - paragraph [ref=e278]: Keep only legitimate, distinct, commercially actionable work.
+              - article [ref=e279]:
+                - heading "Price" [level=3] [ref=e283]
+                - paragraph [ref=e284]: Use the agency’s service catalog, Potential value configured there, and contract coverage. Covered work does not become a billable upsell.
+              - article [ref=e285]:
+                - heading "Prepare" [level=3] [ref=e289]
+                - paragraph [ref=e290]: Edit a Proposal draft in Orbit and take it to the client yourself.
+            - paragraph [ref=e291]: Nothing here is sent. Drafts stay inside Axiom Orbit until you copy them out.
+            - generic "Current and future capabilities" [ref=e292]:
+              - generic [ref=e293]:
+                - generic [ref=e294]: Available now
+                - paragraph [ref=e295]: Site analysis, evidence, opportunities, service catalog, contract coverage, proposal drafts, and opt-in Weekly monitoring.
+              - generic [ref=e296]:
+                - generic [ref=e297]: Direction
+                - paragraph [ref=e298]: Account-growth lifecycle, outcome tracking, and revenue tracking are product direction—not current results.
+        - region [ref=e299]:
+          - generic [ref=e300]:
+            - generic [ref=e301]:
+              - paragraph [ref=e302]: THE ECONOMIC CASE
+              - heading "Build more value from the relationships already on your books." [level=2] [ref=e303]
+            - generic [ref=e304]:
+              - paragraph [ref=e305]: "Orbit is a system for inspecting the accounts you already won: see a real site change, connect it to work your agency sells, and decide whether it belongs in the next conversation."
+              - paragraph [ref=e306]: Potential value is the price range configured in your service catalog—not booked revenue, a forecast, or a guarantee. The value is the review discipline and the commercial context your agency brings to it.
+        - region [ref=e307]:
+          - generic [ref=e308]:
+            - paragraph [ref=e309]: THE NEXT REVIEW
+            - heading "Give every client account a next review." [level=2] [ref=e310]
+            - paragraph [ref=e311]: Start with the sites you already manage. Request access to the Axiom Orbit pilot.
+            - generic [ref=e312]:
+              - link "Request access" [ref=e313] [cursor=pointer]:
+                - /url: /signup
+              - link "Sign in" [ref=e314] [cursor=pointer]:
+                - /url: /login
+    - contentinfo [ref=e315]:
+      - generic [ref=e316]:
+        - generic [ref=e317]:
+          - generic [ref=e318]: An Axiom product
+          - link "Axiom" [ref=e319] [cursor=pointer]:
+            - /url: https://getaxiom.ca
+        - navigation "Footer navigation" [ref=e320]:
+          - link "Product" [ref=e321] [cursor=pointer]:
+            - /url: /product
+          - link "Request access" [ref=e322] [cursor=pointer]:
+            - /url: /signup
+          - link "Sign in" [ref=e323] [cursor=pointer]:
+            - /url: /login

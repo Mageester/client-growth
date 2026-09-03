@@ -18,3 +18,5 @@ coverage/
 
 # design harness output (pnpm tsx scripts/design-harness.tsx)
 .design-harness.html
+.analyzability-ui.json
+.analyzability-report.json
