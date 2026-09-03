@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router";
+import { readFileSync } from "node:fs";
 
 import { deferMenuClose } from "../app/components/ui";
 import { AppNavigation, ThemePicker } from "../app/root";
@@ -51,5 +52,16 @@ describe("application navigation", () => {
     expect(html).toContain("Dark");
     expect(html).toContain("System");
     expect(html).toContain('aria-pressed="true"');
+  });
+});
+
+describe("mobile viewport safety", () => {
+  it("does not force the document wider than a narrow phone viewport", () => {
+    const css = readFileSync(new URL("../app/styles/app.css", import.meta.url), "utf8");
+    const bodyRules = [...css.matchAll(/^body\s*\{(?<declarations>[^}]*)\}/gm)]
+      .map((match) => match.groups?.declarations ?? "")
+      .join("\n");
+
+    expect(bodyRules).not.toMatch(/min-width\s*:\s*320px/);
   });
 });
