@@ -87,6 +87,39 @@ describe("Axiom Orbit marketing shell", () => {
     );
   });
 
+  it("keeps the hero product fragment out of the page heading hierarchy", () => {
+    const html = renderLanding();
+    const firstPageHeading = html.indexOf("<h2");
+
+    expect(firstPageHeading).toBeGreaterThan(-1);
+    expect(html.slice(0, firstPageHeading)).not.toContain("<h3");
+  });
+
+  it("uses a genuinely compact hero evidence fragment", () => {
+    const html = renderLanding();
+    const compactCard = html.match(
+      /<article class="marketing-evidence-card marketing-evidence-card--compact"[\s\S]*?<\/article>/,
+    )?.[0];
+
+    expect(compactCard).toBeDefined();
+    expect(compactCard).toContain("Northstar HVAC");
+    expect(compactCard).toContain("Checked source paths");
+    expect(compactCard).not.toContain("marketing-evidence-case");
+    expect(compactCard).not.toContain("What was found");
+  });
+
+  it("keeps the orbit sequence decorative and the mobile line vertical", () => {
+    const html = renderLanding();
+    const css = readFileSync(new URL("../app/styles/marketing.css", import.meta.url), "utf8");
+
+    expect(html).toContain('class="marketing-loop-sequence" aria-hidden="true"');
+    expect(html).not.toContain("marketing-card-number");
+    expect(css).toMatch(/@keyframes marketing-line-progress-vertical/);
+    expect(css).toMatch(
+      /\.marketing-monitoring-states::before\s*\{[^}]*animation-name:\s*marketing-line-progress-vertical/s,
+    );
+  });
+
   it("registers the public product route", () => {
     const source = readFileSync(new URL("../app/routes.ts", import.meta.url), "utf8");
 

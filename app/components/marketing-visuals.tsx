@@ -1,5 +1,54 @@
 import type { ReactNode } from "react";
 
+export type MarketingIconName =
+  | "portfolio"
+  | "monitor"
+  | "understand"
+  | "find"
+  | "review"
+  | "act"
+  | "recurring"
+  | "path"
+  | "coverage"
+  | "states"
+  | "qualify"
+  | "price"
+  | "prepare";
+
+const iconPaths: Record<MarketingIconName, string> = {
+  portfolio: "M8.5 10.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm-5 8.5c.5-3 2.2-4.5 5-4.5s4.5 1.5 5 4.5m-.5-9a2.5 2.5 0 1 0 0-5m3 5.5c2.3.2 3.5 1.5 4 4",
+  monitor: "M3.5 4.5h17v11h-17zM8 19.5h8M12 15.5v4",
+  understand: "M10.5 15.5a5 5 0 1 0 0-10 5 5 0 0 0 0 10Zm3.5-1.5 5 5",
+  find: "M4.5 5.5h11v11h-11zM8 9h4m-4 3h3m7-5v6m0 0-2-2m2 2 2-2",
+  review: "M7 4.5h10v15H7zM9.5 3.5h5v3h-5zM9.5 11h5m-5 3h5",
+  act: "M3.5 12h14m-4-4 4 4-4 4M3.5 5.5h5m-5 13h5",
+  recurring: "M20 8.5a8 8 0 0 0-14.5-2L3.5 9m0 0 4.5-.5M3.5 9l.5-4.5M4 15.5a8 8 0 0 0 14.5 2l2-2.5m0 0-4.5.5m4.5-.5-.5 4.5",
+  path: "M9.5 14.5 8 16a3.5 3.5 0 0 1-5-5l2.5-2.5a3.5 3.5 0 0 1 5 0m2-3L14 4a3.5 3.5 0 0 1 5 5l-2.5 2.5a3.5 3.5 0 0 1-5 0m-5 1.5 7-3",
+  coverage: "M4.5 4.5h6v6h-6zM13.5 4.5h6v6h-6zM4.5 13.5h6v6h-6zM13.5 13.5h6v6h-6z",
+  states: "m12 3 7 3v5.5c0 4.2-2.8 7.6-7 9.5-4.2-1.9-7-5.3-7-9.5V6l7-3Zm-3 8.5 2 2 4-4",
+  qualify: "M12 13.5a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 6c.6-3.2 2.9-4.8 7-4.8s6.4 1.6 7 4.8",
+  price: "M4.5 5.5h15v13h-15zM8 9.5h8m-8 3h5m-5 3h3",
+  prepare: "M6 3.5h9l3 3v14H6zM15 3.5v4h3m-9 4h6m-6 3h6m-6 3h4",
+};
+
+export function MarketingIcon({ name }: { name: MarketingIconName }) {
+  return (
+    <svg
+      className="marketing-inline-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.35"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d={iconPaths[name]} />
+    </svg>
+  );
+}
+
 type EvidenceVisualProps = {
   compact?: boolean;
 };
@@ -8,26 +57,32 @@ const loopSteps = [
   {
     title: "Client portfolio",
     copy: "Add the client sites and the offerings those businesses sell.",
+    icon: "portfolio",
   },
   {
     title: "Monitor",
     copy: "Run Analyze site, or opt a chosen client into Weekly monitoring.",
+    icon: "monitor",
   },
   {
     title: "Understand",
     copy: "Keep crawl evidence, client context, services, and contract coverage together.",
+    icon: "understand",
   },
   {
     title: "Find",
     copy: "Surface missing service coverage or a broken conversion path when evidence supports it.",
+    icon: "find",
   },
   {
     title: "Review",
     copy: "Inspect what was found, why it matters, the evidence strength, and the mapped service.",
+    icon: "review",
   },
   {
     title: "Act",
     copy: "Mark it covered, dismiss or snooze it, reopen it later, or prepare a proposal draft.",
+    icon: "act",
   },
 ] as const;
 
@@ -68,41 +123,59 @@ export function OpportunityEvidenceVisual({ compact = false }: EvidenceVisualPro
       <header className="marketing-evidence-header">
         <div>
           <p className="marketing-visual-label">Illustrative product view</p>
-          <h3>Opportunity detail</h3>
+          <p className="marketing-evidence-title">Opportunity detail</p>
         </div>
         <span className="marketing-visual-note">Illustrative data — not customer proof.</span>
       </header>
 
-      <div className="marketing-evidence-grid">
-        <div className="marketing-evidence-summary">
+      {compact ? (
+        <div className="marketing-evidence-compact-record">
           <dl>
             <EvidenceField label="Account">Northstar HVAC</EvidenceField>
             <EvidenceField label="Signal">Broken quote path</EvidenceField>
             <EvidenceField label="Mapped service">Conversion optimisation</EvidenceField>
-            <EvidenceField label="Status">
-              <span className="marketing-status marketing-status--open">Open</span>
-            </EvidenceField>
-            <EvidenceField label="Evidence strength">
-              <span className="marketing-status marketing-status--strong">Strong evidence</span>
-            </EvidenceField>
+            <div className="marketing-evidence-compact-status">
+              <EvidenceField label="Status">
+                <span className="marketing-status marketing-status--open">Open</span>
+              </EvidenceField>
+              <EvidenceField label="Evidence strength">
+                <span className="marketing-status marketing-status--strong">Strong evidence</span>
+              </EvidenceField>
+            </div>
           </dl>
         </div>
+      ) : (
+        <div className="marketing-evidence-grid">
+          <div className="marketing-evidence-summary">
+            <dl>
+              <EvidenceField label="Account">Northstar HVAC</EvidenceField>
+              <EvidenceField label="Signal">Broken quote path</EvidenceField>
+              <EvidenceField label="Mapped service">Conversion optimisation</EvidenceField>
+              <EvidenceField label="Status">
+                <span className="marketing-status marketing-status--open">Open</span>
+              </EvidenceField>
+              <EvidenceField label="Evidence strength">
+                <span className="marketing-status marketing-status--strong">Strong evidence</span>
+              </EvidenceField>
+            </dl>
+          </div>
 
-        <div className="marketing-evidence-case">
-          <div className="marketing-evidence-block">
-            <span className="marketing-evidence-label">What was found</span>
-            <p>Quote request page returns an error.</p>
-          </div>
-          <div className="marketing-evidence-block">
-            <span className="marketing-evidence-label">Why it matters to the client</span>
-            <p>Visitors may abandon the path before they can request a quote.</p>
-          </div>
-          <div className="marketing-evidence-block">
-            <span className="marketing-evidence-label">What the work would be</span>
-            <p>Repair and validate the quote request journey.</p>
+          <div className="marketing-evidence-case">
+            <div className="marketing-evidence-block">
+              <span className="marketing-evidence-label">What was found</span>
+              <p>Quote request page returns an error.</p>
+            </div>
+            <div className="marketing-evidence-block">
+              <span className="marketing-evidence-label">Why it matters to the client</span>
+              <p>Visitors may abandon the path before they can request a quote.</p>
+            </div>
+            <div className="marketing-evidence-block">
+              <span className="marketing-evidence-label">What the work would be</span>
+              <p>Repair and validate the quote request journey.</p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div className="marketing-evidence-sources">
         <div>
@@ -131,7 +204,7 @@ export function OpportunityEvidenceVisual({ compact = false }: EvidenceVisualPro
 export function OrbitLoop() {
   return (
     <div className="marketing-orbit-loop">
-      <p className="marketing-loop-sequence" aria-label="Client portfolio, Monitor, Understand, Find, Review, Act">
+      <p className="marketing-loop-sequence" aria-hidden="true">
         {loopSteps.map((step, index) => (
           <span key={step.title} className="marketing-loop-sequence-item">
             {step.title}
@@ -142,9 +215,7 @@ export function OrbitLoop() {
       <ol className="marketing-loop-list">
         {loopSteps.map((step, index) => (
           <li key={step.title} className="marketing-loop-item">
-            <div className="marketing-loop-marker">
-              <span>{String(index + 1).padStart(2, "0")}</span>
-            </div>
+            <div className="marketing-loop-marker"><MarketingIcon name={step.icon} /></div>
             <h3>{step.title}</h3>
             <p>{step.copy}</p>
             {index < loopSteps.length - 1 && (

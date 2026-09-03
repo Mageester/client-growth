@@ -33,3 +33,22 @@ Owned implementation files are `app/components/marketing-visuals.tsx`, `app/rout
 ## Remaining integration note
 
 The worktree route table currently references `app/routes/product.tsx`, but that module is outside this task’s ownership and was absent during verification. The temporary placeholder is not present in the final slice. The shared `app/root.tsx` still contains its existing generic relative `og:image` tag; the landing route exports the required absolute OG image and canonical/Twitter descriptors, while final shared-head deduplication can be handled by the owner of that shared file if needed.
+
+## Review round 1 evidence
+
+The follow-up review identified five concrete presentation/accessibility issues. I verified each against the rendered markup and CSS before changing it:
+
+- The hero fragment’s `h3` appeared before the first page `h2`; it is now a styled non-heading label (`Opportunity detail`).
+- `compact` previously changed only the card shadow; it now renders a shorter record-only structure with account, signal, mapped service, status, evidence strength, checked sources, and action, leaving the case narrative to the full evidence surface.
+- Loop, watch, and workflow fragments now use open editorial rows with small inline SVG line icons instead of repeated numbered tiles.
+- The visual loop sequence remains available as a decorative CSS line but is `aria-hidden`, leaving the ordered list as the only audible sequence.
+- The monitoring rail uses a dedicated `scaleY` progression keyframe at the 900px mobile breakpoint and below; reduced-motion still disables it.
+- All semantic content grids now collapse to one column below 900px, with the existing 620px/420px refinements retained for tighter screens.
+
+Review-round TDD evidence:
+
+1. Added focused tests for heading order, compact-structure distinction, decorative loop semantics, non-numbered editorial fragments, and vertical mobile animation.
+2. RED captured with `pnpm exec vitest run test/app.marketing.test.ts`: 12 tests ran, 3 failed as expected for the heading, compact, and loop/vertical-motion behaviors; the other 9 passed.
+3. GREEN captured with `pnpm exec vitest run test/app.marketing.test.ts` — **12 tests passed**.
+4. `git diff --check` — **passed**.
+5. `pnpm typecheck` and `pnpm build` — **passed** with the brief-approved temporary untracked `app/routes/product.tsx` placeholder; the placeholder was removed after both checks. Build emitted only the existing React Router future-flag warnings.

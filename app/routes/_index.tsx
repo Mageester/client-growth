@@ -2,6 +2,7 @@ import { Link } from "react-router";
 
 import { MarketingLayout } from "../components/marketing-layout";
 import {
+  MarketingIcon,
   MonitoringTimeline,
   OpportunityEvidenceVisual,
   OrbitLoop,
@@ -31,47 +32,47 @@ export function meta() {
 
 const watchItems = [
   {
-    number: "01",
     title: "Recurring site review",
     copy: "Revisit the client sites your agency chooses to monitor and record what is New, Still open, Resolved, or Inconclusive.",
+    icon: "recurring",
   },
   {
-    number: "02",
     title: "Broken conversion paths",
     copy: "Check quote request, booking, contact, and click-to-call paths when a break can be established from the site evidence.",
+    icon: "path",
   },
   {
-    number: "03",
     title: "Service coverage",
     copy: "Compare what a client says it sells with the pages the site actually gives those offerings.",
+    icon: "coverage",
   },
   {
-    number: "04",
     title: "Honest opportunity states",
     copy: "Map a surfaced opportunity to your service catalog and contract coverage before calling it billable work.",
+    icon: "states",
   },
 ] as const;
 
 const workflowItems = [
   {
-    number: "01",
     title: "Review",
     copy: "Open the finding and inspect What was found, Why it matters to the client, and Evidence.",
+    icon: "review",
   },
   {
-    number: "02",
     title: "Qualify",
     copy: "Keep only legitimate, distinct, commercially actionable work.",
+    icon: "qualify",
   },
   {
-    number: "03",
     title: "Price",
     copy: "Use the agency’s service catalog, Potential value configured there, and contract coverage. Covered work does not become a billable upsell.",
+    icon: "price",
   },
   {
-    number: "04",
     title: "Prepare",
     copy: "Edit a Proposal draft in Orbit and take it to the client yourself.",
+    icon: "prepare",
   },
 ] as const;
 
@@ -157,7 +158,7 @@ export default function Index() {
             <div className="marketing-watch-grid">
               {watchItems.map((item) => (
                 <article className="marketing-watch-card" key={item.title}>
-                  <span className="marketing-card-number">{item.number}</span>
+                  <span className="marketing-card-icon"><MarketingIcon name={item.icon} /></span>
                   <h3>{item.title}</h3>
                   <p>{item.copy}</p>
                 </article>
@@ -192,7 +193,7 @@ export default function Index() {
             <div className="marketing-workflow-grid">
               {workflowItems.map((item) => (
                 <article className="marketing-workflow-card" key={item.title}>
-                  <span className="marketing-card-number">{item.number}</span>
+                  <span className="marketing-card-icon"><MarketingIcon name={item.icon} /></span>
                   <h3>{item.title}</h3>
                   <p>{item.copy}</p>
                 </article>
