@@ -13,7 +13,7 @@ const NO_STORE_HEADERS = {
 };
 
 export function meta() {
-  return [{ title: "Forgot password · Client Growth" }];
+  return [{ title: "Forgot password · Axiom Orbit" }];
 }
 
 export function headers(_args: Route.HeadersArgs) {

@@ -7,7 +7,7 @@
  *   pnpm analyzability --json=path     also write the full machine report
  *
  * It answers one question: on real small-business websites, what percentage can
- * Client Growth analyze TRUTHFULLY — reach the part of the site where services
+ * Axiom Orbit analyze TRUTHFULLY — reach the part of the site where services
  * are described — and when it cannot, whose fault is that?
  *
  * It runs the real HttpEvidenceProvider and the real coverage assessment, so

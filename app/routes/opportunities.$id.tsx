@@ -8,7 +8,6 @@ import { isOpen, isSnoozeExpired, nextAction, statusBadge } from "../lib/portfol
 import {
   Fact,
   Icon,
-  Meter,
   formatCurrencyRange,
   formatDate,
   formatRelative,
@@ -18,7 +17,7 @@ import { requireTenant } from "../lib/session.server";
 import type { Route } from "./+types/opportunities.$id";
 
 export function meta({ data }: Route.MetaArgs) {
-  return [{ title: data ? data.opportunity.title + " · Client Growth" : "Opportunity" }];
+  return [{ title: data ? data.opportunity.title + " · Axiom Orbit" : "Opportunity" }];
 }
 
 export async function loader({ params, request, context }: Route.LoaderArgs) {
@@ -179,10 +178,7 @@ export default function OpportunityDetail({ loaderData, actionData }: Route.Comp
             <span className="num">{formatCurrencyRange(opp.priceMin, opp.priceMax)}</span>
           </Fact>
           <Fact label="Confidence">
-            <span className="row-tight">
-              <Meter value={opp.confidence} />
-              <span className="num">{Math.round(opp.confidence * 100)}%</span>
-            </span>
+            <span className="num">{Math.round(opp.confidence * 100)}%</span>
           </Fact>
           <Fact label="Service to sell">
             {service ? (
@@ -296,7 +292,7 @@ export default function OpportunityDetail({ loaderData, actionData }: Route.Comp
         <div className="section-head">
           <div>
             <h2 className="title-section">Decide</h2>
-            <p>Nothing here is sent. Drafts stay inside Client Growth until you copy them out.</p>
+            <p>Nothing here is sent. Drafts stay inside Axiom Orbit until you copy them out.</p>
           </div>
         </div>
         <div className="actionbar">

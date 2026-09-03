@@ -24,7 +24,7 @@ import { normalizeDomain, validateClientInput } from "../lib/validation";
 import type { Route } from "./+types/clients._index";
 
 export function meta() {
-  return [{ title: "Clients · Client Growth" }];
+  return [{ title: "Clients · Axiom Orbit" }];
 }
 
 function slugId(name: string): string {
@@ -121,7 +121,7 @@ export default function ClientsIndex({ loaderData, actionData }: Route.Component
   );
 
   return (
-    <div>
+    <div className="directory-page clients-directory">
       <div className="pagehead">
         <div className="pagehead-copy">
           <span className="eyebrow">Portfolio</span>
@@ -190,7 +190,7 @@ export default function ClientsIndex({ loaderData, actionData }: Route.Component
             </button>
           }
         >
-          Add a business you already look after. Client Growth watches its website and tells you
+          Add a business you already look after. Axiom Orbit watches its website and tells you
           when there is legitimate, billable work worth bringing up.
         </EmptyState>
       ) : (

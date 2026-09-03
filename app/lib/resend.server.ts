@@ -2,7 +2,7 @@ import type { BetterAuthOptions } from "better-auth";
 
 export const RESEND_EMAILS_URL = "https://api.resend.com/emails";
 
-const PASSWORD_RESET_SUBJECT = "Reset your Client Growth password";
+const PASSWORD_RESET_SUBJECT = "Reset your Axiom Orbit password";
 const PASSWORD_RESET_TIMEOUT_MS = 10_000;
 
 export interface ResendEnv {
@@ -41,7 +41,7 @@ export function createResendPasswordResetSender(
       to: [user.email],
       subject: PASSWORD_RESET_SUBJECT,
       text: [
-        "We received a request to reset your Client Growth password.",
+        "We received a request to reset your Axiom Orbit password.",
         "",
         `Reset your password: ${url}`,
         "",

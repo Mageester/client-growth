@@ -119,7 +119,7 @@ function missingServicePageReadiness(input: ReadinessInput): {
       reason:
         crawl && crawl.suggestedOfferings > 0
           ? `Only one offering is recorded, and the last crawl found ${crawl.suggestedOfferings} more on the site that are not in this client's profile.`
-          : "Only one offering is recorded. Client Growth will not claim a service page is missing unless the crawl can confirm it reached the site's service section, which usually needs two or more.",
+          : "Only one offering is recorded. Axiom Orbit will not claim a service page is missing unless the crawl can confirm it reached the site's service section, which usually needs two or more.",
       actionable: true,
     };
   }

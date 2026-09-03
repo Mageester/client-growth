@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   Form,
   Link,
@@ -15,6 +15,7 @@ import {
 } from "react-router";
 
 import "./styles/app.css";
+import "./styles/signal-desk.css";
 import "./lib/context";
 import { getWorkspaceForUser } from "@/db/workspaces";
 import { AxiomCredit, EmptyState, getInitials, Icon, Menu } from "./components/ui";
@@ -22,10 +23,15 @@ import { d1Db } from "./lib/d1.server";
 import { getSession } from "./lib/session.server";
 import type { Route } from "./+types/root";
 
+export type ThemePreference = "light" | "dark" | "system";
+
+const THEME_STORAGE_KEY = "client-growth-theme";
+
 const EMPTY = {
   signedIn: false,
   workspaceName: null as string | null,
   email: null as string | null,
+  theme: "system" as ThemePreference,
 };
 
 /** The brand mark, inline so the tab icon costs no request and never 404s. */
@@ -47,23 +53,32 @@ export function links() {
 }
 
 export async function loader({ request, context }: Route.LoaderArgs) {
+  const rawTheme = request.headers
+    .get("Cookie")
+    ?.split("; ")
+    .find((part) => part.startsWith(THEME_STORAGE_KEY + "="))
+    ?.split("=")[1];
+  const theme: ThemePreference =
+    rawTheme === "light" || rawTheme === "dark" || rawTheme === "system"
+      ? rawTheme
+      : "system";
   try {
     const authed = await getSession(request, context);
-    if (!authed) return EMPTY;
+    if (!authed) return { ...EMPTY, theme };
     const ws = await getWorkspaceForUser(
       d1Db(context.cloudflare.env.DB as never),
       authed.userId,
     );
-    return { signedIn: true, workspaceName: ws?.name ?? null, email: authed.user.email };
+    return { signedIn: true, workspaceName: ws?.name ?? null, email: authed.user.email, theme };
   } catch {
-    return EMPTY;
+    return { ...EMPTY, theme };
   }
 }
 
 const NAV = [
-  { to: "/opportunities", label: "Opportunities" },
-  { to: "/clients", label: "Clients" },
-  { to: "/services", label: "Services" },
+  { to: "/opportunities", label: "Opportunities", icon: "inbox" as const },
+  { to: "/clients", label: "Clients", icon: "users" as const },
+  { to: "/services", label: "Services", icon: "briefcase" as const },
 ];
 
 function BrandMark() {
@@ -74,21 +89,186 @@ function BrandMark() {
   );
 }
 
+function applyTheme(theme: ThemePreference) {
+  document.documentElement.dataset.theme = theme;
+}
+
+function readStoredTheme(): ThemePreference {
+  let stored: string | null = null;
+  try {
+    stored = window.localStorage?.getItem(THEME_STORAGE_KEY) ?? null;
+  } catch {
+    // Privacy-focused browser modes may disable storage entirely.
+  }
+  if (!stored) {
+    stored =
+      document.cookie
+        .split("; ")
+        .find((part) => part.startsWith(THEME_STORAGE_KEY + "="))
+        ?.split("=")[1] ?? null;
+  }
+  return stored === "light" || stored === "dark" || stored === "system" ? stored : "system";
+}
+
+function useThemePreference(initialTheme: ThemePreference) {
+  const [theme, setTheme] = useState<ThemePreference>(initialTheme);
+
+  useEffect(() => {
+    const next = readStoredTheme();
+    setTheme(next);
+    applyTheme(next);
+  }, []);
+
+  function chooseTheme(next: ThemePreference) {
+    setTheme(next);
+    applyTheme(next);
+    try {
+      window.localStorage?.setItem(THEME_STORAGE_KEY, next);
+    } catch {
+      // The cookie below preserves the choice when local storage is unavailable.
+    }
+    document.cookie = `${THEME_STORAGE_KEY}=${next}; Path=/; Max-Age=31536000; SameSite=Lax`;
+  }
+
+  return { theme, chooseTheme };
+}
+
+export function ThemePicker({
+  value,
+  onChange,
+}: {
+  value: ThemePreference;
+  onChange: (theme: ThemePreference) => void;
+}) {
+  const options: { value: ThemePreference; label: string }[] = [
+    { value: "light", label: "Light" },
+    { value: "dark", label: "Dark" },
+    { value: "system", label: "System" },
+  ];
+
+  return (
+    <div className="theme-picker" aria-label="Appearance">
+      <span>Appearance</span>
+      <div
+        role="group"
+        aria-label="Workspace theme"
+        onClickCapture={(event) => {
+          const button = (event.target as HTMLElement).closest<HTMLButtonElement>(
+            "button[data-theme-option]",
+          );
+          const next = button?.dataset.themeOption;
+          if (next === "light" || next === "dark" || next === "system") onChange(next);
+        }}
+      >
+        {options.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            data-theme-option={option.value}
+            aria-pressed={value === option.value}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function AppNavigation({ compact = false }: { compact?: boolean }) {
+  return (
+    <nav className={compact ? "app-nav app-nav-compact" : "app-nav"} aria-label="Primary">
+      {NAV.map((item) => (
+        <NavLink
+          key={item.to}
+          to={item.to}
+          className={({ isActive }) => (isActive ? "active" : undefined)}
+        >
+          <Icon name={item.icon} size={18} strokeWidth={1.8} />
+          <span>{item.label}</span>
+        </NavLink>
+      ))}
+    </nav>
+  );
+}
+
+function WorkspaceMenu({
+  workspaceName,
+  email,
+  theme,
+  onThemeChange,
+  compact = false,
+}: {
+  workspaceName: string | null;
+  email: string | null | undefined;
+  theme: ThemePreference;
+  onThemeChange: (theme: ThemePreference) => void;
+  compact?: boolean;
+}) {
+  return (
+    <Menu
+      align="end"
+      triggerClassName={compact ? "ws-trigger ws-trigger-compact" : "ws-trigger"}
+      triggerLabel="Workspace and account"
+      trigger={
+        <>
+          <span className="avatar">{getInitials(workspaceName)}</span>
+          {!compact && <span className="ws-name">{workspaceName ?? "Set up workspace"}</span>}
+          <Icon name="chevron-down" size={14} />
+        </>
+      }
+    >
+      <div className="menu-head">
+        <strong>{workspaceName ?? "No workspace yet"}</strong>
+        <span>{email ?? ""}</span>
+      </div>
+      <Link className="menu-item" to="/settings" role="menuitem">
+        <Icon name="settings" size={15} />
+        Settings
+      </Link>
+      <ThemePicker value={theme} onChange={onThemeChange} />
+      <div className="menu-sep" />
+      <Form method="post" action="/logout" className="menu-form">
+        <button className="menu-item" type="submit" role="menuitem">
+          <Icon name="logout" size={15} />
+          Log out
+        </button>
+      </Form>
+      <div className="menu-sep" />
+      <div className="menu-foot">
+        <AxiomCredit />
+      </div>
+    </Menu>
+  );
+}
+
 export function Layout({ children }: { children: ReactNode }) {
   const data = useRouteLoaderData<typeof loader>("root");
   const location = useLocation();
   const navigation = useNavigation();
+  const { theme, chooseTheme } = useThemePreference(data?.theme ?? "system");
   const signedIn = data?.signedIn ?? false;
   const workspaceName = data?.workspaceName ?? null;
   const showAppNav = signedIn && Boolean(workspaceName) && location.pathname !== "/onboarding";
   const busy = navigation.state === "loading";
 
   return (
-    <html lang="en">
+    <html lang="en" data-theme={theme}>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="color-scheme" content="light dark" />
+        {/*
+          The type stack is the design: a serif for headings and finding titles,
+          Inter for interface text, and a mono for figures and micro-labels.
+          Preconnect so the serif does not arrive after first paint.
+        */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap"
+        />
         <Meta />
         <Links />
       </head>
@@ -97,79 +277,79 @@ export function Layout({ children }: { children: ReactNode }) {
           Skip to content
         </a>
         {busy && <div className="nav-progress" key={location.key} />}
-        <header className="topbar">
-          <div className="topbar-inner">
-            <Link className="brand" to={signedIn ? "/opportunities" : "/"}>
-              <BrandMark />
-              <span className="brand-word">Client Growth</span>
-            </Link>
-            {showAppNav && (
-              <>
-                <span className="brand-rule" aria-hidden="true" />
-                <nav className="topnav" aria-label="Primary">
-                  {NAV.map((item) => (
-                    <NavLink
-                      key={item.to}
-                      to={item.to}
-                      className={({ isActive }) => (isActive ? "active" : undefined)}
-                    >
-                      {item.label}
-                    </NavLink>
-                  ))}
-                </nav>
-              </>
-            )}
-            <div className="topbar-end">
-              {!signedIn && (
-                <div className="public-nav">
-                  <Link to="/login">Log in</Link>
-                  <Link className="btn btn-primary btn-sm" to="/signup">
-                    Create account
-                  </Link>
+        {showAppNav ? (
+          <div className="app-frame">
+            <aside className="app-sidebar">
+              <Link className="brand app-brand" to="/opportunities">
+                <BrandMark />
+                <span className="brand-word">Axiom Orbit</span>
+              </Link>
+              <div className="app-sidebar-label">Revenue workspace</div>
+              <AppNavigation />
+              <div className="app-sidebar-spacer" />
+              <WorkspaceMenu
+                workspaceName={workspaceName}
+                email={data?.email}
+                theme={theme}
+                onThemeChange={chooseTheme}
+              />
+            </aside>
+            <header className="mobile-appbar">
+              <Link className="brand" to="/opportunities" aria-label="Axiom Orbit home">
+                <BrandMark />
+                <span className="brand-word">Axiom Orbit</span>
+              </Link>
+              <AppNavigation compact />
+              <WorkspaceMenu
+                workspaceName={workspaceName}
+                email={data?.email}
+                theme={theme}
+                onThemeChange={chooseTheme}
+                compact
+              />
+            </header>
+            <main id="main-content" className="content work-surface">
+              <div className="page-enter" key={location.pathname}>
+                {children}
+              </div>
+            </main>
+          </div>
+        ) : (
+          <>
+            <header className="topbar public-topbar">
+              <div className="topbar-inner">
+                <Link className="brand" to={signedIn ? "/opportunities" : "/"}>
+                  <BrandMark />
+                  <span className="brand-word">Axiom Orbit</span>
+                </Link>
+                <div className="topbar-end">
+                  {!signedIn && (
+                    <div className="public-nav">
+                      <Link to="/login">Log in</Link>
+                      <Link className="btn btn-primary btn-sm" to="/signup">
+                        Create account
+                      </Link>
+                    </div>
+                  )}
+                  {signedIn && (
+                    <WorkspaceMenu
+                      workspaceName={workspaceName}
+                      email={data?.email}
+                      theme={theme}
+                      onThemeChange={chooseTheme}
+                      compact
+                    />
+                  )}
                 </div>
-              )}
-              {signedIn && (
-                <Menu
-                  align="end"
-                  triggerClassName="ws-trigger"
-                  triggerLabel="Workspace and account"
-                  trigger={
-                    <>
-                      <span className="avatar">{getInitials(workspaceName)}</span>
-                      <span className="ws-name">{workspaceName ?? "Set up workspace"}</span>
-                      <Icon name="chevron-down" size={14} />
-                    </>
-                  }
-                >
-                  <div className="menu-head">
-                    <strong>{workspaceName ?? "No workspace yet"}</strong>
-                    <span>{data?.email ?? ""}</span>
-                  </div>
-                  <Link className="menu-item" to="/settings" role="menuitem">
-                    <Icon name="settings" size={15} />
-                    Settings
-                  </Link>
-                  <div className="menu-sep" />
-                  <Form method="post" action="/logout" className="menu-form">
-                    <button className="menu-item" type="submit" role="menuitem">
-                      <Icon name="logout" size={15} />
-                      Log out
-                    </button>
-                  </Form>
-                  <div className="menu-sep" />
-                  <div className="menu-foot">
-                    <AxiomCredit />
-                  </div>
-                </Menu>
-              )}
-            </div>
-          </div>
-        </header>
-        <main id="main-content" className="content">
-          <div className="page-enter" key={location.pathname}>
-            {children}
-          </div>
-        </main>
+              </div>
+            </header>
+            <main id="main-content" className="content public-content">
+              <div className="page-enter" key={location.pathname}>
+                {children}
+              </div>
+            </main>
+          </>
+        )}
         <ScrollRestoration />
         <Scripts />
       </body>

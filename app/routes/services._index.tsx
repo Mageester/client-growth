@@ -17,7 +17,7 @@ import { validateServiceInput } from "../lib/validation";
 import type { Route } from "./+types/services._index";
 
 export function meta() {
-  return [{ title: "Services · Client Growth" }];
+  return [{ title: "Services · Axiom Orbit" }];
 }
 
 /**
@@ -150,7 +150,7 @@ export default function ServicesIndex({ loaderData, actionData }: Route.Componen
   );
 
   return (
-    <div>
+    <div className="directory-page services-directory">
       <div className="pagehead">
         <div className="pagehead-copy">
           <span className="eyebrow">Catalog</span>

@@ -1,79 +1,62 @@
-# Client Growth UI design QA
+# Design QA — Client Growth Signal Desk
 
-## Comparison target
+## Evidence
 
-- Source visual truth: `C:\Users\aidan\.codex\generated_images\01a05db0-8f2d-7f22-b11c-c0d4b655fc9c\exec-1873ff0a-1be6-4cb8-a71e-d40fb65cda5a.png`
-- Implementation: `http://127.0.0.1:8788/opportunities`
-- Implementation screenshot: `C:\Users\aidan\OneDrive\Documents\client-growth\output\playwright\client-growth-opportunities-1440x1024.png`
-- Mobile implementation screenshot: `C:\Users\aidan\OneDrive\Documents\client-growth\output\playwright\client-growth-clients-mobile-final.png`
-- Desktop viewport: 1440 x 1024 CSS pixels
-- Desktop source pixels: 1440 x 1024
-- Desktop implementation pixels: 1440 x 1024
-- Mobile viewport: 390 x 844 CSS pixels
-- Density normalization: 1x; the browser reported `devicePixelRatio: 1`, so no resampling was needed.
-
-## State
-
-The source is a populated visual concept with fourteen clients and active opportunity rows. The implementation was reviewed in an authenticated local-only `Cobalt QA` workspace with one real local QA client and service, no completed analysis, and therefore the real empty opportunity state. This content difference is intentional: the redesign does not fabricate opportunity metrics or evidence to imitate the concept.
+- Source visual truth: `docs/design/client-growth-signal-desk-concept.png`
+- Rendered implementation: `C:/Users/aidan/.codex/visualizations/2026/09/03/01a06527-0fed-7f50-a5ac-223d139a4338/client-growth-final/signal-desk-light-1440.png`
+- Additional states: `signal-desk-dark-1440.png`, `signal-desk-inspector-light-390.png`, `clients-light-1440.png` in the same final evidence directory
+- Intended CSS viewport: 1440 × 1024 at device scale 1
+- Source pixels: 1487 × 1058; implementation pixels: 1425 × 1013 (the in-app browser's content viewport after scrollbar/browser framing)
+- Normalization: both images were inspected together at their full, near-identical 1.405–1.407 aspect ratios. No density scaling was required.
+- State: signed-in seeded Cobalt QA workspace, Opportunities route, Blue Peak HVAC heat-pump finding selected, explicit Light theme
 
 ## Full-view comparison
 
-The final desktop capture preserves the source composition: a restrained white shell, cobalt primary action, four-metric strip, left client portfolio rail, selected client detail region, and an evidence-first empty state. The implementation uses slightly cooler canvas neutrals and adds compact line icons to the brand/navigation as an intentional product-system refinement. The proportions, hierarchy, control placement, borders, radii, and density remain consistent with the reference.
+The implementation preserves the selected direction's core composition: a narrow navy workspace rail, light operational canvas, compact opportunity queue, blue selected row, and persistent evidence inspector with a fixed primary action. It intentionally omits speculative mock-only routes and billing UI so the shipped navigation stays aligned with the existing product contracts.
 
-## Focused-region comparison
+The implementation is slightly denser than the concept and moves account/service context into each row's secondary line. This keeps all seven real seeded opportunities above the fold while preserving the same hierarchy. The inspector retains the concept's value, strength, evidence, mapped service, rationale, and proposal action.
 
-The focused review covered the topbar/navigation, metric strip, client rail header and selected-client header, primary Analyze controls, and the empty opportunity panel. A focused crop was not required because those regions remain legible at the matched 1440 x 1024 capture; the mobile capture was separately used to inspect wrapping, scroll containment, and access to the full navigation.
+## Focused region comparison
+
+The queue and inspector were readable at full-view resolution, so separate crops were not required. Focused interaction inspection covered the selected-row state, value and confidence columns, status pills, evidence links, inspector scrolling, fixed proposal action, workspace account menu, and theme selector.
 
 ## Required fidelity surfaces
 
-- Fonts and typography: system sans fallback is consistent across the app; headings use a heavier graphite hierarchy, compact uppercase table labels, restrained body copy, and tabular metric emphasis. Long client/domain strings wrap or truncate without changing the page hierarchy.
-- Spacing and layout rhythm: 1440px margins, metric divisions, card padding, table density, rail width, and action alignment follow the reference direction. At 390px the metric strip becomes a two-column grid, the opportunity layout stacks, and data tables scroll within their cards.
-- Colors and tokens: the implementation uses a true-white surface, cool neutral canvas, graphite text, thin neutral borders, and cobalt `#2563eb` primary/selected states. Success, warning, and error tokens remain separate from the primary accent.
-- Image quality and asset fidelity: the source has no required product photography or illustration. The implementation uses no raster placeholders; the small brand/navigation marks are vector UI icons, and initials are data-derived avatars rather than fake imagery.
-- Copy and content: global navigation, metrics, evidence labels, status language, empty states, client/service/settings descriptions, and auth copy are standalone product copy. Dynamic counts, dates, ranges, domains, and opportunity content come from loader state.
-- Icons: action and navigation icons are consistently sized, aligned, and paired with visible text; controls retain visible focus styling and semantic labels.
-
-## Interaction and responsive checks
-
-- Opened the local authenticated shell and navigated Opportunities, Clients, Services, Settings, and client detail.
-- Added a local QA service and client through the existing forms; confirmed success notices and real list projections.
-- Opened the service edit drawer; toggled Active to Inactive and restored it to Active.
-- Confirmed client detail coverage and save/analyze controls render without exposing internal service IDs.
-- Confirmed the opportunity empty state and Analyze controls render for the real unanalysed client.
-- Verified the mobile nav can reach Settings at 390px and that table content remains horizontally scrollable inside its card.
-- Browser console check: no error or warning messages were reported by the local browser tab.
-- Mobile layout check: `document.scrollWidth` and `body.scrollWidth` were both 390px at a 390px viewport; the client table remained intentionally scrollable with a 700px internal table width.
-
-## Comparison history
-
-### Iteration 1 — P2 rail-header spacing
-
-- Earlier finding: the implementation rendered `CLIENT PORTFOLIO1` because the label and count had no layout gap.
-- Fix: made `.client-rail-header` a flex row with aligned spacing in `app/styles/app.css`.
-- Post-fix evidence: `client-growth-opportunities-1440x1024.png` shows a separated `CLIENT PORTFOLIO 1` label/count at the matched viewport.
-
-### Iteration 2 — P2 narrow-screen overflow
-
-- Earlier finding: the mobile clients page showed a document-level horizontal scrollbar; DOM measurements showed `document.scrollWidth: 555` at a 390px viewport, caused by the visually-hidden table Actions label’s absolute static position. The scrollable table itself also exposed a native scrollbar under the nav.
-- Fix: anchored and clipped `.sr-only` nodes, hid implementation scrollbars for intentionally scrollable nav/rails, and retained the table’s internal horizontal scroll behavior.
-- Post-fix evidence: `client-growth-clients-mobile-final.png`; DOM measurements are `documentWidth: 390`, `bodyWidth: 390`, `tableWrapWidth: 325`, and `tableWrapScrollWidth: 700`.
+- Fonts and typography: the implementation uses Inter/Segoe UI system fallbacks consistently, with a strong 26 px page title, 13 px scannable queue labels, tabular numeric values, and uppercase 9–11 px operational labels. Weight and line-height remain readable in both themes.
+- Spacing and layout rhythm: rail, queue, and inspector proportions match the source direction. Rows use an 86 px desktop rhythm, quiet 1 px dividers, 8–10 px radii, and restrained elevation. The 1024 layout collapses to compact navigation and defers the inspector until selection; 768 and 390 remain overflow-free.
+- Colors and visual tokens: light uses navy/cobalt/white/cool-grey tokens; dark uses a purpose-built navy surface hierarchy rather than simple inversion. Green, amber, red, selected, focus, and disabled states retain semantic contrast.
+- Image quality and asset fidelity: the target is a product UI with no required photographic or illustrative assets. The existing icon family is used throughout; there are no placeholder images, CSS illustrations, emojis, or handcrafted replacement assets.
+- Copy and content: all visible copy is grounded in actual client, service, opportunity, monitoring, and proposal data. Speculative Signal Desk, Monitoring, Reports, plan, and billing routes from the concept were not introduced.
+- Icons: the existing single-stroke icon set is consistently sized at 13–18 px and aligned with nav, evidence, actions, and status surfaces.
+- States and interactions: opportunity selection, confidence filters, client scope, inspector close, add/edit drawers, navigation, theme selection, and proposal route links were exercised. Theme choice supports Light, Dark, and System and persists through storage/cookie fallback.
+- Accessibility: semantic links/buttons, current states, labelled menus/dialogs, focus rings, reduced-motion handling, 44 px mobile controls, and document-level overflow checks are present.
 
 ## Findings
 
-No actionable P0, P1, or P2 findings remain after the final comparison.
+No actionable P0, P1, or P2 differences remain.
 
-### Follow-up polish (P3)
+- [P3] The concept shows row-level timestamps and overflow menus that are not backed by current product actions. These were intentionally omitted rather than inventing semantics.
+- [P3] The implementation uses the existing Client Growth icon family instead of the concept's illustrative avatars. This keeps the shipped visual language coherent and avoids fake identity assets.
 
-- The accepted concept uses text-only navigation while the implementation adds compact vector icons. This is an intentional refinement for navigation affordance and is consistent with the rest of the UI icon language; no fix is required for handoff.
-- A real populated opportunity table should be rechecked against the same 1440px layout after a live/local analysis produces billable rows; the current QA workspace intentionally stops before analysis to avoid fabricating evidence or invoking an external provider during visual QA.
+## Comparison history
+
+1. Earlier P2 — the desktop inspector's proposal action initially fell below the first viewport because the inspector used the full viewport height after a 132 px page header. Fixed by sizing the desktop inspector to `calc(100vh - 132px)` and separating its scroll region from the action footer. Post-fix evidence: `signal-desk-light-1440.png` shows the action pinned and visible.
+2. Earlier P2 — at 1024 px the desktop rail and inspector compressed the queue enough to truncate its decision columns. Fixed by moving the compact app bar and off-canvas inspector breakpoint to 1100 px. Post-fix browser evidence recorded zero document overflow and a full-width queue at 1024 px.
+3. User-requested enhancement — added explicit Light, Dark, and System themes, verified by keyboard selection and separate final captures. This was an additive product requirement, not a source-fidelity correction.
 
 ## Implementation checklist
 
-- [x] Matched source and implementation at 1440 x 1024, 1x density.
-- [x] Compared full composition and focused regions.
-- [x] Reviewed typography, spacing, colors, imagery/assets, copy, icons, states, accessibility, and responsive behavior.
-- [x] Fixed and rechecked all P2 findings.
-- [x] Captured desktop and mobile browser evidence.
-- [x] Checked browser console errors/warnings.
+- [x] Preserve real product routes and backend semantics
+- [x] Keep Opportunities as the primary operational workspace
+- [x] Make selected evidence and next action persistent and visible
+- [x] Reframe Clients as managed accounts and Services as a commercial catalog
+- [x] Provide Light, Dark, and System workspace themes
+- [x] Verify desktop, tablet, and mobile responsive states
+- [x] Verify no document-level horizontal overflow
+- [x] Run deterministic tests, benchmark, release gate, and diff checks before handoff
+
+## Follow-up polish
+
+- P3: if row-level collaboration actions are added later, the final column can adopt a real overflow menu without changing the queue architecture.
 
 final result: passed

@@ -410,19 +410,6 @@ export function SidePanel({
   );
 }
 
-/** Five-segment confidence read-out. Quiet by default, positive when strong. */
-export function Meter({ value }: { value: number }) {
-  const filled = Math.max(1, Math.min(5, Math.round(value * 5)));
-  const tone = value >= 0.8 ? "high" : value >= 0.6 ? "mid" : "low";
-  return (
-    <span className={"meter tone-" + tone} aria-hidden="true">
-      {[0, 1, 2, 3, 4].map((index) => (
-        <span key={index} className={"meter-seg" + (index < filled ? " on" : "")} />
-      ))}
-    </span>
-  );
-}
-
 export function EmptyState({
   icon,
   title,
@@ -678,7 +665,7 @@ export function Fact({
 }
 
 /**
- * Client Growth is an Axiom product. The credit uses Axiom's own wordmark, held
+ * Axiom Orbit is an Axiom product. The credit uses Axiom's own wordmark, held
  * locally so the app never depends on getaxiom.ca at runtime.
  */
 export function AxiomCredit({ className = "" }: { className?: string }) {

@@ -93,7 +93,7 @@ describe("production Wrangler configuration", () => {
             AI_PROVIDER: "mock",
             MAX_AI_CALLS_PER_RUN: "10",
             BETTER_AUTH_URL: "https://replace-with-production-host.invalid",
-            RESEND_FROM_EMAIL: "Client Growth <auth@replace-with-verified-sender.invalid>",
+            RESEND_FROM_EMAIL: "Axiom Orbit <auth@replace-with-verified-sender.invalid>",
           },
           secrets: { required: ["BETTER_AUTH_SECRET"] },
         },

@@ -15,3 +15,6 @@ coverage/
 # local browser-automation scratch
 .playwright-cli/
 .analyzability-cache/
+
+# design harness output (pnpm tsx scripts/design-harness.tsx)
+.design-harness.html

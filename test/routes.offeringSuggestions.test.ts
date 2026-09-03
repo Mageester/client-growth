@@ -16,7 +16,7 @@ import { d1LikeOver } from "./helpers/testAuth";
 import * as clientDetail from "../app/routes/clients.$id";
 
 /**
- * The first-value path: a client that cannot be analyzed because Client Growth
+ * The first-value path: a client that cannot be analyzed because Axiom Orbit
  * was told about one of the six things the business sells.
  *
  * The rule this file exists to enforce is that suggestions are NEVER applied

@@ -13,7 +13,7 @@ const NO_STORE_HEADERS = {
 };
 
 export function meta() {
-  return [{ title: "Reset password · Client Growth" }];
+  return [{ title: "Reset password · Axiom Orbit" }];
 }
 
 export function headers(_args: Route.HeadersArgs) {
@@ -60,7 +60,7 @@ export default function ResetPassword({ loaderData, actionData }: Route.Componen
       <span className="auth-eyebrow">Account recovery</span>
       <h1>Choose a new password</h1>
       <p className="auth-sub">
-        Use a password you will be comfortable keeping for your Client Growth account.
+        Use a password you will be comfortable keeping for your Axiom Orbit account.
       </p>
       {loaderData.invalid ? (
         <>

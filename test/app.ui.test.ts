@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { MemoryRouter } from "react-router";
+import { readFileSync } from "node:fs";
 
 import { deferMenuClose } from "../app/components/ui";
+import { AppNavigation, ThemePicker } from "../app/root";
 
 describe("menu activation", () => {
   it("defers closing until a nested form can submit", () => {
@@ -17,5 +22,46 @@ describe("menu activation", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe("application navigation", () => {
+  it("keeps the product focused on the three real portfolio workflows", () => {
+    const html = renderToStaticMarkup(
+      createElement(
+        MemoryRouter,
+        { initialEntries: ["/opportunities"] },
+        createElement(AppNavigation),
+      ),
+    );
+
+    expect(html).toContain("Opportunities");
+    expect(html).toContain("Clients");
+    expect(html).toContain("Services");
+    expect(html).not.toContain("Reports");
+    expect(html).not.toContain("Monitoring");
+  });
+
+  it("offers explicit light, dark, and system workspace themes", () => {
+    const html = renderToStaticMarkup(
+      createElement(ThemePicker, { value: "system", onChange: () => undefined }),
+    );
+
+    expect(html).toContain("Appearance");
+    expect(html).toContain("Light");
+    expect(html).toContain("Dark");
+    expect(html).toContain("System");
+    expect(html).toContain('aria-pressed="true"');
+  });
+});
+
+describe("mobile viewport safety", () => {
+  it("does not force the document wider than a narrow phone viewport", () => {
+    const css = readFileSync(new URL("../app/styles/app.css", import.meta.url), "utf8");
+    const bodyRules = [...css.matchAll(/^body\s*\{(?<declarations>[^}]*)\}/gm)]
+      .map((match) => match.groups?.declarations ?? "")
+      .join("\n");
+
+    expect(bodyRules).not.toMatch(/min-width\s*:\s*320px/);
   });
 });
