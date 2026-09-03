@@ -116,7 +116,9 @@ export function MarketingFooter() {
       <div className="marketing-container marketing-footer-inner">
         <div className="marketing-footer-credit">
           <span>An Axiom product</span>
-          <a href="https://getaxiom.ca">Axiom</a>
+          <a className="marketing-footer-parent-link" href="https://getaxiom.ca">
+            Axiom
+          </a>
         </div>
         <nav aria-label="Footer navigation" className="marketing-footer-nav">
           <Link to="/product">Product</Link>

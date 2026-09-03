@@ -309,7 +309,7 @@ export function Layout({ children }: { children: ReactNode }) {
         <a className="skip-link" href="#main-content">
           Skip to content
         </a>
-        {busy && <div className="nav-progress" key={location.key} />}
+        {busy && !isMarketingRoute && <div className="nav-progress" key={location.key} />}
         {isMarketingRoute ? (
           children
         ) : showAppNav ? (

@@ -81,7 +81,7 @@
   align-items: center;
   gap: clamp(1rem, 2.2vw, 2rem);
   font-family: Inter, system-ui, sans-serif;
-  font-size: 0.79rem;
+  font-size: clamp(0.72rem, 0.67rem + 0.18vw, 0.82rem);
   font-weight: 500;
   letter-spacing: 0.02em;
 }
@@ -101,7 +101,7 @@
   border: 1px solid var(--marketing-border);
   border-radius: 3px;
   padding: 0.55rem 0.9rem;
-  font-size: 0.75rem;
+  font-size: clamp(0.7rem, 0.66rem + 0.14vw, 0.78rem);
   font-weight: 600;
   letter-spacing: 0.03em;
   line-height: 1.2;
@@ -181,13 +181,19 @@
   gap: 0.75rem;
   color: var(--marketing-muted);
   font-family: "JetBrains Mono", ui-monospace, monospace;
-  font-size: 0.68rem;
+  font-size: clamp(0.62rem, 0.58rem + 0.12vw, 0.7rem);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
 .marketing-footer-credit a {
   color: var(--marketing-text);
+}
+
+.marketing-footer-parent-link {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
 }
 
 .marketing-footer-nav {
