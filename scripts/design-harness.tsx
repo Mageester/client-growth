@@ -198,6 +198,30 @@ function Shell({ active, children }: { active: string; children: ReactNode }) {
           ),
         ),
       ),
+      h("div", { className: "app-sidebar-spacer" }),
+      h(
+        "div",
+        { className: "menu" },
+        h(
+          "button",
+          { type: "button", className: "ws-trigger" },
+          h("span", { className: "avatar" }, "AW"),
+          h("span", { className: "ws-name" }, "Axiom Web"),
+        ),
+        h(
+          "div",
+          { className: "menu-pop align-end", role: "menu" },
+          h(
+            "div",
+            { className: "menu-head" },
+            h("strong", null, "Axiom Web"),
+            h("span", null, "aidan.magee2@icloud.com"),
+          ),
+          h("a", { className: "menu-item", href: "#", role: "menuitem" }, "Settings"),
+          h("div", { className: "menu-sep" }),
+          h("button", { className: "menu-item", type: "button", role: "menuitem" }, "Log out"),
+        ),
+      ),
     ),
     h("main", { className: "content work-surface" }, h("div", { className: "page-enter" }, children)),
   );
