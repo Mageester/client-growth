@@ -1072,6 +1072,61 @@ input[type="checkbox"] {
   margin-top: 0.45rem;
 }
 
+/* Suggested services: a confirmation list, not a result. It is deliberately
+   quiet — nothing here has been applied, and the panel is collapsed until the
+   agency asks to see it. */
+.suggested-services {
+  margin-top: 0.9rem;
+  margin-bottom: 0;
+}
+
+.suggested-services p + button,
+.suggested-services button + .suggestion-list {
+  margin-top: 0.6rem;
+}
+
+.suggestion-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  margin: 0.7rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.suggestion-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.suggestion-label {
+  font-weight: 600;
+}
+
+/* Provenance. Every suggestion names where it came from, so checking one is a
+   glance rather than an investigation. */
+.suggestion-evidence {
+  margin: 0.25rem 0 0;
+  padding-left: 1.1rem;
+  list-style: disc;
+  font-size: 0.85em;
+  color: var(--muted);
+  word-break: break-word;
+}
+
+.suggestion-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.9rem;
+}
+
+.suggestion-actions + p {
+  margin-top: 0.55rem;
+}
+
 .btn-link {
   padding: 0;
   border: 0;

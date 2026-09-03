@@ -23,6 +23,7 @@
     "preview": "wrangler dev",
     "dev:fixture": "tsx scripts/dev-fixture.ts",
     "bench": "tsx scripts/bench.ts",
+    "analyzability": "tsx scripts/analyzability/run.ts",
     "verify:repo": "tsx scripts/repo-safety.ts",
     "verify": "pnpm verify:repo && pnpm production:preflight && pnpm test && pnpm typecheck && pnpm build"
   },

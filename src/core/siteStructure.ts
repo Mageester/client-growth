@@ -172,7 +172,27 @@ const NON_SERVICE_WORDS: ReadonlySet<string> = new Set([
   "gallery", "portfolio", "location", "locations", "login", "account", "cart",
   "checkout", "thanks", "policy", "disclaimer", "accessibility", "author",
   "category", "tag", "search",
+  // Pages about what something costs, or about an offer, rather than about the
+  // work itself. "Basement Renovation Cost" is a real page on a real
+  // contractor's site and it is not a service anyone buys.
+  "cost", "costs", "price", "prices", "pricing", "coupon", "coupons", "promo",
+  "promos", "promotion", "promotions", "specials", "deals", "financing",
 ]);
+
+/**
+ * Path segments that mean the URL is a CMS listing rather than a page: a
+ * WordPress tag archive, a category index, a paginated feed. They carry a
+ * service word constantly (/tag/plumbing) without being a service page.
+ */
+const ARCHIVE_SEGMENTS: ReadonlySet<string> = new Set([
+  "tag", "tags", "category", "categories", "author", "archive", "archives",
+  "page", "feed", "amp", "wp-content", "wp-json", "wp-admin",
+]);
+
+/** Is any part of this URL a CMS archive or listing path? */
+export function isArchivePath(url: string): boolean {
+  return pathSegments(url).some((segment) => ARCHIVE_SEGMENTS.has(segment));
+}
 
 /**
  * Does this URL's own slug say it is one of the boring pages?

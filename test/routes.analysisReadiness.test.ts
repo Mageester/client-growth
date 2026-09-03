@@ -85,8 +85,21 @@ const loadClient = () =>
     request: new Request("http://localhost/clients/" + CLIENT_ID),
     context: ctx,
   } as never) as Promise<{
-    readiness: { matched: number; total: number; unmatchedLabels: string[]; offerings: number };
+    readiness: {
+      state: string;
+      rules: Array<{ ruleId: string; label: string; state: string; reason: string; actionable: boolean }>;
+      catalog: { matched: number; total: number; unmatchedLabels: string[] };
+      readyCount: number;
+      total: number;
+    };
+    suggestions: Array<{ label: string; confidence: string; evidence: Array<{ detail: string }> }>;
   }>;
+
+/** The readiness entry for one rule, by id. */
+const ruleOf = (
+  readiness: { rules: Array<{ ruleId: string; state: string; reason: string; actionable: boolean }> },
+  ruleId: string,
+) => readiness.rules.find((r) => r.ruleId === ruleId)!;
 
 const analyze = () =>
   clientDetail.action({
@@ -163,12 +176,14 @@ describe("pre-analysis readiness", () => {
 
     const { readiness } = await loadClient();
 
-    expect(readiness.matched).toBe(0);
+    expect(readiness.catalog.matched).toBe(0);
     expect(readiness.total).toBe(2);
-    expect(readiness.unmatchedLabels).toEqual([
+    expect(readiness.catalog.unmatchedLabels).toEqual([
       "A missing service page",
       "A broken conversion path",
     ]);
+    expect(readiness.readyCount).toBe(0);
+    expect(readiness.rules.every((r) => r.state === "not_ready")).toBe(true);
   });
 
   it("reports a partly-set-up catalog so the skipped rule is visible", async () => {
@@ -177,8 +192,9 @@ describe("pre-analysis readiness", () => {
 
     const { readiness } = await loadClient();
 
-    expect(readiness.matched).toBe(1);
-    expect(readiness.unmatchedLabels).toEqual(["A broken conversion path"]);
+    expect(readiness.catalog.matched).toBe(1);
+    expect(readiness.catalog.unmatchedLabels).toEqual(["A broken conversion path"]);
+    expect(ruleOf(readiness, "broken-conversion-path").state).toBe("not_ready");
   });
 
   it("reports a thin client so the likely inconclusive run is warned about first", async () => {
@@ -188,11 +204,19 @@ describe("pre-analysis readiness", () => {
 
     const { readiness } = await loadClient();
 
-    expect(readiness.matched).toBe(2);
-    expect(readiness.unmatchedLabels).toEqual([]);
+    expect(readiness.catalog.matched).toBe(2);
+    expect(readiness.catalog.unmatchedLabels).toEqual([]);
+
     // One offering: missing-service-page will almost never be able to prove the
     // crawl reached the service section, so the page says so before the run.
-    expect(readiness.offerings).toBe(1);
+    const missingPage = ruleOf(readiness, "missing-service-page");
+    expect(missingPage.state).toBe("needs_client_setup");
+    expect(missingPage.actionable).toBe(true);
+
+    // Per-rule semantics: a thin offerings list has nothing to do with whether
+    // a call-to-action is broken, and must not be reported as though it does.
+    expect(ruleOf(readiness, "broken-conversion-path").state).toBe("ready");
+    expect(readiness.state).toBe("ready");
   });
 
   it("has nothing to warn about once the workspace is properly set up", async () => {
@@ -202,8 +226,9 @@ describe("pre-analysis readiness", () => {
 
     const { readiness } = await loadClient();
 
-    expect(readiness.matched).toBe(readiness.total);
-    expect(readiness.unmatchedLabels).toEqual([]);
-    expect(readiness.offerings).toBeGreaterThanOrEqual(2);
+    expect(readiness.catalog.matched).toBe(readiness.total);
+    expect(readiness.catalog.unmatchedLabels).toEqual([]);
+    expect(readiness.readyCount).toBe(readiness.total);
+    expect(readiness.state).toBe("ready");
   });
 });

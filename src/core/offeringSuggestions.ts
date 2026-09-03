@@ -2,11 +2,12 @@ import type { EvidenceBundle } from "@/core/schema";
 import { classifyCommercialLanguage } from "@/core/commercialLanguage";
 import { significantTokens, titleCase } from "@/core/text";
 import {
+  isArchivePath,
   isInServiceSection,
-  isNonServiceSegment,
   isServiceHub,
   hasServiceWordInSlug,
   pathSegments,
+  slugSaysNonService,
 } from "@/core/siteStructure";
 
 /**
@@ -66,12 +67,43 @@ export interface SuggestOfferingsInput {
   max?: number;
 }
 
-/** Navigation furniture: real anchor text that is not a service. */
+/**
+ * Navigation furniture: real anchor text that is not a service.
+ *
+ * The important members of this list are the generic call-to-action labels.
+ * A services grid whose three cards all link out under the words "View service"
+ * is a normal way to build a page, and taking the anchor text at face value
+ * produces one suggestion called "View service" backed by three unrelated URLs.
+ * When the words are furniture the URL is the better name.
+ */
 const FURNITURE =
-  /^(home|menu|search|book(ing)?( (online|now))?|schedule( (online|service|now))?|call( us)?|contact( us)?|email( us)?|get (a )?(quote|estimate|started)|request (a )?(quote|estimate|appointment|service)|apply( (now|locally))?|careers?|jobs?|login|log in|sign in|sign up|my account|account|cart|checkout|read more|learn more|more|see (all|more)|view (all|more)|click here|next|previous|back|top|skip to (main )?content|français|english|espa[nñ]ol)$/i;
+  /^(home|menu|search|book(ing)?( (online|now))?|schedule( (online|service|now))?|call( us)?|contact( us)?|email( us)?|get (a )?(quote|estimate|started)|request (a )?(quote|estimate|appointment|service)|apply( (now|locally))?|careers?|jobs?|login|log in|sign in|sign up|my account|account|cart|checkout|read more|learn more|find out more|more|more info(rmation)?|see (all|more|details)|view (all|more|details?|service|services|page)|explore( more)?|discover( more)?|start( (here|now|this path))?|details|continue|next|previous|back|top|skip to (main )?content|our services|all services|services|français|english|espa[nñ]ol)$/i;
 
 /** A location page ("Toronto", "Find My Local X") is not a service. */
 const LOCATION_LIKE = /^(find (my|a) (local|nearby)|locations?|areas? (we )?serve|service areas?)\b/i;
+
+/** The boring pages every site has, as they are written in a navigation bar. */
+const BORING_PAGE =
+  /^(about( us)?|our (story|team|mission|process|approach|philosophy)|meet the (team|doctors?|staff)|blog|news|press|media|articles|resources|reviews?|testimonials?|privacy( policy)?|terms.*|sitemap|gallery|photos|portfolio|projects|work|faqs?|financing|finance|specials?|special offers?|coupons?|promos?|promotions?|offers?|deals?|careers?|who we are|what we do|glossary|read|overview|introduction)$/i;
+
+/** A page about what something costs is not the thing being sold. */
+const PRICE_PAGE = /(cost|costs|price|prices|pricing|rates|fees)$/i;
+
+/**
+ * A service page written for one town — "Pool Removal in Charleswood" — is the
+ * same offering as the one next to it, not another thing the business sells.
+ * Suggesting twelve of them fills the confirmation list with one service.
+ */
+const LOCATION_QUALIFIED = /\s(?:in|near|serving|around|throughout)\s+\p{Lu}/iu;
+
+/** A question is an article about the work, not the work. */
+const QUESTION = /\?\s*$/;
+
+/** A downloadable document is not a service page. */
+const DOCUMENT_URL = /\.(pdf|docx?|xlsx?|pptx?|zip|csv|jpe?g|png|gif|svg|webp|mp4|mp3)$/i;
+
+/** WordPress-style archive titles: "Category: Teeth Whitening", "Tag: Plumbing". */
+const ARCHIVE_TITLE = /^(category|categories|tag|tags|archive|archives|author|page)\s*[:|-]/i;
 
 const MAX_LABEL_WORDS = 6;
 const MAX_LABEL_CHARS = 60;
@@ -114,11 +146,63 @@ function usableLabel(label: string): boolean {
   if (label.length < 3 || label.length > MAX_LABEL_CHARS) return false;
   if (label.split(/\s+/).length > MAX_LABEL_WORDS) return false;
   if (!/[a-z]/i.test(label)) return false;
+  // A service is named, not described. Anything a site presents as a service
+  // starts with a capital — "good candidates for teeth whitening" is a sentence
+  // lifted out of a blog post, and it reads as nonsense in a confirmation list.
+  if (!/^[\p{Lu}\p{N}]/u.test(label)) return false;
+  if (ARCHIVE_TITLE.test(label)) return false;
+  if (QUESTION.test(label)) return false;
+  if (LOCATION_QUALIFIED.test(label)) return false;
+  if (PRICE_PAGE.test(label)) return false;
   if (FURNITURE.test(label)) return false;
+  if (BORING_PAGE.test(label)) return false;
   if (LOCATION_LIKE.test(label)) return false;
   if (classifyCommercialLanguage(label) !== null) return false;
   if (significantTokens(label).length === 0) return false;
   return true;
+}
+
+/**
+ * Is this URL worth reading a suggestion out of at all?
+ *
+ * A long, SEO-written slug can carry a service word AND still be the About
+ * page: /about-drainworks-toronto-plumbers-drain-cleaning is a real URL, and
+ * taking the service word at face value suggests "About" as something the
+ * business sells.
+ */
+function usableUrl(url: string): boolean {
+  if (DOCUMENT_URL.test(new URL(url, "https://client-growth.invalid/").pathname)) return false;
+  return !isArchivePath(url) && !slugSaysNonService(url);
+}
+
+/**
+ * Should the URL be used to name this suggestion instead of the words on the
+ * page?
+ *
+ * ONLY when the words carry no information — a generic call to action, or no
+ * anchor text at all. This distinction matters more than it looks: if the
+ * fallback also fired for labels rejected on their CONTENT, the URL would
+ * quietly resurrect them. "How much is a drain repair?" would come back as
+ * "How Much Is A Drain Repair", and "Pool Removal in Charleswood" as "Pool
+ * Removal Charleswood" — both stripped of the very thing that disqualified
+ * them.
+ */
+function preferUrlOverLabel(written: string): boolean {
+  return written.length === 0 || FURNITURE.test(written);
+}
+
+/**
+ * Pick the name for a suggestion, or null when this link should be skipped.
+ *
+ * Returning null is the important case: a label that is real text and is not a
+ * service is a decision, not a gap to be filled from somewhere else.
+ */
+function nameFor(written: string, url: string): string | null {
+  if (preferUrlOverLabel(written)) {
+    const fromUrl = labelFromUrl(url);
+    return usableLabel(fromUrl) ? fromUrl : null;
+  }
+  return usableLabel(written) ? written : null;
 }
 
 /** Does this label describe something the client already told us about? */
@@ -164,9 +248,14 @@ export function suggestOfferings(input: SuggestOfferingsInput): SuggestedOfferin
   // where the site itself files what it sells.
   for (const page of site.pages) {
     if (page.status < 200 || page.status >= 300 || page.wordCount === 0) continue;
-    if (isServiceHub(page.url)) continue;
+    if (isServiceHub(page.url) || !usableUrl(page.url)) continue;
     if (!isInServiceSection(page.url) && !hasServiceWordInSlug(page.url)) continue;
-    const label = page.h1s[0] || page.title.split(/\s+[|–—-]\s+/)[0] || labelFromUrl(page.url);
+    // A page's own H1 is what it calls itself; its <title> usually carries the
+    // brand as well, so the part before the first separator is the useful half.
+    const written =
+      cleanLabel(page.h1s[0] ?? "") || cleanLabel(page.title.split(/\s+[|–—·]\s+/)[0] ?? "");
+    const label = nameFor(written, page.url);
+    if (label === null) continue;
     add(label, "service-section-page", page.url, `Has its own page at ${page.url}`);
   }
 
@@ -179,14 +268,14 @@ export function suggestOfferings(input: SuggestOfferingsInput): SuggestedOfferin
 
   for (const link of site.links) {
     if (link.scheme !== "http") continue;
-    const segments = pathSegments(link.href);
-    if (segments.length === 0) continue;
-    const last = segments[segments.length - 1] ?? "";
-    if (isNonServiceSegment(last)) continue;
-    if (isServiceHub(link.href)) continue;
+    if (pathSegments(link.href).length === 0) continue;
+    if (isServiceHub(link.href) || !usableUrl(link.href)) continue;
 
-    const label = cleanLabel(link.label || link.ariaLabel || link.title) || labelFromUrl(link.href);
-    if (!label) continue;
+    // Prefer the words a person wrote; fall back to the URL only when those
+    // words are a generic call to action.
+    const written = cleanLabel(link.label || link.ariaLabel || link.title);
+    const label = nameFor(written, link.href);
+    if (label === null) continue;
 
     if (isInServiceSection(link.href)) {
       add(label, "service-section-link", link.href, `Listed under the site's services section (${link.href})`);
@@ -209,7 +298,7 @@ export function suggestOfferings(input: SuggestOfferingsInput): SuggestedOfferin
 
   // ---- C. Sitemap URLs inside the service section ---------------------------
   for (const url of site.sitemapUrls) {
-    if (isServiceHub(url)) continue;
+    if (isServiceHub(url) || !usableUrl(url)) continue;
     if (!isInServiceSection(url) && !hasServiceWordInSlug(url)) continue;
     const label = labelFromUrl(url);
     if (!label) continue;
