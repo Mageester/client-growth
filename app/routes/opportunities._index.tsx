@@ -369,8 +369,8 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
             <>
               <div className="signal-list-head" aria-hidden="true">
                 <span>Opportunity</span>
-                <span>Potential value</span>
-                <span>Evidence strength</span>
+                <span>Value</span>
+                <span>Evidence</span>
                 <span>Status</span>
               </div>
               <ul className="signal-list">

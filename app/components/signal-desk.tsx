@@ -2,8 +2,8 @@ import { Link } from "react-router";
 
 import type { Client, Opportunity } from "@/core/schema";
 import { buildEvidenceCase } from "../lib/evidence";
-import { isOpen, nextAction, statusBadge } from "../lib/portfolio";
-import { formatCurrencyRange, Icon, Meter } from "./ui";
+import { nextAction, statusBadge } from "../lib/portfolio";
+import { formatCurrencyRange, Icon } from "./ui";
 
 export interface SignalDeskEntry {
   client: Pick<Client, "id" | "name" | "domain">;
@@ -37,9 +37,6 @@ export function OpportunitySignalRow({
         className="signal-row-select"
         aria-current={selected ? "true" : undefined}
       >
-        <span className="signal-row-mark" aria-hidden="true">
-          <Icon name={isOpen(opportunity) ? "signal" : "check"} size={16} />
-        </span>
         <span className="signal-row-core">
           <span className="signal-row-title">{opportunity.title}</span>
           <span className="signal-row-context">
@@ -53,16 +50,10 @@ export function OpportunitySignalRow({
           <small>potential</small>
         </span>
         <span className="signal-row-confidence">
-          <span className="signal-row-meter">
-            <Meter value={opportunity.confidence} />
-            <b>{confidence}%</b>
-          </span>
+          <b>{confidence}%</b>
           <small>{confidenceLabel(opportunity.confidence)} evidence</small>
         </span>
         <span className={"signal-status badge " + badge.tone}>{badge.label}</span>
-        <span className="signal-row-arrow" aria-hidden="true">
-          <Icon name="chevron-right" size={16} />
-        </span>
       </Link>
     </li>
   );
@@ -115,8 +106,9 @@ export function OpportunityInspector({
           <div>
             <dt>Evidence strength</dt>
             <dd>
-              <Meter value={opportunity.confidence} />
-              <span>{confidence}%</span>
+              <span>
+                {confidence}% · {confidenceLabel(opportunity.confidence).toLowerCase()}
+              </span>
             </dd>
           </div>
           <div>
