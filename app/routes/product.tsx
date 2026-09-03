@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 import { MarketingLayout } from "../components/marketing-layout";
 import {
@@ -76,7 +76,7 @@ function ProductChapter({
   return (
     <section id={id} className="marketing-product-chapter" aria-labelledby={`${id}-title`}>
       <div className={`marketing-container marketing-product-chapter-grid${reverse ? " marketing-product-chapter-grid--visual-left" : ""}`}>
-        <div className="marketing-product-chapter-copy">
+        <div className="marketing-product-chapter-copy" data-reveal>
           <div className="marketing-product-chapter-kicker">
             <span>{number}</span>
             <span>{label}</span>
@@ -86,7 +86,9 @@ function ProductChapter({
           <ChapterAvailability direction={direction}>{availability}</ChapterAvailability>
           <p className="marketing-product-chapter-note">{note}</p>
         </div>
-        <div className="marketing-product-chapter-visual">{visual}</div>
+        <div className="marketing-product-chapter-visual" data-reveal style={{ "--reveal-delay": "140ms" } as CSSProperties}>
+          {visual}
+        </div>
       </div>
     </section>
   );
@@ -99,7 +101,7 @@ export default function Product() {
         <section className="marketing-product-hero" aria-labelledby="product-title">
           <div className="marketing-container marketing-product-hero-inner">
             <div className="marketing-product-hero-copy">
-              <h1 id="product-title">Grow the clients you’ve already won.</h1>
+              <h1 id="product-title" data-reveal>Grow the clients you’ve already won.</h1>
               <p>
                 Monitor client sites, understand the evidence, find legitimate work, and prepare the next conversation.
               </p>
@@ -119,7 +121,7 @@ export default function Product() {
         </section>
 
         <section className="marketing-product-boundary" aria-labelledby="product-boundary-title">
-          <div className="marketing-container marketing-product-boundary-inner">
+          <div className="marketing-container marketing-product-boundary-inner" data-reveal>
             <h2 id="product-boundary-title">
               Not a CRM. Not a generic scanner.<br />
               A focused post-sale growth workflow.
@@ -130,26 +132,15 @@ export default function Product() {
           </div>
         </section>
 
-        <section className="marketing-product-rail" aria-label="Product chapters and availability">
+        <section className="marketing-product-rail" aria-label="Product chapters">
           <div className="marketing-container">
-            <div className="marketing-product-legend">
-              <span className="marketing-product-legend-heading">Availability</span>
-              <ul>
-                <li><span className="marketing-product-legend-dot marketing-product-legend-dot--now" />Available now</li>
-                <li><span className="marketing-product-legend-dot marketing-product-legend-dot--rollout" />In development / rollout</li>
-                <li><span className="marketing-product-legend-dot marketing-product-legend-dot--direction" />Direction</li>
-              </ul>
-            </div>
-            <nav className="marketing-product-chapter-nav" aria-label="Product chapters">
+            <nav className="marketing-product-chapter-nav" aria-label="Product chapters" data-reveal>
               <ol>
                 {productChapters.map((chapter) => (
                   <li key={chapter.id}>
                     <a href={`#${chapter.id}`}>
                       <span className="marketing-product-chapter-nav-number">{chapter.number}</span>
                       <span className="marketing-product-chapter-nav-label">{chapter.label}</span>
-                      <span className={`marketing-product-chapter-nav-status${chapter.availability === "Direction" ? " marketing-product-chapter-nav-status--direction" : ""}`}>
-                        {chapter.availability}
-                      </span>
                     </a>
                   </li>
                 ))}
@@ -163,9 +154,9 @@ export default function Product() {
           number="01"
           label="Monitor"
           title="Keep every client in view."
-          copy="Turn on weekly monitoring for a client and Orbit revisits the site through the same evidence pipeline. It records what is new, still open, resolved, or inconclusive—so “nothing changed” never means “we could not look.”"
+          copy="Turn on weekly monitoring for a client and Orbit revisits the site, recording what is new, still open, resolved, or inconclusive — so “nothing changed” never means “we couldn’t look.”"
           availability="Available now · opt-in, per-client weekly monitoring"
-          note="Monitoring is off by default. The current product records the result in the workspace; it does not promise an email or Slack alert."
+          note="Monitoring is off by default. Results are recorded in the workspace — no email or Slack alerts yet."
           visual={<ProductMonitorVisual />}
         />
 
@@ -174,9 +165,9 @@ export default function Product() {
           number="02"
           label="Understand"
           title="Read the site in the context of the account."
-          copy="Orbit reads the public pages it can safely fetch, keeps the source URLs and observed facts, and compares them with the client’s recorded offerings, your service catalog, and contract coverage. Suggestions stay suggestions until a person confirms them."
+          copy="Orbit reads the public pages it can safely fetch, keeps the source URLs and observed facts, and compares them with the client’s offerings, your service catalog, and contract coverage."
           availability="Available now · bounded public-site evidence"
-          note="This is public-site evidence plus agency-entered context—not a CRM sync or private account intelligence layer."
+          note="Public-site evidence plus agency-entered context — not a CRM sync."
           visual={<ProductUnderstandVisual />}
           reverse
         />
@@ -186,7 +177,7 @@ export default function Product() {
           number="03"
           label="Find"
           title="Find work you can actually sell."
-          copy="Today Orbit surfaces three evidence-backed gap types: a missing service page, a site with no service pages when the crawl can support that claim, and a broken conversion path. A finding must clear the evidence checks, map to an active agency service, and remain billable after contract coverage."
+          copy="Orbit surfaces three evidence-backed gap types: a missing service page, a site with no service pages (only when the read supports it), and a broken conversion path. Each finding must map to a service you sell and stay billable after contract coverage."
           availability="Available now · three detection categories"
           note="Additional categories are product direction, not live functionality."
           visual={<ProductFindVisual />}
@@ -197,9 +188,9 @@ export default function Product() {
           number="04"
           label="Act"
           title="Turn a signal into the next conversation."
-          copy="Review the case, inspect the source pages and defect facts, see the mapped service and your typical price range, then prepare an editable proposal draft. Orbit keeps the draft inside the workspace; your team decides what to send."
+          copy="Review the case, inspect the source pages, see the mapped service and your typical price range, then prepare an editable proposal draft. Your team decides what to send."
           availability="Available now · review + proposal draft"
-          note="Nothing is sent or published from this workflow."
+          note="Nothing is sent from this workflow."
           visual={<ProductActVisual />}
           reverse
         />
@@ -209,15 +200,15 @@ export default function Product() {
           number="05"
           label="Grow"
           title="Close the loop over time."
-          copy="Orbit’s direction is a fuller account-growth lifecycle: opportunity, decision, delivered work, and measured outcome. Today, Orbit gives you potential value ranges and finding history; revenue and outcome tracking belong to the next layer, not to today’s product claim."
+          copy="Orbit’s direction is a fuller account-growth lifecycle: opportunity, decision, delivered work, and measured outcome. Today you get potential value ranges and finding history."
           availability="Direction · revenue and outcome tracking"
-          note="Do not attach a customer result, win rate, or retention promise to this chapter."
+          note="Revenue and outcome tracking belong to the next layer, not to today’s product claim."
           visual={<ProductGrowVisual />}
           direction
         />
 
         <section className="marketing-product-final-cta" aria-labelledby="product-final-title">
-          <div className="marketing-container marketing-product-final-cta-inner">
+          <div className="marketing-container marketing-product-final-cta-inner" data-reveal>
             <div>
               <h2 id="product-final-title">Ready to grow what you already have?</h2>
               <p>Request access to the Axiom Orbit pilot.</p>

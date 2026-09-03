@@ -106,6 +106,11 @@
   letter-spacing: 0.03em;
   line-height: 1.2;
   white-space: nowrap;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.marketing-button:hover {
+  transform: translateY(-1px);
 }
 
 .marketing-button-primary {
@@ -2501,6 +2506,160 @@
   }
 
   .marketing-product :where(.marketing-product-text-link span, .marketing-product-chapter-nav-label) {
+    transition: none !important;
+  }
+}
+
+/* ==========================================================================
+ * Scroll-reveal motion and the Watch / Find / Prepare steps.
+ *
+ * `.marketing-motion` is added to <html> by MarketingLayout only when
+ * JavaScript runs and the user has not requested reduced motion, so every
+ * hidden state below is opt-in. Without JS or with reduced motion, content
+ * is simply visible.
+ * ========================================================================== */
+
+.marketing-motion [data-reveal] {
+  opacity: 0;
+  transform: translateY(20px);
+  transition:
+    opacity 640ms cubic-bezier(0.22, 0.61, 0.36, 1),
+    transform 640ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+.marketing-motion [data-reveal].is-revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Watch / Find / Prepare */
+
+.marketing-steps {
+  position: relative;
+}
+
+.marketing-steps-line {
+  position: absolute;
+  top: 1.05rem;
+  right: 1.1rem;
+  left: 1.1rem;
+  height: 1px;
+  background: var(--marketing-border);
+}
+
+.marketing-motion .marketing-steps-line-fill {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--marketing-accent-dim), var(--marketing-accent));
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 1s cubic-bezier(0.22, 0.61, 0.36, 1) 320ms;
+}
+
+.marketing-motion .marketing-steps.is-revealed .marketing-steps-line-fill {
+  transform: scaleX(1);
+}
+
+.marketing-steps-list {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(1.5rem, 4vw, 3rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.marketing-steps-item {
+  min-width: 0;
+  padding-top: 2.4rem;
+}
+
+.marketing-motion .marketing-steps-item {
+  opacity: 0;
+  transform: translateY(14px);
+  transition:
+    opacity 520ms cubic-bezier(0.22, 0.61, 0.36, 1),
+    transform 520ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  transition-delay: calc(var(--step-index, 0) * 120ms + 140ms);
+}
+
+.marketing-motion .marketing-steps.is-revealed .marketing-steps-item {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.marketing-steps-number {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  margin-bottom: 1.2rem;
+  border: 1px solid var(--marketing-accent);
+  border-radius: 50%;
+  background: var(--marketing-background);
+  color: var(--marketing-accent);
+  font-family: var(--marketing-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+}
+
+.marketing-motion .marketing-steps-number {
+  transform: scale(0.7);
+  transition: transform 460ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition-delay: calc(var(--step-index, 0) * 120ms + 260ms);
+}
+
+.marketing-motion .marketing-steps.is-revealed .marketing-steps-number {
+  transform: scale(1);
+}
+
+.marketing-steps-item h3 {
+  margin-bottom: 0.6rem;
+  color: var(--marketing-text);
+  font-size: clamp(1.15rem, 1rem + 0.5vw, 1.35rem);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.marketing-steps-item p {
+  max-width: 26rem;
+  margin: 0;
+  color: var(--marketing-muted);
+  font-size: clamp(0.92rem, 0.88rem + 0.14vw, 1rem);
+  line-height: 1.6;
+}
+
+@media (max-width: 900px) {
+  .marketing-steps-line {
+    display: none;
+  }
+
+  .marketing-steps-list {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .marketing-steps-item {
+    padding: 1.75rem 0 1.5rem;
+    border-top: 1px solid var(--marketing-border);
+  }
+
+  .marketing-steps-item:first-child {
+    border-top: 0;
+    padding-top: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marketing-motion [data-reveal],
+  .marketing-motion .marketing-steps-item,
+  .marketing-motion .marketing-steps-number,
+  .marketing-motion .marketing-steps-line-fill {
+    opacity: 1 !important;
+    transform: none !important;
     transition: none !important;
   }
 }

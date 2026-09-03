@@ -31,13 +31,11 @@ describe("Axiom Orbit marketing shell", () => {
 
     expect(html).toContain("Grow the clients you’ve already won.");
     expect(html).toContain("The work is already in your accounts.");
-    expect(html).toContain("Client portfolio");
-    expect(html).toMatch(/Evidence before action/i);
-    expect(html).toMatch(/What Orbit watches/i);
-    expect(html).toMatch(/Continuous monitoring/i);
-    expect(html).toContain("Review");
-    expect(html).toContain("Qualify");
-    expect(html).toContain("Price");
+    expect(html).toMatch(/How it works/i);
+    expect(html).toMatch(/Straight answers/i);
+    expect(html).toMatch(/For your agency/i);
+    expect(html).toContain("Watch");
+    expect(html).toContain("Find");
     expect(html).toContain("Prepare");
     expect(html).toContain("Available now");
     expect(html).toContain("Direction");
@@ -49,11 +47,8 @@ describe("Axiom Orbit marketing shell", () => {
 
     const sectionOrder = [
       "The work is already in your accounts.",
-      "A review loop for the clients you already serve.",
-      "Start with what the site actually returned.",
-      "Know which account signals are worth reviewing.",
-      "Review the portfolio again—on purpose.",
-      "Evidence in. Conversation out.",
+      "Watch, find, prepare.",
+      "Straight answers. No invented wins.",
       "Build more value from the relationships already on your books.",
       "Give every client account a next review.",
     ];
@@ -113,16 +108,39 @@ describe("Axiom Orbit marketing shell", () => {
     expect(compactCard).not.toContain("What was found");
   });
 
-  it("keeps the orbit sequence decorative and the mobile line vertical", () => {
+  it("draws the Watch / Find / Prepare steps in order with a decorative line", () => {
     const html = renderLanding();
     const css = readFileSync(new URL("../app/styles/marketing.css", import.meta.url), "utf8");
 
-    expect(html).toContain('class="marketing-loop-sequence" aria-hidden="true"');
-    expect(html).not.toContain("marketing-card-number");
-    expect(css).toMatch(/@keyframes marketing-line-progress-vertical/);
+    expect(html).toContain('class="marketing-steps-line" aria-hidden="true"');
+    expect(html).toContain("marketing-steps-line-fill");
+    const watch = html.indexOf(">Watch<");
+    const find = html.indexOf(">Find<");
+    const prepare = html.indexOf(">Prepare<");
+    expect(watch).toBeGreaterThan(-1);
+    expect(find).toBeGreaterThan(watch);
+    expect(prepare).toBeGreaterThan(find);
     expect(css).toMatch(
-      /\.marketing-monitoring-states::before\s*\{[^}]*animation-name:\s*marketing-line-progress-vertical/s,
+      /\.marketing-motion \.marketing-steps\.is-revealed \.marketing-steps-line-fill/s,
     );
+    expect(css).toMatch(/--step-index/);
+  });
+
+  it("keeps reveal motion opt-in and reduced-motion safe", () => {
+    const html = renderLanding();
+    const css = readFileSync(new URL("../app/styles/marketing.css", import.meta.url), "utf8");
+    const layout = readFileSync(
+      new URL("../app/components/marketing-layout.tsx", import.meta.url),
+      "utf8",
+    );
+
+    expect(html).toContain("data-reveal");
+    expect(css).toMatch(/\.marketing-motion \[data-reveal\]/);
+    expect(css).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.marketing-motion \[data-reveal\]/s,
+    );
+    expect(layout).toContain("prefers-reduced-motion");
+    expect(layout).toContain("IntersectionObserver");
   });
 
   it("registers the public product route", () => {
@@ -156,6 +174,17 @@ describe("Axiom Orbit marketing shell", () => {
     expect(css).toMatch(
       /\.marketing-footer-parent-link\s*\{[^}]*min-height:\s*40px/s,
     );
+  });
+
+  it("sends signed-in users into the app instead of the showcase", () => {
+    const root = readFileSync(new URL("../app/root.tsx", import.meta.url), "utf8");
+    const login = readFileSync(new URL("../app/routes/login.tsx", import.meta.url), "utf8");
+    const signup = readFileSync(new URL("../app/routes/signup.tsx", import.meta.url), "utf8");
+
+    expect(root).toContain('redirect("/opportunities")');
+    expect(root).toMatch(/if \(error instanceof Response\) throw error;/);
+    expect(login.match(/redirect\("\/opportunities"/g)?.length).toBe(2);
+    expect(signup).toContain('redirect("/opportunities")');
   });
 
   it("does not expose the app loading indicator on marketing routes", () => {

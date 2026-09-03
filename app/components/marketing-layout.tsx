@@ -130,9 +130,49 @@ export function MarketingFooter() {
   );
 }
 
+/**
+ * Scroll-reveal motion, applied only when JavaScript is running and the user
+ * has not asked for reduced motion. Without either, elements stay visible:
+ * the animation is progressive enhancement, never a content gate.
+ */
+function useScrollReveals() {
+  useEffect(() => {
+    if (typeof IntersectionObserver === "undefined") return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    document.documentElement.classList.add("marketing-motion");
+
+    const targets = Array.from(
+      document.querySelectorAll<HTMLElement>("[data-reveal]"),
+    );
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          entry.target.classList.add("is-revealed");
+          observer.unobserve(entry.target);
+        }
+      },
+      { threshold: 0.12, rootMargin: "0px 0px -6% 0px" },
+    );
+    for (const target of targets) observer.observe(target);
+    return () => observer.disconnect();
+  }, []);
+}
+
 export function MarketingLayout({ children }: { children: ReactNode }) {
+  useScrollReveals();
   return (
     <div className="marketing-page">
+      {/*
+        Opt into reveal motion before first paint so the page never flashes
+        fully visible and then hides. Without JS, or with reduced motion, the
+        class is never added and content simply renders.
+      */}
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `(()=>{try{if(!window.matchMedia("(prefers-reduced-motion: reduce)").matches)document.documentElement.classList.add("marketing-motion")}catch(e){}})()`,
+        }}
+      />
       <MarketingHeader />
       <main id="main-content" className="marketing-main">
         {children}
