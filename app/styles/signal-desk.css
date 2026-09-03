@@ -1510,8 +1510,10 @@ a.record:hover .record-name {
 
 .panel-head h2 {
   color: var(--ink);
-  font-family: var(--font);
-  font-weight: 720;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .panel-head p {
@@ -1541,10 +1543,11 @@ a.record:hover .record-name {
 
 .auth h1 {
   color: var(--ink);
-  font-family: var(--font);
-  font-size: 25px;
-  font-weight: 730;
-  letter-spacing: -0.035em;
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.16;
+  letter-spacing: -0.015em;
 }
 
 .auth-sub,
