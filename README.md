@@ -1,4 +1,4 @@
-# Client Growth (working name)
+# Axiom Orbit
 
 Multi-tenant SaaS for small web/digital agencies. It answers one question:
 
@@ -143,7 +143,7 @@ Copy `.dev.vars.example` to `.dev.vars` (git-ignored) and set:
 - `BETTER_AUTH_SECRET` — 32+ random chars (`openssl rand -base64 32`)
 - `BETTER_AUTH_URL` — the wrangler dev origin, e.g. `http://localhost:8976`
 - `RESEND_API_KEY` — Resend API key; required for password-reset email delivery
-- `RESEND_FROM_EMAIL` — verified Resend sender, e.g. `Client Growth <auth@your-verified-domain.example>`
+- `RESEND_FROM_EMAIL` — verified Resend sender, e.g. `Axiom Orbit <auth@your-verified-domain.example>`
 - optionally `AI_PROVIDER=deepseek` + `DEEPSEEK_API_KEY=...` for real evaluations
 
 Then `pnpm db:migrate:local && pnpm db:seed:local && pnpm dev`, and sign up at

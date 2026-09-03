@@ -62,7 +62,7 @@
         // one tick at 30 evaluator calls, whatever the portfolio looks like.
         "MONITORING_MAX_CLIENTS_PER_RUN": "3",
         "BETTER_AUTH_URL": "https://client-growth-production.aidan-magee2.workers.dev",
-        "RESEND_FROM_EMAIL": "Client Growth <noreply@getaxiom.ca>"
+        "RESEND_FROM_EMAIL": "Axiom Orbit <noreply@getaxiom.ca>"
       },
       "secrets": {
         "required": ["BETTER_AUTH_SECRET", "RESEND_API_KEY", "DEEPSEEK_API_KEY"]
