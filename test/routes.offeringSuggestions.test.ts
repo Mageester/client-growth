@@ -115,6 +115,15 @@ const loadClient = () =>
     readiness: { rules: Array<{ ruleId: string; state: string; reason: string; actionable: boolean }> };
   }>;
 
+/** Whether the client page is offering to read the site for suggestions. */
+const promptsToReadSite = async () => {
+  const data = (await loadClient()) as unknown as {
+    hasEvidence: boolean;
+    suggestions: unknown[];
+  };
+  return data.hasEvidence === false && data.suggestions.length === 0;
+};
+
 const accept = (offerings: string[]) =>
   clientDetail.action({
     params: { id: CLIENT_ID },
@@ -315,5 +324,34 @@ describe("readiness copy tells setup apart from crawler limits", () => {
     expect(missingPage.actionable).toBe(false);
     // Nothing was readable, so there is nothing honest to suggest.
     expect(suggestions).toEqual([]);
+  });
+});
+
+/**
+ * Reading the site to fill the offerings list.
+ *
+ * Suggestions come from the last crawl, so before one exists a new client gets
+ * no help with the very list every analysis is compared against. Four of six
+ * real production clients were recorded with one offering or none, which made
+ * every run against them inconclusive before it started.
+ */
+describe("reading the site for offerings", () => {
+  it("offers to read the site for a client with nothing recorded", async () => {
+    expect(await promptsToReadSite()).toBe(true);
+  });
+
+  it("does not offer once evidence already exists", async () => {
+    await saveEvidenceWithServices();
+    expect(await promptsToReadSite()).toBe(false);
+  });
+
+  it("reports the client's offerings as unchanged by reading alone", async () => {
+    await saveEvidenceWithServices();
+
+    // Evidence exists and suggestions are computed, but a crawl is not consent.
+    const before = (await repo.getClient(scope, CLIENT_ID))!.offerings;
+    await loadClient();
+
+    expect((await repo.getClient(scope, CLIENT_ID))!.offerings).toEqual(before);
   });
 });

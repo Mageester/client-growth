@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { Form, Link, useNavigation } from "react-router";
 
-import { ClientSchema } from "@/core/schema";
+import { ClientSchema, type Client } from "@/core/schema";
 import { assessCatalogCoverage } from "@/core/rules/registry";
 import { assessAnalysisReadiness, type ReadinessState } from "@/core/analysisReadiness";
 import { assessServiceCoverage } from "@/core/absenceVerification";
@@ -17,7 +17,7 @@ import {
 } from "@/core/monitoring";
 import * as monitoringRepo from "@/db/monitoring";
 import * as repo from "@/db/repositories";
-import { runAnalysis } from "../lib/analysis.server";
+import { collectEvidenceOnly, runAnalysis } from "../lib/analysis.server";
 import {
   byPotentialValue,
   clientState,
@@ -120,6 +120,8 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
     firstRunFailed,
     readiness,
     suggestions,
+    /** Whether a crawl has ever stored evidence for this client. */
+    hasEvidence: evidence !== null,
     state: clientState({ outcome: latest?.outcome ?? null, openCount: totals.open }),
   };
 }
@@ -153,6 +155,27 @@ export async function action({ params, request, context }: Route.ActionArgs) {
       }),
     );
     return { ok: true as const, message: "Client details saved." };
+  }
+
+  // Reading the site purely to populate the suggestion list. Separate from
+  // Analyze on purpose: this client has nothing to analyze against yet, so
+  // running one would spend AI calls to conclude what is already known.
+  if (intent === "suggest-from-site") {
+    try {
+      const { readablePages } = await collectEvidenceOnly(t.scope, existing.id);
+      if (readablePages === 0) {
+        return {
+          ok: false as const,
+          error: "No page on this site could be read, so there is nothing to suggest from.",
+        };
+      }
+      return {
+        ok: true as const,
+        message: `Read ${readablePages} ${readablePages === 1 ? "page" : "pages"}. Anything found is below, for you to confirm.`,
+      };
+    } catch {
+      return { ok: false as const, error: "The site could not be read. Check the domain." };
+    }
   }
 
   // Confirming suggested offerings. The suggestions themselves are computed
@@ -386,6 +409,12 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
       <MonitoringRow monitoring={monitoring} busy={busy} canAnalyze={canAnalyze} />
 
       <Readiness readiness={readiness} clientName={client.name} />
+      <ReadSiteForOfferings
+        client={client}
+        hasEvidence={loaderData.hasEvidence}
+        suggestionCount={suggestions.length}
+        busy={busy}
+      />
       <SuggestedServices
         suggestions={suggestions}
         clientName={client.name}
@@ -917,6 +946,61 @@ function Readiness({
     </>
   );
 }
+
+/**
+ * The offer to read the site when the profile is too thin to analyze against.
+ *
+ * A client with fewer than two offerings cannot produce a missing-page finding
+ * — the crawl can never demonstrate it reached the service section — so the run
+ * is inconclusive before it starts. Rather than let someone spend a run finding
+ * that out, this offers the crawl that populates the list instead, and says
+ * plainly that nothing is saved without them.
+ */
+function ReadSiteForOfferings({
+  client,
+  hasEvidence,
+  suggestionCount,
+  busy,
+}: {
+  client: Client;
+  hasEvidence: boolean;
+  suggestionCount: number;
+  busy: boolean;
+}) {
+  // Once suggestions are on screen, SuggestedServices is the thing to look at
+  // and this would be a second button saying the same thing.
+  if (suggestionCount > 0) return null;
+  if (client.offerings.length >= 2) return null;
+
+  return (
+    <div className="notice suggested-services" role="status">
+      <Icon name="search" size={16} />
+      <div>
+        <p>
+          {client.offerings.length === 0
+            ? `Nothing is recorded for ${client.name} yet, so there is nothing to check the site against.`
+            : `Only one service is recorded for ${client.name}, which is rarely enough to confirm a crawl reached the site's services.`}{" "}
+          {hasEvidence
+            ? "The last crawl of this site found nothing to add."
+            : "Axiom Orbit can read the site and propose what this business sells."}
+        </p>
+        {!hasEvidence && (
+          <Form method="post" className="suggested-actions">
+            <input type="hidden" name="intent" value="suggest-from-site" />
+            <button className="btn btn-primary" type="submit" disabled={busy}>
+              <Icon name="search" size={15} />
+              Read the site
+            </button>
+            <span className="suggested-note">
+              Nothing is saved until you confirm it. No analysis is run.
+            </span>
+          </Form>
+        )}
+      </div>
+    </div>
+  );
+}
+
 
 /**
  * "These look like services customers can hire this business for."

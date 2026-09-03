@@ -26,6 +26,37 @@ function evidenceProviderFor(client: Client, workspaceId: string) {
   return new HttpEvidenceProvider({ maxPages: 10 });
 }
 
+/**
+ * Read a client's site and keep the evidence, without judging anything.
+ *
+ * Offering suggestions come from the last crawl, so before one exists a new
+ * client gets no help with the very list the whole analysis is compared
+ * against — which is how four of six real clients ended up recorded with one
+ * offering or none, and every run against them was structurally guaranteed to
+ * come back inconclusive.
+ *
+ * This is deliberately not an analysis. No evaluator is called, so it costs
+ * nothing and cannot surface a finding; it records no run, so it cannot make a
+ * client look analyzed when nothing was assessed. It only makes the site
+ * readable to suggestOfferings.
+ */
+export async function collectEvidenceOnly(
+  t: TenantScope,
+  clientId: string,
+): Promise<{ readablePages: number }> {
+  const client = await repo.getClient(t, clientId);
+  if (!client) throw new Response("Client not found", { status: 404 });
+
+  const evidence = await evidenceProviderFor(client, t.workspaceId).getEvidence(client);
+  await repo.saveEvidence(t, evidence);
+
+  return {
+    readablePages: evidence.site.pages.filter(
+      (page) => page.status >= 200 && page.status < 300 && page.wordCount > 0,
+    ).length,
+  };
+}
+
 export interface RunAnalysisResult extends AnalyzeClientResult {
   /** The truthful, persisted classification of this run. */
   verdict: AnalysisOutcomeResult;
