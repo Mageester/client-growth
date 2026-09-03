@@ -7,55 +7,62 @@
  */
 
 :root {
-  color-scheme: light;
-  --bg: #f4f2ed;
-  --surface: #ffffff;
-  --raised: #faf9f6;
-  --raised-strong: #f0ede6;
-  --ink: #1c1a17;
-  --ink-soft: #423e38;
-  --muted: #6f6a61;
-  --faint: #928c81;
-  --line: #e3dfd6;
-  --line-strong: #d3cec3;
-  --accent: #2c4a63;
-  --accent-strong: #1b3a52;
-  --accent-wash: #eceff2;
-  --accent-ring: rgba(44, 74, 99, 0.28);
-  --solid: #1c1a17;
-  --solid-hover: #35312b;
-  --on-solid: #ffffff;
-  --pos: #3f6b4e;
-  --pos-wash: #eef3ef;
-  --pos-line: #cbdcd1;
-  --warn: #8a6420;
-  --warn-wash: #f7f1e6;
-  --warn-line: #e3d5bb;
-  --warn-mark: #f0e2c4;
-  --neg: #96392f;
-  --neg-wash: #f9efed;
-  --neg-line: #e8ccc7;
-  --attn: #8a6420;
-  --scrim: rgba(28, 26, 23, 0.42);
-  --hairline-soft: rgba(28, 26, 23, 0.07);
-  --selection: #f2efe8;
-  --field-line: #cfc9bd;
-  --pop: 0 20px 48px -20px rgba(28, 26, 23, 0.24), 0 2px 6px rgba(28, 26, 23, 0.05);
+  color-scheme: dark;
+  --bg: #050505;
+  --surface: #0b0b0c;
+  --raised: #111113;
+  --raised-strong: #171719;
+  --ink: #f7f7f7;
+  --ink-soft: #cfcfd4;
+  --muted: #9c9ca3;
+  --faint: #74747b;
+  --line: #242428;
+  --line-strong: #35353b;
+  --accent: #b8b8ba;
+  --accent-strong: #f4f4f4;
+  --accent-wash: rgba(184, 184, 186, 0.1);
+  --accent-ring: rgba(244, 244, 244, 0.34);
+  --solid: #f4f4f4;
+  --solid-hover: #ffffff;
+  --on-solid: #050505;
+  --pos: #6fbf95;
+  --pos-wash: rgba(111, 191, 149, 0.1);
+  --pos-line: rgba(111, 191, 149, 0.28);
+  --warn: #d3a55f;
+  --warn-wash: rgba(211, 165, 95, 0.1);
+  --warn-line: rgba(211, 165, 95, 0.26);
+  --warn-mark: rgba(211, 165, 95, 0.28);
+  --neg: #e08279;
+  --neg-wash: rgba(224, 130, 121, 0.1);
+  --neg-line: rgba(224, 130, 121, 0.26);
+  --attn: #d3a55f;
+  --scrim: rgba(0, 0, 0, 0.76);
+  --hairline-soft: rgba(255, 255, 255, 0.05);
+  --selection: rgba(255, 255, 255, 0.045);
+  --field-line: #35353b;
+  --topbar-bg: rgba(11, 11, 12, 0.94);
+  --segment-on: #171719;
+  --rail: #000000;
+  --rail-surface: #0b0b0c;
+  --rail-line: #1c1c20;
+  --rail-text: #cfcfd4;
+  --rail-muted: #74747b;
+  /* app.css owns these three and themes them on prefers-color-scheme alone.
+     Aliasing them here keeps every surface on one theme when the two
+     mechanisms disagree — an explicit dark choice on a light-preference
+     machine, for instance. */
+  --ink-2: var(--ink-soft);
+  --ink-3: var(--muted);
+  --ink-4: var(--faint);
+  --pop: 0 24px 60px -20px rgba(0, 0, 0, 0.9), 0 2px 6px rgba(0, 0, 0, 0.6);
   --lift: none;
-  --topbar-bg: rgba(255, 255, 255, 0.94);
-  --segment-on: #ffffff;
-  --rail: #efece4;
-  --rail-surface: #ffffff;
-  --rail-line: #e0dbd1;
-  --rail-text: #423e38;
-  --rail-muted: #8a847a;
   --r-xs: 2px;
   --r-sm: 3px;
   --r-md: 4px;
   --r-lg: 6px;
   --r-pill: 999px;
   --font: Inter, "SF Pro Text", "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-display: "Source Serif 4", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
   --mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
   --shell: none;
   --read: 46rem;
@@ -63,97 +70,111 @@
   --sidebar: 204px;
 }
 
-:root[data-theme="dark"] {
-  color-scheme: dark;
-  --bg: #14120f;
-  --surface: #1b1815;
-  --raised: #221e1a;
-  --raised-strong: #2b2621;
-  --ink: #f0ece5;
-  --ink-soft: #cfc9bf;
-  --muted: #9a938a;
-  --faint: #7c766d;
-  --line: #2e2a25;
-  --line-strong: #443e37;
-  --accent: #8fb0c9;
-  --accent-strong: #aac6da;
-  --accent-wash: rgba(143, 176, 201, 0.13);
-  --accent-ring: rgba(143, 176, 201, 0.34);
-  --solid: #f0ece5;
-  --solid-hover: #ffffff;
-  --on-solid: #17140f;
-  --pos: #7fb694;
-  --pos-wash: rgba(127, 182, 148, 0.12);
-  --pos-line: rgba(127, 182, 148, 0.3);
-  --warn: #d8ab63;
-  --warn-wash: rgba(216, 171, 99, 0.12);
-  --warn-line: rgba(216, 171, 99, 0.28);
-  --warn-mark: rgba(216, 171, 99, 0.3);
-  --neg: #e0897c;
-  --neg-wash: rgba(224, 137, 124, 0.11);
-  --neg-line: rgba(224, 137, 124, 0.28);
-  --attn: #d8ab63;
-  --scrim: rgba(8, 7, 5, 0.72);
-  --hairline-soft: rgba(255, 255, 255, 0.07);
-  --selection: rgba(255, 255, 255, 0.05);
-  --field-line: #4a433b;
-  --topbar-bg: rgba(27, 24, 21, 0.95);
-  --segment-on: #2b2621;
-  --rail: #100e0c;
-  --rail-surface: #1b1815;
-  --rail-line: rgba(255, 255, 255, 0.09);
-  --rail-text: #cfc9bf;
-  --rail-muted: #8a847a;
-  --pop: 0 20px 52px -18px rgba(0, 0, 0, 0.74), 0 2px 6px rgba(0, 0, 0, 0.4);
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f4f4f4;
+  --surface: #ffffff;
+  --raised: #fafafa;
+  --raised-strong: #ededee;
+  --ink: #0b0b0c;
+  --ink-soft: #3a3a3f;
+  --muted: #66666d;
+  --faint: #8c8c93;
+  --line: #e2e2e5;
+  --line-strong: #cfcfd4;
+  --accent: #3a3a3f;
+  --accent-strong: #0b0b0c;
+  --accent-wash: #f0f0f1;
+  --accent-ring: rgba(11, 11, 12, 0.26);
+  --solid: #0b0b0c;
+  --solid-hover: #2a2a2e;
+  --on-solid: #f7f7f7;
+  --pos: #2f6b4c;
+  --pos-wash: #eef4f0;
+  --pos-line: #c8dcd0;
+  --warn: #7d5a16;
+  --warn-wash: #f7f2e6;
+  --warn-line: #e2d4b6;
+  --warn-mark: #efe1c2;
+  --neg: #93332a;
+  --neg-wash: #f9eeec;
+  --neg-line: #e7c9c5;
+  --attn: #7d5a16;
+  --scrim: rgba(5, 5, 5, 0.44);
+  --hairline-soft: rgba(11, 11, 12, 0.05);
+  --selection: #efefef;
+  --field-line: #c4c4c9;
+  --pop: 0 20px 48px -20px rgba(5, 5, 5, 0.26), 0 2px 6px rgba(5, 5, 5, 0.06);
   --lift: none;
+  --topbar-bg: rgba(255, 255, 255, 0.94);
+  --segment-on: #ffffff;
+  --rail: #f0f0f1;
+  --rail-surface: #ffffff;
+  --rail-line: #e2e2e5;
+  --rail-text: #3a3a3f;
+  --rail-muted: #8c8c93;
+  /* app.css owns these three and themes them on prefers-color-scheme alone.
+     Aliasing them here keeps every surface on one theme when the two
+     mechanisms disagree — an explicit dark choice on a light-preference
+     machine, for instance. */
+  --ink-2: var(--ink-soft);
+  --ink-3: var(--muted);
+  --ink-4: var(--faint);
+
 }
 
-@media (prefers-color-scheme: dark) {
+@media (prefers-color-scheme: light) {
   :root:not([data-theme]),
   :root[data-theme="system"] {
-    color-scheme: dark;
-    --bg: #14120f;
-    --surface: #1b1815;
-    --raised: #221e1a;
-    --raised-strong: #2b2621;
-    --ink: #f0ece5;
-    --ink-soft: #cfc9bf;
-    --muted: #9a938a;
-    --faint: #7c766d;
-    --line: #2e2a25;
-    --line-strong: #443e37;
-    --accent: #8fb0c9;
-    --accent-strong: #aac6da;
-    --accent-wash: rgba(143, 176, 201, 0.13);
-    --accent-ring: rgba(143, 176, 201, 0.34);
-    --solid: #f0ece5;
-    --solid-hover: #ffffff;
-    --on-solid: #17140f;
-    --pos: #7fb694;
-    --pos-wash: rgba(127, 182, 148, 0.12);
-    --pos-line: rgba(127, 182, 148, 0.3);
-    --warn: #d8ab63;
-    --warn-wash: rgba(216, 171, 99, 0.12);
-    --warn-line: rgba(216, 171, 99, 0.28);
-    --warn-mark: rgba(216, 171, 99, 0.3);
-    --neg: #e0897c;
-    --neg-wash: rgba(224, 137, 124, 0.11);
-    --neg-line: rgba(224, 137, 124, 0.28);
-    --attn: #d8ab63;
-    --scrim: rgba(8, 7, 5, 0.72);
-    --hairline-soft: rgba(255, 255, 255, 0.07);
-    --selection: rgba(255, 255, 255, 0.05);
-    --field-line: #4a433b;
-    --topbar-bg: rgba(27, 24, 21, 0.95);
-    --segment-on: #2b2621;
-    --rail: #100e0c;
-    --rail-surface: #1b1815;
-    --rail-line: rgba(255, 255, 255, 0.09);
-    --rail-text: #cfc9bf;
-    --rail-muted: #8a847a;
-    --pop: 0 20px 52px -18px rgba(0, 0, 0, 0.74), 0 2px 6px rgba(0, 0, 0, 0.4);
+    color-scheme: light;
+    --bg: #f4f4f4;
+    --surface: #ffffff;
+    --raised: #fafafa;
+    --raised-strong: #ededee;
+    --ink: #0b0b0c;
+    --ink-soft: #3a3a3f;
+    --muted: #66666d;
+    --faint: #8c8c93;
+    --line: #e2e2e5;
+    --line-strong: #cfcfd4;
+    --accent: #3a3a3f;
+    --accent-strong: #0b0b0c;
+    --accent-wash: #f0f0f1;
+    --accent-ring: rgba(11, 11, 12, 0.26);
+    --solid: #0b0b0c;
+    --solid-hover: #2a2a2e;
+    --on-solid: #f7f7f7;
+    --pos: #2f6b4c;
+    --pos-wash: #eef4f0;
+    --pos-line: #c8dcd0;
+    --warn: #7d5a16;
+    --warn-wash: #f7f2e6;
+    --warn-line: #e2d4b6;
+    --warn-mark: #efe1c2;
+    --neg: #93332a;
+    --neg-wash: #f9eeec;
+    --neg-line: #e7c9c5;
+    --attn: #7d5a16;
+    --scrim: rgba(5, 5, 5, 0.44);
+    --hairline-soft: rgba(11, 11, 12, 0.05);
+    --selection: #efefef;
+    --field-line: #c4c4c9;
+    --pop: 0 20px 48px -20px rgba(5, 5, 5, 0.26), 0 2px 6px rgba(5, 5, 5, 0.06);
     --lift: none;
-
+    --topbar-bg: rgba(255, 255, 255, 0.94);
+    --segment-on: #ffffff;
+    --rail: #f0f0f1;
+    --rail-surface: #ffffff;
+    --rail-line: #e2e2e5;
+    --rail-text: #3a3a3f;
+    --rail-muted: #8c8c93;
+    /* app.css owns these three and themes them on prefers-color-scheme alone.
+       Aliasing them here keeps every surface on one theme when the two
+       mechanisms disagree — an explicit dark choice on a light-preference
+       machine, for instance. */
+    --ink-2: var(--ink-soft);
+    --ink-3: var(--muted);
+    --ink-4: var(--faint);
   }
 }
 
@@ -219,17 +240,19 @@ textarea {
 .brand-mark {
   width: 26px;
   height: 26px;
-  color: var(--on-solid);
-  background: var(--solid);
-  border-radius: var(--r-sm);
+  flex: 0 0 auto;
+  object-fit: contain;
+  background: none;
+  border-radius: 0;
   box-shadow: none;
 }
 
 .brand-word {
   font-family: var(--font-display);
-  font-size: 17px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
 .app-sidebar-label {

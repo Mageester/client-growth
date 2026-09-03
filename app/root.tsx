@@ -34,20 +34,19 @@ const EMPTY = {
   theme: "system" as ThemePreference,
 };
 
-/** The brand mark, inline so the tab icon costs no request and never 404s. */
-const FAVICON =
-  "data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2032%2032'%3E%3Crect%20width%3D'32'%20height%3D'32'%20rx%3D'8'%20fill%3D'%2314140f'%2F%3E%3Cg%20stroke%3D'%23f2f0ea'%20stroke-width%3D'2.8'%20stroke-linecap%3D'round'%20fill%3D'none'%3E%3Cpath%20d%3D'M10%2022.5v-6'%2F%3E%3Cpath%20d%3D'M16%2022.5v-11'%2F%3E%3Cpath%20d%3D'M22%2022.5v-14'%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E";
-
 export function links() {
   return [
-    { rel: "icon", href: FAVICON },
+    { rel: "icon", type: "image/png", sizes: "32x32", href: "/brand/axiom-orbit-app-icon-32.png" },
+    { rel: "icon", type: "image/png", sizes: "64x64", href: "/brand/axiom-orbit-app-icon-64.png" },
+    { rel: "apple-touch-icon", href: "/brand/axiom-orbit-app-icon-256.png" },
     { rel: "preconnect", href: "https://fonts.googleapis.com" },
     { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
     {
-      // Fraunces is Axiom's display face; `display=swap` keeps the fallback serif
-      // painting immediately so a slow font never blocks first render.
+      // Space Grotesk for display and Inter for interface text, per the brand
+      // pack. `display=swap` keeps the fallback painting immediately so a slow
+      // font never blocks first render.
       rel: "stylesheet",
-      href: "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=JetBrains+Mono:wght@400;500;600&display=swap",
+      href: "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap",
     },
   ];
 }
@@ -83,9 +82,14 @@ const NAV = [
 
 function BrandMark() {
   return (
-    <span className="brand-mark">
-      <Icon name="signal" size={14} strokeWidth={2.1} />
-    </span>
+    <img
+      className="brand-mark"
+      src="/brand/axiom-orbit-icon-chrome-transparent.png"
+      alt=""
+      width={28}
+      height={28}
+      loading="eager"
+    />
   );
 }
 
@@ -257,17 +261,23 @@ export function Layout({ children }: { children: ReactNode }) {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="color-scheme" content="light dark" />
+        <meta name="color-scheme" content="dark light" />
         {/*
-          The type stack is the design: a serif for headings and finding titles,
-          Inter for interface text, and a mono for figures and micro-labels.
-          Preconnect so the serif does not arrive after first paint.
+          Link previews. Route modules set the per-page <title> through <Meta />;
+          these are the constants a share card needs and are the same on every
+          page, so they live here rather than being restated per route.
         */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap"
+        <meta property="og:site_name" content="Axiom Orbit" />
+        <meta property="og:type" content="website" />
+        <meta
+          property="og:description"
+          content="The client growth platform for agencies."
+        />
+        <meta property="og:image" content="/brand/axiom-orbit-social-1200x630.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta
+          name="description"
+          content="The client growth platform for agencies."
         />
         <Meta />
         <Links />
