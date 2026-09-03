@@ -43,7 +43,7 @@ function catalog(tags: string[] = ["service-pages-build"]): Service[] {
   ];
 }
 
-function evidence(readablePages = 4): EvidenceBundle {
+function evidence(readablePages = 4, sitemapUrls: string[] = []): EvidenceBundle {
   return {
     clientId: "c1",
     source: "http",
@@ -59,7 +59,7 @@ function evidence(readablePages = 4): EvidenceBundle {
       })),
       nav: [],
       links: [],
-      sitemapUrls: [],
+      sitemapUrls,
       crawlExhaustive: true,
     },
     networkEvents: [],
@@ -122,6 +122,27 @@ describe("no-service-pages rule", () => {
 
   it("claims nothing when no page was readable, because that is a crawl failure", async () => {
     expect(await noServicePagesRule(base({ evidence: evidence(0) }))).toEqual([]);
+  });
+
+  it("claims nothing from a single-page crawl, which is what a JS-only site looks like", async () => {
+    // nusite.ca in the analyzability corpus: one readable page, one link, no
+    // sitemap, and an empty frontier — indistinguishable from bartlett.com,
+    // which demonstrably does have service pages. Claiming here would tell an
+    // agency their client sells nothing on the strength of one page.
+    expect(await noServicePagesRule(base({ evidence: evidence(1) }))).toEqual([]);
+    expect(await noServicePagesRule(base({ evidence: evidence(2) }))).toEqual([]);
+  });
+
+  it("claims from a thin site once the crawl has covered ground", async () => {
+    // atlasplumbing.ca: eight readable pages, ten links, no service content.
+    expect(await noServicePagesRule(base({ evidence: evidence(8) }))).toHaveLength(1);
+  });
+
+  it("accepts a sitemap as independent corroboration of a short crawl", async () => {
+    // kids-connect.ca: five pages read and a 74-URL sitemap, none service-like.
+    // The sitemap says what the site contains without the crawler guessing.
+    const withSitemap = evidence(2, ["https://northwindheating.example/about"]);
+    expect(await noServicePagesRule(base({ evidence: withSitemap }))).toHaveLength(1);
   });
 
   it("claims nothing when the agency sells nothing for this gap", async () => {

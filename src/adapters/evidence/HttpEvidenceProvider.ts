@@ -59,6 +59,12 @@ const DEFAULT_REQUEST_TIMEOUT_MS = 8_000;
 const DEFAULT_MAX_REDIRECTS = 5;
 const DEFAULT_MAX_REQUESTS = 40;
 const MAX_SITEMAP_INDEX_CHILDREN = 2;
+/**
+ * Readable pages a crawl must reach before an empty frontier counts as "we saw
+ * the whole site". Home plus two others: enough that the crawler demonstrably
+ * moved through the site rather than bouncing off a single rendered shell.
+ */
+const MIN_PAGES_FOR_EXHAUSTIVE = 3;
 
 export const DEFAULT_USER_AGENT =
   "ClientGrowthBot/0.1 (+website evidence; operated by the agency)";
@@ -661,14 +667,28 @@ export class HttpEvidenceProvider implements EvidenceProvider {
     //
     // The frontier being empty means every same-site link we found had already
     // been fetched — we ran out of site, not out of budget. Combined with a
-    // clean network record and at least one readable page, that is the only
-    // honest basis for saying "this business has no service pages" rather than
-    // "we could not get far enough to tell".
+    // clean network record, that is most of the basis for saying "this business
+    // has no service pages" rather than "we could not get far enough to tell".
+    //
+    // One readable page is NOT enough of it. A site rendered entirely in
+    // JavaScript returns one HTML shell with no crawlable links, which empties
+    // the frontier for the opposite reason: the crawler learned nothing, rather
+    // than learning there was nothing. nusite.ca in the analyzability corpus is
+    // exactly this, and it is otherwise indistinguishable from bartlett.com,
+    // which demonstrably does have service pages. So the crawl also has to have
+    // covered ground — several readable pages, or a sitemap that independently
+    // says what the site contains.
+    const readablePages = pages.filter(
+      (page) => page.status >= 200 && page.status < 300 && page.wordCount > 0,
+    ).length;
+    const coveredGround = readablePages >= MIN_PAGES_FOR_EXHAUSTIVE || sitemapUrls.length > 0;
+
     const crawlExhaustive =
       frontier.size === 0 &&
       pageRequests < this.maxPages() &&
       this.networkEvents.length === 0 &&
-      pages.some((page) => page.status >= 200 && page.status < 300 && page.wordCount > 0);
+      readablePages > 0 &&
+      coveredGround;
 
     const bundle = EvidenceBundleSchema.parse({
       clientId: client.id,

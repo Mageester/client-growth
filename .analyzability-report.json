@@ -1,0 +1,2037 @@
+{
+  "generatedAt": "2026-09-03T16:41:02.406Z",
+  "reports": [
+    {
+      "id": "getaxiom",
+      "domain": "getaxiom.ca",
+      "vertical": "agency",
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 1 offering(s) represented in the site's navigation, links or sitemap, 4 service page(s) read, 0 service URL(s) in the sitemap.",
+      "pagesFetched": 10,
+      "pagesReadable": 9,
+      "sitemapAvailable": false,
+      "sitemapUrls": 0,
+      "linksDiscovered": 27,
+      "serviceLikePages": 4,
+      "serviceLikeSitemapUrls": 0,
+      "serviceContentPagesRead": 4,
+      "representedOfferings": 1,
+      "offerings": 1,
+      "blockedEvents": 0,
+      "inconclusiveEvents": 0,
+      "requests": 19,
+      "reviewerSaysServicePagesExist": true,
+      "crawlerMissedObviousPages": false,
+      "falseAnalyzable": false,
+      "failure": null,
+      "failureNote": "",
+      "suggestions": [
+        {
+          "label": "Conversion Sites",
+          "confidence": "medium",
+          "evidence": [
+            "Listed under the site's services section (https://getaxiom.ca/services/conversion-sites)"
+          ]
+        },
+        {
+          "label": "Local Business Websites",
+          "confidence": "medium",
+          "evidence": [
+            "Listed under the site's services section (https://getaxiom.ca/services/local-business-websites)"
+          ]
+        },
+        {
+          "label": "Rebuilds",
+          "confidence": "medium",
+          "evidence": [
+            "Listed under the site's services section (https://getaxiom.ca/services/rebuilds)"
+          ]
+        }
+      ],
+      "errored": null
+    },
+    {
+      "id": "kids-connect",
+      "domain": "kids-connect.ca",
+      "vertical": "childcare",
+      "analyzable": false,
+      "reason": "This site has no service pages: the crawl followed every link on it and found 1 offering(s) represented in the site's navigation, links or sitemap, 0 service page(s) read, 0 service URL(s) in the sitemap. Nothing was blocked and nothing was left unread, so this is the whole site.",
+      "pagesFetched": 5,
+      "pagesReadable": 5,
+      "sitemapAvailable": true,
+      "sitemapUrls": 74,
+      "linksDiscovered": 6,
+      "serviceLikePages": 0,
+      "serviceLikeSitemapUrls": 0,
+      "serviceContentPagesRead": 0,
+      "representedOfferings": 1,
+      "offerings": 4,
+      "blockedEvents": 0,
+      "inconclusiveEvents": 0,
+      "requests": 16,
+      "reviewerSaysServicePagesExist": false,
+      "crawlerMissedObviousPages": false,
+      "falseAnalyzable": false,
+      "failure": "SITE_TOO_THIN",
+      "failureNote": "The site genuinely has no service content to reach.",
+      "suggestions": [],
+      "errored": null
+    },
+    {
+      "id": "morrisjenkins",
+      "domain": "morrisjenkins.com",
+      "vertical": "hvac",
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 6 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 60 service URL(s) in the sitemap.",
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "sitemapAvailable": true,
+      "sitemapUrls": 100,
+      "linksDiscovered": 115,
+      "serviceLikePages": 9,
+      "serviceLikeSitemapUrls": 60,
+      "serviceContentPagesRead": 9,
+      "representedOfferings": 6,
+      "offerings": 6,
+      "blockedEvents": 0,
+      "inconclusiveEvents": 0,
+      "requests": 11,
+      "reviewerSaysServicePagesExist": true,
+      "crawlerMissedObviousPages": false,
+      "falseAnalyzable": false,
+      "failure": null,
+      "failureNote": "",
+      "suggestions": [
+        {
+          "label": "Backflow Preventer Maintenance",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://morrisjenkins.com/plumbing/backflow-services/backflow-preventer-maintenance",
+            "Listed in the site's main navigation",
+            "Has its own page at https://morrisjenkins.com/plumbing/backflow-services/backflow-preventer-repair",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Cooling",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://morrisjenkins.com/cooling",
+            "Listed in the site's main navigation",
+            "Shown as a service card on the homepage",
+            "Listed in the site's sitemap (https://morrisjenkins.com/greenville/cooling)"
+          ]
+        },
+        {
+          "label": "Ductless AC Services",
+          "confidence": "high",
+          "evidence": [
+            "Listed in the site's main navigation",
+            "Has its own page at https://morrisjenkins.com/cooling/ductless-ac-repair",
+            "Listed in the site's main navigation",
+            "Has its own page at https://morrisjenkins.com/cooling/ductless-ac-maintenance"
+          ]
+        },
+        {
+          "label": "Electrical",
+          "confidence": "high",
+          "evidence": [
+            "Listed in the site's main navigation",
+            "Has its own page at https://morrisjenkins.com/electrical/electrical-repairs",
+            "Listed in the site's main navigation",
+            "Shown as a service card on the homepage"
+          ]
+        },
+        {
+          "label": "Emergency AC Repair",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://morrisjenkins.com/cooling/emergency-ac-repair",
+            "Listed in the site's main navigation",
+            "Has its own page at https://morrisjenkins.com/service-area/clover/hvac/emergency-ac-repair/",
+            "Listed in the site's sitemap (https://morrisjenkins.com/greenville/cooling/emergency-ac-repair)"
+          ]
+        },
+        {
+          "label": "Gas Pack Service",
+          "confidence": "high",
+          "evidence": [
+            "Listed in the site's main navigation",
+            "Has its own page at https://morrisjenkins.com/cooling/gas-pack-repair",
+            "Listed in the site's main navigation",
+            "Has its own page at https://morrisjenkins.com/cooling/gas-pack-installation"
+          ]
+        },
+        {
+          "label": "Heating",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://morrisjenkins.com/heating",
+            "Listed in the site's main navigation",
+            "Shown as a service card on the homepage",
+            "Listed in the site's sitemap (https://morrisjenkins.com/greenville/heating)"
+          ]
+        },
+        {
+          "label": "Plumbing",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://morrisjenkins.com/plumbing",
+            "Listed in the site's main navigation",
+            "Shown as a service card on the homepage",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Sewer Line Repair",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://morrisjenkins.com/plumbing/sewer-line-repair",
+            "Listed in the site's main navigation",
+            "Has its own page at https://morrisjenkins.com/plumbing/sewer-line-replacement",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Sump Pumps",
+          "confidence": "high",
+          "evidence": [
+            "Listed in the site's main navigation",
+            "Has its own page at https://morrisjenkins.com/plumbing/sump-pump-services/repair",
+            "Listed in the site's main navigation",
+            "Has its own page at https://morrisjenkins.com/plumbing/sump-pump-services/installation"
+          ]
+        },
+        {
+          "label": "Tank Water Heater Maintenance",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://morrisjenkins.com/plumbing/tank-water-heater-maintenance",
+            "Listed in the site's main navigation",
+            "Has its own page at https://morrisjenkins.com/plumbing/tank-water-heater-installation",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Tankless Water Heater Maintenance",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://morrisjenkins.com/plumbing/tankless-water-heater-maintenance",
+            "Listed in the site's main navigation",
+            "Has its own page at https://morrisjenkins.com/plumbing/tankless-water-heater-installation",
+            "Listed in the site's main navigation"
+          ]
+        }
+      ],
+      "errored": null
+    },
+    {
+      "id": "michaelandson",
+      "domain": "michaelandson.com",
+      "vertical": "hvac",
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 6 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 53 service URL(s) in the sitemap.",
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "sitemapAvailable": true,
+      "sitemapUrls": 100,
+      "linksDiscovered": 208,
+      "serviceLikePages": 9,
+      "serviceLikeSitemapUrls": 53,
+      "serviceContentPagesRead": 9,
+      "representedOfferings": 6,
+      "offerings": 6,
+      "blockedEvents": 0,
+      "inconclusiveEvents": 0,
+      "requests": 11,
+      "reviewerSaysServicePagesExist": true,
+      "crawlerMissedObviousPages": false,
+      "falseAnalyzable": false,
+      "failure": null,
+      "failureNote": "",
+      "suggestions": [
+        {
+          "label": "Central AC Repair",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://michaelandson.com/cooling/central-ac-repair",
+            "Listed in the site's main navigation",
+            "Has its own page at https://michaelandson.com/cooling/central-ac-installation",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Heat Pump Repair",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://michaelandson.com/heating/heat-pump-repair",
+            "Listed in the site's main navigation",
+            "Has its own page at https://michaelandson.com/heating/heat-pump-installation",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Gas Line Repair",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://michaelandson.com/plumbing/gas-line-repairs",
+            "Listed in the site's main navigation",
+            "Has its own page at https://michaelandson.com/plumbing/gas-line-installation"
+          ]
+        },
+        {
+          "label": "All Cooling Services",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://michaelandson.com/cooling",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "All Heating Services",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://michaelandson.com/heating",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "All Plumbing Services",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://michaelandson.com/plumbing",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "All Restoration Services",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://michaelandson.com/restoration",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Ceiling Fan Installation",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://michaelandson.com/electrical/ceiling-fan-installation",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Circuit Breaker Replacement",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://michaelandson.com/electrical/circuit-breaker-replacement",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Cooling Tune Ups",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://michaelandson.com/cooling/furnace-ac-tune-ups",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Crawlspace Encapsulation",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://michaelandson.com/restoration/crawlspace-encapsulation",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Garbage Disposal Installation",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://michaelandson.com/plumbing/garbage-disposal-installations",
+            "Listed in the site's main navigation"
+          ]
+        }
+      ],
+      "errored": null
+    },
+    {
+      "id": "aireserv",
+      "domain": "aireserv.com",
+      "vertical": "hvac",
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 6 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 0 service URL(s) in the sitemap.",
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "sitemapAvailable": false,
+      "sitemapUrls": 0,
+      "linksDiscovered": 263,
+      "serviceLikePages": 9,
+      "serviceLikeSitemapUrls": 0,
+      "serviceContentPagesRead": 9,
+      "representedOfferings": 6,
+      "offerings": 6,
+      "blockedEvents": 0,
+      "inconclusiveEvents": 0,
+      "requests": 21,
+      "reviewerSaysServicePagesExist": true,
+      "crawlerMissedObviousPages": false,
+      "falseAnalyzable": false,
+      "failure": null,
+      "failureNote": "",
+      "suggestions": [
+        {
+          "label": "AC and Heating",
+          "confidence": "high",
+          "evidence": [
+            "Listed under the site's services section (https://aireserv.com/residential/heating-ac/)",
+            "Listed in the site's main navigation",
+            "Listed under the site's services section (https://aireserv.com/commercial/heating-ac/)",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Advantage Plan Membership",
+          "confidence": "high",
+          "evidence": [
+            "Listed under the site's services section (https://aireserv.com/residential/heating-ac/maintenance-plans/)",
+            "Listed in the site's main navigation",
+            "Shown as a service card on the homepage",
+            "Listed under the site's services section (https://aireserv.com/commercial/heating-ac/maintenance-plans/)"
+          ]
+        },
+        {
+          "label": "Air Duct Cleaning",
+          "confidence": "high",
+          "evidence": [
+            "Listed under the site's services section (https://aireserv.com/services/other-services/duct-cleaning/)",
+            "Listed in the site's main navigation",
+            "Shown as a service card on the homepage",
+            "Listed under the site's services section (https://aireserv.com/services/other-services/ductwork-installation/)"
+          ]
+        },
+        {
+          "label": "Air Duct Insulation",
+          "confidence": "high",
+          "evidence": [
+            "Listed under the site's services section (https://aireserv.com/residential/heating-ac/air-duct-insulation-installation/)",
+            "Listed in the site's main navigation",
+            "Shown as a service card on the homepage",
+            "Listed under the site's services section (https://aireserv.com/commercial/heating-ac/air-duct-insulation-installation/)"
+          ]
+        },
+        {
+          "label": "Air Duct Sealing",
+          "confidence": "high",
+          "evidence": [
+            "Listed under the site's services section (https://aireserv.com/residential/heating-ac/air-duct-sealing/)",
+            "Listed in the site's main navigation",
+            "Shown as a service card on the homepage",
+            "Listed under the site's services section (https://aireserv.com/commercial/heating-ac/air-duct-sealing/)"
+          ]
+        },
+        {
+          "label": "Air Filters",
+          "confidence": "high",
+          "evidence": [
+            "Listed under the site's services section (https://aireserv.com/residential/air-quality/air-filter-installation-and-replacement/)",
+            "Listed in the site's main navigation",
+            "Shown as a service card on the homepage",
+            "Listed under the site's services section (https://aireserv.com/commercial/air-quality/air-filter-installation-and-replacement/)"
+          ]
+        },
+        {
+          "label": "Air Purification and Indoor Air Quality",
+          "confidence": "high",
+          "evidence": [
+            "Listed under the site's services section (https://aireserv.com/residential/air-quality/)",
+            "Listed in the site's main navigation",
+            "Listed under the site's services section (https://www.aireserv.com/residential/air-quality/)",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Air Quality and Purification",
+          "confidence": "high",
+          "evidence": [
+            "Listed under the site's services section (https://aireserv.com/commercial/air-quality/)",
+            "Listed in the site's main navigation",
+            "Listed under the site's services section (https://www.aireserv.com/commercial/air-quality/)",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Boiler",
+          "confidence": "high",
+          "evidence": [
+            "Listed under the site's services section (https://aireserv.com/residential/heating-ac/boiler-repair-replacement/)",
+            "Listed in the site's main navigation",
+            "Shown as a service card on the homepage",
+            "Listed under the site's services section (https://aireserv.com/commercial/heating-ac/boiler-repair-replacement/)"
+          ]
+        },
+        {
+          "label": "Carbon Monoxide and Smoke Detectors",
+          "confidence": "high",
+          "evidence": [
+            "Listed under the site's services section (https://aireserv.com/services/other-services/carbon-monoxide-smoke-detectors/)",
+            "Listed in the site's main navigation",
+            "Shown as a service card on the homepage",
+            "Listed under the site's services section (https://aireserv.com/commercial/carbon-monoxide-detector-installation-and-replacement/)"
+          ]
+        },
+        {
+          "label": "Dehumidifier",
+          "confidence": "high",
+          "evidence": [
+            "Listed under the site's services section (https://aireserv.com/services/other-services/dehumidifiers/)",
+            "Listed in the site's main navigation",
+            "Shown as a service card on the homepage",
+            "Listed under the site's services section (https://aireserv.com/commercial/heating-ac/dehumidifier-repair-and-replacement/)"
+          ]
+        },
+        {
+          "label": "Ductless Split AC System",
+          "confidence": "high",
+          "evidence": [
+            "Listed under the site's services section (https://aireserv.com/commercial/heating-ac/ductless-split-ac-system-repair-and-replacement/)",
+            "Listed in the site's main navigation",
+            "Shown as a service card on the homepage",
+            "Listed under the site's services section (https://www.aireserv.com/commercial/heating-ac/ductless-split-ac-system-repair-and-replacement/)"
+          ]
+        }
+      ],
+      "errored": null
+    },
+    {
+      "id": "cambridgeheating",
+      "domain": "cambridgeheating.ca",
+      "vertical": "hvac",
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 2 offering(s) represented in the site's navigation, links or sitemap, 4 service page(s) read, 0 service URL(s) in the sitemap.",
+      "pagesFetched": 8,
+      "pagesReadable": 8,
+      "sitemapAvailable": false,
+      "sitemapUrls": 0,
+      "linksDiscovered": 10,
+      "serviceLikePages": 4,
+      "serviceLikeSitemapUrls": 0,
+      "serviceContentPagesRead": 4,
+      "representedOfferings": 2,
+      "offerings": 4,
+      "blockedEvents": 0,
+      "inconclusiveEvents": 0,
+      "requests": 9,
+      "reviewerSaysServicePagesExist": true,
+      "crawlerMissedObviousPages": false,
+      "falseAnalyzable": false,
+      "failure": null,
+      "failureNote": "",
+      "suggestions": [
+        {
+          "label": "Air Conditioner Installation",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://cambridgeheating.ca/airconditioner-installation.html",
+            "Has its own page at https://cambridgeheating.ca/air-conditioner-repair.html",
+            "Has its own page at https://cambridgeheating.ca/airconditioner-installation.html",
+            "Has its own page at https://cambridgeheating.ca/air-conditioner-repair.html"
+          ]
+        }
+      ],
+      "errored": null
+    },
+    {
+      "id": "mrrooter",
+      "domain": "mrrooter.com",
+      "vertical": "plumbing",
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 6 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 0 service URL(s) in the sitemap.",
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "sitemapAvailable": false,
+      "sitemapUrls": 0,
+      "linksDiscovered": 339,
+      "serviceLikePages": 9,
+      "serviceLikeSitemapUrls": 0,
+      "serviceContentPagesRead": 9,
+      "representedOfferings": 6,
+      "offerings": 6,
+      "blockedEvents": 0,
+      "inconclusiveEvents": 0,
+      "requests": 21,
+      "reviewerSaysServicePagesExist": true,
+      "crawlerMissedObviousPages": false,
+      "falseAnalyzable": false,
+      "failure": null,
+      "failureNote": "",
+      "suggestions": [
+        {
+          "label": "Backflow Preventers",
+          "confidence": "high",
+          "evidence": [
+            "Listed in the site's main navigation",
+            "Has its own page at https://mrrooter.com/commercial-services/backflow-prevention-device-replacement-installat/",
+            "Listed in the site's main navigation",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Basement Drains",
+          "confidence": "high",
+          "evidence": [
+            "Listed in the site's main navigation",
+            "Has its own page at https://mrrooter.com/commercial-services/basement-drain-replacement-and-repair/",
+            "Listed in the site's main navigation",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Bathroom Remodeling",
+          "confidence": "high",
+          "evidence": [
+            "Listed under the site's services section (https://mrrooter.com/residential/remodeling/bathroom/)",
+            "Listed in the site's main navigation",
+            "Listed under the site's services section (https://mrrooter.com/commercial/remodeling/bathroom/)",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Bathtub Remodeling",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://mrrooter.com/residential-services/plumbing-repairs/tub-repair/",
+            "Listed in the site's main navigation",
+            "Has its own page at https://mrrooter.com/commercial-services/plumbing-repairs/tub-repair/",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Commercial Irrigation System Repair",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://www.mrrooter.com/commercial/lawn-grounds/irrigation-systems/",
+            "Listed under the site's services section (https://mrrooter.com/residential/lawn-grounds/irrigation-systems/)",
+            "Listed in the site's main navigation",
+            "Listed under the site's services section (https://mrrooter.com/commercial/lawn-grounds/irrigation-systems/)"
+          ]
+        },
+        {
+          "label": "Commercial Remodeling Services",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://www.mrrooter.com/commercial/remodeling/",
+            "Listed under the site's services section (https://mrrooter.com/residential/remodeling/)",
+            "Listed in the site's main navigation",
+            "Listed under the site's services section (https://mrrooter.com/commercial/remodeling/)"
+          ]
+        },
+        {
+          "label": "Faucet Repair",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://mrrooter.com/residential-services/plumbing-replacement-installations/faucet-installation/",
+            "Listed in the site's main navigation",
+            "Has its own page at https://mrrooter.com/commercial-services/plumbing-replacement-installations/faucet-installation/",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Garbage Disposals",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://mrrooter.com/residential-services/plumbing-repairs/garbage-disposal-repair/",
+            "Listed in the site's main navigation",
+            "Listed under the site's services section (https://mrrooter.com/commercial/appliance-repair/garbage-disposal/)",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Gas Line",
+          "confidence": "high",
+          "evidence": [
+            "Listed under the site's services section (https://mrrooter.com/residential/gas-line/)",
+            "Listed in the site's main navigation",
+            "Has its own page at https://mrrooter.com/residential-services/gas-line-repairs/",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Grease Trap",
+          "confidence": "high",
+          "evidence": [
+            "Listed under the site's services section (https://mrrooter.com/commercial/grease-trap/)",
+            "Listed in the site's main navigation",
+            "Has its own page at https://mrrooter.com/commercial-services/grease-trap-replacement-installations/",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Heating and AC",
+          "confidence": "high",
+          "evidence": [
+            "Listed under the site's services section (https://mrrooter.com/residential/heating-ac/)",
+            "Listed in the site's main navigation",
+            "Listed under the site's services section (https://mrrooter.com/commercial/heating-ac/)",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "How to Clean a Smelly Drain",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://mrrooter.com/about/blog/how-to-clean-a-stinky-drain/",
+            "Shown as a service card on the homepage",
+            "Has its own page at https://www.mrrooter.com/about/blog/how-to-clean-a-stinky-drain/",
+            "Shown as a service card on the homepage"
+          ]
+        }
+      ],
+      "errored": null
+    },
+    {
+      "id": "drainworks",
+      "domain": "drainworks.com",
+      "vertical": "plumbing",
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 5 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 0 service URL(s) in the sitemap.",
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "sitemapAvailable": false,
+      "sitemapUrls": 0,
+      "linksDiscovered": 153,
+      "serviceLikePages": 9,
+      "serviceLikeSitemapUrls": 0,
+      "serviceContentPagesRead": 9,
+      "representedOfferings": 5,
+      "offerings": 5,
+      "blockedEvents": 0,
+      "inconclusiveEvents": 0,
+      "requests": 21,
+      "reviewerSaysServicePagesExist": true,
+      "crawlerMissedObviousPages": false,
+      "falseAnalyzable": false,
+      "failure": null,
+      "failureNote": "",
+      "suggestions": [
+        {
+          "label": "Basement Crack Repairs",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://drainworks.com/basement-cracks-repairs",
+            "Listed in the site's main navigation",
+            "Has its own page at https://www.drainworks.com/basement-cracks-repairs",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Drain Replacement Excavation",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://drainworks.com/drain-sewer-services-toronto/drain-replacement-excavation",
+            "Listed in the site's main navigation",
+            "Has its own page at https://www.drainworks.com/drain-sewer-services-toronto/drain-replacement-excavation",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "External Waterproofing",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://drainworks.com/external-waterproofing",
+            "Listed in the site's main navigation",
+            "Has its own page at https://www.drainworks.com/external-waterproofing",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Frozen Pipes",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://drainworks.com/plumbing-services-in-toronto/frozen-pipes-repair",
+            "Listed in the site's main navigation",
+            "Has its own page at https://www.drainworks.com/plumbing-services-in-toronto/frozen-pipes-repair",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Internal Waterproofing",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://drainworks.com/internal-waterproofing",
+            "Listed in the site's main navigation",
+            "Has its own page at https://www.drainworks.com/internal-waterproofing",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Leaking Ceiling Repair",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://drainworks.com/plumbing-services-in-toronto/leaking-ceiling-repair",
+            "Listed in the site's main navigation",
+            "Has its own page at https://www.drainworks.com/plumbing-services-in-toronto/leaking-ceiling-repair",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Outdoor Faucet Repair",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://drainworks.com/plumbing-services-in-toronto/outdoor-faucet-repair",
+            "Listed in the site's main navigation",
+            "Has its own page at https://www.drainworks.com/plumbing-services-in-toronto/outdoor-faucet-repair",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Pipe Repair",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://drainworks.com/plumbing-services-in-toronto/leaky-pipe-repair",
+            "Listed in the site's main navigation",
+            "Has its own page at https://www.drainworks.com/plumbing-services-in-toronto/leaky-pipe-repair",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Plumbing Video Camera Inspections",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://drainworks.com/drain-sewer-services-toronto/plumbing-video-camera-inspection",
+            "Listed in the site's main navigation",
+            "Has its own page at https://www.drainworks.com/drain-sewer-services-toronto/plumbing-video-camera-inspection",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Shower Repair",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://drainworks.com/plumbing-services-in-toronto/shower-repair",
+            "Listed in the site's main navigation",
+            "Has its own page at https://www.drainworks.com/plumbing-services-in-toronto/shower-repair",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Sink Repair",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://drainworks.com/plumbing-services-in-toronto/sink-repair",
+            "Listed in the site's main navigation",
+            "Has its own page at https://www.drainworks.com/plumbing-services-in-toronto/sink-repair",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Tree Roots Removal",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://drainworks.com/drain-sewer-services-toronto/tree-roots-removal",
+            "Listed in the site's main navigation",
+            "Has its own page at https://www.drainworks.com/drain-sewer-services-toronto/tree-roots-removal",
+            "Listed in the site's main navigation"
+          ]
+        }
+      ],
+      "errored": null
+    },
+    {
+      "id": "atlasplumbing",
+      "domain": "atlasplumbing.ca",
+      "vertical": "plumbing",
+      "analyzable": false,
+      "reason": "This site has no service pages: the crawl followed every link on it and found 0 offering(s) represented in the site's navigation, links or sitemap, 0 service page(s) read, 0 service URL(s) in the sitemap. Nothing was blocked and nothing was left unread, so this is the whole site.",
+      "pagesFetched": 8,
+      "pagesReadable": 8,
+      "sitemapAvailable": false,
+      "sitemapUrls": 0,
+      "linksDiscovered": 10,
+      "serviceLikePages": 0,
+      "serviceLikeSitemapUrls": 0,
+      "serviceContentPagesRead": 0,
+      "representedOfferings": 0,
+      "offerings": 4,
+      "blockedEvents": 0,
+      "inconclusiveEvents": 0,
+      "requests": 12,
+      "reviewerSaysServicePagesExist": false,
+      "crawlerMissedObviousPages": false,
+      "falseAnalyzable": false,
+      "failure": "SITE_TOO_THIN",
+      "failureNote": "The site genuinely has no service content to reach.",
+      "suggestions": [],
+      "errored": null
+    },
+    {
+      "id": "fixitright",
+      "domain": "fixitrightplumbing.com.au",
+      "vertical": "plumbing",
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 6 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 0 service URL(s) in the sitemap.",
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "sitemapAvailable": false,
+      "sitemapUrls": 0,
+      "linksDiscovered": 111,
+      "serviceLikePages": 9,
+      "serviceLikeSitemapUrls": 0,
+      "serviceContentPagesRead": 9,
+      "representedOfferings": 6,
+      "offerings": 6,
+      "blockedEvents": 0,
+      "inconclusiveEvents": 0,
+      "requests": 11,
+      "reviewerSaysServicePagesExist": true,
+      "crawlerMissedObviousPages": false,
+      "falseAnalyzable": false,
+      "failure": null,
+      "failureNote": "",
+      "suggestions": [],
+      "errored": null
+    },
+    {
+      "id": "mrelectric",
+      "domain": "mrelectric.com",
+      "vertical": "electrician",
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 5 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 12 service URL(s) in the sitemap.",
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "sitemapAvailable": true,
+      "sitemapUrls": 100,
+      "linksDiscovered": 219,
+      "serviceLikePages": 9,
+      "serviceLikeSitemapUrls": 12,
+      "serviceContentPagesRead": 9,
+      "representedOfferings": 5,
+      "offerings": 6,
+      "blockedEvents": 0,
+      "inconclusiveEvents": 0,
+      "requests": 11,
+      "reviewerSaysServicePagesExist": true,
+      "crawlerMissedObviousPages": false,
+      "falseAnalyzable": false,
+      "failure": null,
+      "failureNote": "",
+      "suggestions": [
+        {
+          "label": "Attic Fan Installation, Replacement, & Repair",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://mrelectric.com/residential/attic-installation-repair/attic-fan-installation-repair",
+            "Listed under the site's services section (https://mrelectric.com/residential/attic-installation-repair/attic-fan-installation-repair)",
+            "Listed in the site's main navigation",
+            "Shown as a service card on the homepage"
+          ]
+        },
+        {
+          "label": "EV Charger Installation and Replacement",
+          "confidence": "high",
+          "evidence": [
+            "Listed under the site's services section (https://mrelectric.com/residential/electric-vehicles/ev-charger-installation-replacement)",
+            "Listed in the site's main navigation",
+            "Shown as a service card on the homepage",
+            "Listed under the site's services section (https://mrelectric.com/residential/electric-vehicles/ev-charger-repair-service)"
+          ]
+        },
+        {
+          "label": "Exhaust Fan Installation and Replacement",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://mrelectric.com/exhaust-fan-installation",
+            "Listed in the site's main navigation",
+            "Shown as a service card on the homepage",
+            "Listed in the site's sitemap (https://mrelectric.com/exhaust-fan-repair)"
+          ]
+        },
+        {
+          "label": "Knob and Tube Wiring Replacement Services",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://mrelectric.com/residential/electrical-services/knob-tube-wiring-replacement",
+            "Listed under the site's services section (https://mrelectric.com/residential/electrical-services/knob-tube-wiring-replacement)",
+            "Listed in the site's main navigation",
+            "Shown as a service card on the homepage"
+          ]
+        },
+        {
+          "label": "LED Lighting",
+          "confidence": "high",
+          "evidence": [
+            "Listed under the site's services section (https://mrelectric.com/residential/lighting/led-lighting-installation-replacement)",
+            "Listed in the site's main navigation",
+            "Shown as a service card on the homepage",
+            "Listed under the site's services section (https://mrelectric.com/commercial/lighting/led-lighting-installation-replacement)"
+          ]
+        },
+        {
+          "label": "Light Switch Installation Services",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://mrelectric.com/residential/electrical-services/light-switch-installation-repair",
+            "Listed under the site's services section (https://mrelectric.com/residential/electrical-services/light-switch-installation-repair)",
+            "Listed in the site's main navigation",
+            "Shown as a service card on the homepage"
+          ]
+        },
+        {
+          "label": "Lighting",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://mrelectric.com/lighting-repair",
+            "Listed in the site's main navigation",
+            "Listed under the site's services section (https://mrelectric.com/residential/lighting/lighting-installation)",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Panel Installation",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://mrelectric.com/electrical-panel-repair",
+            "Listed in the site's main navigation",
+            "Shown as a service card on the homepage",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Safety Outlet Installations & Replacements",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://mrelectric.com/residential/electrical-services/safety-outlet-installation-replacement",
+            "Listed under the site's services section (https://mrelectric.com/residential/electrical-services/safety-outlet-installation-replacement)",
+            "Listed in the site's main navigation",
+            "Shown as a service card on the homepage"
+          ]
+        },
+        {
+          "label": "Smoke Detector Inspection",
+          "confidence": "high",
+          "evidence": [
+            "Listed under the site's services section (https://mrelectric.com/residential/detectors/smoke-detector-inspection)",
+            "Listed in the site's main navigation",
+            "Shown as a service card on the homepage",
+            "Listed under the site's services section (https://mrelectric.com/residential/detectors/smoke-detector-installation-replacement)"
+          ]
+        },
+        {
+          "label": "Specialty Lighting",
+          "confidence": "high",
+          "evidence": [
+            "Listed under the site's services section (https://mrelectric.com/residential/lighting/specialty-lighting-installation)",
+            "Listed in the site's main navigation",
+            "Shown as a service card on the homepage",
+            "Listed in the site's sitemap (https://mrelectric.com/commercial-specialty-lighting)"
+          ]
+        },
+        {
+          "label": "Subpanel Installation",
+          "confidence": "high",
+          "evidence": [
+            "Listed under the site's services section (https://mrelectric.com/residential/circuit-installation-service/subpanel-installation-service)",
+            "Listed in the site's main navigation",
+            "Shown as a service card on the homepage",
+            "Listed under the site's services section (https://mrelectric.com/commercial/circuit-installation-service/subpanel-installation-service)"
+          ]
+        }
+      ],
+      "errored": null
+    },
+    {
+      "id": "altimadental",
+      "domain": "altimadental.com",
+      "vertical": "dentist",
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 5 offering(s) represented in the site's navigation, links or sitemap, 8 service page(s) read, 0 service URL(s) in the sitemap.",
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "sitemapAvailable": false,
+      "sitemapUrls": 0,
+      "linksDiscovered": 100,
+      "serviceLikePages": 8,
+      "serviceLikeSitemapUrls": 0,
+      "serviceContentPagesRead": 8,
+      "representedOfferings": 5,
+      "offerings": 5,
+      "blockedEvents": 0,
+      "inconclusiveEvents": 0,
+      "requests": 13,
+      "reviewerSaysServicePagesExist": true,
+      "crawlerMissedObviousPages": false,
+      "falseAnalyzable": false,
+      "failure": null,
+      "failureNote": "",
+      "suggestions": [
+        {
+          "label": "Virtual Consultation",
+          "confidence": "high",
+          "evidence": [
+            "Listed under the site's services section (https://www.altimadental.com/services/dental-implants/virtual-consult/)",
+            "Listed in the site's main navigation",
+            "Listed under the site's services section (https://www.altimadental.com/services/orthodontics/virtual-consultation/)",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Cosmetic Dentistry",
+          "confidence": "high",
+          "evidence": [
+            "Listed under the site's services section (https://www.altimadental.com/services/cosmetic-dentistry/)",
+            "Listed in the site's main navigation",
+            "Shown as a service card on the homepage"
+          ]
+        },
+        {
+          "label": "Dental Cleanings",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://www.altimadental.com/services/general-dentistry/dental-cleanings/",
+            "Listed under the site's services section (https://www.altimadental.com/services/general-dentistry/dental-cleanings/)",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Digital X-Rays",
+          "confidence": "high",
+          "evidence": [
+            "Listed under the site's services section (https://www.altimadental.com/services/general-dentistry/digital-x-rays/)",
+            "Listed in the site's main navigation",
+            "Shown as a service card on the homepage"
+          ]
+        },
+        {
+          "label": "Family Dentistry",
+          "confidence": "high",
+          "evidence": [
+            "Listed under the site's services section (https://www.altimadental.com/services/family-dentistry/)",
+            "Listed in the site's main navigation",
+            "Shown as a service card on the homepage"
+          ]
+        },
+        {
+          "label": "General Dentistry",
+          "confidence": "high",
+          "evidence": [
+            "Listed under the site's services section (https://www.altimadental.com/services/general-dentistry/)",
+            "Listed in the site's main navigation",
+            "Shown as a service card on the homepage"
+          ]
+        },
+        {
+          "label": "Myofunctional Therapy",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://www.altimadental.com/services/family-dentistry/myofunctional-therapy/",
+            "Listed under the site's services section (https://www.altimadental.com/services/family-dentistry/myofunctional-therapy/)",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Orthodontics",
+          "confidence": "high",
+          "evidence": [
+            "Listed under the site's services section (https://www.altimadental.com/services/orthodontics/)",
+            "Listed in the site's main navigation",
+            "Shown as a service card on the homepage"
+          ]
+        },
+        {
+          "label": "Restorative Dentistry",
+          "confidence": "high",
+          "evidence": [
+            "Listed under the site's services section (https://www.altimadental.com/services/restorative-dentistry/)",
+            "Listed in the site's main navigation",
+            "Shown as a service card on the homepage"
+          ]
+        },
+        {
+          "label": "Root Canal Therapy",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://www.altimadental.com/services/general-dentistry/root-canal-therapy/",
+            "Listed under the site's services section (https://www.altimadental.com/services/general-dentistry/root-canal-therapy/)",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Sleep Apnea and Snoring Treatment",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://www.altimadental.com/services/general-dentistry/sleep-apnea-treatment/",
+            "Listed under the site's services section (https://www.altimadental.com/services/general-dentistry/sleep-apnea-treatment/)",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "TMJ Treatment",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://www.altimadental.com/services/general-dentistry/tmj-treatment/",
+            "Listed under the site's services section (https://www.altimadental.com/services/general-dentistry/tmj-treatment/)",
+            "Listed in the site's main navigation"
+          ]
+        }
+      ],
+      "errored": null
+    },
+    {
+      "id": "smiledesign",
+      "domain": "smiledesigndentistry.com",
+      "vertical": "dentist",
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 4 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 0 service URL(s) in the sitemap.",
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "sitemapAvailable": false,
+      "sitemapUrls": 0,
+      "linksDiscovered": 99,
+      "serviceLikePages": 9,
+      "serviceLikeSitemapUrls": 0,
+      "serviceContentPagesRead": 9,
+      "representedOfferings": 4,
+      "offerings": 5,
+      "blockedEvents": 0,
+      "inconclusiveEvents": 0,
+      "requests": 11,
+      "reviewerSaysServicePagesExist": true,
+      "crawlerMissedObviousPages": false,
+      "falseAnalyzable": false,
+      "failure": null,
+      "failureNote": "",
+      "suggestions": [
+        {
+          "label": "Periodontics",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://www.smiledesigndentistry.com/periodontal-treatment/",
+            "Has its own page at https://www.smiledesigndentistry.com/periodontal-treatment/",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Tooth Extractions",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://www.smiledesigndentistry.com/tooth-extractions/",
+            "Has its own page at https://www.smiledesigndentistry.com/tooth-extractions/",
+            "Listed in the site's main navigation"
+          ]
+        }
+      ],
+      "errored": null
+    },
+    {
+      "id": "bloordental",
+      "domain": "bloordental.com",
+      "vertical": "dentist",
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 5 offering(s) represented in the site's navigation, links or sitemap, 0 service page(s) read, 0 service URL(s) in the sitemap.",
+      "pagesFetched": 1,
+      "pagesReadable": 1,
+      "sitemapAvailable": false,
+      "sitemapUrls": 0,
+      "linksDiscovered": 2,
+      "serviceLikePages": 0,
+      "serviceLikeSitemapUrls": 0,
+      "serviceContentPagesRead": 0,
+      "representedOfferings": 5,
+      "offerings": 6,
+      "blockedEvents": 2,
+      "inconclusiveEvents": 0,
+      "requests": 3,
+      "reviewerSaysServicePagesExist": true,
+      "crawlerMissedObviousPages": false,
+      "falseAnalyzable": false,
+      "failure": null,
+      "failureNote": "",
+      "suggestions": [],
+      "errored": null
+    },
+    {
+      "id": "yorkvilledental",
+      "domain": "yorkvilledental.ca",
+      "vertical": "dentist",
+      "analyzable": false,
+      "reason": "Insufficient service coverage: only 0 offering(s) represented in the site's navigation, links or sitemap, 0 service page(s) read, 0 service URL(s) in the sitemap — the crawl did not demonstrably reach the site's service pages, so no absence can be claimed.",
+      "pagesFetched": 1,
+      "pagesReadable": 0,
+      "sitemapAvailable": false,
+      "sitemapUrls": 0,
+      "linksDiscovered": 0,
+      "serviceLikePages": 0,
+      "serviceLikeSitemapUrls": 0,
+      "serviceContentPagesRead": 0,
+      "representedOfferings": 0,
+      "offerings": 4,
+      "blockedEvents": 0,
+      "inconclusiveEvents": 0,
+      "requests": 2,
+      "reviewerSaysServicePagesExist": "unknown",
+      "crawlerMissedObviousPages": false,
+      "falseAnalyzable": false,
+      "failure": "BLOCKED",
+      "failureNote": "No page returned readable HTML — bot protection, a JavaScript-only shell, or a transport failure.",
+      "suggestions": [],
+      "errored": null
+    },
+    {
+      "id": "physiomed",
+      "domain": "physiomed.ca",
+      "vertical": "clinic",
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 5 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 0 service URL(s) in the sitemap.",
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "sitemapAvailable": false,
+      "sitemapUrls": 0,
+      "linksDiscovered": 137,
+      "serviceLikePages": 9,
+      "serviceLikeSitemapUrls": 0,
+      "serviceContentPagesRead": 9,
+      "representedOfferings": 5,
+      "offerings": 5,
+      "blockedEvents": 0,
+      "inconclusiveEvents": 0,
+      "requests": 20,
+      "reviewerSaysServicePagesExist": true,
+      "crawlerMissedObviousPages": false,
+      "falseAnalyzable": false,
+      "failure": null,
+      "failureNote": "",
+      "suggestions": [
+        {
+          "label": "Laser Therapy",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://www.physiomed.ca/laser-therapy/?pg=treatment",
+            "Has its own page at https://www.physiomed.ca/laser-therapy/?pg=treatment",
+            "Listed in the site's main navigation",
+            "Listed under the site's services section (https://www.physiomed.ca/treatments/laser-therapy//?pg=treatment)"
+          ]
+        },
+        {
+          "label": "Shockwave Therapy",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://www.physiomed.ca/shockwave-therapy/?pg=treatment",
+            "Has its own page at https://www.physiomed.ca/shockwave-therapy/?pg=treatment",
+            "Listed in the site's main navigation",
+            "Listed under the site's services section (https://www.physiomed.ca/treatments/shockwave-therapy//?pg=treatment)"
+          ]
+        },
+        {
+          "label": "Traction Therapy",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://www.physiomed.ca/traction-therapy/?pg=treatment",
+            "Has its own page at https://www.physiomed.ca/traction-therapy/?pg=treatment",
+            "Listed in the site's main navigation",
+            "Listed under the site's services section (https://www.physiomed.ca/treatments/traction-therapy//?pg=treatment)"
+          ]
+        },
+        {
+          "label": "Vibration Therapy",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://www.physiomed.ca/vibration-therapy/?pg=treatment",
+            "Has its own page at https://www.physiomed.ca/vibration-therapy/?pg=treatment",
+            "Listed in the site's main navigation",
+            "Listed under the site's services section (https://www.physiomed.ca/treatments/vibration-therapy//?pg=treatment)"
+          ]
+        },
+        {
+          "label": "Aquatic Therapy",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://www.physiomed.ca/aquatic-therapy/?pg=treatment",
+            "Listed in the site's main navigation",
+            "Listed under the site's services section (https://www.physiomed.ca/treatments/aquatic-therapy//?pg=treatment)"
+          ]
+        },
+        {
+          "label": "Back Pain",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://www.physiomed.ca/back-pain-treatment/?pg=condition",
+            "Listed in the site's main navigation",
+            "Has its own page at https://www.physiomed.ca/conditions/back-pain-treatment//?pg=condition"
+          ]
+        },
+        {
+          "label": "Clinical Conditioning",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://www.physiomed.ca/clinical-conditioning-treatments/?pg=treatment",
+            "Listed in the site's main navigation",
+            "Listed under the site's services section (https://www.physiomed.ca/treatments/clinical-conditioning-treatments//?pg=treatment)"
+          ]
+        },
+        {
+          "label": "Competitive Recreational Sports",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://www.physiomed.ca/recreational-sports-injury-treatment/?pg=condition",
+            "Listed in the site's main navigation",
+            "Has its own page at https://www.physiomed.ca/conditions/recreational-sports-injury-treatment//?pg=condition"
+          ]
+        },
+        {
+          "label": "Compression Therapy",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://www.physiomed.ca/compression-therapy/?pg=treatment",
+            "Listed in the site's main navigation",
+            "Listed under the site's services section (https://www.physiomed.ca/treatments/compression-therapy//?pg=treatment)"
+          ]
+        },
+        {
+          "label": "Corns, Calluses and Bunions",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://www.physiomed.ca/corns-calluses-and-bunions-treatments/?pg=condition",
+            "Listed in the site's main navigation",
+            "Has its own page at https://www.physiomed.ca/conditions/corns-calluses-and-bunions-treatments//?pg=condition"
+          ]
+        },
+        {
+          "label": "Heel Pain",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://www.physiomed.ca/heel-pain-treatment/?pg=condition",
+            "Listed in the site's main navigation",
+            "Has its own page at https://www.physiomed.ca/conditions/heel-pain-treatment//?pg=condition"
+          ]
+        },
+        {
+          "label": "Joint Pain",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://www.physiomed.ca/joint-pain-treatment/?pg=condition",
+            "Listed in the site's main navigation",
+            "Has its own page at https://www.physiomed.ca/conditions/joint-pain-treatment//?pg=condition"
+          ]
+        }
+      ],
+      "errored": null
+    },
+    {
+      "id": "renoduck",
+      "domain": "renoduck.com",
+      "vertical": "contractor",
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 5 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 0 service URL(s) in the sitemap.",
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "sitemapAvailable": false,
+      "sitemapUrls": 0,
+      "linksDiscovered": 180,
+      "serviceLikePages": 9,
+      "serviceLikeSitemapUrls": 0,
+      "serviceContentPagesRead": 9,
+      "representedOfferings": 5,
+      "offerings": 5,
+      "blockedEvents": 0,
+      "inconclusiveEvents": 0,
+      "requests": 11,
+      "reviewerSaysServicePagesExist": true,
+      "crawlerMissedObviousPages": false,
+      "falseAnalyzable": false,
+      "failure": null,
+      "failureNote": "",
+      "suggestions": [
+        {
+          "label": "Basement Bathroom",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://www.renoduck.com/basement-bathroom-renovation-toronto/",
+            "Listed in the site's main navigation",
+            "Shown as a service card on the homepage"
+          ]
+        },
+        {
+          "label": "Basement Game Room",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://www.renoduck.com/basement-game-room-renovation/",
+            "Listed in the site's main navigation",
+            "Shown as a service card on the homepage"
+          ]
+        },
+        {
+          "label": "Basement Kitchen",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://www.renoduck.com/basement-kitchen-renovation-toronto/",
+            "Listed in the site's main navigation",
+            "Shown as a service card on the homepage"
+          ]
+        },
+        {
+          "label": "Basement Office",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://www.renoduck.com/basement-office-renovation/",
+            "Listed in the site's main navigation",
+            "Shown as a service card on the homepage"
+          ]
+        },
+        {
+          "label": "Basement Sauna",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://www.renoduck.com/basement-sauna-renovation/",
+            "Listed in the site's main navigation",
+            "Shown as a service card on the homepage"
+          ]
+        },
+        {
+          "label": "Home Renovation",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://www.renoduck.com/home-renovation/",
+            "Listed in the site's main navigation",
+            "Shown as a service card on the homepage"
+          ]
+        },
+        {
+          "label": "Aurora",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://www.renoduck.com/basement-renovation-aurora/",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Basement Game Room Renovation",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://www.renoduck.com/basement-game-room-renovation/",
+            "Has its own page at https://renoduck.com/basement-game-room-renovation/"
+          ]
+        },
+        {
+          "label": "Basement Office Renovation",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://www.renoduck.com/basement-office-renovation/",
+            "Has its own page at https://renoduck.com/basement-office-renovation/"
+          ]
+        },
+        {
+          "label": "Etobicoke",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://www.renoduck.com/basement-renovation-etobicoke/",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Home Renovation Glossary",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://www.renoduck.com/renovation-glossary/",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Markham",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://www.renoduck.com/basement-renovation-markham/",
+            "Listed in the site's main navigation"
+          ]
+        }
+      ],
+      "errored": null
+    },
+    {
+      "id": "nusite",
+      "domain": "nusite.ca",
+      "vertical": "contractor",
+      "analyzable": false,
+      "reason": "This site has no service pages: the crawl followed every link on it and found 0 offering(s) represented in the site's navigation, links or sitemap, 0 service page(s) read, 0 service URL(s) in the sitemap. Nothing was blocked and nothing was left unread, so this is the whole site.",
+      "pagesFetched": 1,
+      "pagesReadable": 1,
+      "sitemapAvailable": false,
+      "sitemapUrls": 0,
+      "linksDiscovered": 1,
+      "serviceLikePages": 0,
+      "serviceLikeSitemapUrls": 0,
+      "serviceContentPagesRead": 0,
+      "representedOfferings": 0,
+      "offerings": 4,
+      "blockedEvents": 0,
+      "inconclusiveEvents": 0,
+      "requests": 2,
+      "reviewerSaysServicePagesExist": false,
+      "crawlerMissedObviousPages": false,
+      "falseAnalyzable": false,
+      "failure": "SITE_TOO_THIN",
+      "failureNote": "The site genuinely has no service content to reach.",
+      "suggestions": [],
+      "errored": null
+    },
+    {
+      "id": "nerdsonsite",
+      "domain": "nerdsonsite.com",
+      "vertical": "agency",
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 5 offering(s) represented in the site's navigation, links or sitemap, 7 service page(s) read, 0 service URL(s) in the sitemap.",
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "sitemapAvailable": false,
+      "sitemapUrls": 0,
+      "linksDiscovered": 45,
+      "serviceLikePages": 7,
+      "serviceLikeSitemapUrls": 0,
+      "serviceContentPagesRead": 4,
+      "representedOfferings": 5,
+      "offerings": 5,
+      "blockedEvents": 0,
+      "inconclusiveEvents": 0,
+      "requests": 11,
+      "reviewerSaysServicePagesExist": true,
+      "crawlerMissedObviousPages": false,
+      "falseAnalyzable": false,
+      "failure": null,
+      "failureNote": "",
+      "suggestions": [
+        {
+          "label": "IT Consulting Services",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://nerdsonsite.com/business-solutions/it-consulting-services/",
+            "Has its own page at https://nerdsonsite.com/business-solutions/it-consulting-services/",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Mac Service & Repair",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://nerdsonsite.com/residential-services/onsite-mac-repair/",
+            "Has its own page at https://nerdsonsite.com/residential-services/onsite-mac-repair/",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Virus Malware Removal",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://nerdsonsite.com/residential-services/malware-removal/",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Virus Removal Services",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://nerdsonsite.com/residential-services/malware-removal/"
+          ]
+        }
+      ],
+      "errored": null
+    },
+    {
+      "id": "goddardschool",
+      "domain": "goddardschool.com",
+      "vertical": "childcare",
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 4 offering(s) represented in the site's navigation, links or sitemap, 2 service page(s) read, 0 service URL(s) in the sitemap.",
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "sitemapAvailable": false,
+      "sitemapUrls": 0,
+      "linksDiscovered": 72,
+      "serviceLikePages": 2,
+      "serviceLikeSitemapUrls": 0,
+      "serviceContentPagesRead": 1,
+      "representedOfferings": 4,
+      "offerings": 6,
+      "blockedEvents": 0,
+      "inconclusiveEvents": 0,
+      "requests": 20,
+      "reviewerSaysServicePagesExist": true,
+      "crawlerMissedObviousPages": false,
+      "falseAnalyzable": false,
+      "failure": null,
+      "failureNote": "",
+      "suggestions": [
+        {
+          "label": "Babyproofing Your Home",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://www.goddardschool.com/blog/babyproofing-your-home"
+          ]
+        }
+      ],
+      "errored": null
+    },
+    {
+      "id": "thelawnsalon",
+      "domain": "thelawnsalon.ca",
+      "vertical": "landscaping",
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 4 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 0 service URL(s) in the sitemap.",
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "sitemapAvailable": false,
+      "sitemapUrls": 0,
+      "linksDiscovered": 81,
+      "serviceLikePages": 9,
+      "serviceLikeSitemapUrls": 0,
+      "serviceContentPagesRead": 9,
+      "representedOfferings": 4,
+      "offerings": 6,
+      "blockedEvents": 0,
+      "inconclusiveEvents": 0,
+      "requests": 12,
+      "reviewerSaysServicePagesExist": true,
+      "crawlerMissedObviousPages": false,
+      "falseAnalyzable": false,
+      "failure": null,
+      "failureNote": "",
+      "suggestions": [
+        {
+          "label": "Swimming Pool Removal",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://www.thelawnsalon.ca/all-projects/pool-removal/",
+            "Has its own page at https://www.thelawnsalon.ca/all-projects/pool-removal/",
+            "Listed in the site's main navigation",
+            "Shown as a service card on the homepage"
+          ]
+        },
+        {
+          "label": "Tree and Stump Removal",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://www.thelawnsalon.ca/all-projects/stump-removal/",
+            "Has its own page at https://www.thelawnsalon.ca/all-projects/stump-removal/",
+            "Listed in the site's main navigation",
+            "Shown as a service card on the homepage"
+          ]
+        },
+        {
+          "label": "Charleswood Pool Removal Through Low Garage",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://www.thelawnsalon.ca/project-gallery/charleswood-pool-removal-through-low-garage/",
+            "Has its own page at https://www.thelawnsalon.ca/project-gallery/charleswood-pool-removal-through-low-garage/"
+          ]
+        },
+        {
+          "label": "Pool Removal – Riverview",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://www.thelawnsalon.ca/project-gallery/pool-removal-riverview/",
+            "Has its own page at https://www.thelawnsalon.ca/project-gallery/pool-removal-riverview/"
+          ]
+        },
+        {
+          "label": "Backyard pool removal with mini excavators",
+          "confidence": "medium",
+          "evidence": [
+            "Has its own page at https://www.thelawnsalon.ca/project-gallery/backyard-pool-removal-with-mini-excavators/"
+          ]
+        },
+        {
+          "label": "Large Stump Removal",
+          "confidence": "medium",
+          "evidence": [
+            "Has its own page at https://www.thelawnsalon.ca/project-gallery/large-stump-removal/"
+          ]
+        },
+        {
+          "label": "Large stump removal with Bobcat excavator",
+          "confidence": "medium",
+          "evidence": [
+            "Has its own page at https://www.thelawnsalon.ca/project-gallery/large-stump-removal-bobcat-excavator/"
+          ]
+        },
+        {
+          "label": "Late Fall Pool Removal",
+          "confidence": "medium",
+          "evidence": [
+            "Has its own page at https://www.thelawnsalon.ca/project-gallery/late-fall-pool-removal/"
+          ]
+        },
+        {
+          "label": "Pool removal with narrow gate access",
+          "confidence": "medium",
+          "evidence": [
+            "Has its own page at https://www.thelawnsalon.ca/project-gallery/pool-removal-narrow-gate-access/"
+          ]
+        },
+        {
+          "label": "Removing concrete from swimming pool",
+          "confidence": "medium",
+          "evidence": [
+            "Has its own page at https://www.thelawnsalon.ca/project-gallery/more-swimming-pool-removal/"
+          ]
+        },
+        {
+          "label": "Stump grinding with mini skid steer",
+          "confidence": "medium",
+          "evidence": [
+            "Has its own page at https://www.thelawnsalon.ca/project-gallery/22stump-grinding-mini-skid-steer/"
+          ]
+        },
+        {
+          "label": "Stump removal with excavator",
+          "confidence": "medium",
+          "evidence": [
+            "Has its own page at https://www.thelawnsalon.ca/project-gallery/1stump-removal-with-excavator/"
+          ]
+        }
+      ],
+      "errored": null
+    },
+    {
+      "id": "davey",
+      "domain": "davey.com",
+      "vertical": "landscaping",
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 6 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 0 service URL(s) in the sitemap.",
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "sitemapAvailable": false,
+      "sitemapUrls": 0,
+      "linksDiscovered": 258,
+      "serviceLikePages": 9,
+      "serviceLikeSitemapUrls": 0,
+      "serviceContentPagesRead": 9,
+      "representedOfferings": 6,
+      "offerings": 6,
+      "blockedEvents": 0,
+      "inconclusiveEvents": 0,
+      "requests": 21,
+      "reviewerSaysServicePagesExist": true,
+      "crawlerMissedObviousPages": false,
+      "falseAnalyzable": false,
+      "failure": null,
+      "failureNote": "",
+      "suggestions": [
+        {
+          "label": "Class A",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://davey.com/commercial-services/class-a-property-landscaping-services/",
+            "Listed in the site's main navigation",
+            "Has its own page at https://www.davey.com/commercial-services/class-a-property-landscaping-services/",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Commercial Grounds Maintenance Services",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://www.davey.com/commercial-services/commercial-grounds-maintenance/",
+            "Has its own page at https://davey.com/commercial-services/commercial-grounds-maintenance/",
+            "Listed in the site's main navigation",
+            "Has its own page at https://www.davey.com/commercial-services/commercial-grounds-maintenance/"
+          ]
+        },
+        {
+          "label": "Commercial Snow & Ice Removal",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://www.davey.com/commercial-services/commercial-snow-ice-removal/",
+            "Has its own page at https://davey.com/commercial-services/commercial-snow-ice-removal/",
+            "Listed in the site's main navigation",
+            "Has its own page at https://www.davey.com/commercial-services/commercial-snow-ice-removal/"
+          ]
+        },
+        {
+          "label": "Environmental Consulting",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://davey.com/utility-services/environmental-consulting-for-utilities/",
+            "Listed in the site's main navigation",
+            "Has its own page at https://davey.com/environmental-consulting-services/",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Environmental Design & Ecosystem Restoration",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://davey.com/environmental-consulting-services/environmental-design-ecosystem-restoration/",
+            "Listed in the site's main navigation",
+            "Has its own page at https://www.davey.com/environmental-consulting-services/environmental-design-ecosystem-restoration/",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Expertise & Training",
+          "confidence": "high",
+          "evidence": [
+            "Listed under the site's services section (https://davey.com/about/expertise/)",
+            "Listed in the site's main navigation",
+            "Listed under the site's services section (https://www.davey.com/about/expertise/)",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Golf Courses",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://davey.com/commercial-services/golf-course-tree-and-landscaping-services/",
+            "Listed in the site's main navigation",
+            "Has its own page at https://www.davey.com/commercial-services/golf-course-tree-and-landscaping-services/",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Invasive Species Management & Control",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://davey.com/environmental-consulting-services/invasive-species-management-control/",
+            "Listed in the site's main navigation",
+            "Has its own page at https://www.davey.com/environmental-consulting-services/invasive-species-management-control/",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Landscape Architecture & Ecological Design",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://davey.com/environmental-consulting-services/landscape-architecture-ecological-design/",
+            "Listed in the site's main navigation",
+            "Has its own page at https://www.davey.com/environmental-consulting-services/landscape-architecture-ecological-design/",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Landscape Design & Installation",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://davey.com/professional-landscaping/",
+            "Listed in the site's main navigation",
+            "Has its own page at https://www.davey.com/professional-landscaping/",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Lawn Pest & Grub Control",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://www.davey.com/residential-tree-services/lawn-care-services/lawn-pest-grub-control/",
+            "Has its own page at https://davey.com/residential-tree-services/lawn-care-services/lawn-pest-grub-control/",
+            "Listed in the site's main navigation",
+            "Has its own page at https://www.davey.com/residential-tree-services/lawn-care-services/lawn-pest-grub-control/"
+          ]
+        },
+        {
+          "label": "Shrub Pruning",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://www.davey.com/residential-tree-services/shrub-pruning/",
+            "Has its own page at https://davey.com/residential-tree-services/shrub-pruning/",
+            "Listed in the site's main navigation",
+            "Has its own page at https://www.davey.com/residential-tree-services/shrub-pruning/"
+          ]
+        }
+      ],
+      "errored": null
+    },
+    {
+      "id": "bartlett",
+      "domain": "bartlett.com",
+      "vertical": "landscaping",
+      "analyzable": false,
+      "reason": "Insufficient service coverage: only 0 offering(s) represented in the site's navigation, links or sitemap, 0 service page(s) read, 0 service URL(s) in the sitemap — the crawl did not demonstrably reach the site's service pages, so no absence can be claimed.",
+      "pagesFetched": 1,
+      "pagesReadable": 1,
+      "sitemapAvailable": false,
+      "sitemapUrls": 0,
+      "linksDiscovered": 0,
+      "serviceLikePages": 0,
+      "serviceLikeSitemapUrls": 0,
+      "serviceContentPagesRead": 0,
+      "representedOfferings": 0,
+      "offerings": 5,
+      "blockedEvents": 1,
+      "inconclusiveEvents": 0,
+      "requests": 2,
+      "reviewerSaysServicePagesExist": true,
+      "crawlerMissedObviousPages": true,
+      "falseAnalyzable": false,
+      "failure": "CRAWLER_DISCOVERY",
+      "failureNote": "The reviewer says service pages exist; the crawl reached 0 service-like page(s) and 0 service-like sitemap URL(s).",
+      "suggestions": [],
+      "errored": null
+    },
+    {
+      "id": "activegreenross",
+      "domain": "activegreenross.com",
+      "vertical": "automotive",
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 4 offering(s) represented in the site's navigation, links or sitemap, 6 service page(s) read, 0 service URL(s) in the sitemap.",
+      "pagesFetched": 7,
+      "pagesReadable": 7,
+      "sitemapAvailable": false,
+      "sitemapUrls": 0,
+      "linksDiscovered": 144,
+      "serviceLikePages": 6,
+      "serviceLikeSitemapUrls": 0,
+      "serviceContentPagesRead": 6,
+      "representedOfferings": 4,
+      "offerings": 5,
+      "blockedEvents": 0,
+      "inconclusiveEvents": 0,
+      "requests": 22,
+      "reviewerSaysServicePagesExist": true,
+      "crawlerMissedObviousPages": false,
+      "falseAnalyzable": false,
+      "failure": null,
+      "failureNote": "",
+      "suggestions": [
+        {
+          "label": "Tune-up",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://activegreenross.com/maintenance-services/tune-up",
+            "Has its own page at https://www.activegreenross.com/maintenance-services/tune-up",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Vehicle Maintenance",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://activegreenross.com/maintenance-services/vehicle-maintenance",
+            "Has its own page at https://www.activegreenross.com/maintenance-services/vehicle-maintenance",
+            "Listed in the site's main navigation"
+          ]
+        },
+        {
+          "label": "Auto Repair Services",
+          "confidence": "high",
+          "evidence": [
+            "Has its own page at https://www.activegreenross.com/repair-services",
+            "Has its own page at https://www.activegreenross.com/maintenance-services"
+          ]
+        },
+        {
+          "label": "Fleet Maintenance",
+          "confidence": "medium",
+          "evidence": [
+            "Has its own page at https://activegreenross.com/fleet-maintenance",
+            "Has its own page at https://www.activegreenross.com/fleet-maintenance"
+          ]
+        },
+        {
+          "label": "Heating & Cooling",
+          "confidence": "medium",
+          "evidence": [
+            "Has its own page at https://activegreenross.com/repair-services/cooling-system",
+            "Has its own page at https://www.activegreenross.com/repair-services/cooling-system"
+          ]
+        }
+      ],
+      "errored": null
+    }
+  ]
+}

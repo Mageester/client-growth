@@ -5,6 +5,12 @@ import { serviceForRule } from "@/core/rules/registry";
 /** Agency services tagged like this are what this rule proposes. */
 const SERVICE_PAGES_TAG = "service-pages-build";
 
+/**
+ * Readable pages required before "this site describes no services" is claimed,
+ * absent a sitemap saying the same thing independently.
+ */
+const MIN_PAGES_FOR_CLAIM = 3;
+
 function count(n: number, singular: string, plural = singular + "s"): string {
   return `${n} ${n === 1 ? singular : plural}`;
 }
@@ -42,6 +48,16 @@ export async function noServicePagesRule(ctx: RuleContext): Promise<Candidate[]>
     (page) => page.status >= 200 && page.status < 300 && page.wordCount > 0,
   ).length;
   if (readablePages === 0) return [];
+
+  // Defence in depth against the failure this rule is most exposed to. A
+  // JavaScript-rendered site returns one HTML shell with no crawlable links,
+  // which empties the crawl frontier for the opposite reason to a genuinely
+  // thin site: the crawler learned nothing rather than learning there was
+  // nothing. The provider already refuses to call that exhaustive, and this
+  // says so again at the point the client-facing claim is actually made,
+  // because a wrong claim here is one an agency repeats to their client.
+  const corroborated = readablePages >= MIN_PAGES_FOR_CLAIM || evidence.site.sitemapUrls.length > 0;
+  if (!corroborated) return [];
 
   // The agency has to have something to sell for this, and the finding is
   // priced from it.
