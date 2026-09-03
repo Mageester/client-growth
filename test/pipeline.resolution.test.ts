@@ -146,7 +146,11 @@ describe("resolving findings the client has fixed", () => {
     );
     const result = await reanalyze({ site: DENTAL.site, catalog });
 
-    expect(result.catalogCoverage.matched).toBe(1);
+    // Name the rule that cannot run rather than counting the ones that can, so
+    // this keeps testing the deactivated service when new rules are added.
+    expect(
+      result.catalogCoverage.rules.find((r) => r.tag === "conversion-fix")?.serviceId,
+    ).toBeNull();
     expect(result.resolved).toHaveLength(0);
   });
 

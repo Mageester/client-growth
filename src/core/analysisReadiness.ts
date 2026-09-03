@@ -177,6 +177,41 @@ function brokenConversionPathReadiness(input: ReadinessInput): {
   };
 }
 
+function noServicePagesReadiness(input: ReadinessInput): {
+  state: ReadinessState;
+  reason: string;
+  actionable: boolean;
+} {
+  // The finding names what the site should have been describing, so without a
+  // recorded offering it could be stated but not written.
+  if (input.offerings === 0) {
+    return {
+      state: "needs_client_setup",
+      reason:
+        "This client has no offerings recorded, so there is nothing to say the site should be describing.",
+      actionable: true,
+    };
+  }
+
+  // The claim is "we read every page and none of them sells anything", which a
+  // site that returned nothing readable cannot support.
+  if (input.lastCrawl && input.lastCrawl.readablePages === 0) {
+    return {
+      state: "site_coverage_limited",
+      reason:
+        "The last run could not read any page on this site, so it cannot be said that the site describes no services.",
+      actionable: false,
+    };
+  }
+
+  return {
+    state: "ready",
+    reason:
+      "Checked whenever the crawl reads a whole site and finds nothing on it describing a service.",
+    actionable: false,
+  };
+}
+
 /** The best state any rule can manage. */
 function bestState(states: ReadinessState[]): ReadinessState {
   if (states.includes("ready")) return "ready";
@@ -205,7 +240,9 @@ export function assessAnalysisReadiness(input: ReadinessInput): AnalysisReadines
     const assessed =
       rule.ruleId === "missing-service-page"
         ? missingServicePageReadiness(input)
-        : brokenConversionPathReadiness(input);
+        : rule.ruleId === "no-service-pages"
+          ? noServicePagesReadiness(input)
+          : brokenConversionPathReadiness(input);
 
     return { ruleId: rule.ruleId, label: rule.label, ...assessed };
   });

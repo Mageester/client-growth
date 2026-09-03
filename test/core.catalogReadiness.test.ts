@@ -75,12 +75,14 @@ describe("rule/service registry", () => {
   it("reports which kinds of gap a catalog cannot reach", () => {
     const partial = assessCatalogCoverage([service({ id: "s1", tags: ["landing-page"] })]);
     expect(partial.matched).toBe(1);
-    expect(partial.total).toBe(2);
-    expect(partial.unmatchedLabels).toEqual(["A broken conversion path"]);
+    expect(partial.total).toBe(RULE_SERVICE_LINKS.length);
+    expect(partial.unmatchedLabels).toEqual(
+      RULE_SERVICE_LINKS.filter((link) => link.tag !== "landing-page").map((link) => link.label),
+    );
 
     const none = assessCatalogCoverage([service({ id: "s1", tags: ["seo", "retainer"] })]);
     expect(none.matched).toBe(0);
-    expect(none.unmatchedLabels).toHaveLength(2);
+    expect(none.unmatchedLabels).toHaveLength(RULE_SERVICE_LINKS.length);
   });
 });
 
@@ -126,7 +128,9 @@ describe("analysis outcome with an unusable catalog", () => {
     });
 
     expect(result.outcome).toBe("clean");
-    expect(result.limitation).toMatch(/1 of 2 kinds of gap/i);
+    expect(result.limitation).toMatch(
+      new RegExp(`1 of ${RULE_SERVICE_LINKS.length} kinds of gap`, "i"),
+    );
     expect(result.limitation).toMatch(/a broken conversion path/i);
   });
 
@@ -137,10 +141,9 @@ describe("analysis outcome with an unusable catalog", () => {
       coverageReason: "Service coverage confirmed.",
       surfaced: 0,
       evaluatorErrors: 0,
-      catalog: assessCatalogCoverage([
-        service({ id: "s1", tags: ["landing-page"] }),
-        service({ id: "s2", tags: ["conversion-fix"] }),
-      ]),
+      catalog: assessCatalogCoverage(
+        RULE_SERVICE_LINKS.map((link, i) => service({ id: "s" + i, tags: [link.tag] })),
+      ),
     });
 
     expect(result.outcome).toBe("clean");

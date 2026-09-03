@@ -40,6 +40,13 @@ const STARTER_DEFAULTS: Record<
     max: 1800,
     when: "a client sells something their website never gives its own page",
   },
+  "no-service-pages": {
+    field: "servicepages",
+    name: "Service Pages Build",
+    min: 2500,
+    max: 6000,
+    when: "a client's whole website never describes anything they sell",
+  },
   "broken-conversion-path": {
     field: "conversion",
     name: "Conversion Path Fix",

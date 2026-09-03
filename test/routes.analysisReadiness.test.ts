@@ -12,6 +12,7 @@ import { ClientSchema, ServiceSchema } from "@/core/schema";
 import { __setSessionResolver } from "../app/lib/session.server";
 import { d1LikeOver } from "./helpers/testAuth";
 
+import { RULE_SERVICE_LINKS } from "@/core/rules/registry";
 import * as clientDetail from "../app/routes/clients.$id";
 
 /**
@@ -177,11 +178,8 @@ describe("pre-analysis readiness", () => {
     const { readiness } = await loadClient();
 
     expect(readiness.catalog.matched).toBe(0);
-    expect(readiness.total).toBe(2);
-    expect(readiness.catalog.unmatchedLabels).toEqual([
-      "A missing service page",
-      "A broken conversion path",
-    ]);
+    expect(readiness.total).toBe(RULE_SERVICE_LINKS.length);
+    expect(readiness.catalog.unmatchedLabels).toEqual(RULE_SERVICE_LINKS.map((l) => l.label));
     expect(readiness.readyCount).toBe(0);
     expect(readiness.rules.every((r) => r.state === "not_ready")).toBe(true);
   });
@@ -193,18 +191,19 @@ describe("pre-analysis readiness", () => {
     const { readiness } = await loadClient();
 
     expect(readiness.catalog.matched).toBe(1);
-    expect(readiness.catalog.unmatchedLabels).toEqual(["A broken conversion path"]);
+    expect(readiness.catalog.unmatchedLabels).toEqual(
+      RULE_SERVICE_LINKS.filter((l) => l.tag !== "landing-page").map((l) => l.label),
+    );
     expect(ruleOf(readiness, "broken-conversion-path").state).toBe("not_ready");
   });
 
   it("reports a thin client so the likely inconclusive run is warned about first", async () => {
     await addClient(["dental implants"]);
-    await addService(["landing-page"]);
-    await addService(["conversion-fix"]);
+    for (const link of RULE_SERVICE_LINKS) await addService([link.tag]);
 
     const { readiness } = await loadClient();
 
-    expect(readiness.catalog.matched).toBe(2);
+    expect(readiness.catalog.matched).toBe(RULE_SERVICE_LINKS.length);
     expect(readiness.catalog.unmatchedLabels).toEqual([]);
 
     // One offering: missing-service-page will almost never be able to prove the
@@ -221,8 +220,7 @@ describe("pre-analysis readiness", () => {
 
   it("has nothing to warn about once the workspace is properly set up", async () => {
     await addClient(["dental implants", "invisalign", "teeth whitening"]);
-    await addService(["landing-page"]);
-    await addService(["conversion-fix"]);
+    for (const link of RULE_SERVICE_LINKS) await addService([link.tag]);
 
     const { readiness } = await loadClient();
 

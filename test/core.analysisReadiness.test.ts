@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { assessAnalysisReadiness } from "@/core/analysisReadiness";
+import { RULE_SERVICE_LINKS } from "@/core/rules/registry";
 import { ServiceSchema, type Service } from "@/core/schema";
 
 /**
@@ -26,7 +27,9 @@ function service(tag: string, active = true): Service {
   });
 }
 
-const fullCatalog = [service("landing-page"), service("conversion-fix")];
+// Built from the registry so a new rule fails this fixture loudly at the point
+// it is added, rather than silently leaving one rule unreachable in every test.
+const fullCatalog = RULE_SERVICE_LINKS.map((link) => service(link.tag));
 
 const ruleOf = (
   readiness: ReturnType<typeof assessAnalysisReadiness>,

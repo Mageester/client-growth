@@ -136,7 +136,11 @@ export type EvidenceBundle = z.infer<typeof EvidenceBundleSchema>;
 // ---------------------------------------------------------------------------
 // Rule output (deterministic candidates, pre-AI)
 // ---------------------------------------------------------------------------
-export const RuleIdSchema = z.enum(["missing-service-page", "broken-conversion-path"]);
+export const RuleIdSchema = z.enum([
+  "missing-service-page",
+  "no-service-pages",
+  "broken-conversion-path",
+]);
 export type RuleId = z.infer<typeof RuleIdSchema>;
 
 /**

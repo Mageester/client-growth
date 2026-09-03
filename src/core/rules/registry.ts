@@ -26,6 +26,12 @@ export const RULE_SERVICE_LINKS: readonly RuleServiceLink[] = [
     hint: "Sell this when a client offers something their website never gives its own page.",
   },
   {
+    ruleId: "no-service-pages",
+    tag: "service-pages-build",
+    label: "A site with no service pages at all",
+    hint: "Sell this when a client's whole website never describes anything they sell — the work is a set of pages, not one.",
+  },
+  {
     ruleId: "broken-conversion-path",
     tag: "conversion-fix",
     label: "A broken conversion path",

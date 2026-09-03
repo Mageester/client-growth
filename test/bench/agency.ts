@@ -4,12 +4,12 @@ import { ServiceSchema, type Service } from "@/core/schema";
  * A realistic small web/digital agency catalog, used only by the engine
  * benchmark. Prices are the ones a UK/CA-sized shop would actually quote.
  *
- * Two of these four services are reachable by today's engine, because only two
- * rules exist. The other two are deliberately kept in the catalog and left
- * unmatched: a real agency sells more than the engine can detect, and the
- * benchmark should reflect that rather than pretending the catalog is fully
- * covered. `unreachableServiceIds` is asserted on, so adding a rule without
- * updating this file fails loudly.
+ * Three of these five services are reachable by today's engine, one per rule.
+ * The other two are deliberately kept in the catalog and left unmatched: a real
+ * agency sells more than the engine can detect, and the benchmark should
+ * reflect that rather than pretending the catalog is fully covered.
+ * `UNREACHABLE_SERVICE_IDS` is asserted on, so adding a rule without updating
+ * this file fails loudly.
  */
 export const AGENCY_SERVICES: Service[] = [
   {
@@ -30,6 +30,16 @@ export const AGENCY_SERVICES: Service[] = [
     priceMin: 300,
     priceMax: 1000,
     tags: ["conversion-fix"],
+    active: true,
+  },
+  {
+    id: "svc-service-pages-build",
+    name: "Service pages build",
+    description:
+      "A set of service pages for a business whose website describes nothing it sells: one page per service line, with copy, on-page SEO and a lead-capture call to action on each.",
+    priceMin: 2500,
+    priceMax: 6000,
+    tags: ["service-pages-build"],
     active: true,
   },
   {
