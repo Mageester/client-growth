@@ -19,6 +19,7 @@ import "./styles/signal-desk.css";
 import "./lib/context";
 import { getWorkspaceForUser } from "@/db/workspaces";
 import { AxiomCredit, EmptyState, getInitials, Icon, Menu } from "./components/ui";
+import { ProductTour, useProductTour } from "./components/tour";
 import { d1Db } from "./lib/d1.server";
 import { getSession } from "./lib/session.server";
 import type { Route } from "./+types/root";
@@ -80,16 +81,28 @@ const NAV = [
   { to: "/services", label: "Services", icon: "briefcase" as const },
 ];
 
+/**
+ * The standalone Axiom emblem. Chrome on dark, black on light — both ship and
+ * CSS picks one, so the server-rendered HTML already carries the right mark.
+ */
 function BrandMark() {
   return (
-    <img
-      className="brand-mark"
-      src="/brand/axiom-orbit-icon-chrome-transparent.png"
-      alt=""
-      width={28}
-      height={28}
-      loading="eager"
-    />
+    <span className="brand-mark" aria-hidden="true">
+      <img
+        className="brand-art brand-art-dark"
+        src="/brand/axiom-orbit-icon-chrome-transparent.png"
+        alt=""
+        width={28}
+        height={28}
+      />
+      <img
+        className="brand-art brand-art-light"
+        src="/brand/axiom-orbit-icon-black-transparent.png"
+        alt=""
+        width={28}
+        height={28}
+      />
+    </span>
   );
 }
 
@@ -201,12 +214,14 @@ function WorkspaceMenu({
   email,
   theme,
   onThemeChange,
+  onStartTour,
   compact = false,
 }: {
   workspaceName: string | null;
   email: string | null | undefined;
   theme: ThemePreference;
   onThemeChange: (theme: ThemePreference) => void;
+  onStartTour?: () => void;
   compact?: boolean;
 }) {
   return (
@@ -230,6 +245,12 @@ function WorkspaceMenu({
         <Icon name="settings" size={15} />
         Settings
       </Link>
+      {onStartTour && (
+        <button className="menu-item" type="button" role="menuitem" onClick={onStartTour}>
+          <Icon name="signal" size={15} />
+          Take the tour
+        </button>
+      )}
       <ThemePicker value={theme} onChange={onThemeChange} />
       <div className="menu-sep" />
       <Form method="post" action="/logout" className="menu-form">
@@ -251,6 +272,7 @@ export function Layout({ children }: { children: ReactNode }) {
   const location = useLocation();
   const navigation = useNavigation();
   const { theme, chooseTheme } = useThemePreference(data?.theme ?? "system");
+  const tour = useProductTour();
   const signedIn = data?.signedIn ?? false;
   const workspaceName = data?.workspaceName ?? null;
   const showAppNav = signedIn && Boolean(workspaceName) && location.pathname !== "/onboarding";
@@ -302,6 +324,7 @@ export function Layout({ children }: { children: ReactNode }) {
                 email={data?.email}
                 theme={theme}
                 onThemeChange={chooseTheme}
+                onStartTour={tour.start}
               />
             </aside>
             <header className="mobile-appbar">
@@ -323,6 +346,7 @@ export function Layout({ children }: { children: ReactNode }) {
                 {children}
               </div>
             </main>
+            <ProductTour open={tour.open} onFinish={tour.finish} />
           </div>
         ) : (
           <>

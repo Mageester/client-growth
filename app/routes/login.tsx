@@ -2,7 +2,7 @@ import { Form, Link, redirect } from "react-router";
 
 import { getAuth } from "../lib/auth.server";
 import { getSession } from "../lib/session.server";
-import { AxiomCredit, Icon } from "../components/ui";
+import { AxiomCredit, BrandLockup, Icon } from "../components/ui";
 import type { Route } from "./+types/login";
 
 export function meta() {
@@ -37,7 +37,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 export default function Login({ loaderData, actionData }: Route.ComponentProps) {
   return (
     <main className="auth">
-      <span className="auth-eyebrow">Axiom Orbit</span>
+      <BrandLockup className="auth-lockup" />
       <h1>Welcome back</h1>
       <p className="auth-sub">
         Pick up where your portfolio left off and see what is worth raising next.

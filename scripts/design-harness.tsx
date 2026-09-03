@@ -23,6 +23,8 @@ import { clientState, totalsFor } from "../app/lib/portfolio";
 import ClientsIndex from "../app/routes/clients._index";
 import ServicesIndex from "../app/routes/services._index";
 import OpportunityDetail from "../app/routes/opportunities.$id";
+import { TOUR_STEPS } from "../app/components/tour";
+import { Icon } from "../app/components/ui";
 
 const outDir = process.argv[2] ?? ".design-harness";
 
@@ -285,7 +287,56 @@ const opportunitiesScreen = h(
   ),
 );
 
+// The tour is a <dialog>, which only paints once script calls showModal(). The
+// harness renders it with the open attribute so its styling can be reviewed.
+const tourStep = TOUR_STEPS[1]!;
+const tourScreen = h(
+  "div",
+  null,
+  opportunitiesScreen,
+  h(
+    "dialog",
+    { className: "tour", open: true },
+    h(
+      "div",
+      { className: "tour-body" },
+      h("p", { className: "eyebrow" }, `Guided tour · 2 of ${TOUR_STEPS.length}`),
+      h(
+        "h2",
+        { className: "tour-title" },
+        h(Icon, { name: tourStep.icon, size: 18 }),
+        tourStep.title,
+      ),
+      tourStep.body.map((paragraph) =>
+        h("p", { className: "tour-para", key: paragraph.slice(0, 32) }, paragraph),
+      ),
+    ),
+    h(
+      "ol",
+      { className: "tour-dots" },
+      TOUR_STEPS.map((step, i) => h("li", { key: step.title, className: i === 1 ? "on" : undefined })),
+    ),
+    h(
+      "div",
+      { className: "tour-actions" },
+      h("button", { className: "btn btn-quiet", type: "button" }, "Skip tour"),
+      h(
+        "div",
+        { className: "tour-actions-end" },
+        h("button", { className: "btn", type: "button" }, "Back"),
+        h(
+          "button",
+          { className: "btn btn-primary", type: "button" },
+          "Next",
+          h(Icon, { name: "arrow-right", size: 15 }),
+        ),
+      ),
+    ),
+  ),
+);
+
 const screens: Record<string, { nav: string; node: ReactNode }> = {
+  tour: { nav: "Opportunities", node: tourScreen },
   opportunities: { nav: "Opportunities", node: opportunitiesScreen },
   clients: {
     nav: "Clients",
@@ -339,7 +390,12 @@ for (const [name, screen] of Object.entries(screens)) {
       '<link rel="stylesheet" href="' + FONT_HREF + '">',
       "<title>" + name + " · design harness</title>",
       "<style>" + css + "</style></head>",
-      "<body>" + body + "</body></html>",
+      "<body>" + body,
+      // A dialog only paints in the top layer once showModal() is called, so the
+      // harness opens it the way the app does rather than reviewing the
+      // in-flow fallback.
+      "<script>document.querySelectorAll('dialog[open]').forEach(function(d){d.close();d.showModal();});</script>",
+      "</body></html>",
     ].join("\n"),
   );
   console.log("wrote " + join(outDir, name + ".html"));

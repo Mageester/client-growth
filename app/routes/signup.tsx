@@ -4,7 +4,7 @@ import { createWorkspaceForOwner, newWorkspaceId } from "@/db/workspaces";
 import { getAuth } from "../lib/auth.server";
 import { getSession } from "../lib/session.server";
 import { d1Db } from "../lib/d1.server";
-import { AxiomCredit, Icon } from "../components/ui";
+import { AxiomCredit, BrandLockup, Icon } from "../components/ui";
 import type { Route } from "./+types/signup";
 
 export function meta() {
@@ -59,7 +59,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 export default function Signup({ actionData }: Route.ComponentProps) {
   return (
     <main className="auth">
-      <span className="auth-eyebrow">Axiom Orbit</span>
+      <BrandLockup className="auth-lockup" />
       <h1>Start with your portfolio</h1>
       <p className="auth-sub">
         Create a workspace for the client sites you already look after.

@@ -287,7 +287,7 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
   const [editOpen, setEditOpen] = useState(false);
 
   // A run is worth starting when ANY rule can produce a finding. Blocking it
-  // because one of two rules is limited would refuse to look for a broken
+  // because one rule of several is limited would refuse to look for a broken
   // checkout on a client whose offerings list happens to be short.
   const canAnalyze = readiness.catalog.matched > 0;
   const latest = runs[0] ?? null;

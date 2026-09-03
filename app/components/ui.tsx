@@ -665,6 +665,38 @@ export function Fact({
 }
 
 /**
+ * The approved AXIOM + ORBIT lockup.
+ *
+ * The artwork is chrome on dark and solid black on light, so both files ship
+ * and CSS picks one. Doing it in CSS rather than from the theme state keeps the
+ * right mark in the server-rendered HTML, so it never flashes the wrong one
+ * before hydration.
+ *
+ * Per the brand pack the lockup is artwork and is never re-set in a typeface,
+ * so the accessible name lives on the element rather than in rendered text.
+ */
+export function BrandLockup({ className = "" }: { className?: string }) {
+  return (
+    <span className={"brand-lockup " + className} role="img" aria-label="Axiom Orbit">
+      <img
+        className="brand-art brand-art-dark"
+        src="/brand/axiom-orbit-primary-transparent.png"
+        alt=""
+        width={1366}
+        height={400}
+      />
+      <img
+        className="brand-art brand-art-light"
+        src="/brand/axiom-orbit-primary-black-transparent.png"
+        alt=""
+        width={1366}
+        height={400}
+      />
+    </span>
+  );
+}
+
+/**
  * Axiom Orbit is an Axiom product. The credit uses Axiom's own wordmark, held
  * locally so the app never depends on getaxiom.ca at runtime.
  */

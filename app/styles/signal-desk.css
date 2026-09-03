@@ -15,7 +15,7 @@
   --ink: #f7f7f7;
   --ink-soft: #cfcfd4;
   --muted: #9c9ca3;
-  --faint: #74747b;
+  --faint: #85858c;
   --line: #242428;
   --line-strong: #35353b;
   --accent: #b8b8ba;
@@ -79,7 +79,7 @@
   --ink: #0b0b0c;
   --ink-soft: #3a3a3f;
   --muted: #66666d;
-  --faint: #8c8c93;
+  --faint: #6b6b72;
   --line: #e2e2e5;
   --line-strong: #cfcfd4;
   --accent: #3a3a3f;
@@ -134,7 +134,7 @@
     --ink: #0b0b0c;
     --ink-soft: #3a3a3f;
     --muted: #66666d;
-    --faint: #8c8c93;
+    --faint: #6b6b72;
     --line: #e2e2e5;
     --line-strong: #cfcfd4;
     --accent: #3a3a3f;
@@ -238,13 +238,71 @@ textarea {
 }
 
 .brand-mark {
+  display: block;
   width: 26px;
   height: 26px;
   flex: 0 0 auto;
-  object-fit: contain;
   background: none;
   border-radius: 0;
   box-shadow: none;
+}
+
+/*
+ * Brand artwork, per the brand pack: chrome on dark, solid black on light.
+ * Both files are in the markup and CSS picks one, so the correct mark is in
+ * the server-rendered HTML and never swaps after hydration. Dark is the
+ * default canvas, so the light variant is the one that has to be switched on.
+ */
+.brand-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.brand-art-light {
+  display: none;
+}
+
+:root[data-theme="light"] .brand-art-light {
+  display: block;
+}
+
+:root[data-theme="light"] .brand-art-dark {
+  display: none;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) .brand-art-light,
+  :root[data-theme="system"] .brand-art-light {
+    display: block;
+  }
+
+  :root:not([data-theme]) .brand-art-dark,
+  :root[data-theme="system"] .brand-art-dark {
+    display: none;
+  }
+}
+
+.brand-lockup {
+  display: block;
+  width: 100%;
+}
+
+.brand-lockup .brand-art {
+  width: auto;
+  max-width: 100%;
+  height: auto;
+}
+
+/* The lockup replaces the wordmark on the auth screens, so it is the one place
+   it appears at a size where the ORBIT lettering is properly legible. */
+.auth-lockup .brand-art {
+  width: 176px;
+}
+
+.auth .auth-lockup {
+  margin-bottom: 22px;
 }
 
 .brand-word {
@@ -2014,6 +2072,142 @@ a.record:hover .record-name {
   from {
     opacity: 0;
     transform: translateY(4px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Product tour ----------------------------------------------------------- */
+
+.tour {
+  width: min(calc(100vw - 40px), 520px);
+  max-height: calc(100vh - 80px);
+  padding: 0;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-lg);
+  box-shadow: var(--pop);
+}
+
+.tour::backdrop {
+  background: var(--scrim);
+}
+
+.tour-body {
+  padding: 26px 26px 20px;
+}
+
+.tour-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0 0;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+.tour-title > svg {
+  flex: 0 0 auto;
+  color: var(--muted);
+}
+
+.tour-para {
+  margin: 14px 0 0;
+  color: var(--ink-soft);
+  font-size: 14.5px;
+  line-height: 1.62;
+}
+
+.tour-dots {
+  display: flex;
+  gap: 6px;
+  margin: 0;
+  padding: 0 26px;
+  list-style: none;
+}
+
+.tour-dots li {
+  width: 100%;
+  height: 2px;
+  background: var(--line);
+}
+
+.tour-dots li.on {
+  background: var(--ink);
+}
+
+.tour-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 26px 22px;
+}
+
+.tour-actions-end {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-quiet {
+  color: var(--muted);
+  background: transparent;
+  border-color: transparent;
+}
+
+.btn-quiet:hover:not(:disabled) {
+  color: var(--ink);
+  background: var(--hairline-soft);
+  border-color: transparent;
+}
+
+/* The step points at the real nav item rather than describing it in isolation. */
+.app-nav a.is-tour-target {
+  color: var(--ink);
+  background: var(--hairline-soft);
+}
+
+.app-nav a.is-tour-target::before {
+  background: var(--ink);
+}
+
+@media (max-width: 650px) {
+  .tour-body {
+    padding: 22px 20px 16px;
+  }
+
+  .tour-dots {
+    padding: 0 20px;
+  }
+
+  .tour-actions {
+    padding: 16px 20px 20px;
+  }
+
+  .tour-title {
+    font-size: 19px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .tour[open] {
+    animation: tour-in 180ms ease both;
+  }
+}
+
+@keyframes tour-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
   }
 
   to {

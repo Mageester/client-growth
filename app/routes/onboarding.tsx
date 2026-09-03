@@ -213,9 +213,9 @@ export default function Onboarding({ loaderData, actionData }: Route.ComponentPr
                 What you sell
               </h2>
               <p>
-                Axiom Orbit finds two kinds of gap today. Set what you would charge to fix each
-                one — every finding is priced from these, so nothing is surfaced that you could not
-                deliver.
+                Axiom Orbit finds {STARTER_SERVICES.length} kinds of gap today. Set what you
+                would charge to fix each one — every finding is priced from these, so nothing is
+                surfaced that you could not deliver.
               </p>
             </div>
           </div>
