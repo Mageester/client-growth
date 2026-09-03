@@ -23,6 +23,8 @@ import { clientState, totalsFor } from "../app/lib/portfolio";
 import ClientsIndex from "../app/routes/clients._index";
 import ServicesIndex from "../app/routes/services._index";
 import OpportunityDetail from "../app/routes/opportunities.$id";
+import ClientDetail from "../app/routes/clients.$id";
+import { assessAnalysisReadiness } from "@/core/analysisReadiness";
 import { TOUR_STEPS } from "../app/components/tour";
 import { Icon } from "../app/components/ui";
 
@@ -471,8 +473,35 @@ function corpusScreens(): Record<string, { nav: string; node: ReactNode }> {
   };
 }
 
+/** A client whose profile is too thin to analyze — the state being designed for. */
+const thinClient: Client = {
+  id: "c9",
+  name: "Ardley Roofing",
+  domain: "ardleyroofing.co.uk",
+  offerings: [],
+  notes: "",
+};
+
+const clientDetailScreen = h(ClientDetail, {
+  loaderData: {
+    client: thinClient,
+    services,
+    coveredIds: [],
+    opportunities: [],
+    totals: { open: 0, closed: 0, priceMin: 0, priceMax: 0 },
+    runs: [],
+    monitoring: { cadence: "off", nextDueAt: null, lastAttemptAt: null, lastSuccessAt: null, lastOutcome: null },
+    firstRunFailed: false,
+    readiness: assessAnalysisReadiness({ catalog: services, offerings: 0 }),
+    suggestions: [],
+    hasEvidence: false,
+    state: "never",
+  },
+} as never);
+
 const screens: Record<string, { nav: string; node: ReactNode }> = {
   ...corpusScreens(),
+  "client-thin": { nav: "Clients", node: clientDetailScreen },
   tour: { nav: "Opportunities", node: tourScreen },
   opportunities: { nav: "Opportunities", node: opportunitiesScreen },
   clients: {

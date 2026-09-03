@@ -2215,3 +2215,17 @@ a.record:hover .record-name {
     transform: none;
   }
 }
+
+/* The offer to read a client's site when their profile is too thin. */
+.suggested-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.suggested-note {
+  color: var(--muted);
+  font-size: 12.5px;
+}
