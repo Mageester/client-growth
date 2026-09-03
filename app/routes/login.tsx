@@ -10,7 +10,7 @@ export function meta() {
 }
 
 export async function loader({ request, context }: Route.LoaderArgs) {
-  if (await getSession(request, context)) throw redirect("/");
+  if (await getSession(request, context)) throw redirect("/opportunities");
   return { resetSuccess: new URL(request.url).searchParams.get("reset") === "success" };
 }
 
@@ -28,7 +28,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     });
     const cookie = res.headers.get("set-cookie");
     if (!res.ok || !cookie) return { error: "Incorrect email or password." };
-    return redirect("/", { headers: { "set-cookie": cookie } });
+    return redirect("/opportunities", { headers: { "set-cookie": cookie } });
   } catch {
     return { error: "Incorrect email or password." };
   }

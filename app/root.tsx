@@ -6,6 +6,7 @@ import {
   Meta,
   NavLink,
   Outlet,
+  redirect,
   Scripts,
   ScrollRestoration,
   isRouteErrorResponse,
@@ -52,6 +53,13 @@ export function links() {
   ];
 }
 
+/**
+ * Public showcase routes. Signed-out visitors get the marketing site; signed-in
+ * users are sent into the app so a sign-in or a logo click never strands them
+ * on marketing copy.
+ */
+const MARKETING_ROUTES = new Set(["/", "/product"]);
+
 export async function loader({ request, context }: Route.LoaderArgs) {
   const rawTheme = request.headers
     .get("Cookie")
@@ -62,15 +70,20 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     rawTheme === "light" || rawTheme === "dark" || rawTheme === "system"
       ? rawTheme
       : "system";
+  const isMarketingRoute = MARKETING_ROUTES.has(new URL(request.url).pathname);
   try {
     const authed = await getSession(request, context);
     if (!authed) return { ...EMPTY, theme };
+    // A signed-in user on the public showcase goes into the app. Redirect
+    // targets the app home; onboarding self-corrects when no workspace exists.
+    if (isMarketingRoute) throw redirect("/opportunities");
     const ws = await getWorkspaceForUser(
       d1Db(context.cloudflare.env.DB as never),
       authed.userId,
     );
     return { signedIn: true, workspaceName: ws?.name ?? null, email: authed.user.email, theme };
-  } catch {
+  } catch (error) {
+    if (error instanceof Response) throw error;
     return { ...EMPTY, theme };
   }
 }
@@ -276,7 +289,7 @@ export function Layout({ children }: { children: ReactNode }) {
   const signedIn = data?.signedIn ?? false;
   const workspaceName = data?.workspaceName ?? null;
   const showAppNav = signedIn && Boolean(workspaceName) && location.pathname !== "/onboarding";
-  const isMarketingRoute = location.pathname === "/" || location.pathname === "/product";
+  const isMarketingRoute = MARKETING_ROUTES.has(location.pathname);
   const busy = navigation.state === "loading";
 
   return (

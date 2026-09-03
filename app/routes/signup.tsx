@@ -12,7 +12,7 @@ export function meta() {
 }
 
 export async function loader({ request, context }: Route.LoaderArgs) {
-  if (await getSession(request, context)) throw redirect("/");
+  if (await getSession(request, context)) throw redirect("/opportunities");
   return null;
 }
 
