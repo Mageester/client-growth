@@ -14,3 +14,4 @@ coverage/
 
 # local browser-automation scratch
 .playwright-cli/
+.analyzability-cache/

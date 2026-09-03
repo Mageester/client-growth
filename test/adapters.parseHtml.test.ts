@@ -28,12 +28,12 @@ describe("parseHtml", () => {
 
   it("keeps only same-origin links and strips fragments", () => {
     const parsed = parseHtml(loadRawHtml("home.html"), BASE);
-    for (const link of parsed.sameOriginLinks) {
+    for (const link of parsed.sameSiteLinks) {
       expect(link.startsWith("https://coolbreezehvac.example/")).toBe(true);
     }
-    expect(parsed.sameOriginLinks).toContain("https://coolbreezehvac.example/contact");
-    expect(parsed.sameOriginLinks.some((l) => l.includes("facebook.com"))).toBe(false);
-    expect(parsed.sameOriginLinks.some((l) => l.includes("#"))).toBe(false);
+    expect(parsed.sameSiteLinks).toContain("https://coolbreezehvac.example/contact");
+    expect(parsed.sameSiteLinks.some((l) => l.includes("facebook.com"))).toBe(false);
+    expect(parsed.sameSiteLinks.some((l) => l.includes("#"))).toBe(false);
   });
 
   it("drops script and style content from the text excerpt", () => {
@@ -59,7 +59,7 @@ describe("parseHtml", () => {
     const quote = parsed.links.find((l) => l.href.endsWith("/quote"));
     expect(quote?.ariaLabel).toBe("Get a free quote");
     expect(quote?.title).toBe("Quote");
-    expect(parsed.sameOriginLinks).toEqual(["https://x.example/quote"]); // http only
+    expect(parsed.sameSiteLinks).toEqual(["https://x.example/quote"]); // http only
   });
 
   it("captures <form> action, method and whether it has a submit control", () => {

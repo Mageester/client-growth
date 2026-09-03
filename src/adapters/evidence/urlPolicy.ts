@@ -225,6 +225,67 @@ export function sameOrigin(a: URL | string, b: URL | string): boolean {
   }
 }
 
+/**
+ * The hostname with a single leading "www." removed.
+ *
+ * `www.example.com` and `example.com` are one website. Sites disagree about
+ * which of the two is canonical and redirect between them constantly — on a
+ * corpus of 24 real small-business sites, thirteen of them served their whole
+ * content tree from the sibling host of the one the agency typed in.
+ */
+export function canonicalSiteHost(hostname: string): string {
+  const host = hostname.replace(/^\[/, "").replace(/\]$/, "").replace(/\.+$/, "").toLowerCase();
+  return host.startsWith("www.") ? host.slice("www.".length) : host;
+}
+
+/**
+ * Are these two URLs the same website?
+ *
+ * This is the crawl boundary, and it is deliberately only ONE step wider than
+ * same-origin: the `www.` sibling of a host, and nothing else. Scheme and port
+ * must still match exactly, so an https site cannot be walked down to http, and
+ * every hop is still put through `normalizeAndValidateUrl` first — a redirect
+ * to a private address, a credentialed URL, or a non-HTTP scheme is refused by
+ * the same policy as before, whatever host it claims to be.
+ *
+ * What it is NOT is a registrable-domain check. `blog.example.com` and
+ * `shop.example.com` remain different sites, and a redirect off to an entirely
+ * different domain still leaves the boundary and fails closed. Following those
+ * would mean crawling somewhere the agency never named.
+ */
+export function isSameSite(a: URL | string, b: URL | string): boolean {
+  try {
+    const left = new URL(String(a));
+    const right = new URL(String(b));
+    return (
+      left.protocol === right.protocol &&
+      left.port === right.port &&
+      canonicalSiteHost(left.hostname) === canonicalSiteHost(right.hostname)
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * A stable identity for "the same page" across the shapes a site serves it in.
+ *
+ * `https://example.com/services` and `https://www.example.com/services/` are
+ * one page. Keyed by the raw URL, a crawl with ten page fetches can spend two
+ * of them on the same homepage, and every page-count signal downstream counts
+ * it twice. Only the crawl's own bookkeeping uses this — the URL that goes into
+ * evidence is always the one actually requested.
+ */
+export function crawlKey(input: string | URL): string {
+  try {
+    const url = new URL(String(input));
+    const path = url.pathname.length > 1 ? url.pathname.replace(/\/+$/, "") : "/";
+    return `${url.protocol}//${canonicalSiteHost(url.hostname)}${url.port ? `:${url.port}` : ""}${path}${url.search}`;
+  } catch {
+    return String(input);
+  }
+}
+
 /** Redact credentials before a URL is put into persisted network evidence. */
 export function redactUrl(input: string | URL): string {
   try {

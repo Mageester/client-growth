@@ -13,21 +13,27 @@ import {
 } from "@/core/schema";
 import { parseHtml } from "@/adapters/evidence/parseHtml";
 import {
+  crawlKey,
+  isSameSite,
   normalizeAndValidateUrl,
   normalizeOrigin,
   redactUrl,
   type UrlPolicyFailure,
 } from "@/adapters/evidence/urlPolicy";
+import { crawlPriority, isServiceHub, looksLikeServiceUrl } from "@/core/siteStructure";
 
 /**
  * Minimal real website evidence provider.
  *
  *  - standard HTTP `fetch` only (no browser, no rendering, no screenshots)
- *  - same-origin pages only for the crawl
- *  - shallow breadth-first crawl, hard cap (~10 useful pages)
+ *  - same-SITE pages only for the crawl: the host the agency named, or its
+ *    `www.` sibling, and nothing else (see isSameSite in urlPolicy.ts)
+ *  - shallow crawl, hard cap (~10 useful pages), frontier ordered so the pages
+ *    that describe what the business sells are fetched before its About page
  *  - records HTTP status for every crawled URL, plus links (with scheme, nav
  *    flag, aria-label, and which pages they were found on) and <form>s
- *  - reads /sitemap.xml when cheaply available
+ *  - reads /sitemap.xml when cheaply available, BEFORE the crawl spends its
+ *    page budget, so service URLs the sitemap knows about can be crawled
  *  - exposes `fetchPage(url)` (targeted absence verification) and `probe(url)`
  *    (HEAD->GET status check for the broken-conversion-path rule)
  *  - no Lighthouse / PageSpeed / paid APIs
@@ -42,7 +48,13 @@ import {
 
 const DEFAULT_MAX_PAGES = 10;
 const DEFAULT_MAX_SITEMAP_URLS = 100;
-const DEFAULT_MAX_RESPONSE_BYTES = 1_000_000;
+/**
+ * Body cap. This is a memory bound, not a policy: it exists so one enormous
+ * response cannot exhaust a Worker. It was 1MB, and on a corpus of 24 real
+ * small-business sites that refused three homepages (1.01-1.08MB) and one
+ * sitemap (1.02MB) outright — the cap, not the sites, was the limiter.
+ */
+const DEFAULT_MAX_RESPONSE_BYTES = 2_500_000;
 const DEFAULT_REQUEST_TIMEOUT_MS = 8_000;
 const DEFAULT_MAX_REDIRECTS = 5;
 const DEFAULT_MAX_REQUESTS = 40;
@@ -168,7 +180,7 @@ function originFailure(input: string | URL, redirects: number): RequestFailure {
     kind: "failure",
     outcome: "blocked",
     url: redactUrl(input),
-    reason: "redirect leaves the allowed same-origin boundary",
+    reason: "redirect leaves the allowed same-site boundary",
     redirects,
   };
 }
@@ -294,7 +306,7 @@ export class HttpEvidenceProvider implements EvidenceProvider {
 
     const initial = normalizeAndValidateUrl(input);
     if (!initial.ok) return policyFailure(input, initial);
-    if (allowedOrigin && initial.url.origin !== allowedOrigin) {
+    if (allowedOrigin && !isSameSite(initial.url, allowedOrigin)) {
       return originFailure(initial.url, 0);
     }
 
@@ -304,7 +316,7 @@ export class HttpEvidenceProvider implements EvidenceProvider {
     let redirects = 0;
 
     for (;;) {
-      if (allowedOrigin && current !== initialUrl && !this.sameOrigin(current, allowedOrigin)) {
+      if (allowedOrigin && current !== initialUrl && !isSameSite(current, allowedOrigin)) {
         return originFailure(current, redirects);
       }
 
@@ -364,7 +376,7 @@ export class HttpEvidenceProvider implements EvidenceProvider {
           await cancelResponseBody(response);
           return policyFailure(responseUrl, observed, redirects);
         }
-        if (allowedOrigin && observed.url.origin !== allowedOrigin) {
+        if (allowedOrigin && !isSameSite(observed.url, allowedOrigin)) {
           await cancelResponseBody(response);
           return originFailure(observed.url, redirects);
         }
@@ -412,7 +424,7 @@ export class HttpEvidenceProvider implements EvidenceProvider {
         await cancelResponseBody(response);
         return policyFailure(location, next, redirects);
       }
-      if (allowedOrigin && next.url.origin !== allowedOrigin) {
+      if (allowedOrigin && !isSameSite(next.url, allowedOrigin)) {
         await cancelResponseBody(response);
         return originFailure(next.url, redirects + 1);
       }
@@ -420,14 +432,6 @@ export class HttpEvidenceProvider implements EvidenceProvider {
       await cancelResponseBody(response);
       current = next.url.toString();
       redirects++;
-    }
-  }
-
-  private sameOrigin(a: string, b: string): boolean {
-    try {
-      return new URL(a).origin === new URL(b).origin;
-    } catch {
-      return false;
     }
   }
 
@@ -533,17 +537,63 @@ export class HttpEvidenceProvider implements EvidenceProvider {
     };
     const origin = originResult.url.origin;
     const visited = new Set<string>();
-    const queue: string[] = [`${origin}/`];
-    const queued = new Set(queue);
+    const seenFinalUrls = new Set<string>();
     const pages: EvidencePage[] = [];
     const linksByKey = new Map<string, EvidenceLink>();
     let nav: string[] = [];
     let pageRequests = 0;
 
-    while (queue.length > 0 && pageRequests < this.maxPages()) {
-      const url = queue.shift();
-      if (url === undefined || visited.has(url)) continue;
-      visited.add(url);
+    // The frontier is ordered, not first-in-first-out. Every site has more
+    // links than this crawl has page fetches, so the question is never "which
+    // links exist" but "which ten are worth reading", and template order puts
+    // Careers and Privacy Policy ahead of the services. See crawlPriority.
+    const frontier = new Map<string, { priority: number; discovered: number }>();
+    let discovered = 0;
+    const enqueue = (rawUrl: string, options: { inNav?: boolean } = {}): void => {
+      const parsed = normalizeAndValidateUrl(rawUrl);
+      if (!parsed.ok || !isSameSite(parsed.url, origin)) return;
+      const url = parsed.url.toString();
+      if (visited.has(crawlKey(url))) return;
+      const priority = crawlPriority(url, options);
+      const existing = frontier.get(url);
+      // A URL found in several places keeps its best score: a service page that
+      // is also in the navigation should not be demoted by the second sighting.
+      if (existing && existing.priority >= priority) return;
+      frontier.set(url, { priority, discovered: existing?.discovered ?? discovered++ });
+    };
+
+    const takeNext = (): string | undefined => {
+      let best: string | undefined;
+      let bestKey = { priority: Number.NEGATIVE_INFINITY, discovered: Number.POSITIVE_INFINITY };
+      for (const [url, key] of frontier) {
+        if (
+          key.priority > bestKey.priority ||
+          (key.priority === bestKey.priority && key.discovered < bestKey.discovered)
+        ) {
+          best = url;
+          bestKey = key;
+        }
+      }
+      if (best !== undefined) frontier.delete(best);
+      return best;
+    };
+
+    enqueue(`${origin}/`);
+
+    // The sitemap is read BEFORE the page budget is spent, not after. It costs
+    // the same request either way, and reading it first is the difference
+    // between knowing a site has /services/heat-pumps and finding out once
+    // there is no budget left to fetch it.
+    const sitemapUrls = await this.readSitemap(origin);
+    for (const url of sitemapUrls) {
+      if (looksLikeServiceUrl(url) || isServiceHub(url)) enqueue(url);
+    }
+
+    while (pageRequests < this.maxPages()) {
+      const url = takeNext();
+      if (url === undefined) break;
+      if (visited.has(crawlKey(url))) continue;
+      visited.add(crawlKey(url));
       pageRequests++;
 
       const fetched = await this.safeRequest(url, { headers: fetchHeaders }, origin);
@@ -553,9 +603,16 @@ export class HttpEvidenceProvider implements EvidenceProvider {
       }
 
       const { response, finalUrl } = fetched;
+      // Redirects mean two requested URLs can land on one page (/connect ->
+      // /contact-us). Counting that page twice would inflate every page-count
+      // signal the coverage assessment reads.
+      visited.add(crawlKey(finalUrl));
+      const duplicate = seenFinalUrls.has(crawlKey(finalUrl));
+      seenFinalUrls.add(crawlKey(finalUrl));
+
       if (!response.ok) {
         await cancelResponseBody(response);
-        pages.push(emptyPage(finalUrl, response.status));
+        if (!duplicate) pages.push(emptyPage(finalUrl, response.status));
         continue;
       }
 
@@ -567,19 +624,19 @@ export class HttpEvidenceProvider implements EvidenceProvider {
           "inconclusive",
           `response content type is not crawlable HTML/XHTML: ${contentType || "missing"}`,
         );
-        pages.push(emptyPage(finalUrl, response.status));
+        if (!duplicate) pages.push(emptyPage(finalUrl, response.status));
         continue;
       }
 
       const body = await this.readBoundedText(response);
       if (!body.ok) {
         this.recordNetworkEvent(finalUrl, body.outcome, body.reason);
-        pages.push(emptyPage(finalUrl, response.status));
+        if (!duplicate) pages.push(emptyPage(finalUrl, response.status));
         continue;
       }
 
       const parsed = parseHtml(body.text, finalUrl);
-      pages.push({ ...parsed.page, status: response.status });
+      if (!duplicate) pages.push({ ...parsed.page, status: response.status });
       if (nav.length === 0 && parsed.nav.length > 0) nav = parsed.nav;
 
       for (const link of parsed.links) {
@@ -596,17 +653,10 @@ export class HttpEvidenceProvider implements EvidenceProvider {
         }
 
         if (link.scheme !== "http") continue;
-        const linkUrl = normalizeAndValidateUrl(link.href);
-        if (!linkUrl.ok || linkUrl.url.origin !== origin) continue;
-        const canonicalLink = linkUrl.url.toString();
-        if (!visited.has(canonicalLink) && !queued.has(canonicalLink)) {
-          queued.add(canonicalLink);
-          queue.push(canonicalLink);
-        }
+        enqueue(link.href, { inNav: link.inNav });
       }
     }
 
-    const sitemapUrls = await this.readSitemap(origin);
     const bundle = EvidenceBundleSchema.parse({
       clientId: client.id,
       source: "http",

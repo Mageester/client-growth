@@ -123,3 +123,136 @@ describe("crawl / service-coverage adequacy", () => {
     expect(candidates[0]?.verification?.conclusion).toBe("absent");
   });
 });
+
+/**
+ * Structural coverage, added after measuring 24 real small-business sites.
+ *
+ * The heuristic used to accept a page whose TITLE covered one of the client's
+ * offerings. Every one of these cases is a real site where that produced a
+ * claim of full coverage on a site that has no service pages at all.
+ */
+describe("coverage is structural, not textual", () => {
+  it("does not let an SEO-titled Contact page pass for a service page", () => {
+    // kids-connect.ca. Four pages, no services, and every title stuffed with
+    // the words a client would type into the offerings box.
+    const client = {
+      offerings: ["Social skills groups", "Brick Club social groups", "Parent consultations"],
+    };
+    const evidence = bundle({
+      pages: [
+        { url: "https://x.example/", title: "Burnaby Autism Services", headings: ["Not your Typical Social Skills Group."] },
+        { url: "https://x.example/the-team/", title: "Autism Social Groups: Empowering Children Together" },
+        { url: "https://x.example/faq/", title: "Burnaby Social Play Groups: Helping Kids Connect" },
+        { url: "https://x.example/contact-us-social-skills-near-you/", title: "Social Skill Groups Near Me" },
+      ],
+      nav: ["Our Mission", "Who We Are", "FAQ", "Contact"],
+      links: [
+        { href: "https://x.example/the-team/", label: "Who We Are", inNav: true },
+        { href: "https://x.example/faq/", label: "FAQ", inNav: true },
+      ],
+    });
+
+    const coverage = assessServiceCoverage({ client, evidence });
+
+    expect(coverage.serviceLikePages).toBe(0);
+    expect(coverage.analyzable).toBe(false);
+  });
+
+  it("does not count the homepage as having reached the services", () => {
+    // Every business writes what it does on its front page. If that counted,
+    // "we fetched one page" would mean "we reached the service section".
+    const client = { offerings: ["furnace repair", "air conditioning installation"] };
+    const evidence = bundle({
+      pages: [
+        {
+          url: "https://x.example/",
+          title: "Furnace Repair and Air Conditioning Installation",
+          headings: ["Furnace Repair", "Air Conditioning Installation"],
+        },
+      ],
+    });
+
+    expect(assessServiceCoverage({ client, evidence }).serviceLikePages).toBe(0);
+  });
+
+  it("counts a nested service page the site files under a hub", () => {
+    const client = { offerings: ["heat pump installation", "furnace repair"] };
+    const evidence = bundle({
+      pages: [
+        { url: "https://x.example/" },
+        { url: "https://x.example/services/heating/heat-pump-installation", title: "Heat Pump Installation" },
+        { url: "https://x.example/treatments/furnace-repair", title: "Furnace Repair" },
+      ],
+    });
+
+    const coverage = assessServiceCoverage({ client, evidence });
+    expect(coverage.serviceLikePages).toBe(2);
+    expect(coverage.analyzable).toBe(true);
+  });
+
+  it("counts a service page on a site that has no services drawer at all", () => {
+    // cambridgeheating.ca: flat .html files named after the work.
+    const client = { offerings: ["furnace repair", "air conditioning installation"] };
+    const evidence = bundle({
+      pages: [
+        { url: "https://x.example/" },
+        { url: "https://x.example/furnace-repair.html", title: "Furnace Repair" },
+        { url: "https://x.example/airconditioner-installation.html", title: "AC Installation" },
+      ],
+    });
+
+    expect(assessServiceCoverage({ client, evidence }).analyzable).toBe(true);
+  });
+
+  it("does not count city pages as service pages", () => {
+    // atlasplumbing.ca: Home, About, five city pages, Contact. No services.
+    const client = { offerings: ["drain cleaning", "water heater installation", "leak detection"] };
+    const evidence = bundle({
+      pages: [
+        { url: "https://x.example/" },
+        { url: "https://x.example/about/" },
+        { url: "https://x.example/toronto/", title: "Plumber in Toronto" },
+        { url: "https://x.example/scarborough/", title: "Plumber in Scarborough" },
+        { url: "https://x.example/north-york/", title: "Plumber in North York" },
+      ],
+      nav: ["Home", "About", "Toronto", "Scarborough", "North York", "Contact"],
+    });
+
+    const coverage = assessServiceCoverage({ client, evidence });
+    expect(coverage.serviceLikePages).toBe(0);
+    expect(coverage.analyzable).toBe(false);
+  });
+
+  it("still recognises the site's own index of its services from navigation", () => {
+    // bloordental.com: the crawl reads one page, but the navigation names every
+    // treatment and each entry carries an href a targeted fetch can check.
+    const client = {
+      offerings: ["dental implants", "root canal therapy", "invisalign clear aligners"],
+    };
+    const evidence = bundle({
+      pages: [{ url: "https://x.example/" }],
+      nav: ["Services", "Dental Implants", "Root Canal Therapy", "Invisalign", "Teeth Whitening"],
+      links: [
+        { href: "https://x.example/services/dental-implants", label: "Dental Implants", inNav: true },
+        { href: "https://x.example/services/root-canal-therapy", label: "Root Canal Therapy", inNav: true },
+      ],
+    });
+
+    expect(assessServiceCoverage({ client, evidence }).analyzable).toBe(true);
+  });
+
+  it("ignores sitemap URLs that are the boring pages", () => {
+    const client = { offerings: ["social skills groups"] };
+    const evidence = bundle({
+      pages: [{ url: "https://x.example/" }],
+      sitemapUrls: [
+        "https://x.example/contact-us-social-skills-near-you/",
+        "https://x.example/burnaby-social-skills-our-mission/",
+        "https://x.example/the-team/",
+        "https://x.example/logo/",
+      ],
+    });
+
+    expect(assessServiceCoverage({ client, evidence }).serviceLikeSitemapUrls).toBe(0);
+  });
+});

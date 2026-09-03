@@ -358,7 +358,7 @@ describe("HttpEvidenceProvider redirect safety", () => {
 
     expect(result.status).toBe(0);
     expect(result.outcome).toBe("blocked");
-    expect(result.reason).toMatch(/origin/i);
+    expect(result.reason).toMatch(/boundary/i);
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 

@@ -4,6 +4,9 @@ import { Form, Link, useNavigation } from "react-router";
 
 import { ClientSchema } from "@/core/schema";
 import { assessCatalogCoverage } from "@/core/rules/registry";
+import { assessAnalysisReadiness, type ReadinessState } from "@/core/analysisReadiness";
+import { assessServiceCoverage } from "@/core/absenceVerification";
+import { suggestOfferings, type SuggestedOffering } from "@/core/offeringSuggestions";
 import {
   CADENCE_LABEL,
   SELECTABLE_CADENCES,
@@ -43,6 +46,21 @@ import { requireTenant } from "../lib/session.server";
 import { normalizeDomain, offeringWarnings, validateClientInput } from "../lib/validation";
 import type { Route } from "./+types/clients.$id";
 
+/** The readiness shape after it has crossed the loader's JSON boundary. */
+type AnalysisReadinessView = {
+  state: ReadinessState;
+  rules: Array<{
+    ruleId: string;
+    label: string;
+    state: ReadinessState;
+    reason: string;
+    actionable: boolean;
+  }>;
+  catalog: { matched: number; total: number; unmatchedLabels: string[] };
+  readyCount: number;
+  total: number;
+};
+
 export function meta({ data }: Route.MetaArgs) {
   return [{ title: data ? data.client.name + " · Client Growth" : "Client" }];
 }
@@ -54,16 +72,42 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
   const firstRunFailed = new URL(request.url).searchParams.get("firstRun") === "failed";
   const client = await repo.getClient(t.scope, params.id);
   if (!client) throw new Response("Client not found", { status: 404 });
-  const [services, coverage, opportunities, runs, monitoring] = await Promise.all([
+  const [services, coverage, opportunities, runs, monitoring, evidence] = await Promise.all([
     repo.listServices(t.scope),
     repo.listCoverage(t.scope, client.id),
     repo.listOpportunities(t.scope, client.id),
     repo.listAnalysisRuns(t.scope, client.id, 6),
     monitoringRepo.getMonitoring(t.scope, client.id),
+    repo.getLatestEvidence(t.scope, client.id),
   ]);
   const totals = totalsFor(opportunities);
   const latest = runs[0] ?? null;
-  const catalog = assessCatalogCoverage(services);
+
+  // What the site's own evidence says this business sells that the client's
+  // profile does not mention. Read-only and never applied automatically: the
+  // agency confirms every line. See <SuggestedServices/>.
+  const suggestions = evidence
+    ? suggestOfferings({ evidence, existingOfferings: client.offerings, max: 8 })
+    : [];
+
+  // Readiness is per rule, and it is worked out from what the LAST crawl
+  // actually managed rather than from the client's offering count alone. That
+  // is what lets the page tell "your setup is thin" apart from "we could not
+  // read this site" — two sentences that need two different reactions.
+  const readiness = assessAnalysisReadiness({
+    catalog: services,
+    offerings: client.offerings.length,
+    lastCrawl: evidence
+      ? {
+          analyzable: assessServiceCoverage({ client, evidence }).analyzable,
+          readablePages: evidence.site.pages.filter(
+            (page) => page.status >= 200 && page.status < 300 && page.wordCount > 0,
+          ).length,
+          suggestedOfferings: suggestions.length,
+        }
+      : undefined,
+  });
+
   return {
     client,
     services,
@@ -73,14 +117,8 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
     runs,
     monitoring: monitoring ?? monitoringRepo.MONITORING_OFF,
     firstRunFailed,
-    // What this analysis would actually be able to check, worked out before the
-    // user spends a run finding out. See <Readiness/>.
-    readiness: {
-      matched: catalog.matched,
-      total: catalog.total,
-      unmatchedLabels: catalog.unmatchedLabels,
-      offerings: client.offerings.length,
-    },
+    readiness,
+    suggestions,
     state: clientState({ outcome: latest?.outcome ?? null, openCount: totals.open }),
   };
 }
@@ -114,6 +152,42 @@ export async function action({ params, request, context }: Route.ActionArgs) {
       }),
     );
     return { ok: true as const, message: "Client details saved." };
+  }
+
+  // Confirming suggested offerings. The suggestions themselves are computed
+  // from crawled evidence and shown for review; this is the only path that
+  // writes any of them, it only ever runs because a person pressed the button,
+  // and it appends — an existing offering is never rewritten or removed.
+  if (intent === "accept-suggestions") {
+    const accepted = form
+      .getAll("offering")
+      .map((value) => String(value).trim())
+      .filter(Boolean);
+    if (accepted.length === 0) {
+      return { ok: false as const, error: "No suggested services were selected." };
+    }
+
+    const existingKeys = new Set(existing.offerings.map((o) => o.trim().toLowerCase()));
+    const added = accepted.filter((o) => !existingKeys.has(o.toLowerCase()));
+    const offerings = [...existing.offerings, ...added];
+    const problem = validateClientInput({
+      name: existing.name,
+      domain: existing.domain,
+      offerings: offerings.join("\n"),
+    });
+    if (problem) return { ok: false as const, error: problem };
+
+    await repo.upsertClient(
+      t.scope,
+      ClientSchema.parse({ ...existing, offerings }),
+    );
+    return {
+      ok: true as const,
+      message:
+        added.length === 0
+          ? "Those services were already in this client's profile."
+          : `Added ${added.length} ${added.length === 1 ? "service" : "services"} to ${existing.name}. Re-analyze to check them against the site.`,
+    };
   }
 
   if (intent === "toggle-coverage") {
@@ -202,6 +276,7 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
     state,
     firstRunFailed,
     readiness,
+    suggestions,
   } = loaderData;
   const navigation = useNavigation();
   const intent = navigation.formData?.get("intent");
@@ -210,7 +285,10 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
   const busy = navigation.state !== "idle";
   const [editOpen, setEditOpen] = useState(false);
 
-  const canAnalyze = readiness.matched > 0;
+  // A run is worth starting when ANY rule can produce a finding. Blocking it
+  // because one of two rules is limited would refuse to look for a broken
+  // checkout on a client whose offerings list happens to be short.
+  const canAnalyze = readiness.catalog.matched > 0;
   const latest = runs[0] ?? null;
   const open = opportunities.filter(isOpen).sort(byPotentialValue);
   const closed = opportunities.filter((opp) => !isOpen(opp)).sort(byPotentialValue);
@@ -306,7 +384,13 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
 
       <MonitoringRow monitoring={monitoring} busy={busy} canAnalyze={canAnalyze} />
 
-      <Readiness readiness={readiness} clientName={client.name} onEditClient={() => setEditOpen(true)} />
+      <Readiness readiness={readiness} clientName={client.name} />
+      <SuggestedServices
+        suggestions={suggestions}
+        clientName={client.name}
+        busy={busy}
+        onEditClient={() => setEditOpen(true)}
+      />
 
       {analyzing && <AnalysisRunning clientName={client.name} domain={client.domain} />}
       {!analyzing && actionData && "run" in actionData && actionData.run && (
@@ -764,33 +848,29 @@ function MonitoringRow({
  * What this analysis would actually be able to check — shown BEFORE the run,
  * not explained afterwards.
  *
- * Every finding is priced from an active service that says which kind of gap it
- * answers, so a catalog matching none of them makes the run incapable of
- * producing anything. That used to be indistinguishable from a healthy site: the
- * rules returned nothing, and the run was reported as "read N pages and found no
- * unmet billable work". The engine now calls that inconclusive; this says so one
- * step earlier, while it is still cheap to fix.
+ * Two things this deliberately does NOT do.
  *
- * Offerings are a warning rather than a block: the crawl needs to see the site's
- * service section to claim a page is missing, and with fewer than two offerings
- * it usually cannot — but a broken conversion path is still findable, so the run
- * is worth allowing.
+ * It does not collapse the rules into one verdict. Whether the crawl can reach
+ * a site's service pages decides whether a missing page can be claimed; it has
+ * nothing to do with whether a call-to-action returns 404. A client with one
+ * offering used to be warned as though nothing could be checked, which is both
+ * untrue and discouraging.
+ *
+ * And it does not offer the agency a fix for something they cannot fix. When
+ * the limit is the crawler, it says so plainly. Telling someone to add more
+ * offerings when the real problem is that the site would not load is worse than
+ * saying nothing: they do the work and the next run fails identically.
  */
 function Readiness({
   readiness,
   clientName,
-  onEditClient,
 }: {
-  readiness: {
-    matched: number;
-    total: number;
-    unmatchedLabels: string[];
-    offerings: number;
-  };
+  readiness: AnalysisReadinessView;
   clientName: string;
-  onEditClient: () => void;
 }) {
-  if (readiness.matched === 0) {
+  // Nothing in the catalog answers any kind of website gap: the run cannot
+  // produce a finding whatever the site looks like.
+  if (readiness.catalog.matched === 0) {
     return (
       <div className="notice err" role="alert">
         <Icon name="alert" size={15} />
@@ -806,44 +886,126 @@ function Readiness({
     );
   }
 
-  const notes: ReactNode[] = [];
-  if (readiness.unmatchedLabels.length > 0) {
-    notes.push(
-      <>
-        Only {readiness.matched} of {readiness.total} kinds of gap will be checked — no active
-        service is offered for{" "}
-        {readiness.unmatchedLabels.map((label) => label.toLowerCase()).join(" or ")}.{" "}
-        <Link className="link" to="/services">
-          Open the catalog
-        </Link>
-        .
-      </>,
-    );
-  }
-  if (readiness.offerings < 2) {
-    notes.push(
-      <>
-        {clientName} has {readiness.offerings === 0 ? "no offerings" : "one offering"} recorded.
-        Client Growth will not claim a service page is missing unless the crawl can confirm it
-        reached the site&rsquo;s service section, which usually needs two or more.{" "}
-        <button type="button" className="linkbtn" onClick={onEditClient}>
-          Add what this business sells
-        </button>
-        .
-      </>,
-    );
-  }
-  if (notes.length === 0) return null;
+  const limited = readiness.rules.filter((rule) => rule.state !== "ready");
+  if (limited.length === 0) return null;
 
   return (
     <>
-      {notes.map((note, index) => (
-        <div className="notice" role="status" key={index}>
+      {limited.map((rule) => (
+        <div
+          className={rule.state === "not_ready" ? "notice warn" : "notice"}
+          role="status"
+          key={rule.ruleId}
+        >
           <Icon name="alert" size={15} />
-          <span>{note}</span>
+          <span>
+            <strong>{rule.label}</strong> — {rule.reason}{" "}
+            {rule.state === "not_ready" && (
+              <Link className="link" to="/services">
+                Open the catalog
+              </Link>
+            )}
+            {rule.state === "site_coverage_limited" && !rule.actionable && (
+              <span className="faint">
+                {clientName}&rsquo;s setup is not the limit here, so there is nothing to change.
+              </span>
+            )}
+          </span>
         </div>
       ))}
     </>
+  );
+}
+
+/**
+ * "These look like services customers can hire this business for."
+ *
+ * This is the difference between a scanner that says "insufficient coverage"
+ * and a product. When a client cannot be analyzed because Client Growth was
+ * told about one of the six things the business sells, the site itself already
+ * contains the answer — and the run that failed has it sitting in evidence.
+ *
+ * Every line here is a SUGGESTION. Nothing is added by opening this panel, and
+ * nothing is added by ignoring it. The agency opens the editor, keeps what is
+ * right, changes what is nearly right, and deletes the rest. Each suggestion
+ * shows where it came from, because a list of services with no provenance is
+ * something an agency has to verify from scratch anyway.
+ */
+function SuggestedServices({
+  suggestions,
+  clientName,
+  busy,
+  onEditClient,
+}: {
+  suggestions: SuggestedOffering[];
+  clientName: string;
+  busy: boolean;
+  onEditClient: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  if (suggestions.length === 0) return null;
+
+  return (
+    <div className="notice suggested-services" role="status">
+      <Icon name="alert" size={15} />
+      <div>
+        <p>
+          The last crawl found {suggestions.length}{" "}
+          {pluralize(suggestions.length, "service", "services")} on this site that{" "}
+          {suggestions.length === 1 ? "is" : "are"} not in {clientName}&rsquo;s profile. These look
+          like services customers can hire this business for.
+        </p>
+        <button type="button" className="btn" onClick={() => setOpen((v) => !v)}>
+          {open ? "Hide" : "Review suggested services"}
+        </button>
+
+        {open && (
+          <>
+            <ul className="suggestion-list">
+              {suggestions.map((suggestion) => (
+                <li key={suggestion.label}>
+                  <div className="suggestion-head">
+                    <span className="suggestion-label">{suggestion.label}</span>
+                    <span className="pill faint">
+                      {suggestion.confidence === "high" ? "Strong evidence" : "Worth checking"}
+                    </span>
+                  </div>
+                  <ul className="suggestion-evidence">
+                    {suggestion.evidence.map((item, index) => (
+                      <li key={index}>
+                        {item.url ? (
+                          <a href={item.url} target="_blank" rel="noreferrer" className="link">
+                            {item.detail}
+                          </a>
+                        ) : (
+                          item.detail
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              ))}
+            </ul>
+            <Form method="post" className="suggestion-actions">
+              <input type="hidden" name="intent" value="accept-suggestions" />
+              {suggestions.map((suggestion) => (
+                <input key={suggestion.label} type="hidden" name="offering" value={suggestion.label} />
+              ))}
+              <button type="submit" className="btn btn-primary" disabled={busy}>
+                Add all {suggestions.length} to {clientName}
+              </button>
+              <button type="button" className="btn" onClick={onEditClient} disabled={busy}>
+                Edit the list instead
+              </button>
+            </Form>
+            <p className="faint">
+              Nothing has been added yet. Anything you add is checked against the site like a
+              service, and a missing page for one would be priced like a service.
+            </p>
+          </>
+        )}
+      </div>
+    </div>
   );
 }
 
