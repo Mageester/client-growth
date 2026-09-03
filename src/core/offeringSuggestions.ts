@@ -3,6 +3,7 @@ import { classifyCommercialLanguage } from "@/core/commercialLanguage";
 import { significantTokens, titleCase } from "@/core/text";
 import {
   isArchivePath,
+  isEditorialPath,
   isInServiceSection,
   isServiceHub,
   hasServiceWordInSlug,
@@ -90,6 +91,12 @@ const BORING_PAGE =
 const PRICE_PAGE = /(cost|costs|price|prices|pricing|rates|fees)$/i;
 
 /**
+ * "All Plumbing Services" is the index page above the plumbing services, not
+ * a thing the business sells. michaelandson.com labels four of these.
+ */
+const UMBRELLA_INDEX = /^all\s+.+\s+services?$/i;
+
+/**
  * A service page written for one town — "Pool Removal in Charleswood" — is the
  * same offering as the one next to it, not another thing the business sells.
  * Suggesting twelve of them fills the confirmation list with one service.
@@ -154,6 +161,7 @@ function usableLabel(label: string): boolean {
   if (QUESTION.test(label)) return false;
   if (LOCATION_QUALIFIED.test(label)) return false;
   if (PRICE_PAGE.test(label)) return false;
+  if (UMBRELLA_INDEX.test(label)) return false;
   if (FURNITURE.test(label)) return false;
   if (BORING_PAGE.test(label)) return false;
   if (LOCATION_LIKE.test(label)) return false;
@@ -172,6 +180,10 @@ function usableLabel(label: string): boolean {
  */
 function usableUrl(url: string): boolean {
   if (DOCUMENT_URL.test(new URL(url, "https://client-growth.invalid/").pathname)) return false;
+  // A page under /blog or /project-gallery is writing about the work, not an
+  // offer of it. goddardschool.com/blog/babyproofing-your-home was being
+  // suggested as a service a childcare business sells.
+  if (isEditorialPath(url)) return false;
   return !isArchivePath(url) && !slugSaysNonService(url);
 }
 

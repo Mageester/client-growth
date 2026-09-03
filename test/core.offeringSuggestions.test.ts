@@ -273,3 +273,85 @@ describe("what must never be suggested", () => {
     expect(labels(evidence)).toEqual([]);
   });
 });
+
+/**
+ * Precision cases taken verbatim from the analyzability corpus, where each of
+ * these was actually suggested to a reviewer as something the business sells.
+ * They pull against the opposite risk — being so strict that real services stop
+ * being offered — so each block keeps a genuine service alongside the noise and
+ * asserts the genuine one survives.
+ */
+describe("what the corpus caught", () => {
+  it("does not offer a blog post as a service", () => {
+    // goddardschool.com/blog/babyproofing-your-home, suggested at high
+    // confidence to a childcare business.
+    const evidence = bundle({
+      pages: [
+        { url: "https://x.example/" },
+        { url: "https://x.example/blog/babyproofing-your-home", h1s: ["Babyproofing Your Home"] },
+        { url: "https://x.example/services/infant-program", h1s: ["Infant Program"] },
+      ],
+    });
+
+    const found = labels(evidence);
+    expect(found).not.toContain("Babyproofing Your Home");
+    expect(found).toContain("Infant Program");
+  });
+
+  it("does not offer an individual job write-up as a service", () => {
+    // thelawnsalon.ca keeps real services under /all-projects and photographs
+    // of finished jobs under /project-gallery. Ten of the second were being
+    // suggested, crowding out the two real ones.
+    const evidence = bundle({
+      pages: [
+        { url: "https://x.example/" },
+        { url: "https://x.example/all-projects/pool-removal/", h1s: ["Swimming Pool Removal"] },
+        {
+          url: "https://x.example/project-gallery/charleswood-pool-removal-through-low-garage/",
+          h1s: ["Charleswood Pool Removal Through Low Garage"],
+        },
+        {
+          url: "https://x.example/project-gallery/large-stump-removal/",
+          h1s: ["Large Stump Removal"],
+        },
+      ],
+    });
+
+    const found = labels(evidence);
+    expect(found).toContain("Swimming Pool Removal");
+    expect(found).not.toContain("Charleswood Pool Removal Through Low Garage");
+    expect(found).not.toContain("Large Stump Removal");
+  });
+
+  it("does not offer the index page above a group of services", () => {
+    // michaelandson.com titles /cooling "All Cooling Services". Dropping the
+    // four of these let four real services take their place under the cap.
+    const evidence = bundle({
+      pages: [
+        { url: "https://x.example/" },
+        { url: "https://x.example/cooling", h1s: ["All Cooling Services"] },
+        { url: "https://x.example/cooling/central-ac-repair", h1s: ["Central AC Repair"] },
+      ],
+    });
+
+    const found = labels(evidence);
+    expect(found).not.toContain("All Cooling Services");
+    expect(found).toContain("Central AC Repair");
+  });
+
+  it("still offers a service whose page merely sits deep in the site", () => {
+    // The editorial check looks at ancestors, so it must not reject a service
+    // simply for being nested.
+    const evidence = bundle({
+      pages: [
+        { url: "https://x.example/" },
+        {
+          url: "https://x.example/residential/heating/heat-pump-installation",
+          h1s: ["Heat Pump Installation"],
+        },
+      ],
+    });
+
+    expect(labels(evidence)).toContain("Heat Pump Installation");
+  });
+});

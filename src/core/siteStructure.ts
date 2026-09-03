@@ -195,6 +195,35 @@ export function isArchivePath(url: string): boolean {
 }
 
 /**
+ * Sections that publish writing and photographs ABOUT the work rather than
+ * pages selling it.
+ *
+ * Note "projects" but not "all-projects": thelawnsalon.ca puts its real service
+ * pages under /all-projects/pool-removal and its individual job write-ups under
+ * /project-gallery/charleswood-pool-removal-through-low-garage. Only the second
+ * is a portfolio entry.
+ */
+const EDITORIAL_ANCESTOR_SEGMENTS: ReadonlySet<string> = new Set([
+  "blog", "news", "article", "articles", "press", "media", "newsroom",
+  "resources", "resource", "insights", "guides", "guide", "stories",
+  "case-studies", "case-study", "project-gallery", "gallery", "galleries",
+  "portfolio", "projects", "testimonials", "reviews", "events",
+]);
+
+/**
+ * Does this page live UNDER an editorial or portfolio section?
+ *
+ * slugSaysNonService only inspects a URL's own last segment, which is right for
+ * what it does but means /blog/babyproofing-your-home reads as a service page:
+ * the slug is a perfectly good noun phrase and the "blog" above it is never
+ * looked at. An ancestor saying "blog" settles it whatever the leaf says.
+ */
+export function isEditorialPath(url: string): boolean {
+  const segments = pathSegments(url);
+  return segments.slice(0, -1).some((segment) => EDITORIAL_ANCESTOR_SEGMENTS.has(segment));
+}
+
+/**
  * Does this URL's own slug say it is one of the boring pages?
  *
  * Used to reject weak, text-derived evidence — never to reject a page that
