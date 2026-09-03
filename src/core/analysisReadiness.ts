@@ -68,6 +68,13 @@ export interface ReadinessInput {
     readablePages: number;
     /** Offerings the last crawl's evidence would suggest adding. */
     suggestedOfferings: number;
+    /**
+     * When the last crawl failed to reach the services: was that the site or
+     * the crawl? A site with no service pages cannot be fixed by anyone, and
+     * saying "the crawler could not read far enough" about a site the crawler
+     * read completely is simply untrue.
+     */
+    limitation?: "site-too-thin" | "coverage-limited" | null;
   };
 }
 
@@ -118,6 +125,17 @@ function missingServicePageReadiness(input: ReadinessInput): {
   }
 
   if (crawl && !crawl.analyzable) {
+    // The site itself has no service pages. Nobody can fix that: not the
+    // agency by editing offerings, not us by crawling harder. Say so, and
+    // offer no action, because every action offered here would be wasted work.
+    if (crawl.limitation === "site-too-thin") {
+      return {
+        state: "site_coverage_limited",
+        reason:
+          "This site has no pages describing what the business sells — the last run followed every link on it. A missing service page cannot be claimed against a site that describes no services, and adding offerings will not change that.",
+        actionable: false,
+      };
+    }
     return {
       state: "site_coverage_limited",
       reason:

@@ -17,7 +17,7 @@ function bundle(overrides: Partial<EvidenceBundle["site"]> = {}, networkEvents: 
     clientId: "c1",
     source: "http",
     capturedAt: "2026-09-01T00:00:00.000Z",
-    site: { pages: [], nav: [], links: [], sitemapUrls: [], ...overrides },
+    site: { pages: [], nav: [], links: [], sitemapUrls: [], crawlExhaustive: false, ...overrides },
     networkEvents,
   };
 }

@@ -421,12 +421,22 @@ function isServiceLikeUrl(url: string, heads: string[][]): boolean {
   return heads.some((head) => slugCoversOffering(url, head));
 }
 
+/**
+ * Why coverage failed — the two possibilities need opposite messages.
+ *
+ *   site-too-thin     we read the whole site and it has no service pages
+ *   coverage-limited  we could not get far enough to tell
+ */
+export type CoverageLimitation = "site-too-thin" | "coverage-limited";
+
 export interface CoverageAssessment {
   analyzable: boolean;
   reason: string;
   representedOfferings: number;
   serviceLikePages: number;
   serviceLikeSitemapUrls: number;
+  /** Null when the crawl did reach the services. */
+  limitation: CoverageLimitation | null;
 }
 
 /**
@@ -490,9 +500,23 @@ export function assessServiceCoverage(input: {
   const analyzable =
     representedOfferings >= 2 || serviceLikePages.length >= 2 || serviceLikeSitemapUrls >= 3;
 
+  // A crawl that ran out of links before it ran out of budget saw everything
+  // there was to see. Silence after an exhaustive look is a fact about the
+  // SITE; silence after a truncated one is a fact about the CRAWL, and telling
+  // an agency the wrong one sends them to fix something that is not broken.
+  const limitation: CoverageLimitation | null = analyzable
+    ? null
+    : evidence.site.crawlExhaustive
+      ? "site-too-thin"
+      : "coverage-limited";
+
+  const counts = `${representedOfferings} offering(s) represented in the site's navigation, links or sitemap, ${serviceLikePages.length} service page(s) read, ${serviceLikeSitemapUrls} service URL(s) in the sitemap`;
+
   const reason = analyzable
-    ? `Service coverage confirmed: ${representedOfferings} offering(s) represented in the site's navigation, links or sitemap, ${serviceLikePages.length} service page(s) read, ${serviceLikeSitemapUrls} service URL(s) in the sitemap.`
-    : `Insufficient service coverage: only ${representedOfferings} offering(s) represented in the site's navigation, links or sitemap, ${serviceLikePages.length} service page(s) read, ${serviceLikeSitemapUrls} service URL(s) in the sitemap — the crawl did not demonstrably reach the site's service pages, so no absence can be claimed.`;
+    ? `Service coverage confirmed: ${counts}.`
+    : limitation === "site-too-thin"
+      ? `This site has no service pages: the crawl followed every link on it and found ${counts}. Nothing was blocked and nothing was left unread, so this is the whole site.`
+      : `Insufficient service coverage: only ${counts} — the crawl did not demonstrably reach the site's service pages, so no absence can be claimed.`;
 
   return {
     analyzable,
@@ -500,5 +524,6 @@ export function assessServiceCoverage(input: {
     representedOfferings,
     serviceLikePages: serviceLikePages.length,
     serviceLikeSitemapUrls,
+    limitation,
   };
 }

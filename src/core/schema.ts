@@ -115,6 +115,18 @@ export const EvidenceBundleSchema = z.object({
     links: z.array(EvidenceLinkSchema).default([]),
     /** URLs listed in /sitemap.xml when cheaply available. */
     sitemapUrls: z.array(z.string()).default([]),
+    /**
+     * The crawl ran out of links before it ran out of budget, and nothing was
+     * refused or unreadable along the way — so this is the whole site, not a
+     * sample of it.
+     *
+     * This is the difference between "we looked everywhere and this business
+     * has no service pages" and "we could not get far enough to tell", which
+     * are the same silence and need opposite messages. Defaults to false so an
+     * evidence bundle persisted before this field existed is treated as the
+     * weaker claim rather than the stronger one.
+     */
+    crawlExhaustive: z.boolean().default(false),
   }),
   /** Network-policy failures are evidence limitations, never website defects. */
   networkEvents: z.array(EvidenceNetworkEventSchema).default([]),

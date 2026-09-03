@@ -166,7 +166,7 @@ async function main() {
         clientId: first.domain,
         source: "http",
         capturedAt: new Date().toISOString(),
-        site: { pages: [], nav: [], links: [], sitemapUrls: [] },
+        site: { pages: [], nav: [], links: [], sitemapUrls: [], crawlExhaustive: false },
         networkEvents: [],
       },
     });

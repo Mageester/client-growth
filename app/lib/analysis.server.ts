@@ -73,6 +73,7 @@ export async function runAnalysis(
     evidence: result.evidence,
     analyzable: result.coverage.analyzable,
     coverageReason: result.coverage.reason,
+    coverageLimitation: result.coverage.limitation,
     surfaced: result.opportunities.length,
     evaluatorErrors: result.stats.evaluatorErrors,
     catalog: result.catalogCoverage,
