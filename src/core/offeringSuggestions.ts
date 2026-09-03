@@ -15,7 +15,7 @@ import {
  *
  * The second reason a real client comes back inconclusive is not the crawler at
  * all: it is a client profile with one line in it. The site plainly sells six
- * things and Client Growth was told about one, so coverage can never be
+ * things and Axiom Orbit was told about one, so coverage can never be
  * confirmed and the agency is told, unhelpfully, to try again.
  *
  * This reads evidence that has ALREADY been crawled and proposes what the

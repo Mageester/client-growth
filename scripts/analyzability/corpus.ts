@@ -3,7 +3,7 @@
  * deliberately different structures.
  *
  * These are treated as READ-ONLY subjects of a bounded, polite crawl. No site
- * here is a Client Growth customer, nothing is written anywhere, and every run
+ * here is a Axiom Orbit customer, nothing is written anywhere, and every run
  * replays from the on-disk cache after the first pass (see cache.ts).
  *
  * `offerings` is the client profile an agency would have typed in: what the

@@ -7,7 +7,7 @@ import { requireTenant } from "../lib/session.server";
 import type { Route } from "./+types/settings";
 
 export function meta() {
-  return [{ title: "Settings · Client Growth" }];
+  return [{ title: "Settings · Axiom Orbit" }];
 }
 
 /** The window the monitoring health section reports on. */
@@ -67,7 +67,7 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
         <div className="section-head">
           <div>
             <h2 className="title-section">Workspace</h2>
-            <p>The agency name shown across Client Growth.</p>
+            <p>The agency name shown across Axiom Orbit.</p>
           </div>
         </div>
         <Form method="post">
@@ -125,7 +125,7 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
           <div>
             <h2 className="title-section">About</h2>
             <p>
-              Client Growth watches the websites of the clients you already look after and surfaces
+              Axiom Orbit watches the websites of the clients you already look after and surfaces
               evidence-backed work worth bringing up.
             </p>
           </div>
@@ -156,7 +156,7 @@ function MonitoringHealth({
         <div>
           <h2 className="title-section">Monitoring</h2>
           <p>
-            Client Growth re-checks monitored clients on their own schedule. Turn it on for a
+            Axiom Orbit re-checks monitored clients on their own schedule. Turn it on for a
             client from that client&rsquo;s page.
           </p>
         </div>

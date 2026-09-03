@@ -8,7 +8,7 @@ import { AxiomCredit, Icon } from "../components/ui";
 import type { Route } from "./+types/signup";
 
 export function meta() {
-  return [{ title: "Create account · Client Growth" }];
+  return [{ title: "Create account · Axiom Orbit" }];
 }
 
 export async function loader({ request, context }: Route.LoaderArgs) {
@@ -59,7 +59,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 export default function Signup({ actionData }: Route.ComponentProps) {
   return (
     <main className="auth">
-      <span className="auth-eyebrow">Client Growth</span>
+      <span className="auth-eyebrow">Axiom Orbit</span>
       <h1>Start with your portfolio</h1>
       <p className="auth-sub">
         Create a workspace for the client sites you already look after.

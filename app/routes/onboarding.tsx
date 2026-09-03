@@ -17,7 +17,7 @@ import { normalizeDomain, validateClientInput, validateServiceInput } from "../l
 import type { Route } from "./+types/onboarding";
 
 export function meta() {
-  return [{ title: "Get started · Client Growth" }];
+  return [{ title: "Get started · Axiom Orbit" }];
 }
 
 /**
@@ -167,7 +167,7 @@ export default function Onboarding({ loaderData, actionData }: Route.ComponentPr
       <span className="eyebrow">Setup</span>
       <h1 className="title-lg onboarding-title">Watch your first client site</h1>
       <p className="prose onboarding-lede">
-        Client Growth reads a client&rsquo;s website, compares it against what that business
+        Axiom Orbit reads a client&rsquo;s website, compares it against what that business
         actually sells, and surfaces the work you could legitimately bill for. Two things to set up,
         then it runs.
       </p>
@@ -206,7 +206,7 @@ export default function Onboarding({ loaderData, actionData }: Route.ComponentPr
                 What you sell
               </h2>
               <p>
-                Client Growth finds two kinds of gap today. Set what you would charge to fix each
+                Axiom Orbit finds two kinds of gap today. Set what you would charge to fix each
                 one — every finding is priced from these, so nothing is surfaced that you could not
                 deliver.
               </p>
@@ -307,7 +307,7 @@ export default function Onboarding({ loaderData, actionData }: Route.ComponentPr
                 customers would use. Not claims about the business — no "free quotes", "fully
                 insured", "family owned", "financing available" or "satisfaction guarantee". Every
                 line here can become a priced page recommendation, so a claim in this box becomes a
-                pitch for a page about a claim. With fewer than two, Client Growth will not claim
+                pitch for a page about a claim. With fewer than two, Axiom Orbit will not claim
                 anything is missing.
               </div>
             </div>

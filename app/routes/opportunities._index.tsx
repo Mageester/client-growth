@@ -36,7 +36,7 @@ import { requireTenant } from "../lib/session.server";
 import type { Route } from "./+types/opportunities._index";
 
 export function meta() {
-  return [{ title: "Opportunities · Client Growth" }];
+  return [{ title: "Opportunities · Axiom Orbit" }];
 }
 
 export async function loader({ request, context }: Route.LoaderArgs) {
@@ -195,7 +195,7 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
       <div>
         <PageHead>
           <p className="lede">
-            Client Growth reads the sites you already look after and tells you where there is
+            Axiom Orbit reads the sites you already look after and tells you where there is
             legitimate, evidence-backed work worth bringing up.
           </p>
         </PageHead>
@@ -682,7 +682,7 @@ function FeedEmpty({
           title={"Nothing read from " + selected.client.domain + " yet"}
           actions={analyzeButton(selected.client.id, "Analyze this site")}
         >
-          Client Growth reads the live site, checks what this business sells against what the site
+          Axiom Orbit reads the live site, checks what this business sells against what the site
           actually shows, and only surfaces work it can evidence.
         </EmptyState>
       );

@@ -5,7 +5,7 @@
  * This started life inside the client form, warning an agency that "fully
  * insured" typed into the offerings box is one analysis away from a priced
  * landing-page proposal for a claim about the client's insurance. The same
- * judgment is needed in a second place now — anything Client Growth suggests
+ * judgment is needed in a second place now — anything Axiom Orbit suggests
  * back to the agency from a site's own copy must be filtered by it, or the
  * product would propose "Free Quotes" as a service the client sells.
  *

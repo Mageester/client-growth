@@ -87,7 +87,7 @@ export function classifyAnalysis(input: OutcomeInput): AnalysisOutcomeResult {
       outcome: "inconclusive",
       summary: "Nothing could be checked — no service in your catalog is offered for a website gap.",
       limitation:
-        "Client Growth prices every finding from something you sell, so a service has to say which kind of gap it answers before a site can be assessed. Add or edit a service, set what it is offered for, then re-analyze.",
+        "Axiom Orbit prices every finding from something you sell, so a service has to say which kind of gap it answers before a site can be assessed. Add or edit a service, set what it is offered for, then re-analyze.",
       reach,
     };
   }

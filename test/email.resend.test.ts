@@ -60,11 +60,11 @@ describe("Resend password-reset adapter", () => {
     expect(
       getResendConfig({
         RESEND_API_KEY: "  re_test_key  ",
-        RESEND_FROM_EMAIL: "  Client Growth <auth@example.com>  ",
+        RESEND_FROM_EMAIL: "  Axiom Orbit <auth@example.com>  ",
       }),
     ).toEqual({
       apiKey: "re_test_key",
-      from: "Client Growth <auth@example.com>",
+      from: "Axiom Orbit <auth@example.com>",
     });
   });
 
@@ -75,7 +75,7 @@ describe("Resend password-reset adapter", () => {
       return new Response(null, { status: 202 });
     };
     const sender = createResendPasswordResetSender(
-      { apiKey: "re_test_key", from: "Client Growth <auth@example.com>" },
+      { apiKey: "re_test_key", from: "Axiom Orbit <auth@example.com>" },
       fetcher,
     );
 
@@ -101,9 +101,9 @@ describe("Resend password-reset adapter", () => {
       text: string;
     };
     expect(body).toEqual({
-      from: "Client Growth <auth@example.com>",
+      from: "Axiom Orbit <auth@example.com>",
       to: ["owner@example.com"],
-      subject: "Reset your Client Growth password",
+      subject: "Reset your Axiom Orbit password",
       text: expect.stringContaining(
         "http://localhost:8787/api/auth/reset-password/token-123?callbackURL=fixed",
       ),

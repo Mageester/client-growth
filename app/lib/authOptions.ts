@@ -21,7 +21,7 @@ export interface AuthDeps {
 
 export function buildAuthOptions(deps: AuthDeps): BetterAuthOptions {
   return {
-    appName: "Client Growth",
+    appName: "Axiom Orbit",
     database: deps.database,
     secret: deps.secret,
     baseURL: deps.baseURL,

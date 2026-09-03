@@ -95,7 +95,7 @@ describe("Worker password-reset email path", () => {
         BETTER_AUTH_SECRET: "test-secret-".padEnd(48, "x"),
         BETTER_AUTH_URL: "http://localhost:8787",
         RESEND_API_KEY: "test-resend-key",
-        RESEND_FROM_EMAIL: "Client Growth <noreply@getaxiom.ca>",
+        RESEND_FROM_EMAIL: "Axiom Orbit <noreply@getaxiom.ca>",
       });
 
       await auth.api.signUpEmail({

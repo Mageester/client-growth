@@ -282,7 +282,7 @@ export function Layout({ children }: { children: ReactNode }) {
             <aside className="app-sidebar">
               <Link className="brand app-brand" to="/opportunities">
                 <BrandMark />
-                <span className="brand-word">Client Growth</span>
+                <span className="brand-word">Axiom Orbit</span>
               </Link>
               <div className="app-sidebar-label">Revenue workspace</div>
               <AppNavigation />
@@ -295,9 +295,9 @@ export function Layout({ children }: { children: ReactNode }) {
               />
             </aside>
             <header className="mobile-appbar">
-              <Link className="brand" to="/opportunities" aria-label="Client Growth home">
+              <Link className="brand" to="/opportunities" aria-label="Axiom Orbit home">
                 <BrandMark />
-                <span className="brand-word">Client Growth</span>
+                <span className="brand-word">Axiom Orbit</span>
               </Link>
               <AppNavigation compact />
               <WorkspaceMenu
@@ -320,7 +320,7 @@ export function Layout({ children }: { children: ReactNode }) {
               <div className="topbar-inner">
                 <Link className="brand" to={signedIn ? "/opportunities" : "/"}>
                   <BrandMark />
-                  <span className="brand-word">Client Growth</span>
+                  <span className="brand-word">Axiom Orbit</span>
                 </Link>
                 <div className="topbar-end">
                   {!signedIn && (

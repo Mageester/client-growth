@@ -41,7 +41,9 @@ export function OpportunitySignalRow({
           <span className="signal-row-title">{opportunity.title}</span>
           <span className="signal-row-context">
             <span>{client.name}</span>
-            <span aria-hidden="true">·</span>
+            <span className="dot-sep" aria-hidden="true">
+              ·
+            </span>
             <span>{serviceName}</span>
           </span>
         </span>

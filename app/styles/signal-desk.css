@@ -777,15 +777,15 @@ textarea:hover {
 }
 
 .signal-row-title {
-  overflow: hidden;
+  /* A finding's title is the sentence the agency reads; wrap it rather than
+     truncating, which loses the end of the claim on a narrower screen. */
   color: var(--ink);
   font-family: var(--font-display);
   font-size: 17px;
   font-weight: 600;
   line-height: 1.3;
   letter-spacing: -0.005em;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .signal-row-context {
@@ -1173,46 +1173,58 @@ textarea:hover {
 }
 
 .directory-page > .records {
-  margin-top: 28px;
-  overflow: hidden;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--r-lg);
-  box-shadow: var(--lift);
+  margin-top: 26px;
+  overflow: visible;
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--line-strong);
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .directory-page .record {
   min-height: 76px;
   margin: 0;
-  padding: 14px 18px;
+  padding: 16px 12px;
   border-radius: 0;
 }
 
 .directory-page .record:hover {
-  background: var(--raised);
+  background: var(--hairline-soft);
 }
 
 .directory-page .record-name {
   color: var(--ink);
-  font-size: 13px;
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+
+a.record:hover .record-name {
+  color: var(--ink);
 }
 
 .directory-page .record-meta,
 .directory-page .offer-line {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12.5px;
 }
 
 .directory-page .record-stat b {
   color: var(--ink);
-  font-size: 12px;
-  font-weight: 700;
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .directory-page .record-stat span {
   color: var(--faint);
-  font-size: 10px;
+  font-size: 11px;
+}
+
+.directory-page .record-chevron {
+  display: none;
 }
 
 .directory-page .record-actions {
@@ -1231,31 +1243,57 @@ textarea:hover {
   margin-top: 7px;
 }
 
-.services-directory .pill {
+.directory-page .pill {
+  height: auto;
+  padding: 0;
   color: var(--muted);
-  background: var(--raised);
-  border: 1px solid var(--line);
-  border-radius: var(--r-pill);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  font-size: 12px;
+  font-weight: 400;
 }
 
-.services-directory .pill.warn {
+.directory-page .pill:not(.quiet)::before {
+  width: 5px;
+  height: 5px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: currentcolor;
+  content: "";
+}
+
+.directory-page .pill.warn {
   color: var(--warn);
-  background: var(--warn-wash);
-  border-color: var(--warn-line);
+  background: transparent;
+}
+
+.directory-page .pill.pos {
+  color: var(--pos);
+  background: transparent;
+}
+
+.directory-page .pill.quiet {
+  color: var(--faint);
+}
+
+.directory-page .tag-row {
+  gap: 14px;
 }
 
 .state-toggle {
   min-height: 30px;
   padding: 0 9px;
   color: var(--muted);
-  background: var(--raised);
-  border: 1px solid var(--line);
-  border-radius: var(--r-pill);
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  font-weight: 400;
 }
 
 .state-toggle.on {
   color: var(--pos);
-  background: var(--pos-wash);
+  background: transparent;
   border-color: var(--pos-line);
 }
 
@@ -1273,62 +1311,69 @@ textarea:hover {
 }
 
 .detail .backlink {
-  margin-bottom: 14px;
+  margin-bottom: 20px;
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 650;
+  font-size: 13px;
+  font-weight: 400;
 }
 
 .detail .detail-head {
-  padding: 24px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--r-lg);
-  box-shadow: var(--lift);
+  padding: 0 0 26px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .detail .title-lg {
   color: var(--ink);
-  font-family: var(--font);
-  font-size: 27px;
-  font-weight: 720;
-  letter-spacing: -0.035em;
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 600;
+  line-height: 1.14;
+  letter-spacing: -0.015em;
 }
 
 .detail .detail-meta,
 .detail .detail-next {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .detail .detail-next {
   color: var(--ink-soft);
-  font-weight: 650;
+  font-weight: 400;
 }
 
 .detail .factbar {
-  margin-top: 20px;
-  background: var(--raised);
-  border-color: var(--line);
-  border-radius: var(--r-md);
+  margin-top: 24px;
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--line-strong);
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
 }
 
 .detail .fact {
-  padding: 13px 14px;
+  padding: 14px 20px 14px 0;
 }
 
 .detail .fact dt {
   color: var(--faint);
-  font-family: var(--font);
-  font-size: 9px;
-  font-weight: 750;
-  letter-spacing: 0.08em;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.13em;
 }
 
 .detail .fact dd {
   color: var(--ink);
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.detail .fact dd .num {
+  font-family: var(--mono);
 }
 
 .detail > .notice {
@@ -1337,49 +1382,53 @@ textarea:hover {
 
 .detail > .section,
 .detail > form > .section {
-  margin-top: 16px;
-  padding: 22px 24px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--r-lg);
-  box-shadow: var(--lift);
+  margin-top: 0;
+  padding: 28px 0;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .detail .title-section {
   color: var(--ink);
-  font-family: var(--font);
-  font-size: 16px;
-  font-weight: 720;
-  letter-spacing: -0.02em;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .detail .section-head p,
 .detail .prose,
 .detail .case-block .prose {
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.6;
+  color: var(--ink-soft);
+  font-size: 14.5px;
+  line-height: 1.62;
 }
 
 .detail .subhead {
-  color: var(--ink-soft);
-  font-size: 12px;
-  font-weight: 700;
+  color: var(--faint);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
 }
 
 .detail .case {
   display: grid;
   max-width: none;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-  margin-top: 14px;
+  gap: 26px 34px;
+  margin-top: 18px;
 }
 
 .detail .case-block {
-  padding: 16px;
-  background: var(--raised);
-  border: 1px solid var(--line);
-  border-radius: var(--r-md);
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
 }
 
 .detail .case-block:last-child:nth-child(odd) {
@@ -1388,23 +1437,24 @@ textarea:hover {
 
 .detail .evidence-list,
 .detail .records {
-  overflow: hidden;
-  background: var(--raised);
-  border: 1px solid var(--line);
-  border-radius: var(--r-md);
+  overflow: visible;
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
 }
 
 .detail .record {
   margin: 0;
-  padding: 13px 14px;
+  padding: 14px 0;
   border-radius: 0;
 }
 
 .detail .actionbar {
-  padding: 14px;
-  background: var(--raised);
-  border: 1px solid var(--line);
-  border-radius: var(--r-md);
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
 }
 
 .monitorbar {
@@ -1540,7 +1590,7 @@ textarea:hover {
   }
 
   .signal-row-select {
-    grid-template-columns: 26px minmax(190px, 1fr) 112px 76px 20px;
+    grid-template-columns: minmax(190px, 1fr) 120px 96px;
   }
 
   .signal-row-confidence {
@@ -1634,7 +1684,7 @@ textarea:hover {
 
   .signal-row-select {
     min-height: 96px;
-    grid-template-columns: 26px minmax(0, 1fr) 20px;
+    grid-template-columns: minmax(0, 1fr);
     padding: 0 12px;
   }
 
@@ -1885,4 +1935,37 @@ textarea:hover {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
   }
+}
+
+/* Status on the detail pages matches the findings list: a word with a lead
+   dot rather than a filled pill competing with the heading beside it. */
+.detail .detail-meta .pill {
+  height: auto;
+  padding: 0;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.detail .detail-meta .pill::before {
+  width: 5px;
+  height: 5px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: currentcolor;
+  content: "";
+}
+
+.detail .detail-meta .pill.pos {
+  color: var(--pos);
+}
+
+.detail .detail-meta .pill.warn {
+  color: var(--warn);
+}
+
+.detail .detail-meta .pill.accent {
+  color: var(--accent);
 }

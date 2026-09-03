@@ -32,7 +32,6 @@ import {
   EmptyState,
   Fact,
   Icon,
-  Meter,
   SidePanel,
   StateDot,
   formatCompactRange,
@@ -62,7 +61,7 @@ type AnalysisReadinessView = {
 };
 
 export function meta({ data }: Route.MetaArgs) {
-  return [{ title: data ? data.client.name + " · Client Growth" : "Client" }];
+  return [{ title: data ? data.client.name + " · Axiom Orbit" : "Client" }];
 }
 
 export async function loader({ params, request, context }: Route.LoaderArgs) {
@@ -495,8 +494,8 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
                         <span>potential value</span>
                       </span>
                       <span className="record-stat">
-                        <Meter value={opp.confidence} />
-                        <span>{Math.round(opp.confidence * 100)}% confident</span>
+                        <b className="num">{Math.round(opp.confidence * 100)}%</b>
+                        <span>confident</span>
                       </span>
                       <Icon name="chevron-right" size={15} className="record-chevron" />
                     </span>
@@ -597,7 +596,7 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
               </button>
             }
           >
-            Without this list, Client Growth cannot tell whether the site covers what the business
+            Without this list, Axiom Orbit cannot tell whether the site covers what the business
             actually does — so it will not claim anything is missing.
           </EmptyState>
         ) : (
@@ -923,7 +922,7 @@ function Readiness({
  * "These look like services customers can hire this business for."
  *
  * This is the difference between a scanner that says "insufficient coverage"
- * and a product. When a client cannot be analyzed because Client Growth was
+ * and a product. When a client cannot be analyzed because Axiom Orbit was
  * told about one of the six things the business sells, the site itself already
  * contains the answer — and the run that failed has it sitting in evidence.
  *

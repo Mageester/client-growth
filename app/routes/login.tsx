@@ -6,7 +6,7 @@ import { AxiomCredit, Icon } from "../components/ui";
 import type { Route } from "./+types/login";
 
 export function meta() {
-  return [{ title: "Log in · Client Growth" }];
+  return [{ title: "Log in · Axiom Orbit" }];
 }
 
 export async function loader({ request, context }: Route.LoaderArgs) {
@@ -37,7 +37,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 export default function Login({ loaderData, actionData }: Route.ComponentProps) {
   return (
     <main className="auth">
-      <span className="auth-eyebrow">Client Growth</span>
+      <span className="auth-eyebrow">Axiom Orbit</span>
       <h1>Welcome back</h1>
       <p className="auth-sub">
         Pick up where your portfolio left off and see what is worth raising next.

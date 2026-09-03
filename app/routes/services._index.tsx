@@ -17,7 +17,7 @@ import { validateServiceInput } from "../lib/validation";
 import type { Route } from "./+types/services._index";
 
 export function meta() {
-  return [{ title: "Services · Client Growth" }];
+  return [{ title: "Services · Axiom Orbit" }];
 }
 
 /**
