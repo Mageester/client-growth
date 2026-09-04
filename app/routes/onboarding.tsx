@@ -12,6 +12,7 @@ import {
 } from "@/db/workspaces";
 import type { TenantScope } from "@/db/tenant";
 import { Icon } from "../components/ui";
+import { OfferingGuidance } from "../components/offering-guidance";
 import { d1Db } from "../lib/d1.server";
 import { requireSession } from "../lib/session.server";
 import { collectEvidenceOnly, runAnalysis } from "../lib/analysis.server";
@@ -847,6 +848,7 @@ function ConfirmStage({
               insured&rdquo; or &ldquo;family owned&rdquo;. Every line here can become a priced page
               recommendation, so a claim in this box becomes a pitch for a page about a claim.
             </div>
+            <OfferingGuidance offerings={confirmed} showWarnings={false} />
           </div>
 
           {warnings.length > 0 && (

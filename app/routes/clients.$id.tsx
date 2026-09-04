@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Form, Link, redirect, useNavigation } from "react-router";
 
 import { ClientSchema, type Client } from "@/core/schema";
@@ -43,6 +43,7 @@ import {
   formatRelative,
   pluralize,
 } from "../components/ui";
+import { OfferingGuidance } from "../components/offering-guidance";
 import { requireTenant } from "../lib/session.server";
 import { normalizeDomain, offeringWarnings, validateClientInput } from "../lib/validation";
 import type { Route } from "./+types/clients.$id";
@@ -330,8 +331,15 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
   const deleting = intent === "delete";
   const busy = navigation.state !== "idle";
   const [editOpen, setEditOpen] = useState(false);
+  const [editOfferings, setEditOfferings] = useState(() => client.offerings.join("\n"));
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteSubmitted, setDeleteSubmitted] = useState(false);
+
+  // Refresh the editor from persisted data after a save/revalidation, while
+  // keeping in-progress typing intact if another form happens to revalidate.
+  useEffect(() => {
+    if (!editOpen) setEditOfferings(client.offerings.join("\n"));
+  }, [client.id, client.offerings, editOpen]);
 
   const closeDeletePanel = () => {
     setDeleteOpen(false);
@@ -669,6 +677,7 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
             <OfferingQuality offerings={client.offerings} onEdit={() => setEditOpen(true)} />
           </>
         )}
+        <OfferingGuidance offerings={client.offerings} showWarnings={false} />
         {client.notes && <p className="prose client-notes">{client.notes}</p>}
       </section>
 
@@ -788,13 +797,15 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
               id="edit-offerings"
               name="offerings"
               rows={6}
-              defaultValue={client.offerings.join("\n")}
+              value={editOfferings}
+              onChange={(event) => setEditOfferings(event.target.value)}
             />
             <div className="field-hint">
               One per line: things customers actually hire or pay them for. Not claims about the
               business — no "free quotes", "fully insured", "family owned" or "financing available".
               Two or more makes the analysis far better.
             </div>
+            <OfferingGuidance raw={editOfferings} />
           </div>
           <div className="field">
             <label htmlFor="edit-notes">Notes</label>

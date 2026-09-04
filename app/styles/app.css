@@ -1068,6 +1068,19 @@ input[type="checkbox"] {
   margin-top: 0.45rem;
 }
 
+/* Immediate, advisory feedback for the client-offerings fields. */
+.offering-guidance {
+  margin-top: 0.55rem;
+}
+
+.offering-examples {
+  margin-top: 0.35rem;
+}
+
+.offering-guidance .notice {
+  margin: 0.6rem 0 0;
+}
+
 /* Suggested services: a confirmation list, not a result. It is deliberately
    quiet — nothing here has been applied, and the panel is collapsed until the
    agency asks to see it. */

@@ -19,6 +19,7 @@ import {
   formatRelative,
   pluralize,
 } from "../components/ui";
+import { OfferingGuidance } from "../components/offering-guidance";
 import { requireTenant } from "../lib/session.server";
 import { normalizeDomain, validateClientInput } from "../lib/validation";
 import type { Route } from "./+types/clients._index";
@@ -100,12 +101,14 @@ export default function ClientsIndex({ loaderData, actionData }: Route.Component
   const navigation = useNavigation();
   const busy = navigation.state !== "idle";
   const [addOpen, setAddOpen] = useState(false);
+  const [newOfferings, setNewOfferings] = useState("");
   const handled = useRef<string | null>(null);
 
   useEffect(() => {
     if (actionData?.ok && actionData.id !== handled.current) {
       handled.current = actionData.id;
       setAddOpen(false);
+      setNewOfferings("");
     }
   }, [actionData]);
 
@@ -233,6 +236,8 @@ export default function ClientsIndex({ loaderData, actionData }: Route.Component
               id="new-client-offerings"
               name="offerings"
               rows={6}
+              value={newOfferings}
+              onChange={(event) => setNewOfferings(event.target.value)}
               placeholder={"heat pump installation\nair conditioning repair\nduct cleaning"}
             />
             <div className="field-hint">
@@ -241,6 +246,7 @@ export default function ClientsIndex({ loaderData, actionData }: Route.Component
               This is what the site gets checked against and what findings get priced from, so it
               matters more than anything else on this form.
             </div>
+            <OfferingGuidance raw={newOfferings} />
           </div>
           <div className="field">
             <label htmlFor="new-client-notes">Notes</label>
