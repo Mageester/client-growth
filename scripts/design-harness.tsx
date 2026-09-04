@@ -21,11 +21,15 @@ import type { SignalDeskEntry } from "../app/components/signal-desk";
 import { buildEvidenceCase } from "../app/lib/evidence";
 import { clientState, totalsFor } from "../app/lib/portfolio";
 import ClientsIndex from "../app/routes/clients._index";
+import ClientsImport from "../app/routes/clients.import";
 import ServicesIndex from "../app/routes/services._index";
 import OpportunityDetail from "../app/routes/opportunities.$id";
 import ClientDetail from "../app/routes/clients.$id";
 import Onboarding from "../app/routes/onboarding";
 import Changes from "../app/routes/changes";
+import Login from "../app/routes/login";
+import Operations from "../app/routes/operations";
+import ProposalShare from "../app/routes/proposal.share";
 import { assessAnalysisReadiness } from "@/core/analysisReadiness";
 import { TOUR_STEPS } from "../app/components/tour";
 import { Icon } from "../app/components/ui";
@@ -550,8 +554,31 @@ const onboardingClient = {
   offerings: [],
 };
 
-const screens: Record<string, { nav: string; node: ReactNode; bare?: boolean }> = {
+const screens: Record<string, { nav: string; node: ReactNode; bare?: boolean; standalone?: boolean }> = {
   ...corpusScreens(),
+  "clients-import": {nav:"Clients",node:h(ClientsImport,{loaderData:{existingCount:4},actionData:{
+    stage:"preview",ok:true,raw:"Northwind Heating,northwind.example,heat pump installation;duct cleaning",issues:[],
+    rows:[{line:1,name:"Northwind Heating",domain:"northwind.example",offerings:["heat pump installation","duct cleaning"]}],
+  }} as never)},
+  "branded-proposal": {nav:"",standalone:true,node:h(ProposalShare,{loaderData:{
+    shareId:"fixture",createdAt:"2026-09-04T10:00:00.000Z",expiresAt:"2026-10-04T10:00:00.000Z",
+    snapshot:{agencyName:"Northstar Digital",logo:null,preparedBy:"Alex at Northstar Digital",clientName:"Northwind Heating",clientDomain:"northwindheating.co.uk",
+      proposalMd:"# A clearer path to boiler installation enquiries\n\nWe recommend a **dedicated boiler installation page** covering the process, available options, and how to request a quote.\n\n- Write clear service copy\n- Add an enquiry action",
+      opportunity:{...opportunities[0],title:"Boiler installation needs a dedicated page",priceMin:900,priceMax:1800,suggestedScope:["Write the boiler installation page","Add internal links and a clear enquiry action"],serviceName:"Service landing page"}},
+  }} as never)},
+  "email-verification": {
+    nav: "", bare: true,
+    node: h(Login, {loaderData:{resetSuccess:false,verificationSent:true,verificationSuccess:false},
+      actionData:{verificationRequired:true,email:"owner@example.test",error:"Verify your email before logging in."}} as never),
+  },
+  "check-health": {
+    nav: "Settings",
+    node: h(Operations, {loaderData:{since:"2026-08-28",until:"2026-09-04",
+      current:{checks:10,clean:1,findings:3,inconclusive:6,evaluatorErrors:2,evaluatorCalls:14},previous:{checks:10,clean:4,findings:5,inconclusive:1,evaluatorErrors:0,evaluatorCalls:12},
+      rate:0.6,previousRate:0.1,alert:"Axiom Orbit could not fully assess 6 of 10 checks this week. Review client setup and recent check results before relying on this portfolio.",
+      incompleteStarts:1,failedStarts:1,recentErrors:[{id:1,clientName:"Halton Plumbing",finishedAt:"2026-09-04T10:00:00.000Z",outcome:"inconclusive",summary:"This site could not be read well enough to assess.",evaluatorErrors:0}],
+    }} as never),
+  },
   "weekly-changes": {
     nav: "This week",
     node: h(Changes, { loaderData: {
@@ -654,7 +681,7 @@ for (const [name, screen] of Object.entries(screens)) {
         path: "/",
         // root.tsx drops the app nav on /onboarding, so the bare screens are
         // wrapped the way it wraps them: the public topbar and content column.
-        element: screen.bare
+        element: screen.standalone ? screen.node : screen.bare
           ? h(
               "div",
               null,
