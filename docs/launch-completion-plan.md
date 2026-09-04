@@ -30,5 +30,5 @@ Preserve evidence provenance, tenant isolation, human confirmation, and the dist
 - [x] `pnpm verify` and `git diff --check`.
 - [x] `pnpm analyzability --offline`: inspect false-analyzable count, not just exit status.
 - [x] Render new states in the design harness and inspect screenshots and reachable controls.
-- [ ] Apply additive migrations only after migration parity and foreign-key tests pass; clean build, deploy, verify canonical auth origin again.
-- [ ] Record exact shipped scope and remaining live-only acceptance limits.
+- [x] Apply additive migrations only after migration parity and foreign-key tests pass; clean build, deploy, verify canonical auth origin again.
+- [x] Record exact shipped scope and remaining live-only acceptance limits.

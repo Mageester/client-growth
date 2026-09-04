@@ -1,3 +1,5 @@
+> Release update (2026-09-04): the twelve-item launch backlog is deployed. See [launch acceptance](launch-acceptance-2026-09-04.md) for current features, verification, Worker version and live-only limits. The historical gaps below describe the state before this release.
+
 # Axiom Orbit — handoff
 
 **Date:** 2026-09-04

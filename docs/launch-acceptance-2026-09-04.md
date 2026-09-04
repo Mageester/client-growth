@@ -28,4 +28,11 @@ This release follows the user-approved twelve-item brief. The production auth-or
 
 ## Release evidence
 
-Final integrated verification, release commit, migrations and Worker version are recorded after deployment below.
+- Deployed source commit: `9e69587` (last feature commit `c6036ba`). Each numbered item has its own commit; later review corrections are separate.
+- `pnpm verify`: passed, **770 tests across 92 files**, repository safety, production preflight, typecheck and clean build. `pnpm deploy:production` repeated preflight, typecheck and build successfully.
+- Production migrations `0009`–`0012`: applied. Remote `PRAGMA foreign_key_check`: no violations.
+- Worker version: `4a01c149-8ac4-429c-9e94-432ee272ef91`.
+- Post-deploy canonical-origin sign-in probe: HTTP **401**, `INVALID_EMAIL_OR_PASSWORD`, using a nonexistent synthetic account. No `INVALID_ORIGIN`.
+- Preview-origin sign-in probe: HTTP **403**, `INVALID_ORIGIN`. Both canonical and preview login pages return HTTP **200**.
+- Built local browser acceptance: CSV preview followed by confirmation added exactly two clients; service mapping proposed two title-related tags and saved only the explicitly retained override. A mixed-case/trailing-slash share URL remained standalone while signed in. Tenant export returned six local clients and four services with `private, no-store`, and no secret columns.
+- Existing untracked `.analyzability-after2.json` was preserved. No push was performed.
