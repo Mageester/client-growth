@@ -20,6 +20,7 @@ const EXPECTED_MIGRATIONS = [
   "0009_analysis_limits.sql",
   "0010_team_invitations.sql",
   "0011_proposal_shares.sql",
+  "0012_analysis_completion.sql",
 ] as const;
 
 const DEMO_IDENTIFIERS = [
@@ -73,7 +74,7 @@ describe("production migration baseline", () => {
    * The migration that matters is not the one that runs on an empty database —
    * it is the one that runs on the schema production is on right now, with rows
    * in it. This walks 0001..0007, populates it the way production is populated,
-   * then applies 0008 through 0011 alone.
+   * then applies 0008 through 0012 alone.
    */
   it("upgrades the live production schema in place without touching existing rows", async () => {
     const db = nodeSqliteDb(":memory:");
@@ -107,6 +108,7 @@ describe("production migration baseline", () => {
       await db.exec(readFileSync(join(migrationsDir, "0009_analysis_limits.sql"), "utf8"));
       await db.exec(readFileSync(join(migrationsDir, "0010_team_invitations.sql"), "utf8"));
       await db.exec(readFileSync(join(migrationsDir, "0011_proposal_shares.sql"), "utf8"));
+      await db.exec(readFileSync(join(migrationsDir, "0012_analysis_completion.sql"), "utf8"));
 
       expect(await db.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
 

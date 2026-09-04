@@ -23,6 +23,8 @@ export default [
 
   // authed + workspace required — each loader/action calls requireTenant itself
   route("changes", "routes/changes.tsx"),
+  route("operations", "routes/operations.tsx"),
+  route("export/workspace", "routes/export.workspace.tsx"),
   route("opportunities", "routes/opportunities._index.tsx"),
   route("opportunities/:id", "routes/opportunities.$id.tsx"),
   route("clients", "routes/clients._index.tsx"),

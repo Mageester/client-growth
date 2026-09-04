@@ -101,61 +101,79 @@ export async function runAnalysis(
     dailyLimit: options.dailyLimit,
   });
   const startedAt = reservation.reservedAt;
-  const parsed = parseEnv(env);
-  const result = await analyzeClient({
-    client,
-    catalog: await repo.listServices(t),
-    coverage: await repo.listCoverage(t, clientId),
-    existing: await repo.listOpportunities(t, clientId),
-    evidenceProvider: evidenceProviderFor(client, t.workspaceId),
-    evaluator: createEvaluator(parsed),
-    maxAiCalls: parsed.MAX_AI_CALLS_PER_RUN,
-    now: options.now,
-  });
+  try {
+    const parsed = parseEnv(env);
+    const result = await analyzeClient({
+      client,
+      catalog: await repo.listServices(t),
+      coverage: await repo.listCoverage(t, clientId),
+      existing: await repo.listOpportunities(t, clientId),
+      evidenceProvider: evidenceProviderFor(client, t.workspaceId),
+      evaluator: createEvaluator(parsed),
+      maxAiCalls: parsed.MAX_AI_CALLS_PER_RUN,
+      now: options.now,
+    });
 
-  const verdict = classifyAnalysis({
-    evidence: result.evidence,
-    analyzable: result.coverage.analyzable,
-    coverageReason: result.coverage.reason,
-    coverageLimitation: result.coverage.limitation,
-    surfaced: result.opportunities.length,
-    evaluatorErrors: result.stats.evaluatorErrors,
-    catalog: result.catalogCoverage,
-  });
+    const verdict = classifyAnalysis({
+      evidence: result.evidence,
+      analyzable: result.coverage.analyzable,
+      coverageReason: result.coverage.reason,
+      coverageLimitation: result.coverage.limitation,
+      surfaced: result.opportunities.length,
+      evaluatorErrors: result.stats.evaluatorErrors,
+      catalog: result.catalogCoverage,
+    });
 
-  const change: MonitoringChange = {
-    newCount: result.newlyFound.length,
-    stillOpenCount: result.stillOpen.length,
-    resolvedCount: result.resolved.length,
-  };
+    const change: MonitoringChange = {
+      newCount: result.newlyFound.length,
+      stillOpenCount: result.stillOpen.length,
+      resolvedCount: result.resolved.length,
+    };
 
-  await repo.saveEvidence(t, result.evidence);
-  await repo.saveAnalysis(t, [
-    ...result.opportunities,
-    ...result.suppressed,
-    ...result.resolved,
-  ]);
-  await repo.recordAnalysisRun(t, {
-    clientId,
-    startedAt,
-    finishedAt: new Date().toISOString(),
-    source: result.evidence.source,
-    outcome: verdict.outcome,
-    summary: verdict.summary,
-    limitation: verdict.limitation,
-    pagesRead: verdict.reach.readablePages,
-    pagesFetched: verdict.reach.fetchedPages,
-    blockedEvents: verdict.reach.blockedEvents,
-    inconclusiveEvents: verdict.reach.inconclusiveEvents,
-    surfaced: result.opportunities.length,
-    stats: { ...result.stats },
-    trigger: options.trigger ?? "manual",
-    newCount: change.newCount,
-    resolvedCount: change.resolvedCount,
-    evaluatorCalls: result.stats.aiCalls,
-    evaluatorRejections: result.stats.rejectedByEvaluator,
-    evaluatorErrors: result.stats.evaluatorErrors,
-  });
+    await repo.saveEvidence(t, result.evidence);
+    await repo.saveAnalysis(t, [
+      ...result.opportunities,
+      ...result.suppressed,
+      ...result.resolved,
+    ]);
+    await repo.recordAnalysisRun(t, {
+      clientId,
+      startedAt,
+      finishedAt: new Date().toISOString(),
+      source: result.evidence.source,
+      outcome: verdict.outcome,
+      summary: verdict.summary,
+      limitation: verdict.limitation,
+      pagesRead: verdict.reach.readablePages,
+      pagesFetched: verdict.reach.fetchedPages,
+      blockedEvents: verdict.reach.blockedEvents,
+      inconclusiveEvents: verdict.reach.inconclusiveEvents,
+      surfaced: result.opportunities.length,
+      stats: { ...result.stats },
+      trigger: options.trigger ?? "manual",
+      newCount: change.newCount,
+      resolvedCount: change.resolvedCount,
+      evaluatorCalls: result.stats.aiCalls,
+      evaluatorRejections: result.stats.rejectedByEvaluator,
+      evaluatorErrors: result.stats.evaluatorErrors,
+    });
 
-  return { ...result, verdict, change };
+    await finishReservation(false);
+    return { ...result, verdict, change };
+  } catch (error) {
+    await finishReservation(true);
+    throw error;
+  }
+
+  async function finishReservation(failed: boolean) {
+    try {
+      await t.db.prepare(`UPDATE analysis_limit_reservations SET finished_at = ?, failed = ?
+        WHERE id = ? AND workspace_id = ?`)
+        .bind(new Date().toISOString(), failed ? 1 : 0, reservation.reservationId, t.workspaceId).run();
+    } catch {
+      // Do not obscure the original failure or expose provider payloads.
+      // The health page keeps this start visible as uncompleted telemetry.
+      console.error("[analysis] could not persist completion telemetry");
+    }
+  }
 }

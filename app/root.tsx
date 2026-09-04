@@ -98,6 +98,7 @@ const NAV = [
   { to: "/opportunities", label: "Opportunities", icon: "inbox" as const },
   { to: "/clients", label: "Clients", icon: "users" as const },
   { to: "/services", label: "Services", icon: "briefcase" as const },
+  { to: "/operations", label: "Check health", icon: "clock" as const },
 ];
 
 /**

@@ -184,7 +184,9 @@ CREATE TABLE IF NOT EXISTS analysis_limit_reservations (
   workspace_id TEXT NOT NULL REFERENCES workspaces (id) ON DELETE CASCADE,
   client_id TEXT NOT NULL,
   reserved_at TEXT NOT NULL,
-  day_utc TEXT NOT NULL
+  day_utc TEXT NOT NULL,
+  finished_at TEXT,
+  failed INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE INDEX IF NOT EXISTS idx_analysis_limits_client
