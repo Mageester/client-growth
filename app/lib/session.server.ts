@@ -10,6 +10,7 @@ export interface SessionUser {
   id: string;
   email: string;
   name: string;
+  emailVerified?: boolean;
 }
 export interface AuthedContext {
   userId: string;
@@ -35,6 +36,7 @@ async function defaultResolver(request: Request, env: AuthEnv): Promise<AuthedCo
       id: session.user.id,
       email: session.user.email,
       name: session.user.name ?? "",
+      emailVerified: session.user.emailVerified,
     },
   };
 }

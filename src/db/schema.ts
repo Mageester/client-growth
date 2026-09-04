@@ -24,6 +24,37 @@ CREATE TABLE IF NOT EXISTS workspace_members (
   PRIMARY KEY (workspace_id, user_id)
 );
 
+CREATE TABLE IF NOT EXISTS workspace_invitations (
+  id TEXT PRIMARY KEY,
+  workspace_id TEXT NOT NULL REFERENCES workspaces (id) ON DELETE CASCADE,
+  invited_email TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'member',
+  token_hash TEXT NOT NULL UNIQUE,
+  expires_at TEXT NOT NULL,
+  accepted_at TEXT,
+  accepted_by_user_id TEXT,
+  revoked_at TEXT,
+  invited_by_user_id TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_workspace_invitations_workspace
+  ON workspace_invitations (workspace_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_workspace_invitations_email
+  ON workspace_invitations (workspace_id, invited_email, expires_at);
+
+CREATE TRIGGER IF NOT EXISTS workspace_invitation_accept_member
+AFTER UPDATE OF accepted_at ON workspace_invitations
+WHEN NEW.accepted_at IS NOT NULL AND OLD.accepted_at IS NULL
+BEGIN
+  SELECT RAISE(ABORT, 'workspace member already exists')
+    WHERE EXISTS (
+      SELECT 1 FROM workspace_members WHERE user_id = NEW.accepted_by_user_id
+    );
+  INSERT INTO workspace_members (workspace_id, user_id, role, created_at)
+    VALUES (NEW.workspace_id, NEW.accepted_by_user_id, NEW.role, NEW.accepted_at);
+END;
+
 CREATE TABLE IF NOT EXISTS services (
   id TEXT PRIMARY KEY,
   workspace_id TEXT NOT NULL REFERENCES workspaces (id) ON DELETE CASCADE,
@@ -161,18 +192,22 @@ CREATE INDEX IF NOT EXISTS idx_analysis_limits_client
 CREATE INDEX IF NOT EXISTS idx_analysis_limits_day
   ON analysis_limit_reservations (workspace_id, day_utc);
 
--- Explicit workspace branding and immutable, expiring proposal snapshots.
---
--- Share URLs carry a 256-bit opaque token. Only its SHA-256 digest is stored;
--- the public route can therefore read one snapshot without resolving a tenant,
--- client, service or current opportunity row.
-
+/**
+ * Explicitly saved workspace branding used when an owner creates a proposal
+ * snapshot. Keeping it separate from the original workspace row makes this
+ * additive for the production schema while preserving the existing name field.
+ */
 CREATE TABLE IF NOT EXISTS workspace_branding (
   workspace_id TEXT PRIMARY KEY REFERENCES workspaces (id) ON DELETE CASCADE,
   logo TEXT,
   updated_at TEXT NOT NULL
 );
 
+/**
+ * Public proposal links contain their complete snapshot. The token is never
+ * persisted; only its SHA-256 digest is. No client/service foreign keys are
+ * needed for public reads, but an opportunity deletion revokes its links.
+ */
 CREATE TABLE IF NOT EXISTS proposal_shares (
   id TEXT PRIMARY KEY,
   workspace_id TEXT NOT NULL REFERENCES workspaces (id) ON DELETE CASCADE,

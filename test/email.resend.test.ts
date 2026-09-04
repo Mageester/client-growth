@@ -6,6 +6,7 @@ import {
 } from "../app/lib/workerContext.server";
 import {
   createResendPasswordResetSender,
+  createResendTeamInvitationSender,
   getResendConfig,
   RESEND_EMAILS_URL,
 } from "../app/lib/resend.server";
@@ -136,5 +137,47 @@ describe("Resend password-reset adapter", () => {
     const networkError = await networkFailure(message).catch((error: unknown) => error);
     expect((networkError as Error).message).toBe("Password reset email delivery failed");
     expect((networkError as Error).message).not.toContain("provider key");
+  });
+});
+
+describe("Resend team-invitation adapter", () => {
+  it("sends a single-use invitation link with an idempotent provider key", async () => {
+    const calls: { input: RequestInfo | URL; init?: RequestInit }[] = [];
+    const sender = createResendTeamInvitationSender(
+      { apiKey: "re_test_key", from: "Axiom Orbit <auth@example.com>" },
+      async (input, init) => {
+        calls.push({ input, init });
+        return new Response(null, { status: 202 });
+      },
+    );
+
+    await sender({
+      email: "new@example.com",
+      workspaceName: "Axiom Studio",
+      role: "member",
+      url: "https://app.example.com/invite/token-123",
+      token: "token-123",
+      expiresAt: "2026-09-11T12:00:00.000Z",
+    });
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.input).toBe(RESEND_EMAILS_URL);
+    const requestHeaders = new Headers(calls[0]?.init?.headers);
+    expect(requestHeaders.get("authorization")).toBe("Bearer re_test_key");
+    expect(requestHeaders.get("idempotency-key")).toBe("team-invitation/token-123");
+    const body = JSON.parse(String(calls[0]?.init?.body)) as {
+      from: string;
+      to: string[];
+      subject: string;
+      text: string;
+    };
+    expect(body).toEqual({
+      from: "Axiom Orbit <auth@example.com>",
+      to: ["new@example.com"],
+      subject: "Join Axiom Studio on Axiom Orbit",
+      text: expect.stringContaining("https://app.example.com/invite/token-123"),
+    });
+    expect(body.text).toContain("can be accepted once");
+    expect(body.text).toContain("2026-09-11T12:00:00.000Z");
   });
 });

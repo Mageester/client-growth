@@ -11,6 +11,7 @@ export default [
   route("forgot-password", "routes/forgot-password.tsx"),
   route("reset-password", "routes/reset-password.tsx"),
   route("logout", "routes/logout.tsx"),
+  route("invite/:token", "routes/invite.$token.tsx"),
   route("proposal/share", "routes/proposal.share.tsx"),
 
   // authed, workspace not required yet

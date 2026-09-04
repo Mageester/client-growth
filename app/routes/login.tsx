@@ -20,6 +20,12 @@ function safeReturnTo(value: string | null | undefined): string | undefined {
   }
 }
 
+function verificationCallbackURL(baseURL: string, returnTo?: string): string {
+  const callbackURL = new URL(VERIFICATION_CALLBACK_PATH, baseURL);
+  if (returnTo) callbackURL.searchParams.set("returnTo", returnTo);
+  return callbackURL.toString();
+}
+
 export function meta() {
   return [{ title: "Log in · Axiom Orbit" }];
 }
@@ -52,10 +58,10 @@ export async function action({ request, context }: Route.ActionArgs) {
   if (intent === "resend-verification") {
     if (!email) return withReturnTo({ error: "Enter your email address." });
     try {
-      const callbackURL = new URL(
-        VERIFICATION_CALLBACK_PATH,
+      const callbackURL = verificationCallbackURL(
         getTrustedAuthBaseURL(context.cloudflare.env as never),
-      ).toString();
+        returnTo,
+      );
       const res = await auth.api.sendVerificationEmail({
         body: { email, callbackURL },
         headers: request.headers,
@@ -71,10 +77,10 @@ export async function action({ request, context }: Route.ActionArgs) {
   if (!email || !password) return withReturnTo({ error: "Enter your email and password." });
 
   try {
-    const callbackURL = new URL(
-      VERIFICATION_CALLBACK_PATH,
+    const callbackURL = verificationCallbackURL(
       getTrustedAuthBaseURL(context.cloudflare.env as never),
-    ).toString();
+      returnTo,
+    );
     const res = await auth.api.signInEmail({
       body: { email, password, callbackURL },
       headers: request.headers,
@@ -192,7 +198,10 @@ export default function Login({ loaderData, actionData }: Route.ComponentProps) 
       )}
       <p className="auth-foot">
         No account?{" "}
-        <Link className="link" to="/signup">
+        <Link
+          className="link"
+          to={returnTo ? `/signup?returnTo=${encodeURIComponent(returnTo)}` : "/signup"}
+        >
           Create one
         </Link>
       </p>

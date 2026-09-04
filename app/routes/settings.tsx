@@ -1,8 +1,25 @@
 import { Form, useNavigation } from "react-router";
 
 import * as monitoringRepo from "@/db/monitoring";
-import { getWorkspaceBranding, isProposalShareError, saveWorkspaceBranding, validateLogo } from "@/db/proposalShares";
+import {
+  getWorkspaceBranding,
+  isProposalShareError,
+  saveWorkspaceBranding,
+  validateLogo,
+} from "@/db/proposalShares";
+import {
+  createWorkspaceInvitation,
+  listPendingWorkspaceInvitations,
+  listWorkspaceMembers,
+  revokeWorkspaceInvitation,
+  TeamInvitationError,
+} from "@/db/teamInvitations";
 import { renameWorkspace } from "@/db/workspaces";
+import {
+  createResendTeamInvitationSender,
+  getResendConfig,
+} from "../lib/resend.server";
+import { getTrustedAuthBaseURL } from "../lib/auth.server";
 import { AxiomCredit, Icon, pluralize } from "../components/ui";
 import { requireTenant } from "../lib/session.server";
 import type { Route } from "./+types/settings";
@@ -16,17 +33,22 @@ const HEALTH_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const t = await requireTenant(request, context);
-  const [states, health, branding] = await Promise.all([
+  const [states, health, members, invitations, branding] = await Promise.all([
     monitoringRepo.listMonitoringByClient(t.scope),
     monitoringRepo.scheduledRunHealth(t.scope, {
       since: new Date(Date.now() - HEALTH_WINDOW_MS).toISOString(),
     }),
+    listWorkspaceMembers(t.db, t.workspace.id),
+    listPendingWorkspaceInvitations(t.db, t.workspace.id),
     getWorkspaceBranding(t.scope),
   ]);
   return {
     email: t.user.email,
     workspaceName: t.workspace.name,
     logo: branding.logo,
+    isOwner: t.userId === t.workspace.ownerUserId,
+    members,
+    invitations,
     monitoring: { ...monitoringRepo.summarizePortfolio(states.values()), ...health },
   };
 }
@@ -34,6 +56,72 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 export async function action({ request, context }: Route.ActionArgs) {
   const t = await requireTenant(request, context);
   const form = await request.formData();
+  const intent = String(form.get("intent") ?? "");
+
+  if (intent === "create-invitation") {
+    if (t.userId !== t.workspace.ownerUserId) {
+      return { error: "Only the workspace owner can manage invitations." };
+    }
+    const invitedEmail = String(form.get("email") ?? "").trim();
+    const role = String(form.get("role") ?? "member");
+    let resendConfig: ReturnType<typeof getResendConfig>;
+    try {
+      resendConfig = getResendConfig(context.cloudflare.env);
+    } catch {
+      return { error: "Invitation email delivery is not configured correctly." };
+    }
+
+    try {
+      const invitation = await createWorkspaceInvitation(t.db, {
+        workspaceId: t.workspace.id,
+        invitedEmail,
+        role: role as "member",
+        invitedByUserId: t.userId,
+      });
+      const invitationURL = new URL(
+        `/invite/${invitation.token}`,
+        getTrustedAuthBaseURL(context.cloudflare.env),
+      ).toString();
+      let invitationEmailSent = false;
+      if (resendConfig) {
+        try {
+          await createResendTeamInvitationSender(resendConfig)({
+            email: invitation.invitedEmail,
+            workspaceName: t.workspace.name,
+            role: invitation.role,
+            url: invitationURL,
+            token: invitation.token,
+            expiresAt: invitation.expiresAt,
+          });
+          invitationEmailSent = true;
+        } catch {
+          // Keep the invitation usable through the owner-visible link even if
+          // the optional email transport is temporarily unavailable.
+        }
+      }
+      return {
+        ok: true,
+        invitationLink: invitationURL,
+        invitedEmail: invitation.invitedEmail,
+        invitationEmailSent,
+      };
+    } catch (error) {
+      if (error instanceof TeamInvitationError) return { error: error.message };
+      return { error: "Could not create that invitation. Please try again." };
+    }
+  }
+
+  if (intent === "revoke-invitation") {
+    if (t.userId !== t.workspace.ownerUserId) {
+      return { error: "Only the workspace owner can manage invitations." };
+    }
+    const invitationId = String(form.get("invitationId") ?? "").trim();
+    if (!invitationId || !(await revokeWorkspaceInvitation(t.db, t.workspace.id, invitationId))) {
+      return { error: "That invitation is no longer pending." };
+    }
+    return { ok: true };
+  }
+
   const name = String(form.get("workspaceName") ?? "").trim();
   if (!name) return { error: "Workspace name cannot be empty." };
   const logo = form.has("logo") ? form.get("logo") : undefined;
@@ -74,6 +162,22 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
         <div className="notice err" role="alert">
           <Icon name="alert" size={15} />
           <span>{actionData.error}</span>
+        </div>
+      )}
+      {actionData && "invitationLink" in actionData && actionData.invitationLink && (
+        <div className="notice ok" role="status">
+          <Icon name="check" size={15} />
+          <span>
+            {actionData.invitationEmailSent
+              ? `Invitation sent to ${actionData.invitedEmail}.`
+              : "Invitation created. Share this link with the recipient:"}
+            <input
+              aria-label="Team invitation link"
+              readOnly
+              value={actionData.invitationLink}
+              style={{ display: "block", width: "100%", marginTop: "0.6rem" }}
+            />
+          </span>
         </div>
       )}
 
@@ -118,6 +222,79 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
       </section>
 
       <MonitoringHealth monitoring={loaderData.monitoring} />
+
+      <section className="section">
+        <div className="section-head">
+          <div>
+            <h2 className="title-section">Team</h2>
+            <p>People with access to this workspace and their roles.</p>
+          </div>
+        </div>
+
+        <dl>
+          {loaderData.members.map((member) => (
+            <div className="kv-row" key={member.userId}>
+              <dt>{member.name || member.email}</dt>
+              <dd>
+                {member.email} · {member.role}
+              </dd>
+            </div>
+          ))}
+        </dl>
+
+        {loaderData.isOwner ? (
+          <>
+            <h3 className="title-section" style={{ marginTop: "1.5rem" }}>
+              Invite a teammate
+            </h3>
+            <Form method="post">
+              <input type="hidden" name="intent" value="create-invitation" />
+              <div className="field">
+                <label htmlFor="inviteEmail">Recipient email</label>
+                <input id="inviteEmail" name="email" type="email" autoComplete="email" required />
+              </div>
+              <div className="field">
+                <label htmlFor="inviteRole">Role</label>
+                <select id="inviteRole" name="role" defaultValue="member">
+                  <option value="member">Member</option>
+                </select>
+              </div>
+              <button type="submit" className="btn btn-primary">
+                Create invitation
+              </button>
+            </Form>
+
+            {loaderData.invitations.length > 0 && (
+              <>
+                <h3 className="title-section" style={{ marginTop: "1.5rem" }}>
+                  Pending invitations
+                </h3>
+                <dl>
+                  {loaderData.invitations.map((invitation) => (
+                    <div className="kv-row" key={invitation.id}>
+                      <dt>{invitation.invitedEmail}</dt>
+                      <dd>
+                        {invitation.role} · expires {invitation.expiresAt}{" "}
+                        <Form method="post" style={{ display: "inline" }}>
+                          <input type="hidden" name="intent" value="revoke-invitation" />
+                          <input type="hidden" name="invitationId" value={invitation.id} />
+                          <button type="submit" className="btn" style={{ marginLeft: "0.5rem" }}>
+                            Revoke
+                          </button>
+                        </Form>
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </>
+            )}
+          </>
+        ) : (
+          <p className="prose faint" style={{ marginTop: "1rem" }}>
+            The workspace owner manages invitations and roles.
+          </p>
+        )}
+      </section>
 
       <section className="section">
         <div className="section-head">
