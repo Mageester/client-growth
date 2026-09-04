@@ -169,3 +169,36 @@ describe("path parsing", () => {
     expect(() => pathSegments("::::")).not.toThrow();
   });
 });
+
+/**
+ * Real case: thelawnsalon.ca.
+ *
+ * Its six service pages live under /all-projects/ and are listed in the site's
+ * own navigation. Its project gallery is dozens of near-duplicate photo pages
+ * of finished jobs. Because only a URL's LAST segment was checked for boring
+ * words, a photo page scored ~60 for the service word "removal" while the deck
+ * service page scored ~15 — so the crawler spent five of its ten pages on
+ * pool-removal photographs and read none of the six services.
+ */
+describe("crawl priority against a portfolio site", () => {
+  const service = "https://x.example/all-projects/decks/";
+  const gallery = "https://x.example/project-gallery/pool-removal-in-westwood/";
+
+  it("reads a service page before a photo of a finished job", () => {
+    expect(crawlPriority(service, { inNav: true })).toBeGreaterThan(crawlPriority(gallery));
+  });
+
+  it("demotes blog posts even when the slug is full of service words", () => {
+    expect(crawlPriority("https://x.example/services/drain-repair")).toBeGreaterThan(
+      crawlPriority("https://x.example/blog/how-to-fix-a-blocked-drain-repair"),
+    );
+  });
+
+  it("does not demote a service section that merely has 'projects' in its name", () => {
+    // "projects" is demoted; "all-projects" is where this site keeps the real
+    // pages. Getting this wrong hides the services instead of the photographs.
+    expect(crawlPriority(service)).toBeGreaterThan(
+      crawlPriority("https://x.example/projects/some-finished-job/"),
+    );
+  });
+});

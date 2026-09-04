@@ -141,6 +141,18 @@ export function crawlPriority(url: string, options: { inNav?: boolean } = {}): n
   // pages that say what the business sells.
   if (isNonServiceSegment(last)) score -= 120;
 
+  // A page inside an editorial or portfolio section is writing ABOUT the work.
+  // Only the last segment is checked above, so before this a photo of a finished
+  // job scored higher than the service page it illustrates: thelawnsalon.ca's
+  // /project-gallery/pool-removal-in-westwood/ scored ~60 for the service word
+  // "removal" while /all-projects/decks/ scored ~15, and the crawler spent five
+  // of its ten pages on near-duplicate pool-removal photos and read none of the
+  // six service pages sitting in the site's own navigation.
+  //
+  // "projects" is in that set but "all-projects" is not, which is the whole
+  // point here: this site keeps its real service pages under the second.
+  if (isEditorialPath(url)) score -= 100;
+
   // Deep archive paths (/blog/2019/07/some-post) are almost never services.
   if (segments.length > 3) score -= 30;
 
@@ -177,6 +189,10 @@ const NON_SERVICE_WORDS: ReadonlySet<string> = new Set([
   // contractor's site and it is not a service anyone buys.
   "cost", "costs", "price", "prices", "pricing", "coupon", "coupons", "promo",
   "promos", "promotion", "promotions", "specials", "deals", "financing",
+  // A page that explains what a word means is not a page that sells the work.
+  // renoduck.com's /renovation-glossary/ was standing as proof that the client
+  // already had a page for "basement underpinning".
+  "glossary", "glossaries", "definitions", "terminology",
 ]);
 
 /**

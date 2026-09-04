@@ -139,6 +139,25 @@ export async function verifyOfferingAbsence(
 
   // ---- A. Already-fetched pages (authoritative content) --------------------
   for (const page of evidence.site.pages) {
+    // The homepage cannot prove a service has a page of its own, and neither
+    // can a glossary or an about page. This is the whole finding, not a
+    // refutation of it: the service being sold is "a dedicated,
+    // conversion-focused page for one service line", so a business whose only
+    // mention of a service is in a keyword-stuffed homepage title is the exact
+    // customer for it.
+    //
+    // Measured on the analyzability corpus, accepting the homepage here
+    // suppressed 62 of 83 "present" verdicts across 19 of 24 sites — six of six
+    // offerings on aireserv.com, mrelectric.com, fixitrightplumbing.com.au and
+    // thelawnsalon.ca, whose homepage title reads "Winnipeg Deck Builders |
+    // Winnipeg Fence Builders | Winnipeg Hardscape Design" and which has a page
+    // for none of them. Those agencies were told their client's site was clean.
+    //
+    // A real service page still satisfies the offering: it is reached through
+    // the navigation, link and sitemap evidence in section B below, which is
+    // stronger proof of a dedicated page than a token match anywhere on a site.
+    if (isHomepage(page.url) || slugSaysNonService(page.url)) continue;
+
     const tokens = textTokenSet([page.title, ...page.h1s, ...page.headings].join(" "));
     const s = strengthOf(tokens, head, discriminating);
     if ((s.hasAllDiscriminating && s.score >= STRONG_SCORE) || s.hasSignature) {

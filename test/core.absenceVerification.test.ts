@@ -302,3 +302,70 @@ describe("rule end-to-end: verified absence only", () => {
     expect(candidates[0]?.verification?.conclusion).toBe("absent");
   });
 });
+
+/**
+ * What may stand as proof that a service already has a page.
+ *
+ * The service being sold is "a dedicated, conversion-focused page for one
+ * service line". A keyword-stuffed homepage title is not that page — it is
+ * evidence the business sells the thing and has nowhere to send anyone for it,
+ * which is the finding rather than a refutation of it.
+ *
+ * Measured on the analyzability corpus, accepting the homepage here settled 62
+ * of 83 "present" verdicts across 19 of 24 sites. Every one of those agencies
+ * was told a site was clean on the strength of words in one <title>.
+ */
+describe("what counts as an existing page", () => {
+  const OFFERING = "deck building";
+  const STUFFED_HOME = {
+    url: "https://ex.example/",
+    title: "Winnipeg Landscape Design | Winnipeg Deck Builders | Winnipeg Fence Builders",
+  };
+
+  it("does not accept the homepage as the page for a service", async () => {
+    const result = await verifyOfferingAbsence({
+      offering: OFFERING,
+      allOfferings: [OFFERING, "fence installation"],
+      evidence: bundle({ pages: [STUFFED_HOME] }),
+    });
+
+    expect(result.conclusion).not.toBe("present");
+  });
+
+  it("does not accept a glossary that merely defines the term", async () => {
+    // renoduck.com settled "Basement underpinning" against its renovation
+    // glossary — a page that explains the word rather than sells the work.
+    const result = await verifyOfferingAbsence({
+      offering: "basement underpinning",
+      allOfferings: ["basement underpinning", "kitchen renovation"],
+      evidence: bundle({
+        pages: [
+          { url: "https://ex.example/" },
+          {
+            url: "https://ex.example/renovation-glossary/",
+            title: "Home Renovation Glossary | Terms & Definitions",
+            headings: ["Basement underpinning"],
+          },
+        ],
+      }),
+    });
+
+    expect(result.conclusion).not.toBe("present");
+  });
+
+  it("still accepts a real service page, which is the point", async () => {
+    // The guard must not turn every covered service into a false finding.
+    const result = await verifyOfferingAbsence({
+      offering: OFFERING,
+      allOfferings: [OFFERING, "fence installation"],
+      evidence: bundle({
+        pages: [
+          STUFFED_HOME,
+          { url: "https://ex.example/all-projects/decks/", title: "Deck Building", h1s: ["Deck Building"] },
+        ],
+      }),
+    });
+
+    expect(result.conclusion).toBe("present");
+  });
+});
