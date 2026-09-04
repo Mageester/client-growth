@@ -5,7 +5,8 @@ import { MemoryRouter } from "react-router";
 import { readFileSync } from "node:fs";
 
 import { deferMenuClose } from "../app/components/ui";
-import { AppNavigation, ThemePicker } from "../app/root";
+import { AppNavigation, ThemePicker, isProposalSharePath, loader as rootLoader } from "../app/root";
+import { __setSessionResolver } from "../app/lib/session.server";
 
 describe("menu activation", () => {
   it("defers closing until a nested form can submit", () => {
@@ -63,5 +64,47 @@ describe("mobile viewport safety", () => {
       .join("\n");
 
     expect(bodyRules).not.toMatch(/min-width\s*:\s*320px/);
+  });
+});
+
+describe("public proposal share shell", () => {
+  it.each(["/proposal/share", "/proposal/share/", "/PROPOSAL/SHARE/", "/proposal/%73hare"]) (
+    "recognizes %s as the standalone share path",
+    (pathname) => {
+      expect(isProposalSharePath(pathname)).toBe(true);
+    },
+  );
+
+  it.each(["/proposal/share-extra", "/proposal//share", "/proposal%2Fshare"]) (
+    "does not treat %s as the share path",
+    (pathname) => {
+      expect(isProposalSharePath(pathname)).toBe(false);
+    },
+  );
+
+  it("skips session resolution for a matched share path with a trailing slash", async () => {
+    let sessionLookups = 0;
+    __setSessionResolver(async () => {
+      sessionLookups += 1;
+      return null;
+    });
+    try {
+      const result = await rootLoader({
+        request: new Request("http://localhost/proposal/share/?token=test"),
+        context: { cloudflare: { env: { DB: {} } } },
+      } as never);
+
+      expect(result.signedIn).toBe(false);
+      expect(sessionLookups).toBe(0);
+    } finally {
+      __setSessionResolver(null);
+    }
+  });
+
+  it("keeps the public proposal readable on printed paper", () => {
+    const css = readFileSync(new URL("../app/styles/signal-desk.css", import.meta.url), "utf8");
+    expect(css).toMatch(/@media\s+print\s*\{/);
+    expect(css).toMatch(/@media\s+print[\s\S]*--bg:\s*#fff/);
+    expect(css).toMatch(/@media\s+print[\s\S]*\.proposal-share-page/);
   });
 });

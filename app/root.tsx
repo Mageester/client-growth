@@ -52,8 +52,25 @@ export function links() {
   ];
 }
 
+/** React Router's static routes accept trailing slashes and case variations. */
+export function isProposalSharePath(pathname: string): boolean {
+  const withoutTrailingSlashes = pathname.replace(/\/+$/, "");
+  const segments = withoutTrailingSlashes.split("/");
+  let decoded: string[];
+  try {
+    decoded = segments.map((segment) => {
+      const value = decodeURIComponent(segment);
+      return value.includes("/") ? "" : value;
+    });
+  } catch {
+    return false;
+  }
+  if (decoded.some((segment, index) => segment === "" && segments[index] !== "")) return false;
+  return decoded.join("/").toLowerCase() === "/proposal/share";
+}
+
 export async function loader({ request, context }: Route.LoaderArgs) {
-  if (new URL(request.url).pathname === "/proposal/share") return { ...EMPTY };
+  if (isProposalSharePath(new URL(request.url).pathname)) return { ...EMPTY };
   const rawTheme = request.headers
     .get("Cookie")
     ?.split("; ")
@@ -277,7 +294,7 @@ export function Layout({ children }: { children: ReactNode }) {
   const tour = useProductTour();
   const signedIn = data?.signedIn ?? false;
   const workspaceName = data?.workspaceName ?? null;
-  const isProposalShare = location.pathname === "/proposal/share";
+  const isProposalShare = isProposalSharePath(location.pathname);
   const showAppNav = signedIn && Boolean(workspaceName) && location.pathname !== "/onboarding";
   const busy = navigation.state === "loading";
 

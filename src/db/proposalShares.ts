@@ -1,4 +1,5 @@
 import type { Opportunity } from "@/core/schema";
+import { normalizeAndValidateUrl } from "@/adapters/evidence/urlPolicy";
 import * as repo from "@/db/repositories";
 import type { SqlDb } from "@/db/sql";
 import type { TenantScope } from "@/db/tenant";
@@ -88,38 +89,6 @@ type LogoValidation =
   | { ok: true; value: string | null }
   | { ok: false; error: string };
 
-function isPrivateOrLocalHost(hostname: string): boolean {
-  const host = hostname.toLowerCase().replace(/^\[|\]$/g, "");
-  if (
-    host === "localhost" ||
-    host.endsWith(".localhost") ||
-    host.endsWith(".local") ||
-    host.endsWith(".internal") ||
-    host === "::" ||
-    host === "::1" ||
-    (host.includes(":") &&
-      (host.startsWith("fc") || host.startsWith("fd") || host.startsWith("fe80:")))
-  ) {
-    return true;
-  }
-
-  const octets = host.split(".").map((part) => Number(part));
-  if (octets.length !== 4 || octets.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) {
-    return false;
-  }
-  const first = octets[0];
-  const second = octets[1];
-  if (first === undefined || second === undefined) return false;
-  return (
-    first === 0 ||
-    first === 10 ||
-    first === 127 ||
-    (first === 169 && second === 254) ||
-    (first === 172 && second >= 16 && second <= 31) ||
-    (first === 192 && second === 168)
-  );
-}
-
 /**
  * Validate a logo without resolving or fetching it. Inline PNG/JPEG data URLs
  * are preferred; external artwork is restricted to a public HTTPS origin and
@@ -164,23 +133,11 @@ export function validateLogo(input: unknown): LogoValidation {
   if (value.length > MAX_PUBLIC_LOGO_URL_LENGTH) {
     return { ok: false, error: "Logo URL is too long." };
   }
-  let parsed: URL;
-  try {
-    parsed = new URL(value);
-  } catch {
-    return { ok: false, error: "Logo must be a PNG/JPEG data URL or a public HTTPS URL." };
-  }
-  if (
-    parsed.protocol !== "https:" ||
-    !parsed.hostname ||
-    parsed.username ||
-    parsed.password ||
-    parsed.port ||
-    isPrivateOrLocalHost(parsed.hostname)
-  ) {
+  const policy = normalizeAndValidateUrl(value);
+  if (!policy.ok || policy.url.protocol !== "https:") {
     return { ok: false, error: "Logo URL must use a public HTTPS origin." };
   }
-  return { ok: true, value: parsed.toString() };
+  return { ok: true, value: policy.url.toString() };
 }
 
 export async function getWorkspaceBranding(t: TenantScope): Promise<WorkspaceBranding> {

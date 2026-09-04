@@ -2236,3 +2236,69 @@ a.record:hover .record-name {
   color: var(--muted);
   font-size: 12.5px;
 }
+
+/* Public proposal shares are documents first when a recipient prints them. */
+@media print {
+  :root,
+  :root[data-theme="light"],
+  :root[data-theme="dark"],
+  :root[data-theme="system"] {
+    color-scheme: light;
+    --bg: #fff;
+    --surface: #fff;
+    --raised: #f7f7f7;
+    --raised-strong: #eee;
+    --ink: #111;
+    --ink-soft: #333;
+    --muted: #555;
+    --faint: #666;
+    --line: #d8d8d8;
+    --line-strong: #aaa;
+    --topbar-bg: #fff;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    color: #111 !important;
+  }
+
+  .public-content.content {
+    min-height: auto;
+    background: #fff !important;
+  }
+
+  .proposal-share-page {
+    width: auto !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    color: #111 !important;
+  }
+
+  .proposal-share-page .proposal-share-copy {
+    background: #fff !important;
+    color: #111 !important;
+    border-color: #d8d8d8;
+  }
+
+  .proposal-share-page section {
+    break-inside: avoid;
+  }
+
+  .proposal-share-page .proposal-share-copy h3,
+  .proposal-share-page .proposal-share-copy p,
+  .proposal-share-page .proposal-share-copy li,
+  .proposal-share-page .title-lg,
+  .proposal-share-page .title-section,
+  .proposal-share-page .eyebrow,
+  .proposal-share-page .detail-meta,
+  .proposal-share-page .faint,
+  .proposal-share-page .prose,
+  .proposal-share-page .fact dt,
+  .proposal-share-page .fact dd,
+  .proposal-share-page .proposal-share-footer {
+    color: #111 !important;
+  }
+}

@@ -284,6 +284,14 @@ describe("proposal share persistence", () => {
     });
     expect(validateLogo("data:image/svg+xml;base64,PHN2Zy8+")).toMatchObject({ ok: false });
     expect(validateLogo("https://127.0.0.1/logo.png")).toMatchObject({ ok: false });
+    for (const url of [
+      "https://[::ffff:127.0.0.1]/logo.png",
+      "https://100.64.0.1/logo.png",
+      "https://198.18.0.1/logo.png",
+      "https://localhost./logo.png",
+    ]) {
+      expect(validateLogo(url), url).toMatchObject({ ok: false });
+    }
     expect(validateLogo("data:image/png;base64," + "A".repeat(600_000))).toMatchObject({ ok: false });
   });
 });
