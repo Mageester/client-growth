@@ -87,6 +87,62 @@ const STARTER_DEFAULTS: Record<
     max: 900,
     when: "a call-to-action, form or phone link on the site is broken",
   },
+  "missing-title": {
+    field: "missingtitle",
+    name: "Page Title Repair",
+    min: 150,
+    max: 400,
+    when: "a readable page has no non-empty HTML title",
+  },
+  "duplicate-title": {
+    field: "duplicatetitle",
+    name: "Duplicate Title Repair",
+    min: 200,
+    max: 500,
+    when: "readable pages expose the same title text",
+  },
+  "thin-service-page": {
+    field: "thinservice",
+    name: "Thin Service Page",
+    min: 900,
+    max: 1800,
+    when: "a service-shaped page contains very little readable body text",
+  },
+  "missing-h1": {
+    field: "missingh1",
+    name: "H1 Heading Repair",
+    min: 150,
+    max: 400,
+    when: "a readable page has no non-empty H1 heading",
+  },
+  "broken-internal-link": {
+    field: "internallink",
+    name: "Internal Link Repair",
+    min: 200,
+    max: 600,
+    when: "a same-site link is verified to return HTTP 404 or 410",
+  },
+  "missing-meta-description": {
+    field: "metadescription",
+    name: "Meta Description Repair",
+    min: 200,
+    max: 500,
+    when: "a readable page has no non-empty meta description",
+  },
+  "missing-structured-data": {
+    field: "structureddata",
+    name: "LocalBusiness or Service Schema",
+    min: 300,
+    max: 800,
+    when: "a readable page has no observed LocalBusiness or Service structured-data type",
+  },
+  "missing-image-alt": {
+    field: "imagealt",
+    name: "Image Alt Attribute Repair",
+    min: 150,
+    max: 400,
+    when: "an image has no alt attribute; decorative alt=\"\" images are left alone",
+  },
 };
 
 const STARTER_SERVICES = RULE_SERVICE_LINKS.map((link) => ({

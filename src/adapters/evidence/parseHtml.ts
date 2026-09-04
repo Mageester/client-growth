@@ -31,6 +31,12 @@ export interface ParsedForm {
   hasSubmit: boolean;
 }
 
+export interface ParsedImage {
+  src: string;
+  /** Undefined means the alt attribute was absent; an empty string is kept. */
+  alt?: string;
+}
+
 export interface ParsedPage {
   page: {
     url: string;
@@ -40,6 +46,11 @@ export interface ParsedPage {
     textExcerpt: string;
     wordCount: number;
     forms: ParsedForm[];
+    /** Fresh parser observations; legacy bundles may omit these fields. */
+    metaDescription: string;
+    structuredDataTypes: string[];
+    structuredDataPresent: boolean;
+    images: ParsedImage[];
   };
   nav: string[];
   links: ParsedLink[];
@@ -102,9 +113,125 @@ function captures(re: RegExp, input: string): string[] {
   return out;
 }
 
+function attributeValue(openTag: string, name: string): string | undefined {
+  const m = new RegExp(
+    `(?:^|\\s)${name}\\s*=\\s*(?:["']([^"']*)["']|([^\\s>]+))`,
+    "i",
+  ).exec(openTag);
+  return m?.[1] ?? m?.[2];
+}
+
+function hasAttribute(openTag: string, name: string): boolean {
+  return new RegExp(`(?:^|\\s)${name}(?:\\s*=|\\s|$)`, "i").test(openTag);
+}
+
 function attr(openTag: string, name: string): string {
-  const m = new RegExp(`\\b${name}\\s*=\\s*["']([^"']*)["']`, "i").exec(openTag);
-  return m?.[1] ?? "";
+  return attributeValue(openTag, name) ?? "";
+}
+
+function extractMetaDescription(html: string): string {
+  const metaRe = /<meta\b([^>]*)>/gi;
+  let observed = false;
+  let lastValue = "";
+  let match: RegExpExecArray | null;
+  while ((match = metaRe.exec(html)) !== null) {
+    const openTag = match[1] ?? "";
+    if (attributeValue(openTag, "name")?.trim().toLowerCase() !== "description") continue;
+    observed = true;
+    lastValue = attributeValue(openTag, "content") ?? "";
+    // Duplicate meta tags are malformed but common. Any non-empty observed
+    // description is enough to avoid claiming that the page has none.
+    if (lastValue.trim() !== "") return lastValue;
+  }
+  // The parser has inspected the document, so an empty string is a known
+  // absence for fresh evidence. Older persisted evidence omits the field and
+  // remains unknown at the schema boundary.
+  return observed ? lastValue : "";
+}
+
+function collectStructuredDataTypes(value: unknown, output: string[], depth = 0): void {
+  if (depth > 12 || value === null || typeof value !== "object") return;
+  if (Array.isArray(value)) {
+    for (const item of value) collectStructuredDataTypes(item, output, depth + 1);
+    return;
+  }
+  const record = value as Record<string, unknown>;
+  const type = record["@type"];
+  if (typeof type === "string") output.push(type);
+  if (Array.isArray(type)) {
+    for (const item of type) if (typeof item === "string") output.push(item);
+  }
+  for (const child of Object.values(record)) {
+    collectStructuredDataTypes(child, output, depth + 1);
+  }
+}
+
+interface StructuredDataObservation {
+  types: string[];
+  present: boolean;
+}
+
+function extractStructuredData(html: string): StructuredDataObservation {
+  const types: string[] = [];
+  let present = false;
+  const scriptRe = /<script\b([^>]*)>([\s\S]*?)<\/script>/gi;
+  let match: RegExpExecArray | null;
+  while ((match = scriptRe.exec(html)) !== null) {
+    const openTag = match[1] ?? "";
+    const type = attributeValue(openTag, "type")
+      ?.split(";", 1)[0]
+      ?.trim()
+      .toLowerCase();
+    if (type !== "application/ld+json") continue;
+    present = true;
+    try {
+      const value = JSON.parse((match[2] ?? "").trim().replace(/^\uFEFF/, ""));
+      collectStructuredDataTypes(value, types);
+    } catch {
+      // Invalid JSON-LD is present but its type cannot be classified safely.
+      // The technical rule treats that as unknown rather than proposing a
+      // duplicate schema.
+    }
+  }
+
+  // Schema.org microdata and RDFa are structured data too. Keep the raw type
+  // tokens so the rule can recognize LocalBusiness subclasses, and mark any
+  // other itemprop/typeof markup as present-but-unknown rather than claiming a
+  // second schema should be added.
+  const tagRe = /<[a-z][^>]*>/gi;
+  while ((match = tagRe.exec(html)) !== null) {
+    const openTag = match[0] ?? "";
+    const itemType = attributeValue(openTag, "itemtype");
+    const rdfaType = attributeValue(openTag, "typeof");
+    if (
+      itemType !== undefined ||
+      rdfaType !== undefined ||
+      hasAttribute(openTag, "itemprop") ||
+      hasAttribute(openTag, "vocab") ||
+      hasAttribute(openTag, "prefix")
+    ) {
+      present = true;
+    }
+    for (const value of [itemType, rdfaType]) {
+      if (!value) continue;
+      types.push(...value.split(/\s+/).filter(Boolean));
+    }
+  }
+
+  return { types: [...new Set(types)], present };
+}
+
+function extractImages(html: string): ParsedImage[] {
+  const images: ParsedImage[] = [];
+  const imageRe = /<img\b([^>]*)>/gi;
+  let match: RegExpExecArray | null;
+  while ((match = imageRe.exec(html)) !== null) {
+    const openTag = match[1] ?? "";
+    const image: ParsedImage = { src: attr(openTag, "src") };
+    if (hasAttribute(openTag, "alt")) image.alt = attr(openTag, "alt");
+    images.push(image);
+  }
+  return images;
 }
 
 interface AnchorRecord {
@@ -182,6 +309,9 @@ function parseForms(body: string, base: URL): ParsedForm[] {
 }
 
 export function parseHtml(html: string, url: string): ParsedPage {
+  const metaDescription = extractMetaDescription(html);
+  const structuredData = extractStructuredData(html);
+  const images = extractImages(html);
   const body = html
     .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ")
     .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ")
@@ -279,6 +409,10 @@ export function parseHtml(html: string, url: string): ParsedPage {
       textExcerpt: text.slice(0, TEXT_EXCERPT_LENGTH),
       wordCount,
       forms: parseForms(body, base),
+      metaDescription,
+      structuredDataTypes: structuredData.types,
+      structuredDataPresent: structuredData.present,
+      images,
     },
     nav: [...navSet],
     links,

@@ -18,6 +18,11 @@ import { dedupeKey } from "@/core/dedupe";
 import { judge } from "@/core/judgment";
 import { deterministicEvaluationFor } from "@/core/rules/deterministicEvaluation";
 import {
+  canReconcileTechnicalRule,
+  isTechnicalRuleId,
+  technicalSubjectWasRevisited,
+} from "@/core/rules/technical";
+import {
   assembleCoveredOpportunity,
   assembleOpportunity,
 } from "@/core/assembleOpportunity";
@@ -297,6 +302,7 @@ export async function analyzeClient(
     candidates,
     catalogCoverage,
     analyzable: coverage.analyzable,
+    coverageLimitation: coverage.limitation,
     evidence,
     stats,
     maxAiCalls,
@@ -345,6 +351,7 @@ function reconcileResolved(input: {
   candidates: Candidate[];
   catalogCoverage: CatalogCoverage;
   analyzable: boolean;
+  coverageLimitation: "site-too-thin" | "coverage-limited" | null;
   evidence: EvidenceBundle;
   stats: AnalyzeClientStats;
   maxAiCalls: number;
@@ -361,6 +368,19 @@ function reconcileResolved(input: {
   for (const rule of input.catalogCoverage.rules) {
     if (rule.serviceId === null) continue;
     if (rule.ruleId === "missing-service-page" && !input.analyzable) continue;
+    if (
+      rule.ruleId === "no-service-pages" &&
+      !input.analyzable &&
+      input.coverageLimitation !== "site-too-thin"
+    ) {
+      continue;
+    }
+    // New technical rules require a complete, field-aware crawl. A missing
+    // optional parser field or an internal target absent from the crawl is
+    // unknown, so an old finding must remain open.
+    if (isTechnicalRuleId(rule.ruleId) && !canReconcileTechnicalRule(rule.ruleId, input.evidence)) {
+      continue;
+    }
     ranThisTime.add(rule.ruleId);
   }
   if (ranThisTime.size === 0) return [];
@@ -375,7 +395,30 @@ function reconcileResolved(input: {
     if (opp.status !== "new" && opp.status !== "proposal_prepared") continue;
     if (!ranThisTime.has(opp.ruleId)) continue;
     if (stillPresent.has(opp.dedupeKey)) continue;
+    if (
+      isTechnicalRuleId(opp.ruleId) &&
+      !technicalSubjectWasRevisited({
+        ruleId: opp.ruleId,
+        subject: subjectFromOpportunity(opp),
+        evidenceRefs: opp.evidenceRefs,
+        evidence: input.evidence,
+      })
+    ) {
+      continue;
+    }
     resolved.push({ ...opp, status: "resolved", updatedAt: input.now.toISOString() });
   }
   return resolved;
+}
+
+/** New technical findings use the page URL as subject except duplicate titles. */
+function subjectFromOpportunity(opp: Opportunity): string {
+  const target = opp.evidenceRefs
+    .find((ref) => ref.startsWith("target:"))
+    ?.slice("target:".length);
+  if (target) return target;
+  const page = opp.evidenceRefs
+    .find((ref) => ref.startsWith("page:"))
+    ?.slice("page:".length);
+  return page ?? opp.title;
 }

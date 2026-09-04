@@ -36,6 +36,19 @@ function titleFor(candidate: Candidate): string {
     return `${candidate.subject} describes none of its services`;
   }
 
+  const technicalTitle: Partial<Record<Candidate["ruleId"], string>> = {
+    "missing-title": "Missing page title",
+    "duplicate-title": "Duplicate page title",
+    "thin-service-page": "Thin service page",
+    "missing-h1": "Missing H1 heading",
+    "broken-internal-link": "Broken internal link",
+    "missing-meta-description": "Missing meta description",
+    "missing-structured-data": "Missing LocalBusiness or Service schema",
+    "missing-image-alt": "Missing image alt attribute",
+  };
+  const technical = technicalTitle[candidate.ruleId];
+  if (technical) return technical;
+
   return `${titleCase(candidate.subject)} — dedicated service page`;
 }
 

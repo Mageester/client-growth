@@ -61,12 +61,20 @@ describe("HttpEvidenceProvider", () => {
       ].sort(),
     );
     expect(bundle.site.nav).toContain("Furnace Installation");
+    const home = bundle.site.pages.find((p) => p.url === `${ORIGIN}/`);
+    expect(home?.metaDescription).toBe("");
+    expect(home?.structuredDataTypes).toEqual([]);
+    expect(home?.structuredDataPresent).toBe(false);
+    expect(home?.images).toEqual([]);
     // Non-OK crawled URLs are recorded with their status (for the conversion rule).
     const errorPages = bundle.site.pages.filter((p) => p.status >= 400);
     expect(errorPages.map((p) => p.url).sort()).toEqual(
       [`${ORIGIN}/about`, `${ORIGIN}/contact`].sort(),
     );
     expect(errorPages.every((p) => p.status === 404)).toBe(true);
+    expect(errorPages.every((p) => p.metaDescription === undefined)).toBe(true);
+    expect(errorPages.every((p) => p.structuredDataTypes === undefined)).toBe(true);
+    expect(errorPages.every((p) => p.images === undefined)).toBe(true);
   });
 
   it("never requests an off-origin URL", async () => {

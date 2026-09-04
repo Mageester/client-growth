@@ -65,6 +65,15 @@ export const EvidenceFormSchema = z.object({
 });
 export type EvidenceForm = z.infer<typeof EvidenceFormSchema>;
 
+/** A discovered image. An omitted alt attribute is distinct from alt="". */
+export const EvidenceImageSchema = z.object({
+  /** Raw or resolved image source, when the element exposed one. */
+  src: z.string().default(""),
+  /** Undefined means the attribute was absent; an empty string is decorative. */
+  alt: z.string().optional(),
+});
+export type EvidenceImage = z.infer<typeof EvidenceImageSchema>;
+
 export const EvidencePageSchema = z.object({
   url: z.string().url(),
   /** HTTP status the crawler received for this page. */
@@ -76,6 +85,16 @@ export const EvidencePageSchema = z.object({
   textExcerpt: z.string().default(""),
   wordCount: z.number().int().nonnegative().default(0),
   forms: z.array(EvidenceFormSchema).default([]),
+  /**
+   * These fields are optional on purpose. Bundles captured before the parser
+   * learned to observe them must remain unknown rather than becoming an
+   * observed absence through a default empty value.
+   */
+  metaDescription: z.string().optional(),
+  structuredDataTypes: z.array(z.string()).optional(),
+  /** Whether any JSON-LD, microdata, or RDFa structured data was observed. */
+  structuredDataPresent: z.boolean().optional(),
+  images: z.array(EvidenceImageSchema).optional(),
 });
 export type EvidencePage = z.infer<typeof EvidencePageSchema>;
 
@@ -140,6 +159,14 @@ export const RuleIdSchema = z.enum([
   "missing-service-page",
   "no-service-pages",
   "broken-conversion-path",
+  "missing-title",
+  "duplicate-title",
+  "thin-service-page",
+  "missing-h1",
+  "broken-internal-link",
+  "missing-meta-description",
+  "missing-structured-data",
+  "missing-image-alt",
 ]);
 export type RuleId = z.infer<typeof RuleIdSchema>;
 

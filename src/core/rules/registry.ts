@@ -37,6 +37,54 @@ export const RULE_SERVICE_LINKS: readonly RuleServiceLink[] = [
     label: "A broken conversion path",
     hint: "Sell this when a call-to-action, form or phone link on the site is broken.",
   },
+  {
+    ruleId: "missing-title",
+    tag: "missing-title",
+    label: "Repair a missing page title",
+    hint: "Sell this when a readable page has no non-empty HTML title.",
+  },
+  {
+    ruleId: "duplicate-title",
+    tag: "duplicate-title",
+    label: "Repair duplicate page titles",
+    hint: "Sell this when two or more readable pages expose the same title text.",
+  },
+  {
+    ruleId: "thin-service-page",
+    tag: "thin-service-page",
+    label: "Expand a thin service page",
+    hint: "Sell this when a service-shaped page contains very little readable body text.",
+  },
+  {
+    ruleId: "missing-h1",
+    tag: "missing-h1",
+    label: "Repair a missing H1",
+    hint: "Sell this when a readable page has no non-empty H1 heading.",
+  },
+  {
+    ruleId: "broken-internal-link",
+    tag: "broken-internal-link",
+    label: "Repair a broken internal link",
+    hint: "Sell this when a same-site link is verified to return HTTP 404 or 410.",
+  },
+  {
+    ruleId: "missing-meta-description",
+    tag: "missing-meta-description",
+    label: "Repair a missing meta description",
+    hint: "Sell this when a readable page has no non-empty meta description.",
+  },
+  {
+    ruleId: "missing-structured-data",
+    tag: "missing-structured-data",
+    label: "Add LocalBusiness or Service schema",
+    hint: "Sell this when a readable page has no observed LocalBusiness or Service structured-data type.",
+  },
+  {
+    ruleId: "missing-image-alt",
+    tag: "missing-image-alt",
+    label: "Add missing image alt attributes",
+    hint: "Sell this when an image has no alt attribute; decorative alt=\"\" is left alone.",
+  },
 ] as const;
 
 /** The active service a rule would price its findings from, or null. */

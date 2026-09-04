@@ -1,4 +1,5 @@
 import type { Candidate, EvidenceBundle } from "@/core/schema";
+import { isTechnicalRuleId } from "@/core/rules/technical";
 
 /**
  * Evidence threshold. A candidate must clear this before it is allowed to reach
@@ -25,6 +26,22 @@ export function passesEvidenceThreshold(
       candidate.rawConfidence >= 0.7 &&
       candidate.evidenceRefs.length >= 2 &&
       Boolean(candidate.conversionDefect.pageUrl)
+    );
+  }
+
+  // The expanded technical rules carry exact parser/probe references just as
+  // conversion defects do. They still need a readable page, two references,
+  // and a strong deterministic signal, but a one-page site should not lose a
+  // directly observed missing title or alt ATTRIBUTE solely to the broad
+  // crawl-depth floor used by inferred service findings.
+  if (isTechnicalRuleId(candidate.ruleId)) {
+    const hasReadablePage = evidence.site.pages.some(
+      (page) => page.status >= 200 && page.status < 300 && page.wordCount > 0,
+    );
+    return (
+      hasReadablePage &&
+      candidate.rawConfidence >= 0.7 &&
+      candidate.evidenceRefs.length >= 2
     );
   }
 
