@@ -16,6 +16,7 @@ import { passesEvidenceThreshold } from "@/core/threshold";
 import { resolveBillability } from "@/core/billability";
 import { dedupeKey } from "@/core/dedupe";
 import { judge } from "@/core/judgment";
+import { deterministicEvaluationFor } from "@/core/rules/deterministicEvaluation";
 import {
   assembleCoveredOpportunity,
   assembleOpportunity,
@@ -219,27 +220,39 @@ export async function analyzeClient(
   const newlyFound: Opportunity[] = [];
   const stillOpen: Opportunity[] = [];
   for (const { candidate, billableStatus, prior } of pending) {
-    if (stats.aiCalls >= maxAiCalls) break;
-    stats.aiCalls++;
+    // Some findings have no subject left to classify and carry their own
+    // judgment. They are decided before the cap is consulted, because the cap
+    // bounds AI spend and these cost nothing — letting a chatty portfolio push
+    // a free, fully-evidenced finding off the end of a run would drop it for a
+    // reason that has nothing to do with it.
+    const deterministic = deterministicEvaluationFor(candidate);
+
+    if (!deterministic && stats.aiCalls >= maxAiCalls) break;
+
     stats.evaluated++;
 
     let evaluation;
-    try {
-      evaluation = await input.evaluator.evaluate({
-        candidate,
-        client: input.client,
-        evidence,
-      });
-    } catch (err) {
-      // Fail closed: an unreachable provider or malformed model output must
-      // never produce an opportunity.
-      stats.evaluatorErrors++;
-      console.error(
-        `[analyzeClient] evaluator failed for "${candidate.subject}": ${
-          err instanceof Error ? `${err.name}: ${err.message}` : String(err)
-        }`,
-      );
-      continue;
+    if (deterministic) {
+      evaluation = deterministic;
+    } else {
+      stats.aiCalls++;
+      try {
+        evaluation = await input.evaluator.evaluate({
+          candidate,
+          client: input.client,
+          evidence,
+        });
+      } catch (err) {
+        // Fail closed: an unreachable provider or malformed model output must
+        // never produce an opportunity.
+        stats.evaluatorErrors++;
+        console.error(
+          `[analyzeClient] evaluator failed for "${candidate.subject}": ${
+            err instanceof Error ? `${err.name}: ${err.message}` : String(err)
+          }`,
+        );
+        continue;
+      }
     }
 
     // The commercial gate. A candidate surfaces only when the evaluator

@@ -29,6 +29,13 @@ function titleFor(candidate: Candidate): string {
       }
     }
   }
+  // A whole-site finding, whose subject is the domain rather than one service.
+  // The default below would title it "Kids-Connect.Ca — dedicated service page",
+  // which is both wrong and the headline an agency puts in front of a client.
+  if (candidate.ruleId === "no-service-pages") {
+    return `${candidate.subject} describes none of its services`;
+  }
+
   return `${titleCase(candidate.subject)} — dedicated service page`;
 }
 
