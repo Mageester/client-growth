@@ -61,7 +61,14 @@
         // Hard ceiling per scheduled tick. With MAX_AI_CALLS_PER_RUN that caps
         // one tick at 30 evaluator calls, whatever the portfolio looks like.
         "MONITORING_MAX_CLIENTS_PER_RUN": "3",
-        "BETTER_AUTH_URL": "https://client-growth-production.aidan-magee2.workers.dev",
+        // The canonical public origin, and the ONE origin Better Auth trusts —
+        // it is never derived from a request's Host or Origin header (see
+        // getTrustedAuthBaseURL). orbit.getaxiom.ca now fronts this Worker, and
+        // while this still named the workers.dev hostname every sign-in there
+        // was rejected with INVALID_ORIGIN. Consequence of pointing it here:
+        // the workers.dev URL still serves pages but can no longer sign anyone
+        // in, so it is a preview address, not a way into the product.
+        "BETTER_AUTH_URL": "https://orbit.getaxiom.ca",
         "RESEND_FROM_EMAIL": "Axiom Orbit <noreply@getaxiom.ca>"
       },
       "secrets": {

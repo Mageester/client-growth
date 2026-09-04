@@ -1380,14 +1380,21 @@ a.record:hover .record-name {
 
 /* Evidence-first review and account workspaces --------------------------- */
 
-.work-surface .detail {
+.work-surface .detail,
+/* Onboarding is the one signed-in route root.tsx renders without the app nav,
+   so it lands in .public-content instead of .work-surface. This layer sets
+   --shell to none, which switches the detail column off the base stylesheet's
+   centring — leaving that page full-bleed with no gutters until it is named
+   here too. */
+.public-content .detail {
   width: min(calc(100% - 48px), 980px);
   max-width: none;
   margin: 0 auto;
   padding: 28px 0 64px;
 }
 
-.work-surface .detail.detail-narrow {
+.work-surface .detail.detail-narrow,
+.public-content .detail.detail-narrow {
   width: min(calc(100% - 48px), 720px);
 }
 

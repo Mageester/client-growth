@@ -3544,6 +3544,83 @@ a.ev-title:hover {
   }
 }
 
+/* --------------------------------------------------------------------------
+   Onboarding: the guided two-stage flow
+   -------------------------------------------------------------------------- */
+
+.steps {
+  /* Capped rather than filling the detail column: three words strung across
+     980px reads as a divider, not as progress. */
+  max-width: 34rem;
+  margin-bottom: 1.7rem;
+  padding: 0;
+  list-style: none;
+}
+
+/* The connecting rule lives inside its own step so the row wraps cleanly at
+   narrow widths. The last step has no rule and must not stretch. */
+.step:not(:last-child) {
+  flex: 1;
+}
+
+/* Reading a site takes 10-20 seconds, so this replaces the form rather than
+   sitting under it: the wait is the only thing on screen, and there is nothing
+   left to fiddle with while it runs. */
+.readingcard {
+  margin: 0.4rem 0 1.6rem;
+  animation: page-in 240ms var(--ease) backwards;
+}
+
+.confirm-list {
+  gap: 0.5rem;
+}
+
+/* One suggestion, its provenance, and the checkbox that is the entire consent
+   mechanism. The whole row is the label so the evidence is part of the hit
+   target rather than something to read and then aim past. */
+.confirm-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  cursor: pointer;
+  transition:
+    border-color 140ms var(--ease),
+    background 140ms var(--ease);
+}
+
+.confirm-toggle:hover {
+  border-color: var(--line-strong);
+}
+
+.confirm-toggle:has(input:checked) {
+  border-color: var(--line-strong);
+  background: var(--raised);
+}
+
+.confirm-toggle:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.confirm-toggle input[type="checkbox"] {
+  flex: none;
+  margin-top: 3px;
+}
+
+.confirm-copy {
+  display: block;
+  min-width: 0;
+}
+
+.confirm-copy .suggestion-evidence {
+  margin-top: 0.3rem;
+}
+
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

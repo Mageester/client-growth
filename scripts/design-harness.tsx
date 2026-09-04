@@ -24,6 +24,7 @@ import ClientsIndex from "../app/routes/clients._index";
 import ServicesIndex from "../app/routes/services._index";
 import OpportunityDetail from "../app/routes/opportunities.$id";
 import ClientDetail from "../app/routes/clients.$id";
+import Onboarding from "../app/routes/onboarding";
 import { assessAnalysisReadiness } from "@/core/analysisReadiness";
 import { TOUR_STEPS } from "../app/components/tour";
 import { Icon } from "../app/components/ui";
@@ -499,8 +500,100 @@ const clientDetailScreen = h(ClientDetail, {
   },
 } as never);
 
-const screens: Record<string, { nav: string; node: ReactNode }> = {
+/**
+ * Onboarding, both stages.
+ *
+ * Rendered without the app shell, because root.tsx hides the nav on this route:
+ * someone finishing setup has nowhere else to go yet. The confirm stage is the
+ * screen worth looking at — it is where the crawl's suggestions become the
+ * client's offering list, and where the first analysis stops being guaranteed
+ * to come back inconclusive.
+ */
+const onboardingSuggestions = [
+  {
+    label: "Heat Pump Installation",
+    confidence: "high" as const,
+    evidence: [
+      { kind: "service-section-page" as const, detail: "Has its own page under /services" },
+      { kind: "navigation-link" as const, detail: "Linked from the main navigation" },
+    ],
+  },
+  {
+    label: "Boiler Repair",
+    confidence: "high" as const,
+    evidence: [
+      { kind: "service-section-page" as const, detail: "Has its own page under /services" },
+    ],
+  },
+  {
+    label: "Underfloor Heating",
+    confidence: "high" as const,
+    evidence: [{ kind: "navigation-link" as const, detail: "Linked from the main navigation" }],
+  },
+  {
+    label: "Power Flushing",
+    confidence: "medium" as const,
+    evidence: [{ kind: "homepage-card" as const, detail: "Named in a card on the homepage" }],
+  },
+  {
+    label: "Landlord Gas Safety Checks",
+    confidence: "medium" as const,
+    evidence: [{ kind: "sitemap-url" as const, detail: "Listed in the site's own sitemap" }],
+  },
+];
+
+const onboardingClient = {
+  id: "client-northwind",
+  name: "Northwind Heating",
+  domain: "northwindheating.co.uk",
+};
+
+const screens: Record<string, { nav: string; node: ReactNode; bare?: boolean }> = {
   ...corpusScreens(),
+  "onboarding-setup": {
+    nav: "Opportunities",
+    bare: true,
+    node: h(Onboarding, {
+      loaderData: {
+        stage: "setup",
+        hasWorkspace: false,
+        client: null,
+        readFailed: false,
+        crawl: null,
+        suggestions: [],
+      },
+    } as never),
+  },
+  "onboarding-confirm": {
+    nav: "Opportunities",
+    bare: true,
+    node: h(Onboarding, {
+      loaderData: {
+        stage: "confirm",
+        hasWorkspace: true,
+        client: onboardingClient,
+        readFailed: false,
+        crawl: { readablePages: 9, fetchedPages: 10 },
+        suggestions: onboardingSuggestions,
+      },
+    } as never),
+  },
+  // The honest failure. A site that could not be reached must not be described
+  // as one that was read and found empty.
+  "onboarding-unreadable": {
+    nav: "Opportunities",
+    bare: true,
+    node: h(Onboarding, {
+      loaderData: {
+        stage: "confirm",
+        hasWorkspace: true,
+        client: onboardingClient,
+        readFailed: true,
+        crawl: { readablePages: 0, fetchedPages: 0 },
+        suggestions: [],
+      },
+    } as never),
+  },
   "client-thin": { nav: "Clients", node: clientDetailScreen },
   tour: { nav: "Opportunities", node: tourScreen },
   opportunities: { nav: "Opportunities", node: opportunitiesScreen },
@@ -542,7 +635,33 @@ mkdirSync(outDir, { recursive: true });
 
 for (const [name, screen] of Object.entries(screens)) {
   const router = createMemoryRouter(
-    [{ path: "/", element: h(Shell, { active: screen.nav, children: screen.node }) }],
+    [
+      {
+        path: "/",
+        // root.tsx drops the app nav on /onboarding, so the bare screens are
+        // wrapped the way it wraps them: the public topbar and content column.
+        element: screen.bare
+          ? h(
+              "div",
+              null,
+              h(
+                "header",
+                { className: "topbar public-topbar" },
+                h(
+                  "div",
+                  { className: "topbar-inner" },
+                  h(
+                    "a",
+                    { className: "brand", href: "#" },
+                    h("span", { className: "brand-word" }, "Axiom Orbit"),
+                  ),
+                ),
+              ),
+              h("main", { className: "content public-content" }, screen.node),
+            )
+          : h(Shell, { active: screen.nav, children: screen.node }),
+      },
+    ],
     { initialEntries: ["/"] },
   );
   const body = renderToStaticMarkup(h(RouterProvider, { router }));

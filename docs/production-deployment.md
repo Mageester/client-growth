@@ -8,7 +8,7 @@ Do not run the production resource, secret, migration, or deploy commands until 
 
 | Component | Production configuration | Important boundary |
 | --- | --- | --- |
-| Worker | `client-growth-production`, `workers_dev: true` | No custom DNS route is committed; choose the public origin before deployment. |
+| Worker | `client-growth-production`, `workers_dev: true`, fronted by `orbit.getaxiom.ca` | The custom domain is attached in the Cloudflare dashboard, not committed here. `BETTER_AUTH_URL` names it, and it is the only origin Better Auth trusts — the workers.dev hostname still serves pages but cannot sign anyone in. |
 | Runtime | `compatibility_date: 2026-08-31`, `nodejs_compat` | React Router SSR and the Worker `AsyncLocalStorage` bridge depend on the Worker-compatible runtime. |
 | Static assets | Inherited `ASSETS` binding from `./build/client` | Run `pnpm build` before deploy; `workers/app.ts` imports `build/server`. |
 | D1 | Binding `DB` → database `client-growth-production`, migrations in `migrations/` | The production binding is declared separately from local `client-growth-dev`. |
@@ -293,7 +293,7 @@ exactly one cron trigger, or if the batch size is outside 1..25.
 5. **Verify the canary without waiting for the cron boundary:**
 
    ```
-   curl -X POST -H "Authorization: Bearer $MONITORING_TRIGGER_TOKEN"      https://client-growth-production.aidan-magee2.workers.dev/internal/monitoring/run
+   curl -X POST -H "Authorization: Bearer $MONITORING_TRIGGER_TOKEN"      https://orbit.getaxiom.ca/internal/monitoring/run
    ```
 
    This runs the same `runMonitoringTick` the cron calls. Expect

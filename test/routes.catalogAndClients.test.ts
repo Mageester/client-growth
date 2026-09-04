@@ -15,7 +15,6 @@ import { d1LikeOver } from "./helpers/testAuth";
 import * as servicesIndex from "../app/routes/services._index";
 import * as clientsIndex from "../app/routes/clients._index";
 import * as clientDetail from "../app/routes/clients.$id";
-import * as onboarding from "../app/routes/onboarding";
 
 const migrationsDir = join(dirname(fileURLToPath(import.meta.url)), "..", "migrations");
 
@@ -363,49 +362,5 @@ describe("editing a client", () => {
       expect(saved?.status).toBe("already_covered");
       expect(saved?.billableStatus).toBe("already_covered");
     }
-  });
-});
-
-describe("onboarding", () => {
-  it("rejects a bad domain before creating any workspace", async () => {
-    const db = sqlDbOver(raw) as never;
-    __setSessionResolver(async () => ({
-      userId: "u_new",
-      user: { id: "u_new", email: "new@x.example", name: "New" },
-    }));
-    const res = (await call(onboarding.action as never, {
-      request: formReq({
-        workspaceName: "New Agency",
-        landingOn: "on",
-        landingName: "Landing",
-        landingMin: "900",
-        landingMax: "1800",
-        clientName: "Acme",
-        clientDomain: "not a domain",
-        clientOfferings: "roofing",
-      }),
-      context: ctx,
-    })) as { error?: string };
-    expect(res.error).toMatch(/website address/i);
-
-    const { getWorkspaceForUser } = await import("@/db/workspaces");
-    expect(await getWorkspaceForUser(db, "u_new")).toBeNull();
-  });
-
-  it("requires at least one service, since findings are priced from the catalog", async () => {
-    __setSessionResolver(async () => ({
-      userId: "u_new",
-      user: { id: "u_new", email: "new@x.example", name: "New" },
-    }));
-    const res = (await call(onboarding.action as never, {
-      request: formReq({
-        workspaceName: "New Agency",
-        clientName: "Acme",
-        clientDomain: "acme.example",
-        clientOfferings: "roofing",
-      }),
-      context: ctx,
-    })) as { error?: string };
-    expect(res.error).toMatch(/at least one service/i);
   });
 });

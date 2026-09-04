@@ -20,3 +20,4 @@ coverage/
 .design-harness.html
 .analyzability-ui.json
 .analyzability-report.json
+.design-harness/
