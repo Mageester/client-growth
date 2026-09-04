@@ -149,6 +149,7 @@ export async function listDueClients(
       `SELECT id, workspace_id, monitoring_cadence, monitoring_next_due_at
        FROM clients
        WHERE monitoring_cadence != 'off'
+         AND workspace_id NOT IN (SELECT id FROM workspaces WHERE name LIKE '[TEST] %')
          AND monitoring_next_due_at IS NOT NULL
          AND monitoring_next_due_at <= ?
          AND (monitoring_claimed_at IS NULL OR monitoring_claimed_at <= ?)
@@ -196,6 +197,7 @@ export async function claimClient(
          SET monitoring_claimed_at = ?, monitoring_last_attempt_at = ?
        WHERE id = ? AND workspace_id = ?
          AND monitoring_cadence != 'off'
+         AND workspace_id NOT IN (SELECT id FROM workspaces WHERE name LIKE '[TEST] %')
          AND monitoring_next_due_at IS NOT NULL
          AND monitoring_next_due_at <= ?
          AND (monitoring_claimed_at IS NULL OR monitoring_claimed_at <= ?)`,
