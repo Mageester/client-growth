@@ -1,6 +1,7 @@
 import { Form, useNavigation } from "react-router";
 
 import * as monitoringRepo from "@/db/monitoring";
+import { getWorkspaceBranding, isProposalShareError, saveWorkspaceBranding, validateLogo } from "@/db/proposalShares";
 import { renameWorkspace } from "@/db/workspaces";
 import { AxiomCredit, Icon, pluralize } from "../components/ui";
 import { requireTenant } from "../lib/session.server";
@@ -15,15 +16,17 @@ const HEALTH_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const t = await requireTenant(request, context);
-  const [states, health] = await Promise.all([
+  const [states, health, branding] = await Promise.all([
     monitoringRepo.listMonitoringByClient(t.scope),
     monitoringRepo.scheduledRunHealth(t.scope, {
       since: new Date(Date.now() - HEALTH_WINDOW_MS).toISOString(),
     }),
+    getWorkspaceBranding(t.scope),
   ]);
   return {
     email: t.user.email,
     workspaceName: t.workspace.name,
+    logo: branding.logo,
     monitoring: { ...monitoringRepo.summarizePortfolio(states.values()), ...health },
   };
 }
@@ -33,7 +36,18 @@ export async function action({ request, context }: Route.ActionArgs) {
   const form = await request.formData();
   const name = String(form.get("workspaceName") ?? "").trim();
   if (!name) return { error: "Workspace name cannot be empty." };
-  await renameWorkspace(t.db, t.workspace.id, name);
+  const logo = form.has("logo") ? form.get("logo") : undefined;
+  if (form.has("logo")) {
+    const checkedLogo = validateLogo(logo);
+    if (!checkedLogo.ok) return { error: checkedLogo.error };
+  }
+  try {
+    await renameWorkspace(t.db, t.workspace.id, name);
+    if (form.has("logo")) await saveWorkspaceBranding(t.scope, { logo });
+  } catch (error) {
+    if (isProposalShareError(error)) return { error: error.message };
+    throw error;
+  }
   return { ok: true };
 }
 
@@ -79,6 +93,21 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
               type="text"
               defaultValue={loaderData.workspaceName}
             />
+          </div>
+          <div className="field">
+            <label htmlFor="workspaceLogo">Proposal logo</label>
+            <input
+              id="workspaceLogo"
+              name="logo"
+              type="text"
+              inputMode="url"
+              defaultValue={loaderData.logo ?? ""}
+              placeholder="data:image/png;base64,… or https://…"
+              aria-describedby="workspaceLogoHelp"
+            />
+            <p id="workspaceLogoHelp" className="field-help">
+              Optional PNG or JPEG. A small inline data URL is safest; public logos must use HTTPS.
+            </p>
           </div>
           <div className="form-actions">
             <button type="submit" className="btn btn-primary" disabled={saving}>

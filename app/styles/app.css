@@ -3638,3 +3638,78 @@ a.ev-title:hover {
 .weekly-row { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; }
 .weekly-row a { overflow-wrap: anywhere; }
 .weekly-row time { color: var(--muted, #9c9ca3); font-size: 12px; }
+
+/* Shareable proposal document. The public route is deliberately standalone,
+   but keeps the same measured type and evidence hierarchy as the signed-in
+   detail view. */
+.detail.detail-narrow.proposal-share-page {
+  width: min(calc(100% - 48px), 54rem);
+  max-width: 54rem;
+  padding: 2.5rem 0 4rem;
+}
+
+.proposal-share-head {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.proposal-share-brand {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.proposal-share-brand img {
+  display: block;
+  flex: none;
+  width: auto;
+  max-width: 12rem;
+  height: auto;
+  max-height: 4.5rem;
+  object-fit: contain;
+}
+
+.proposal-share-copy {
+  margin: 0;
+  padding: 1.35rem 1.5rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.proposal-share-footer {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-top: 1.2rem;
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 640px) {
+  .detail.detail-narrow.proposal-share-page {
+    width: calc(100% - 24px);
+    padding-top: 1.5rem;
+  }
+
+  .proposal-share-brand {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .proposal-share-brand img {
+    max-width: 10rem;
+    max-height: 3.5rem;
+  }
+
+  .proposal-share-copy {
+    padding: 1rem;
+  }
+}

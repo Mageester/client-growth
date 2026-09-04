@@ -2,6 +2,12 @@ import { useState } from "react";
 import { Form, Link, redirect, useNavigation } from "react-router";
 
 import * as repo from "@/db/repositories";
+import {
+  countActiveProposalShares,
+  createProposalShare,
+  isProposalShareError,
+  revokeProposalShares,
+} from "@/db/proposalShares";
 import { generateProposalDraft } from "@/core/proposal";
 import { buildEvidenceCase } from "../lib/evidence";
 import { isOpen, isSnoozeExpired, nextAction, statusBadge } from "../lib/portfolio";
@@ -14,6 +20,7 @@ import {
   pluralize,
 } from "../components/ui";
 import { requireTenant } from "../lib/session.server";
+import { getTrustedAuthBaseURL } from "../lib/auth.server";
 import type { Route } from "./+types/opportunities.$id";
 
 export function meta({ data }: Route.MetaArgs) {
@@ -24,16 +31,19 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
   const t = await requireTenant(request, context);
   const opportunity = await repo.getOpportunity(t.scope, params.id);
   if (!opportunity) throw new Response("Opportunity not found", { status: 404 });
-  const [client, service, run] = await Promise.all([
+  const [client, service, run, activeShareCount] = await Promise.all([
     repo.getClient(t.scope, opportunity.clientId),
     repo.getService(t.scope, opportunity.suggestedServiceId),
     repo.getLatestAnalysisRun(t.scope, opportunity.clientId),
+    countActiveProposalShares(t.scope, opportunity.id),
   ]);
   return {
     opportunity,
     client,
     service,
     lastRunAt: run?.finishedAt ?? null,
+    activeShareCount,
+    canManageShares: t.userId === t.workspace.ownerUserId,
     evidence: buildEvidenceCase(opportunity),
   };
 }
@@ -102,6 +112,47 @@ export async function action({ params, request, context }: Route.ActionArgs) {
       await repo.saveOpportunityProposalText(t.scope, opp.id, body);
       break;
     }
+    case "create-share": {
+      try {
+        const created = await createProposalShare(t.scope, opp.id, {
+          createdByUserId: t.userId,
+          preparedBy: t.user.name.trim() || t.user.email,
+        });
+        const shareUrl = new URL(
+          "/proposal/share",
+          getTrustedAuthBaseURL(context.cloudflare.env),
+        );
+        shareUrl.searchParams.set("token", created.token);
+        // Keep the token in the action response only. A later loader/reload
+        // has no way to recover it from the hash-only database row.
+        return {
+          ok: true as const,
+          shareUrl: shareUrl.toString(),
+          expiresAt: created.expiresAt,
+        };
+      } catch (error) {
+        if (isProposalShareError(error)) {
+          if (error.code === "not-owner") {
+            throw new Response("Only the workspace owner can manage share links.", { status: 403 });
+          }
+          return { ok: false as const, error: error.message };
+        }
+        throw error;
+      }
+    }
+    case "revoke-shares": {
+      try {
+        const revoked = await revokeProposalShares(t.scope, opp.id, {
+          actingUserId: t.userId,
+        });
+        return { ok: true as const, revoked };
+      } catch (error) {
+        if (isProposalShareError(error) && error.code === "not-owner") {
+          throw new Response("Only the workspace owner can manage share links.", { status: 403 });
+        }
+        throw error;
+      }
+    }
     default:
       throw new Response("Unknown action", { status: 400 });
   }
@@ -109,7 +160,15 @@ export async function action({ params, request, context }: Route.ActionArgs) {
 }
 
 export default function OpportunityDetail({ loaderData, actionData }: Route.ComponentProps) {
-  const { opportunity: opp, client, service, lastRunAt, evidence } = loaderData;
+  const {
+    opportunity: opp,
+    client,
+    service,
+    lastRunAt,
+    evidence,
+    activeShareCount = 0,
+    canManageShares = false,
+  } = loaderData;
   const navigation = useNavigation();
   const busy = navigation.state !== "idle";
   const pending = navigation.formData?.get("intent");
@@ -205,6 +264,27 @@ export default function OpportunityDetail({ loaderData, actionData }: Route.Comp
           <span>{actionData.error}</span>
         </div>
       )}
+      {actionData && "shareUrl" in actionData && actionData.shareUrl && (
+        <div className="notice ok" role="status">
+          <Icon name="link" size={15} />
+          <span>
+            Share link ready for 30 days: {" "}
+            <a href={actionData.shareUrl} target="_blank" rel="noreferrer">
+              {actionData.shareUrl}
+            </a>
+          </span>
+        </div>
+      )}
+      {actionData && "revoked" in actionData && typeof actionData.revoked === "number" && (
+        <div className="notice ok" role="status">
+          <Icon name="check" size={15} />
+          <span>
+            {actionData.revoked === 0
+              ? "There were no active proposal links to revoke."
+              : `Revoked ${actionData.revoked} proposal ${actionData.revoked === 1 ? "link" : "links"}.`}
+          </span>
+        </div>
+      )}
 
       <section className="section">
         <h2 className="title-section">The case</h2>
@@ -292,7 +372,7 @@ export default function OpportunityDetail({ loaderData, actionData }: Route.Comp
         <div className="section-head">
           <div>
             <h2 className="title-section">Decide</h2>
-            <p>Nothing here is sent. Drafts stay inside Axiom Orbit until you copy them out.</p>
+            <p>Nothing is sent automatically. Share a saved draft with an expiring link when it is ready.</p>
           </div>
         </div>
         <div className="actionbar">
@@ -364,6 +444,33 @@ export default function OpportunityDetail({ loaderData, actionData }: Route.Comp
                 </Link>
               )}
             </p>
+          )}
+          {canManageShares && (
+            <>
+              {opp.status === "proposal_prepared" && opp.proposalMd && (
+                <Form method="post" className="inline">
+                  <input type="hidden" name="intent" value="create-share" />
+                  <button type="submit" className="btn btn-primary" disabled={busy}>
+                    <Icon
+                      name="link"
+                      size={14}
+                      className={pending === "create-share" ? "spin" : undefined}
+                    />
+                    {pending === "create-share" ? "Creating link…" : "Create share link"}
+                  </button>
+                </Form>
+              )}
+              {activeShareCount > 0 && (
+                <Form method="post" className="inline">
+                  <input type="hidden" name="intent" value="revoke-shares" />
+                  <button type="submit" className="btn btn-danger" disabled={busy}>
+                    {pending === "revoke-shares"
+                      ? "Revoking…"
+                      : `Revoke ${activeShareCount} active link${activeShareCount === 1 ? "" : "s"}`}
+                  </button>
+                </Form>
+              )}
+            </>
           )}
           {snoozeActive && opp.snoozeUntil && (
             <p className="action-note">

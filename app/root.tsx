@@ -53,6 +53,7 @@ export function links() {
 }
 
 export async function loader({ request, context }: Route.LoaderArgs) {
+  if (new URL(request.url).pathname === "/proposal/share") return { ...EMPTY };
   const rawTheme = request.headers
     .get("Cookie")
     ?.split("; ")
@@ -276,6 +277,7 @@ export function Layout({ children }: { children: ReactNode }) {
   const tour = useProductTour();
   const signedIn = data?.signedIn ?? false;
   const workspaceName = data?.workspaceName ?? null;
+  const isProposalShare = location.pathname === "/proposal/share";
   const showAppNav = signedIn && Boolean(workspaceName) && location.pathname !== "/onboarding";
   const busy = navigation.state === "loading";
 
@@ -290,6 +292,7 @@ export function Layout({ children }: { children: ReactNode }) {
           these are the constants a share card needs and are the same on every
           page, so they live here rather than being restated per route.
         */}
+        {!isProposalShare && <>
         <meta property="og:site_name" content="Axiom Orbit" />
         <meta property="og:type" content="website" />
         <meta
@@ -302,6 +305,7 @@ export function Layout({ children }: { children: ReactNode }) {
           name="description"
           content="The client growth platform for agencies."
         />
+        </>}
         <Meta />
         <Links />
       </head>
@@ -310,7 +314,7 @@ export function Layout({ children }: { children: ReactNode }) {
           Skip to content
         </a>
         {busy && <div className="nav-progress" key={location.key} />}
-        {showAppNav ? (
+        {isProposalShare ? <div id="main-content" className="content public-content">{children}</div> : showAppNav ? (
           <div className="app-frame">
             <aside className="app-sidebar">
               <Link className="brand app-brand" to="/opportunities">
