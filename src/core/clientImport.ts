@@ -54,8 +54,30 @@ function pushRecord(records: CsvRecord[], line: number, cells: string[]): void {
   records.push({ line, cells });
 }
 
-/** Parse comma separated records while preserving quoted commas and newlines. */
+/**
+ * Which character separates the columns of this paste.
+ *
+ * An agency's client list lives in a spreadsheet, and copying rows out of one
+ * yields TAB separated text, not commas — so the most likely way anyone
+ * arrives at this box produced nine rows of "Expected name, domain and
+ * offerings columns" and no clue why. Sniffing the delimiter costs nothing and
+ * removes the single most likely first-run failure.
+ *
+ * Commas win any tie: a comma-separated row whose fields happen to contain a
+ * tab is still a CSV, and quoted fields are only meaningful for the comma form.
+ */
+function detectDelimiter(input: string): "," | "\t" {
+  for (const line of input.split(/\r?\n/)) {
+    if (line.trim() === "") continue;
+    if (line.includes(",")) return ",";
+    if (line.includes("\t")) return "\t";
+  }
+  return ",";
+}
+
+/** Parse delimited records while preserving quoted separators and newlines. */
 function parseCsvRecords(input: string): { records: CsvRecord[]; issues: ClientImportIssue[] } {
+  const delimiter = detectDelimiter(input);
   const records: CsvRecord[] = [];
   const issues: ClientImportIssue[] = [];
   const cells: string[] = [];
@@ -98,7 +120,7 @@ function parseCsvRecords(input: string): { records: CsvRecord[]; issues: ClientI
       inQuotes = true;
       continue;
     }
-    if (character === ",") {
+    if (character === delimiter) {
       finishCell();
       continue;
     }
@@ -186,7 +208,10 @@ export function parseClientImport(input: string): ClientImportParseResult {
     if (record.cells.length !== 3) {
       issues.push({
         line: record.line,
-        message: "Expected name, domain and offerings columns.",
+        message:
+          record.cells.length === 1
+            ? "This row has one column. Separate name, domain and offerings with commas or tabs."
+            : `Expected 3 columns (name, domain, offerings); found ${record.cells.length}.`,
       });
       continue;
     }

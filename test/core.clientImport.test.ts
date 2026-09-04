@@ -48,7 +48,8 @@ describe("client import parsing", () => {
     expect(result.rows).toHaveLength(3);
     expect(result.issues.map((issue) => issue.line)).toEqual([3, 4]);
     expect(result.issues.map((issue) => issue.message)).toEqual([
-      "Expected name, domain and offerings columns.",
+      // Says how many columns it actually found, so the fix is obvious.
+      "Expected 3 columns (name, domain, offerings); found 2.",
       "The CSV contains an unclosed quoted field.",
     ]);
   });
@@ -145,5 +146,49 @@ describe("client import validation", () => {
 
     expect(parsed.issues).toEqual([]);
     expect(validateClientImport(parsed.rows, [])).toEqual({ ok: true, issues: [] });
+  });
+});
+
+/**
+ * An agency's client list lives in a spreadsheet, and copying rows out of one
+ * produces TAB separated text. Rejecting that meant the most likely route into
+ * a bulk importer failed on every row with "Expected name, domain and
+ * offerings columns" and no indication why.
+ */
+describe("pasting straight out of a spreadsheet", () => {
+  const TAB = "\t";
+
+  it("accepts tab separated rows", () => {
+    const pasted = [
+      ["name", "domain", "offerings"].join(TAB),
+      ["Atlas Plumbing", "atlasplumbing.ca", "Drain cleaning;Leak detection"].join(TAB),
+      ["Cambridge Heating", "cambridgeheating.ca", "Furnace repair;Duct cleaning"].join(TAB),
+    ].join("\n");
+
+    const result = parseClientImport(pasted);
+
+    expect(result.issues).toEqual([]);
+    expect(result.rows).toHaveLength(2);
+    expect(result.rows[0]?.name).toBe("Atlas Plumbing");
+    expect(result.rows[0]?.domain).toBe("atlasplumbing.ca");
+    expect(result.rows[0]?.offerings).toEqual(["Drain cleaning", "Leak detection"]);
+  });
+
+  it("still reads a comma separated paste, including a quoted comma", () => {
+    // Commas win any tie: a CSV whose field contains a tab is still a CSV.
+    const result = parseClientImport(
+      'name,domain,offerings\n"Smith, Jones & Co",smithjones.example,Roofing;Guttering\n',
+    );
+
+    expect(result.issues).toEqual([]);
+    expect(result.rows[0]?.name).toBe("Smith, Jones & Co");
+    expect(result.rows[0]?.offerings).toEqual(["Roofing", "Guttering"]);
+  });
+
+  it("says what is wrong when a row has only one column", () => {
+    const result = parseClientImport("name;domain;offerings\nAtlas Plumbing only\n");
+
+    expect(result.issues.length).toBeGreaterThan(0);
+    expect(result.issues[0]?.message).toMatch(/commas or tabs/i);
   });
 });
