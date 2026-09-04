@@ -3693,6 +3693,10 @@ a.ev-title:hover {
   line-height: 1.5;
 }
 
+.proposal-share-copy h3 { margin: 1.5rem 0 0.6rem; font-size: 1.05rem; }
+.proposal-share-copy p { margin: 0.6rem 0; }
+.proposal-share-copy > :first-child { margin-top: 0; }
+
 @media (max-width: 640px) {
   .detail.detail-narrow.proposal-share-page {
     width: calc(100% - 24px);

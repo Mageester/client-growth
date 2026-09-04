@@ -330,7 +330,7 @@ describe("proposal share routes", () => {
   });
 
   it("renders proposal text as escaped React text and revokes every active link", async () => {
-    await repo.saveOpportunityProposalText(scopeA, "opp_a", "<script>alert(1)</script>");
+    await repo.saveOpportunityProposalText(scopeA, "opp_a", "# Review\n\n**Saved terms**\n\n- First item\n- <script>alert(1)</script>");
     const created = await createProposalShare(scopeA, "opp_a", {
       createdByUserId: "u_a",
       preparedBy: "Avery Owner",
@@ -343,6 +343,9 @@ describe("proposal share routes", () => {
     const html = renderToStaticMarkup(publicShare.default({ loaderData: page } as never));
     expect(html).toContain("&lt;script&gt;alert(1)&lt;/script&gt;");
     expect(html).not.toContain("<script>alert(1)</script>");
+    expect(html).toContain("<h3>Review</h3>");
+    expect(html).toContain("<strong>Saved terms</strong>");
+    expect(html).toContain("<li>First item</li>");
 
     const result = (await call(opportunityDetail.action as never, {
       request: formReq({ intent: "revoke-shares" }),

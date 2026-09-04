@@ -4,6 +4,7 @@ import {
   type ProposalSharePublic,
 } from "@/db/proposalShares";
 import { Icon, formatCurrencyRange } from "../components/ui";
+import type { ReactNode } from "react";
 
 type PublicShareContext = {
   cloudflare: { env: { DB: unknown } };
@@ -107,7 +108,7 @@ export default function ProposalShare({ loaderData }: { loaderData: ProposalShar
 
       <section className="section">
         <h2 className="title-section">Proposal</h2>
-        <pre className="proposal-share-copy">{snapshot.proposalMd}</pre>
+        <div className="proposal-share-copy"><ProposalText text={snapshot.proposalMd} /></div>
       </section>
 
       <section className="section">
@@ -150,4 +151,31 @@ export default function ProposalShare({ loaderData }: { loaderData: ProposalShar
       </footer>
     </main>
   );
+}
+
+/** A small presentation grammar for our saved drafts; HTML and URLs remain text. */
+function ProposalText({ text }: { text: string }) {
+  const inline = (line: string): ReactNode[] => line.split(/(\*\*[^*]+\*\*)/g).map((part, index) =>
+    part.startsWith("**") && part.endsWith("**") ? <strong key={index}>{part.slice(2, -2)}</strong> : part);
+  const blocks: ReactNode[] = [];
+  const lines = text.split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]!;
+    if (!line.trim()) continue;
+    const heading = /^#{1,3}\s+(.+)$/.exec(line);
+    if (heading) { blocks.push(<h3 key={i}>{inline(heading[1]!)}</h3>); continue; }
+    if (/^-\s+/.test(line)) {
+      const items: ReactNode[] = [];
+      const key = i;
+      while (i < lines.length && /^-\s+/.test(lines[i]!)) {
+        items.push(<li key={i}>{inline(lines[i]!.replace(/^-\s+/, ""))}</li>);
+        i++;
+      }
+      i--;
+      blocks.push(<ul className="scope-list" key={key}>{items}</ul>);
+      continue;
+    }
+    blocks.push(<p key={i}>{inline(line)}</p>);
+  }
+  return <>{blocks}</>;
 }
