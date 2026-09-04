@@ -11,6 +11,7 @@ import { brokenInternalLinkRule } from "@/core/rules/brokenInternalLink";
 import { missingMetaDescriptionRule } from "@/core/rules/missingMetaDescription";
 import { missingStructuredDataRule } from "@/core/rules/missingStructuredData";
 import { missingImageAltRule } from "@/core/rules/missingImageAlt";
+import { aggregateTechnicalCandidates } from "@/core/rules/technical";
 
 export type { Rule, RuleContext };
 
@@ -34,5 +35,9 @@ export const allRules: Rule[] = [
 
 export async function runRules(ctx: RuleContext): Promise<Candidate[]> {
   const batches = await Promise.all(allRules.map((rule) => rule(ctx)));
-  return batches.flat();
+  return aggregateTechnicalCandidates({
+    client: ctx.client,
+    candidates: batches.flat(),
+    suppressedEvidenceRefsByRule: ctx.technicalSuppressedEvidenceRefsByRule,
+  });
 }

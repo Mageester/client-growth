@@ -25,6 +25,7 @@ const entry: SignalDeskEntry = {
     detected: "Heat pump installation is listed as a core offering, but the site has no page for it.",
     rationale: "A dedicated page gives high-intent demand somewhere useful to land.",
     evidenceRefs: ["page:https://bluepeakhvac.example/services"],
+    suppressedEvidenceRefs: [],
     suggestedServiceId: "service-page",
     suggestedScope: ["Keyword and intent review", "Page copy", "Lead form"],
     priceMin: 900,

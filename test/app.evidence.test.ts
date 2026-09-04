@@ -12,6 +12,7 @@ function opp(over: Partial<Opportunity> = {}): Opportunity {
     title: "No page for heat pumps",
     detected: "detected",
     evidenceRefs: [],
+    suppressedEvidenceRefs: [],
     rationale: "why",
     suggestedServiceId: "s1",
     suggestedScope: [],

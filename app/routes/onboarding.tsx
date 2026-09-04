@@ -4,6 +4,7 @@ import { Form, redirect, useNavigation } from "react-router";
 import * as repo from "@/db/repositories";
 import { ClientSchema, ServiceSchema, type RuleId } from "@/core/schema";
 import { RULE_SERVICE_LINKS } from "@/core/rules/registry";
+import { TECHNICAL_STARTER_PRICE_BANDS } from "@/core/rules/technical";
 import { suggestOfferings, type SuggestedOffering } from "@/core/offeringSuggestions";
 import {
   createWorkspaceForOwner,
@@ -91,57 +92,57 @@ const STARTER_DEFAULTS: Record<
   "missing-title": {
     field: "missingtitle",
     name: "Page Title Repair",
-    min: 150,
-    max: 400,
+    min: TECHNICAL_STARTER_PRICE_BANDS["missing-title"].min,
+    max: TECHNICAL_STARTER_PRICE_BANDS["missing-title"].max,
     when: "a readable page has no non-empty HTML title",
   },
   "duplicate-title": {
     field: "duplicatetitle",
     name: "Duplicate Title Repair",
-    min: 200,
-    max: 500,
+    min: TECHNICAL_STARTER_PRICE_BANDS["duplicate-title"].min,
+    max: TECHNICAL_STARTER_PRICE_BANDS["duplicate-title"].max,
     when: "readable pages expose the same title text",
   },
   "thin-service-page": {
     field: "thinservice",
     name: "Thin Service Page",
-    min: 900,
-    max: 1800,
+    min: TECHNICAL_STARTER_PRICE_BANDS["thin-service-page"].min,
+    max: TECHNICAL_STARTER_PRICE_BANDS["thin-service-page"].max,
     when: "a service-shaped page contains very little readable body text",
   },
   "missing-h1": {
     field: "missingh1",
     name: "H1 Heading Repair",
-    min: 150,
-    max: 400,
+    min: TECHNICAL_STARTER_PRICE_BANDS["missing-h1"].min,
+    max: TECHNICAL_STARTER_PRICE_BANDS["missing-h1"].max,
     when: "a readable page has no non-empty H1 heading",
   },
   "broken-internal-link": {
     field: "internallink",
     name: "Internal Link Repair",
-    min: 200,
-    max: 600,
+    min: TECHNICAL_STARTER_PRICE_BANDS["broken-internal-link"].min,
+    max: TECHNICAL_STARTER_PRICE_BANDS["broken-internal-link"].max,
     when: "a same-site link is verified to return HTTP 404 or 410",
   },
   "missing-meta-description": {
     field: "metadescription",
     name: "Meta Description Repair",
-    min: 200,
-    max: 500,
+    min: TECHNICAL_STARTER_PRICE_BANDS["missing-meta-description"].min,
+    max: TECHNICAL_STARTER_PRICE_BANDS["missing-meta-description"].max,
     when: "a readable page has no non-empty meta description",
   },
   "missing-structured-data": {
     field: "structureddata",
     name: "LocalBusiness or Service Schema",
-    min: 300,
-    max: 800,
+    min: TECHNICAL_STARTER_PRICE_BANDS["missing-structured-data"].min,
+    max: TECHNICAL_STARTER_PRICE_BANDS["missing-structured-data"].max,
     when: "a readable page has no observed LocalBusiness or Service structured-data type",
   },
   "missing-image-alt": {
     field: "imagealt",
     name: "Image Alt Attribute Repair",
-    min: 150,
-    max: 400,
+    min: TECHNICAL_STARTER_PRICE_BANDS["missing-image-alt"].min,
+    max: TECHNICAL_STARTER_PRICE_BANDS["missing-image-alt"].max,
     when: "an image has no alt attribute; decorative alt=\"\" images are left alone",
   },
 };

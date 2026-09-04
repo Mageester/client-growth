@@ -21,6 +21,7 @@ import {
   canReconcileTechnicalRule,
   isTechnicalRuleId,
   technicalSubjectWasRevisited,
+  type TechnicalRuleId,
 } from "@/core/rules/technical";
 import {
   assembleCoveredOpportunity,
@@ -169,6 +170,22 @@ export async function analyzeClient(
     verifyBudget: { remaining: input.maxVerifyFetches ?? 12 },
     probe,
     probeBudget: { remaining: input.maxProbes ?? 8 },
+    // Dismissed page-level rows were folded into canonical aggregate rows by
+    // migration. Suppress only their recorded page evidence after the literal
+    // rules run, so that an agency's dismissal cannot return as a new site-wide
+    // opportunity while non-technical rules remain entirely unaffected.
+    technicalSuppressedEvidenceRefsByRule: (input.existing ?? []).reduce<
+      Partial<Record<TechnicalRuleId, string[]>>
+    >((byRule, opportunity) => {
+      if (!isTechnicalRuleId(opportunity.ruleId)) return byRule;
+      byRule[opportunity.ruleId] = [
+        ...new Set([
+          ...(byRule[opportunity.ruleId] ?? []),
+          ...opportunity.suppressedEvidenceRefs,
+        ]),
+      ];
+      return byRule;
+    }, {}),
   });
   stats.candidates = candidates.length;
 
@@ -393,6 +410,9 @@ function reconcileResolved(input: {
   for (const opp of input.existing) {
     if (opp.billableStatus !== "billable") continue;
     if (opp.status !== "new" && opp.status !== "proposal_prepared") continue;
+    // A candidate may be absent solely because its legacy page evidence was
+    // intentionally suppressed. That is not proof the client fixed it.
+    if (isTechnicalRuleId(opp.ruleId) && opp.suppressedEvidenceRefs.length > 0) continue;
     if (!ranThisTime.has(opp.ruleId)) continue;
     if (stillPresent.has(opp.dedupeKey)) continue;
     if (
@@ -411,7 +431,7 @@ function reconcileResolved(input: {
   return resolved;
 }
 
-/** New technical findings use the page URL as subject except duplicate titles. */
+/** Legacy fallback when a technical opportunity has no page evidence to revisit. */
 function subjectFromOpportunity(opp: Opportunity): string {
   const target = opp.evidenceRefs
     .find((ref) => ref.startsWith("target:"))

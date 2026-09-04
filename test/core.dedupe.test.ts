@@ -20,4 +20,13 @@ describe("dedupeKey", () => {
     expect(base).not.toBe(dedupeKey("c2", "missing-service-page", "heat pump installation"));
     expect(base).not.toBe(dedupeKey("c1", "missing-service-page", "furnace installation"));
   });
+
+  it("uses one explicit site-level identity for every technical repair", () => {
+    expect(dedupeKey("c1", "missing-image-alt", "https://site.example/")).toBe(
+      "technical::c1::missing-image-alt",
+    );
+    expect(dedupeKey("c1", "missing-image-alt", "https://site.example/about")).toBe(
+      "technical::c1::missing-image-alt",
+    );
+  });
 });

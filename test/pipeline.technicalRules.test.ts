@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { analyzeClient } from "@/pipeline/analyzeClient";
-import { dedupeKey } from "@/core/dedupe";
 import {
   ClientSchema,
   EvidenceBundleSchema,
@@ -45,6 +44,10 @@ const catalog: Service[] = TAGS.map((tag, index) =>
     active: true,
   }),
 );
+
+function technicalKey(ruleId: (typeof TAGS)[number]): string {
+  return `technical::${client.id}::${ruleId}`;
+}
 
 function fullEvidence(): EvidenceBundle {
   return EvidenceBundleSchema.parse({
@@ -156,15 +159,15 @@ const provider = (evidence: EvidenceBundle): EvidenceProvider => ({
     }),
 });
 
-function priorMetaFinding(): Opportunity {
+function priorMetaFinding(pageUrls: string[] = [ROOT]): Opportunity {
   return OpportunitySchema.parse({
     id: "opp-previous-meta",
-    dedupeKey: dedupeKey(client.id, "missing-meta-description", ROOT),
+    dedupeKey: technicalKey("missing-meta-description"),
     clientId: client.id,
     ruleId: "missing-meta-description",
     title: "Missing meta description",
     detected: `The page ${ROOT} has no non-empty meta description.`,
-    evidenceRefs: [`page:${ROOT}`, "meta-description:missing"],
+    evidenceRefs: [...pageUrls.map((url) => `page:${url}`), "meta-description:missing"],
     rationale: "The page has no non-empty meta description.",
     suggestedServiceId: "svc-missing-meta-description",
     suggestedScope: ["Add a non-empty meta description."],
@@ -180,7 +183,7 @@ function priorMetaFinding(): Opportunity {
 function priorMissingTitleFinding(pageUrl: string): Opportunity {
   return OpportunitySchema.parse({
     id: "opp-previous-title",
-    dedupeKey: dedupeKey(client.id, "missing-title", pageUrl),
+    dedupeKey: technicalKey("missing-title"),
     clientId: client.id,
     ruleId: "missing-title",
     title: "Missing page title",
@@ -201,7 +204,7 @@ function priorMissingTitleFinding(pageUrl: string): Opportunity {
 function priorBrokenLinkFinding(sourceUrl: string, targetUrl: string): Opportunity {
   return OpportunitySchema.parse({
     id: "opp-previous-broken-link",
-    dedupeKey: dedupeKey(client.id, "broken-internal-link", targetUrl),
+    dedupeKey: technicalKey("broken-internal-link"),
     clientId: client.id,
     ruleId: "broken-internal-link",
     title: "Broken internal link",
@@ -231,14 +234,56 @@ describe("pipeline expanded deterministic rules", () => {
       maxAiCalls: 0,
     });
 
-    expect(result.opportunities.length).toBeGreaterThanOrEqual(8);
+    expect(result.opportunities).toHaveLength(TAGS.length);
     expect(new Set(result.opportunities.map((opp) => opp.ruleId))).toEqual(
       new Set(TAGS),
+    );
+    expect(result.opportunities.map((opp) => opp.dedupeKey)).toEqual(TAGS.map(technicalKey));
+    expect(result.opportunities.map((opp) => opp.priceMin)).toEqual(
+      TAGS.map((tag) => catalog.find((service) => service.tags.includes(tag))!.priceMin),
     );
     expect(evaluate).not.toHaveBeenCalled();
     expect(result.stats.aiCalls).toBe(0);
     expect(result.stats.evaluatorErrors).toBe(0);
     expect(result.opportunities.every((opp) => opp.status === "new")).toBe(true);
+  });
+
+  it("keeps a partial technical repair open under the same site-level identity", async () => {
+    const withTwoMissingDescriptions = EvidenceBundleSchema.parse({
+      ...fullEvidence(),
+      site: {
+        ...fullEvidence().site,
+        pages: fullEvidence().site.pages.map((page) =>
+          page.url === `${ORIGIN}/about` ? { ...page, metaDescription: "" } : page,
+        ),
+      },
+    });
+    const onlyMeta = [catalog.find((service) => service.tags.includes("missing-meta-description"))!];
+    const first = await analyzeClient({
+      client,
+      catalog: onlyMeta,
+      coverage: [],
+      evidenceProvider: provider(withTwoMissingDescriptions),
+      evaluator: { evaluate: vi.fn() },
+    });
+    const prior = first.opportunities[0]!;
+
+    const partiallyRepaired = await analyzeClient({
+      client,
+      catalog: onlyMeta,
+      coverage: [],
+      existing: [prior],
+      evidenceProvider: provider(fullEvidence()),
+      evaluator: { evaluate: vi.fn() },
+    });
+
+    expect(partiallyRepaired.opportunities).toHaveLength(1);
+    expect(partiallyRepaired.opportunities[0]?.id).toBe(prior.id);
+    expect(partiallyRepaired.opportunities[0]?.dedupeKey).toBe(
+      technicalKey("missing-meta-description"),
+    );
+    expect(partiallyRepaired.opportunities[0]?.detected).toContain("1 affected page");
+    expect(partiallyRepaired.resolved).toHaveLength(0);
   });
 
   it("does not resolve a prior finding when a readable page was not revisited with the new field", async () => {
@@ -377,6 +422,85 @@ describe("pipeline expanded deterministic rules", () => {
     });
 
     expect(result.resolved).toHaveLength(0);
+  });
+
+  it("does not resolve an aggregate until every previously affected page was revisited", async () => {
+    const about = `${ORIGIN}/about`;
+    const evidence = EvidenceBundleSchema.parse({
+      clientId: client.id,
+      source: "fixture",
+      capturedAt: "2026-09-04T00:00:00.000Z",
+      site: {
+        pages: [
+          {
+            url: ROOT,
+            status: 200,
+            title: "Home",
+            h1s: ["Home"],
+            headings: [],
+            textExcerpt: "Readable content.",
+            wordCount: 120,
+            forms: [],
+            metaDescription: "Present",
+          },
+        ],
+        nav: [],
+        links: [],
+        sitemapUrls: [],
+        crawlExhaustive: true,
+      },
+      networkEvents: [],
+    });
+    const result = await analyzeClient({
+      client,
+      catalog: [catalog.find((service) => service.tags.includes("missing-meta-description"))!],
+      coverage: [],
+      existing: [priorMetaFinding([ROOT, about])],
+      evidenceProvider: provider(evidence),
+      evaluator: { evaluate: vi.fn() },
+    });
+
+    expect(result.resolved).toHaveLength(0);
+  });
+
+  it("does not resurface legacy dismissed page evidence through the aggregate", async () => {
+    const prior = {
+      ...priorMissingTitleFinding(ROOT),
+      suppressedEvidenceRefs: [`page:${ROOT}`],
+    };
+    const result = await analyzeClient({
+      client,
+      catalog: [catalog.find((service) => service.tags.includes("missing-title"))!],
+      coverage: [],
+      existing: [prior],
+      evidenceProvider: provider(fullEvidence()),
+      evaluator: { evaluate: vi.fn() },
+    });
+
+    expect(result.opportunities).toHaveLength(0);
+    expect(result.resolved).toHaveLength(0);
+  });
+
+  it("does not let a dismissed technical rule hide a different repair on that page", async () => {
+    const prior = {
+      ...priorMissingTitleFinding(ROOT),
+      suppressedEvidenceRefs: [`page:${ROOT}`],
+    };
+    const result = await analyzeClient({
+      client,
+      catalog: [
+        catalog.find((service) => service.tags.includes("missing-title"))!,
+        catalog.find((service) => service.tags.includes("missing-meta-description"))!,
+      ],
+      coverage: [],
+      existing: [prior],
+      evidenceProvider: provider(fullEvidence()),
+      evaluator: { evaluate: vi.fn() },
+    });
+
+    expect(result.opportunities.map((opportunity) => opportunity.ruleId)).toEqual([
+      "missing-meta-description",
+    ]);
   });
 
   it("keeps an old page finding open when an exhaustive crawl omits that page", async () => {

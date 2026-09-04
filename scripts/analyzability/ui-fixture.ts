@@ -23,9 +23,14 @@ import { dirname, join } from "node:path";
 import { HttpEvidenceProvider } from "@/adapters/evidence/HttpEvidenceProvider";
 import { assessServiceCoverage } from "@/core/absenceVerification";
 import { classifyAnalysis, measureEvidenceReach } from "@/core/analysisOutcome";
+import { dedupeKey } from "@/core/dedupe";
 import { runRules } from "@/core/rules";
-import { assessCatalogCoverage } from "@/core/rules/registry";
-import { ClientSchema, type Candidate, type EvidenceBundle } from "@/core/schema";
+import { assessCatalogCoverage, RULE_SERVICE_LINKS } from "@/core/rules/registry";
+import {
+  TECHNICAL_RULE_IDS,
+  TECHNICAL_STARTER_PRICE_BANDS,
+} from "@/core/rules/technical";
+import { ClientSchema, ServiceSchema, type Candidate, type EvidenceBundle, type Service } from "@/core/schema";
 
 import { createCachingFetch } from "./cache";
 import { CORPUS } from "./corpus";
@@ -34,8 +39,27 @@ import { AGENCY_SERVICES } from "../../test/bench/agency";
 const CACHE_DIR = join(process.cwd(), ".analyzability-cache");
 const outPath = process.argv[2] ?? ".analyzability-ui.json";
 
-/** The catalog every corpus site is priced against. */
-const CATALOG = AGENCY_SERVICES.filter((service) => service.active);
+/**
+ * The catalog every corpus site is priced against. Technical work needs its own
+ * services here so the rendered fixture shows the real site-level low-hundreds
+ * values, rather than treating an unmapped rule as a $0 placeholder.
+ */
+const TECHNICAL_SERVICES: Service[] = TECHNICAL_RULE_IDS.map((ruleId) => {
+  const link = RULE_SERVICE_LINKS.find((candidate) => candidate.ruleId === ruleId);
+  if (!link) throw new Error(`missing catalog link for ${ruleId}`);
+  const price = TECHNICAL_STARTER_PRICE_BANDS[ruleId];
+  return ServiceSchema.parse({
+    id: `fixture-${ruleId}`,
+    name: link.label,
+    description: link.hint,
+    priceMin: price.min,
+    priceMax: price.max,
+    tags: [link.tag],
+    active: true,
+  });
+});
+
+const CATALOG = [...AGENCY_SERVICES, ...TECHNICAL_SERVICES].filter((service) => service.active);
 
 async function main() {
   const { fetchImpl } = createCachingFetch({ dir: CACHE_DIR, allowNetwork: false });
@@ -98,12 +122,13 @@ async function main() {
         serviceName: service?.name ?? "Unmapped",
         opportunity: {
           id: `${client.id}-${candidatesOut.length}`,
-          dedupeKey: `${client.id}-${candidate.subject}`,
+          dedupeKey: dedupeKey(client.id, candidate.ruleId, candidate.subject),
           clientId: client.id,
           ruleId: candidate.ruleId,
           title: titleFor(candidate),
           detected: candidate.detected,
           evidenceRefs: candidate.evidenceRefs,
+          suppressedEvidenceRefs: candidate.suppressedEvidenceRefs ?? [],
           rationale: candidate.detected,
           suggestedServiceId: candidate.suggestedServiceId,
           suggestedScope: [],
@@ -151,6 +176,17 @@ function titleFor(candidate: Candidate): string {
   if (candidate.ruleId === "broken-conversion-path") {
     return `Broken conversion path: ${candidate.subject}`;
   }
+  const technicalTitles: Partial<Record<Candidate["ruleId"], string>> = {
+    "missing-title": "Missing page title",
+    "duplicate-title": "Duplicate page title",
+    "thin-service-page": "Thin service page",
+    "missing-h1": "Missing H1 heading",
+    "broken-internal-link": "Broken internal link",
+    "missing-meta-description": "Missing meta description",
+    "missing-structured-data": "Missing LocalBusiness or Service schema",
+    "missing-image-alt": "Missing image alt attribute",
+  };
+  if (technicalTitles[candidate.ruleId]) return technicalTitles[candidate.ruleId]!;
   return `No page for ${candidate.subject}`;
 }
 

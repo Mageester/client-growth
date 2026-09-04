@@ -2,10 +2,16 @@ import { describe, expect, it } from "vitest";
 
 import { runRules } from "@/core/rules";
 import {
+  aggregateTechnicalCandidates,
+  pageCandidate,
+  TECHNICAL_STARTER_PRICE_BANDS,
+} from "@/core/rules/technical";
+import {
   ClientSchema,
   EvidenceBundleSchema,
   ServiceSchema,
   type EvidenceBundle,
+  type Candidate,
   type Service,
 } from "@/core/schema";
 import type { ProbeResult } from "@/ports/EvidenceProvider";
@@ -90,7 +96,7 @@ function evidenceWithAllTechnicalFindings(): EvidenceBundle {
           forms: [],
           metaDescription: "About this business",
           structuredDataTypes: ["LocalBusiness"],
-          images: [],
+          images: [{ src: "/about.jpg" }],
         },
         {
           url: `${ORIGIN}/contact`,
@@ -197,6 +203,59 @@ function probe(url: string): Promise<ProbeResult> {
 }
 
 describe("expanded deterministic rules", () => {
+  it("aggregates technical observations without changing unrelated rule candidates", () => {
+    const nonTechnical: Candidate = {
+      ruleId: "missing-service-page",
+      subject: "heat pump installation",
+      detected: "A service page is absent.",
+      evidenceRefs: ["offering:heat pump installation"],
+      rawConfidence: 0.9,
+      suggestedServiceId: "svc-landing",
+    };
+    const aggregated = aggregateTechnicalCandidates({
+      client,
+      candidates: [
+        nonTechnical,
+        pageCandidate({
+          ruleId: "missing-title",
+          subject: ROOT,
+          detected: "root is missing a title",
+          evidenceRefs: [`page:${ROOT}`, "title:missing"],
+          suggestedServiceId: "svc-missing-title",
+        }),
+        pageCandidate({
+          ruleId: "missing-title",
+          subject: `${ORIGIN}/about`,
+          detected: "about is missing a title",
+          evidenceRefs: [`page:${ORIGIN}/about`, "title:missing"],
+          suggestedServiceId: "svc-missing-title",
+          rawConfidence: 0.8,
+        }),
+      ],
+    });
+
+    expect(aggregated).toHaveLength(2);
+    expect(aggregated[0]).toEqual(nonTechnical);
+    expect(aggregated[1]).toMatchObject({
+      ruleId: "missing-title",
+      subject: client.domain,
+      rawConfidence: 0.8,
+    });
+  });
+
+  it("keeps the technical starter catalog in low-hundreds site-level bands", () => {
+    expect(TECHNICAL_STARTER_PRICE_BANDS).toEqual({
+      "missing-title": { min: 150, max: 300 },
+      "duplicate-title": { min: 200, max: 400 },
+      "thin-service-page": { min: 400, max: 800 },
+      "missing-h1": { min: 150, max: 300 },
+      "broken-internal-link": { min: 200, max: 500 },
+      "missing-meta-description": { min: 200, max: 500 },
+      "missing-structured-data": { min: 300, max: 700 },
+      "missing-image-alt": { min: 150, max: 400 },
+    });
+  });
+
   it("produces every requested technical finding from literal observations", async () => {
     const candidates = await runRules({
       client,
@@ -208,13 +267,84 @@ describe("expanded deterministic rules", () => {
     const ids = new Set(candidates.map((candidate) => candidate.ruleId));
 
     for (const ruleId of TAGS) expect(ids.has(ruleId), ruleId).toBe(true);
-    expect(candidates.filter((candidate) => candidate.ruleId === "broken-internal-link")).toHaveLength(2);
+
+    // Technical observations are priced as one site-level repair, never as a
+    // separate project for each URL that happened to expose the same defect.
+    const technical = candidates.filter((candidate) => TAGS.includes(candidate.ruleId as (typeof TAGS)[number]));
+    expect(technical).toHaveLength(TAGS.length);
+    for (const ruleId of TAGS) {
+      expect(technical.filter((candidate) => candidate.ruleId === ruleId), ruleId).toHaveLength(1);
+    }
+    expect(technical.every((candidate) => candidate.subject === client.domain)).toBe(true);
+
+    const broken = technical.find((candidate) => candidate.ruleId === "broken-internal-link");
+    expect(broken?.evidenceRefs).toEqual(
+      expect.arrayContaining([
+        `page:${ROOT}`,
+        `page:${ORIGIN}/about`,
+        `target:${ORIGIN}/missing`,
+        `target:${ORIGIN}/probed-missing`,
+      ]),
+    );
     expect(candidates.some((candidate) => candidate.subject.endsWith("server-error"))).toBe(false);
     expect(candidates.some((candidate) => candidate.subject.endsWith("timed-out"))).toBe(false);
 
     const imageFinding = candidates.find((candidate) => candidate.ruleId === "missing-image-alt");
-    expect(imageFinding?.detected).toContain("1 image");
+    expect(imageFinding?.detected).toContain("2 images");
+    expect(imageFinding?.detected).toContain("2 affected pages");
+    expect(imageFinding?.evidenceRefs).toEqual(
+      expect.arrayContaining([`page:${ROOT}`, `page:${ORIGIN}/about`, "images-without-alt:1"]),
+    );
     expect(imageFinding?.detected).toContain('decorative alt="" images are excluded');
+  });
+
+  it("does not re-raise page evidence the agency dismissed before site-level aggregation", async () => {
+    const candidates = await runRules({
+      client,
+      catalog,
+      evidence: evidenceWithAllTechnicalFindings(),
+      probe,
+      probeBudget: { remaining: 20 },
+      technicalSuppressedEvidenceRefsByRule: Object.fromEntries(
+        TAGS.map((ruleId) => [ruleId, [`page:${ROOT}`]]),
+      ),
+    });
+
+    expect(candidates.some((candidate) => candidate.evidenceRefs.includes(`page:${ROOT}`))).toBe(false);
+  });
+
+  it("keeps dismissed evidence scoped to its own rule and retains it until reopen", () => {
+    const result = aggregateTechnicalCandidates({
+      client,
+      candidates: [
+        pageCandidate({
+          ruleId: "missing-title",
+          subject: ROOT,
+          detected: "root title missing",
+          evidenceRefs: [`page:${ROOT}`, "title:missing"],
+          suggestedServiceId: "svc-missing-title",
+        }),
+        pageCandidate({
+          ruleId: "missing-meta-description",
+          subject: `${ORIGIN}/about`,
+          detected: "about meta missing",
+          evidenceRefs: [`page:${ORIGIN}/about`, "meta-description:missing"],
+          suggestedServiceId: "svc-missing-meta-description",
+        }),
+      ],
+      suppressedEvidenceRefsByRule: {
+        "missing-title": [`page:${ROOT}`],
+        // This page is not currently missing metadata, but its legacy dismissal
+        // must stay attached to the canonical metadata row until it is reopened.
+        "missing-meta-description": [`page:${ROOT}`],
+      },
+    });
+
+    expect(result.find((candidate) => candidate.ruleId === "missing-title")).toBeUndefined();
+    expect(result.find((candidate) => candidate.ruleId === "missing-meta-description")).toMatchObject({
+      subject: client.domain,
+      suppressedEvidenceRefs: [`page:${ROOT}`],
+    });
   });
 
   it("does not turn legacy unknown fields into missing metadata or image findings", async () => {
@@ -342,7 +472,7 @@ describe("expanded deterministic rules", () => {
     const candidates = await runRules({ client, catalog: schemaCatalog, evidence });
 
     expect(candidates).toHaveLength(1);
-    expect(candidates[0]?.subject).toBe(ROOT);
+    expect(candidates[0]?.subject).toBe(client.domain);
   });
 
   it("does not classify thin editorial or archive URLs as service pages", async () => {
@@ -395,6 +525,6 @@ describe("expanded deterministic rules", () => {
     const candidates = await runRules({ client, catalog: thinCatalog, evidence });
 
     expect(candidates).toHaveLength(1);
-    expect(candidates[0]?.subject).toBe(`${ORIGIN}/services/repair`);
+    expect(candidates[0]?.subject).toBe(client.domain);
   });
 });

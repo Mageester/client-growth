@@ -230,7 +230,8 @@ export async function setCoverage(
       `UPDATE opportunities
        SET billable_status = 'already_covered', status = 'already_covered',
            snooze_until = NULL, updated_at = ?
-       WHERE workspace_id = ? AND client_id = ? AND suggested_service_id = ?`,
+       WHERE workspace_id = ? AND client_id = ? AND suggested_service_id = ?
+         AND status <> 'superseded'`,
     )
     .bind(nowIso(), t.workspaceId, clientId, serviceId)
     .run();
@@ -299,6 +300,7 @@ interface OpportunityRow {
   title: string;
   detected: string;
   evidence_refs: string;
+  suppressed_evidence_refs: string;
   rationale: string;
   suggested_service_id: string;
   suggested_scope: string;
@@ -323,6 +325,7 @@ function toOpportunity(row: OpportunityRow): Opportunity {
     title: row.title,
     detected: row.detected,
     evidenceRefs: JSON.parse(row.evidence_refs) as string[],
+    suppressedEvidenceRefs: JSON.parse(row.suppressed_evidence_refs) as string[],
     rationale: row.rationale,
     suggestedServiceId: row.suggested_service_id,
     suggestedScope: JSON.parse(row.suggested_scope) as string[],
@@ -345,7 +348,7 @@ export async function listOpportunities(
 ): Promise<Opportunity[]> {
   const rows = await t.db
     .prepare(
-      "SELECT * FROM opportunities WHERE client_id = ? AND workspace_id = ? ORDER BY confidence DESC, title",
+      "SELECT * FROM opportunities WHERE client_id = ? AND workspace_id = ? AND status <> 'superseded' ORDER BY confidence DESC, title",
     )
     .bind(clientId, t.workspaceId)
     .all<OpportunityRow>();
@@ -364,7 +367,7 @@ export async function listOpportunitiesByClient(
 ): Promise<Map<string, Opportunity[]>> {
   const rows = await t.db
     .prepare(
-      "SELECT * FROM opportunities WHERE workspace_id = ? ORDER BY client_id, confidence DESC, title",
+      "SELECT * FROM opportunities WHERE workspace_id = ? AND status <> 'superseded' ORDER BY client_id, confidence DESC, title",
     )
     .bind(t.workspaceId)
     .all<OpportunityRow>();
@@ -379,7 +382,7 @@ export async function listOpportunitiesByClient(
 
 export async function getOpportunity(t: TenantScope, id: string): Promise<Opportunity | null> {
   const row = await t.db
-    .prepare("SELECT * FROM opportunities WHERE id = ? AND workspace_id = ?")
+    .prepare("SELECT * FROM opportunities WHERE id = ? AND workspace_id = ? AND status <> 'superseded'")
     .bind(id, t.workspaceId)
     .first<OpportunityRow>();
   return row ? toOpportunity(row) : null;
@@ -390,14 +393,16 @@ async function upsertOpportunity(t: TenantScope, opp: Opportunity): Promise<void
   await t.db
     .prepare(
       `INSERT INTO opportunities (
-         id, workspace_id, dedupe_key, client_id, rule_id, title, detected, evidence_refs, rationale,
+         id, workspace_id, dedupe_key, client_id, rule_id, title, detected, evidence_refs, suppressed_evidence_refs, rationale,
          suggested_service_id, suggested_scope, price_min, price_max, confidence,
          billable_status, status, snooze_until, proposal_md, verification,
          conversion_defect, updated_at
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(client_id, dedupe_key) DO UPDATE SET
          title = excluded.title, detected = excluded.detected,
-         evidence_refs = excluded.evidence_refs, rationale = excluded.rationale,
+         evidence_refs = excluded.evidence_refs,
+         suppressed_evidence_refs = excluded.suppressed_evidence_refs,
+         rationale = excluded.rationale,
          suggested_service_id = excluded.suggested_service_id,
          suggested_scope = excluded.suggested_scope,
          price_min = excluded.price_min, price_max = excluded.price_max,
@@ -405,7 +410,7 @@ async function upsertOpportunity(t: TenantScope, opp: Opportunity): Promise<void
          status = excluded.status, snooze_until = excluded.snooze_until,
          proposal_md = excluded.proposal_md, verification = excluded.verification,
          conversion_defect = excluded.conversion_defect, updated_at = excluded.updated_at
-       WHERE opportunities.workspace_id = ?`,
+       WHERE opportunities.workspace_id = ? AND opportunities.status <> 'superseded'`,
     )
     .bind(
       o.id,
@@ -416,6 +421,7 @@ async function upsertOpportunity(t: TenantScope, opp: Opportunity): Promise<void
       o.title,
       o.detected,
       JSON.stringify(o.evidenceRefs),
+      JSON.stringify(o.suppressedEvidenceRefs),
       o.rationale,
       o.suggestedServiceId,
       JSON.stringify(o.suggestedScope),
@@ -461,9 +467,13 @@ export async function setOpportunityStatus(
 ): Promise<boolean> {
   const r = await t.db
     .prepare(
-      "UPDATE opportunities SET status = ?, snooze_until = ?, updated_at = ? WHERE id = ? AND workspace_id = ?",
+      `UPDATE opportunities
+       SET status = ?, snooze_until = ?,
+           suppressed_evidence_refs = CASE WHEN ? = 'new' THEN '[]' ELSE suppressed_evidence_refs END,
+           updated_at = ?
+       WHERE id = ? AND workspace_id = ? AND status <> 'superseded'`,
     )
-    .bind(status, snoozeUntil ?? null, nowIso(), id, t.workspaceId)
+    .bind(status, snoozeUntil ?? null, status, nowIso(), id, t.workspaceId)
     .run();
   return r.rowsAffected > 0;
 }
@@ -489,6 +499,7 @@ export async function setOpportunityProposal(
       `UPDATE opportunities SET proposal_md = ?, status = 'proposal_prepared', updated_at = ?
        WHERE id = ? AND workspace_id = ?
          AND billable_status = 'billable'
+         AND status <> 'superseded'
          AND (
            status IN ('new', 'proposal_prepared')
            OR (status = 'snoozed' AND snooze_until IS NOT NULL AND snooze_until <= ?)
@@ -507,7 +518,7 @@ export async function saveOpportunityProposalText(
 ): Promise<boolean> {
   const r = await t.db
     .prepare(
-      "UPDATE opportunities SET proposal_md = ?, updated_at = ? WHERE id = ? AND workspace_id = ?",
+      "UPDATE opportunities SET proposal_md = ?, updated_at = ? WHERE id = ? AND workspace_id = ? AND status <> 'superseded'",
     )
     .bind(proposalMd, nowIso(), id, t.workspaceId)
     .run();

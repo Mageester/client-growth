@@ -20,6 +20,7 @@ function opp(over: Partial<Opportunity> = {}): Opportunity {
     title: "No page for X",
     detected: "detected",
     evidenceRefs: [],
+    suppressedEvidenceRefs: [],
     rationale: "why",
     suggestedServiceId: "s1",
     suggestedScope: [],
@@ -95,6 +96,36 @@ describe("portfolio totals", () => {
     expect(sumTotals([a, b])).toEqual({ open: 2, closed: 1, priceMin: 400, priceMax: 600 });
   });
 
+  it("prices a canonical technical repair once instead of once per legacy page row", () => {
+    const totals = totalsFor([
+      opp({
+        id: "canonical-alt",
+        dedupeKey: "technical::c1::missing-image-alt",
+        ruleId: "missing-image-alt",
+        priceMin: 150,
+        priceMax: 400,
+      }),
+      opp({
+        id: "legacy-alt-home",
+        dedupeKey: "old-alt-home",
+        ruleId: "missing-image-alt",
+        priceMin: 150,
+        priceMax: 400,
+        status: "superseded",
+      }),
+      opp({
+        id: "legacy-alt-about",
+        dedupeKey: "old-alt-about",
+        ruleId: "missing-image-alt",
+        priceMin: 150,
+        priceMax: 400,
+        status: "superseded",
+      }),
+    ]);
+
+    expect(totals).toEqual({ open: 1, closed: 2, priceMin: 150, priceMax: 400 });
+  });
+
   it("reports zeros for an empty client rather than NaN", () => {
     expect(totalsFor([])).toEqual({ open: 0, closed: 0, priceMin: 0, priceMax: 0 });
   });
@@ -132,6 +163,7 @@ describe("status vocabulary", () => {
     expect(statusBadge(opp({ status: "proposal_prepared" })).label).toBe("Proposal ready");
     expect(statusBadge(opp({ status: "dismissed" })).label).toBe("Dismissed");
     expect(statusBadge(opp({ status: "snoozed" })).label).toBe("Snoozed");
+    expect(statusBadge(opp({ status: "superseded" })).label).toBe("Superseded");
   });
 });
 
@@ -141,6 +173,7 @@ describe("next action", () => {
     expect(nextAction(opp({ status: "proposal_prepared" }))).toMatch(/send the draft/i);
     expect(nextAction(opp({ status: "dismissed" }))).toMatch(/reopen/i);
     expect(nextAction(opp({ status: "snoozed" }))).toMatch(/snooze ends/i);
+    expect(nextAction(opp({ status: "superseded" }))).toMatch(/canonical site-level finding/i);
     expect(nextAction(opp({ billableStatus: "already_covered" }))).toMatch(/contract/i);
   });
 });

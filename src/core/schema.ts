@@ -245,6 +245,12 @@ export const CandidateSchema = z.object({
   detected: z.string().min(1),
   /** URLs / nav labels that justify the detection. */
   evidenceRefs: z.array(z.string()).default([]),
+  /**
+   * Evidence from legacy page-level findings the agency dismissed. Technical
+   * aggregation keeps it with the canonical row so a re-run cannot turn an old
+   * dismissal into a newly actionable site-level finding.
+   */
+  suppressedEvidenceRefs: z.array(z.string()).optional(),
   /** Deterministic pre-AI signal strength, 0..1. */
   rawConfidence: z.number().min(0).max(1),
   suggestedServiceId: z.string().min(1),
@@ -351,6 +357,12 @@ export const OpportunityStatusSchema = z.enum([
   "already_covered",
   "snoozed",
   /**
+   * Retained for audit after a page-level technical row has been folded into
+   * its canonical site-level opportunity. Superseded rows are never listed or
+   * actionable, so an old decision cannot re-enter the agency's feed.
+   */
+  "superseded",
+  /**
    * The client fixed it. Set only by a re-analysis that demonstrably re-checked
    * this finding and no longer sees it — never by a run that could not look.
    * Distinct from "dismissed", which is the agency deciding not to sell it.
@@ -361,13 +373,18 @@ export type OpportunityStatus = z.infer<typeof OpportunityStatusSchema>;
 
 export const OpportunitySchema = z.object({
   id: z.string().min(1),
-  /** Stable key = hash(clientId, ruleId, subject); re-runs reconcile against this. */
+  /**
+   * Stable identity used for reconciliation. Technical rows use
+   * `technical::<clientId>::<ruleId>`; other rules retain their subject hash.
+   */
   dedupeKey: z.string().min(1),
   clientId: z.string().min(1),
   ruleId: RuleIdSchema,
   title: z.string().min(1),
   detected: z.string().min(1),
   evidenceRefs: z.array(z.string()).default([]),
+  /** Evidence excluded after the agency dismissed legacy page-level work. */
+  suppressedEvidenceRefs: z.array(z.string()).default([]),
   rationale: z.string().min(1),
   suggestedServiceId: z.string().min(1),
   suggestedScope: z.array(z.string()).default([]),

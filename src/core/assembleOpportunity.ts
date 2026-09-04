@@ -74,6 +74,7 @@ export function assembleOpportunity(input: AssembleInput): Opportunity {
     title: titleFor(candidate),
     detected: candidate.detected,
     evidenceRefs: candidate.evidenceRefs,
+    suppressedEvidenceRefs: candidate.suppressedEvidenceRefs ?? [],
     rationale: evaluation.rationale,
     suggestedServiceId: service.id,
     suggestedScope: evaluation.suggestedScope,
@@ -113,6 +114,7 @@ export function assembleCoveredOpportunity(input: AssembleCoveredInput): Opportu
     title: titleFor(candidate),
     detected: candidate.detected,
     evidenceRefs: candidate.evidenceRefs,
+    suppressedEvidenceRefs: candidate.suppressedEvidenceRefs ?? prior?.suppressedEvidenceRefs ?? [],
     rationale:
       "The agency service this maps to is already covered by the client's " +
       "current contract, so it is not surfaced as a billable upsell.",

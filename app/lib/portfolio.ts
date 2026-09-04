@@ -122,6 +122,7 @@ export function statusBadge(opp: Opportunity, now = new Date()): StatusBadge {
   }
   if (isSnoozeExpired(opp, now)) return { label: "Open", tone: "accent" };
   if (opp.status === "resolved") return { label: "Fixed by the client", tone: "pos" };
+  if (opp.status === "superseded") return { label: "Superseded", tone: "quiet" };
   if (opp.status === "dismissed") return { label: "Dismissed", tone: "quiet" };
   if (opp.status === "snoozed") return { label: "Snoozed", tone: "quiet" };
   if (opp.status === "proposal_prepared") return { label: "Proposal ready", tone: "pos" };
@@ -133,6 +134,9 @@ export function nextAction(opp: Opportunity, now = new Date()): string {
   if (!isOpen(opp, now)) {
     if (opp.status === "resolved") {
       return "No longer on the site — re-analysis confirmed it was fixed";
+    }
+    if (opp.status === "superseded") {
+      return "Superseded by the canonical site-level finding";
     }
     if (opp.status === "dismissed") return "Reopen if this becomes relevant again";
     if (opp.status === "snoozed") return "Returns to the feed when the snooze ends";

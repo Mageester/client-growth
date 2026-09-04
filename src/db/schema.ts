@@ -1,7 +1,7 @@
 /**
  * Canonical **application** schema (tenant + workspace tables). Applied verbatim
  * by the node:sqlite adapter in tests and by the local seed. The migration files
- * (0001..0007) must converge on this exact shape — test/db.schema-parity.test.ts
+ * (0001..0013) must converge on this exact shape — test/db.schema-parity.test.ts
  * compares table columns AND foreign keys.
  *
  * The Better Auth tables (user / session / account / verification / rateLimit)
@@ -125,6 +125,7 @@ CREATE TABLE IF NOT EXISTS opportunities (
   title TEXT NOT NULL,
   detected TEXT NOT NULL,
   evidence_refs TEXT NOT NULL DEFAULT '[]',
+  suppressed_evidence_refs TEXT NOT NULL DEFAULT '[]',
   rationale TEXT NOT NULL,
   suggested_service_id TEXT NOT NULL,
   suggested_scope TEXT NOT NULL DEFAULT '[]',
