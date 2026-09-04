@@ -161,7 +161,7 @@ describe("settings team management", () => {
       request: formRequest({ intent: "revoke-invitation", invitationId: invitation.id }),
       context: ctx,
     } as never);
-    expect(revoked).toEqual({ ok: true });
+    expect(revoked).toEqual({ ok: true, invitationRevoked: true });
 
     asUser("member", "member@example.com");
     expect(

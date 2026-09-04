@@ -119,7 +119,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     if (!invitationId || !(await revokeWorkspaceInvitation(t.db, t.workspace.id, invitationId))) {
       return { error: "That invitation is no longer pending." };
     }
-    return { ok: true };
+    return { ok: true, invitationRevoked: true };
   }
 
   const name = String(form.get("workspaceName") ?? "").trim();
@@ -152,7 +152,11 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
         </div>
       </div>
 
-      {actionData && "ok" in actionData && actionData.ok && (
+      {actionData &&
+        "ok" in actionData &&
+        actionData.ok &&
+        !("invitationLink" in actionData) &&
+        !("invitationRevoked" in actionData) && (
         <div className="notice ok" role="status">
           <Icon name="check" size={15} />
           <span>Workspace saved.</span>
