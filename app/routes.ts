@@ -28,6 +28,7 @@ export default [
   route("opportunities", "routes/opportunities._index.tsx"),
   route("opportunities/:id", "routes/opportunities.$id.tsx"),
   route("clients", "routes/clients._index.tsx"),
+  route("clients/import", "routes/clients.import.tsx"),
   route("clients/:id", "routes/clients.$id.tsx"),
   route("services", "routes/services._index.tsx"),
   route("settings", "routes/settings.tsx"),

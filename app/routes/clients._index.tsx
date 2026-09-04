@@ -156,14 +156,18 @@ export default function ClientsIndex({ loaderData, actionData }: Route.Component
             )}
           </p>
         </div>
-        {clients.length > 0 && (
-          <div className="pagehead-actions">
+        <div className="pagehead-actions">
+          <Link className="btn btn-ghost" to="/clients/import">
+            <Icon name="document" size={15} />
+            Import clients
+          </Link>
+          {clients.length > 0 && (
             <button className="btn btn-primary" type="button" onClick={() => setAddOpen(true)}>
               <Icon name="plus" size={15} />
               Add client
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {actionData?.ok && (

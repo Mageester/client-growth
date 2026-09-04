@@ -1232,6 +1232,20 @@ textarea:hover {
   min-height: 100vh;
 }
 
+/* The import form uses sections instead of directory records; keep their
+   content aligned with the directory pagehead while retaining full width for
+   the surrounding route surface. */
+.clients-import > .section {
+  padding-right: 40px;
+  padding-left: 40px;
+}
+
+.clients-import > .section .records,
+.clients-import > .section .record {
+  margin-right: 0;
+  margin-left: 0;
+}
+
 .directory-page .pagehead {
   align-items: center;
   margin: 0;
@@ -1728,6 +1742,11 @@ a.record:hover .record-name {
   .directory-page > .empty {
     width: min(calc(100% - 40px), 1080px);
   }
+
+  .clients-import > .section {
+    padding-right: 24px;
+    padding-left: 24px;
+  }
 }
 
 @media (max-width: 650px) {
@@ -1822,6 +1841,11 @@ a.record:hover .record-name {
 
   .directory-page .pagehead {
     align-items: flex-start;
+  }
+
+  .clients-import > .section {
+    padding-right: 16px;
+    padding-left: 16px;
   }
 
   .directory-page > .notice,
