@@ -9,6 +9,7 @@ import * as repo from "@/db/repositories";
 import { createWorkspaceForOwner } from "@/db/workspaces";
 import { SCHEMA_SQL } from "@/db/schema";
 import { ClientSchema, OpportunitySchema, ServiceSchema } from "@/core/schema";
+import { suggestServiceTags } from "@/core/serviceTagSuggestions";
 import { __setSessionResolver } from "../app/lib/session.server";
 import { d1LikeOver } from "./helpers/testAuth";
 
@@ -103,6 +104,33 @@ describe("service catalog", () => {
     expect(service!.name).toBe("Service Landing Page");
     expect(service!.tags).toEqual(["landing-page"]);
     expect(service!.active).toBe(true);
+  });
+
+  it("keeps text suggestions advisory until a person submits an explicit match", async () => {
+    const proposal = suggestServiceTags({
+      name: "Page title repair",
+      description: "Fix missing HTML title tags.",
+    });
+    expect(proposal.map((suggestion) => suggestion.tag)).toEqual(["missing-title"]);
+
+    await saveService({
+      name: "Page title repair",
+      priceMin: "150",
+      priceMax: "400",
+      description: "Fix missing HTML title tags.",
+    });
+    const [service] = await repo.listServices(scope);
+    expect(service!.tags).toEqual([]);
+
+    await saveService({
+      id: service!.id,
+      name: service!.name,
+      priceMin: "150",
+      priceMax: "400",
+      description: service!.description,
+      matches: ["missing-title"],
+    });
+    expect((await repo.getService(scope, service!.id))!.tags).toEqual(["missing-title"]);
   });
 
   it("rejects an invalid price range without writing anything", async () => {

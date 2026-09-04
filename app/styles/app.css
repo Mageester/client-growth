@@ -1081,6 +1081,41 @@ input[type="checkbox"] {
   margin: 0.6rem 0 0;
 }
 
+/* Service mappings are proposed in the open; the complete rule vocabulary is
+   available on demand so the catalog remains readable for first-time users. */
+.service-tag-proposal {
+  align-items: flex-start;
+  margin-top: 0.8rem;
+}
+
+.service-tag-proposal > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.service-tag-proposal p {
+  margin: 0.25rem 0 0;
+}
+
+.service-tag-overrides {
+  margin-top: 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: 0.7rem 0.8rem;
+}
+
+.service-tag-overrides summary {
+  cursor: pointer;
+  color: var(--ink-2);
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.service-tag-overrides[open] summary {
+  margin-bottom: 0.7rem;
+}
+
 /* Suggested services: a confirmation list, not a result. It is deliberately
    quiet — nothing here has been applied, and the panel is collapsed until the
    agency asks to see it. */

@@ -3,6 +3,10 @@ import { Form, useNavigation } from "react-router";
 
 import type { Service } from "@/core/schema";
 import { RULE_SERVICE_LINKS } from "@/core/rules/registry";
+import {
+  suggestServiceTags,
+  updateServiceTagSelection,
+} from "@/core/serviceTagSuggestions";
 import { ServiceSchema } from "@/core/schema";
 import * as repo from "@/db/repositories";
 import {
@@ -248,6 +252,7 @@ export default function ServicesIndex({ loaderData, actionData }: Route.Componen
       >
         {editing !== null && (
           <ServiceForm
+            key={editing === "new" ? "new" : editing.id}
             service={editing === "new" ? undefined : editing}
             busy={busy}
             onCancel={() => setEditing(null)}
@@ -334,6 +339,31 @@ function ServiceForm({
   onCancel: () => void;
 }) {
   const prefix = service ? service.id.replace(/[^a-z0-9_-]/gi, "-") : "new-service";
+  const [name, setName] = useState(service?.name ?? "");
+  const [description, setDescription] = useState(service?.description ?? "");
+  const [manualMatches, setManualMatches] = useState(
+    Boolean(service && matchesOf(service).length > 0),
+  );
+  const [selectedMatches, setSelectedMatches] = useState<string[]>(() =>
+    service ? matchesOf(service) : [],
+  );
+  const suggestions = suggestServiceTags({ name, description });
+  const proposedMatches = suggestions.map((suggestion) => suggestion.tag);
+  const effectiveMatches = manualMatches ? selectedMatches : proposedMatches;
+
+  const toggleMatch = (tag: string, checked: boolean) => {
+    setManualMatches(true);
+    setSelectedMatches(
+      updateServiceTagSelection({
+        selectedTags: selectedMatches,
+        proposedTags: proposedMatches,
+        manual: manualMatches,
+        tag,
+        checked,
+      }),
+    );
+  };
+
   return (
     <Form method="post">
       <input type="hidden" name="intent" value="save" />
@@ -344,7 +374,8 @@ function ServiceForm({
           id={prefix + "-name"}
           name="name"
           type="text"
-          defaultValue={service?.name}
+          value={name}
+          onChange={(event) => setName(event.target.value)}
           placeholder="Service Landing Page"
           required
           autoComplete="off"
@@ -384,31 +415,62 @@ function ServiceForm({
           id={prefix + "-description"}
           name="description"
           rows={4}
-          defaultValue={service?.description}
+          value={description}
+          onChange={(event) => setDescription(event.target.value)}
           placeholder="A dedicated, conversion-focused page for one service line: copy, on-page SEO, and a lead-capture call to action."
         />
         <div className="field-hint">This wording is reused verbatim in proposal drafts.</div>
       </div>
-      <fieldset className="field fieldset">
-        <legend>Offer this when a site shows</legend>
-        {MATCHES.map((match) => (
-          <label className="choice" key={match.tag}>
-            <input
-              type="checkbox"
-              name="matches"
-              value={match.tag}
-              defaultChecked={service ? service.tags.includes(match.tag) : false}
-            />
-            <span className="choice-body">
-              <span className="choice-label">{match.label}</span>
-              <span className="choice-hint">{match.hint}</span>
+      {effectiveMatches.length > 0 && suggestions.length > 0 ? (
+        <div className="notice service-tag-proposal" role="status">
+          <Icon name="target" size={15} />
+          <div>
+            <strong>Suggested mapping</strong>
+            <span>
+              {suggestions.map((suggestion) => suggestion.label).join(" · ")}
             </span>
-          </label>
-        ))}
-        <div className="field-hint">
-          A service connected to nothing is never matched to a finding.
+            <p className="faint">
+              {service && matchesOf(service).length > 0
+                ? "Your saved matches stay selected. These text matches are suggestions only; open the override to change them."
+                : "Review these text matches before saving. Open the override if you want to change them."}
+            </p>
+          </div>
         </div>
-      </fieldset>
+      ) : (
+        <div className="notice warn service-tag-proposal" role="status">
+          <Icon name="alert" size={15} />
+          <span>
+            {suggestions.length > 0
+              ? "No service mapping is selected. Review the override before saving; without a match, this service will not be priced into findings."
+              : "No clear website gap matches this service name or description. Review the override before saving; without a match, this service will not be priced into findings."}
+          </span>
+        </div>
+      )}
+      <details className="field service-tag-overrides">
+        <summary>{service ? "Change the matches" : "Override the proposed matches"}</summary>
+        <fieldset className="fieldset">
+          <legend>Offer this when a site shows</legend>
+          {MATCHES.map((match) => (
+            <label className="choice" key={match.tag}>
+              <input
+                type="checkbox"
+                name="matches"
+                value={match.tag}
+                checked={effectiveMatches.includes(match.tag)}
+                onChange={(event) => toggleMatch(match.tag, event.target.checked)}
+              />
+              <span className="choice-body">
+                <span className="choice-label">{match.label}</span>
+                <span className="choice-hint">{match.hint}</span>
+              </span>
+            </label>
+          ))}
+          <div className="field-hint">
+            A service connected to nothing is never matched to a finding. Saving is explicit; Orbit
+            will not change these choices after you edit an existing service.
+          </div>
+        </fieldset>
+      </details>
       <div className="form-actions">
         <button type="submit" className="btn btn-primary" disabled={busy}>
           {busy ? "Saving…" : service ? "Save changes" : "Add service"}
