@@ -7,7 +7,11 @@ import * as monitoring from "@/db/monitoring";
 import * as repo from "@/db/repositories";
 import type { SqlDb } from "@/db/sql";
 import type { TenantScope } from "@/db/tenant";
-import { runAnalysis, type RunAnalysisResult } from "./analysis.server";
+import { isAnalysisLimitExceeded } from "@/db/analysisLimits";
+import {
+  runAnalysis,
+  type RunAnalysisResult,
+} from "./analysis.server";
 
 /**
  * The scheduled monitoring tick.
@@ -139,6 +143,32 @@ async function recordFailedRun(
   }
 }
 
+/**
+ * A limit rejection did not start a scan, so it is neither a failed run nor an
+ * inconclusive result. Release the claim and leave this client due when the
+ * typed retry instant arrives. The update also respects a person turning
+ * monitoring off while the admission check was in flight.
+ */
+async function deferAfterAnalysisLimit(
+  t: TenantScope,
+  clientId: string,
+  retryAt: string,
+): Promise<void> {
+  await t.db
+    .prepare(
+      `UPDATE clients SET
+         monitoring_claimed_at = NULL,
+         monitoring_next_due_at = CASE
+           WHEN monitoring_cadence = 'off' THEN NULL
+           WHEN monitoring_next_due_at IS NULL OR monitoring_next_due_at < ? THEN ?
+           ELSE monitoring_next_due_at
+         END
+       WHERE id = ? AND workspace_id = ?`,
+    )
+    .bind(retryAt, retryAt, clientId, t.workspaceId)
+    .run();
+}
+
 export async function runMonitoringTick(
   options: MonitoringTickOptions,
 ): Promise<MonitoringTickResult> {
@@ -148,7 +178,8 @@ export async function runMonitoringTick(
   const budgetMs = options.budgetMs ?? MONITORING_INVOCATION_BUDGET_MS;
   const analyze: AnalyzeForMonitoring =
     options.analyze ??
-    ((t, env, clientId) => runAnalysis(t, env, clientId, { trigger: "scheduled" }));
+    ((t, env, clientId) =>
+      runAnalysis(t, env, clientId, { trigger: "scheduled", now: options.now }));
 
   const result: MonitoringTickResult = {
     startedAt: now.toISOString(),
@@ -210,6 +241,28 @@ export async function runMonitoringTick(
       resolvedCount = run.change.resolvedCount;
       evaluatorCalls = run.stats.aiCalls;
     } catch (err) {
+      if (isAnalysisLimitExceeded(err)) {
+        // Admission limits are expected control flow. No crawler/evaluator ran,
+        // so do not write the failure-shaped analysis run used for provider or
+        // persistence errors. The client is simply deferred until retryAt.
+        try {
+          await deferAfterAnalysisLimit(t, candidate.clientId, err.retryAt);
+        } catch (deferErr) {
+          console.error(
+            `[monitoring] could not defer limited client ${candidate.clientId}: ${describeError(deferErr)}`,
+          );
+        }
+        result.skipped++;
+        result.clients.push({
+          clientId: candidate.clientId,
+          workspaceId: candidate.workspaceId,
+          outcome: "skipped",
+          newCount: 0,
+          resolvedCount: 0,
+          evaluatorCalls: 0,
+        });
+        continue;
+      }
       const detail = describeError(err);
       console.error(`[monitoring] scan failed for ${candidate.clientId}: ${detail}`);
       await recordFailedRun(t, candidate.clientId, { startedAt, detail });

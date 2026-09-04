@@ -18,6 +18,9 @@ import * as clientDetail from "../app/routes/clients.$id";
 
 const migrationsDir = join(dirname(fileURLToPath(import.meta.url)), "..", "migrations");
 
+const FIRST_RUN_AT = new Date("2026-09-04T12:00:00.000Z");
+const SECOND_RUN_AT = new Date("2026-09-04T12:06:00.000Z");
+
 let raw: Database.Database;
 let scope: { db: never; workspaceId: string };
 let otherScope: { db: never; workspaceId: string };
@@ -190,14 +193,14 @@ describe("every analysis persists a truthful outcome", () => {
 
   it("keeps a history so an earlier clean run is not overwritten by a later failure", async () => {
     vi.stubGlobal("fetch", siteFetch());
-    await runAnalysis(scope, env, "cli_a");
+    await runAnalysis(scope, env, "cli_a", { now: FIRST_RUN_AT });
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => {
         throw new TypeError("fetch failed");
       }) as unknown as typeof fetch,
     );
-    await runAnalysis(scope, env, "cli_a");
+    await runAnalysis(scope, env, "cli_a", { now: SECOND_RUN_AT });
 
     const runs = await repo.listAnalysisRuns(scope, "cli_a", 10);
     expect(runs).toHaveLength(2);
@@ -207,8 +210,8 @@ describe("every analysis persists a truthful outcome", () => {
 
   it("reports the newest run per client, not an arbitrary row", async () => {
     vi.stubGlobal("fetch", siteFetch());
-    await runAnalysis(scope, env, "cli_a");
-    await runAnalysis(scope, env, "cli_a");
+    await runAnalysis(scope, env, "cli_a", { now: FIRST_RUN_AT });
+    await runAnalysis(scope, env, "cli_a", { now: SECOND_RUN_AT });
 
     const latest = await repo.getLatestAnalysisRun(scope, "cli_a");
     const byClient = await repo.latestAnalysisRunByClient(scope);

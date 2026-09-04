@@ -26,6 +26,8 @@ import {
  */
 
 const NOW = new Date("2026-09-02T12:00:00.000Z");
+const AFTER_COOLDOWN = new Date("2026-09-02T12:06:00.000Z");
+const AFTER_TWO_COOLDOWNS = new Date("2026-09-02T12:12:00.000Z");
 const ENV = { AI_PROVIDER: "mock", MAX_AI_CALLS_PER_RUN: "10" };
 const BATCH = 5;
 
@@ -47,10 +49,10 @@ const notDue = () => monitored().filter((c) => (c.dueOffsetMs ?? 0) > 0);
 const unmonitored = () => portfolio.clients.filter((c) => c.cadence === "off");
 
 /** Run ticks until the queue drains, the way an hourly cron eventually would. */
-async function drain(limit = BATCH) {
+async function drain(limit = BATCH, now = NOW) {
   const ticks = [];
   for (let i = 0; i < 20; i++) {
-    const tick = await runMonitoringTick({ db: portfolio.db, env: ENV, now: NOW, limit });
+    const tick = await runMonitoringTick({ db: portfolio.db, env: ENV, now, limit });
     ticks.push(tick);
     if (tick.considered === 0) break;
   }
@@ -202,7 +204,7 @@ describe("change detection across repeated scans", () => {
     const afterFirst = await oppsOf(client);
 
     await makeDue(client);
-    await drain();
+    await drain(BATCH, AFTER_COOLDOWN);
 
     const second = (await runsOf(client))[0]!;
     expect(second.newCount).toBe(0);
@@ -222,7 +224,7 @@ describe("change detection across repeated scans", () => {
 
     client.site = "clean"; // the client built the missing page
     await makeDue(client);
-    await drain();
+    await drain(BATCH, AFTER_COOLDOWN);
 
     const run = (await runsOf(client))[0]!;
     expect(run.resolvedCount).toBeGreaterThan(0);
@@ -240,12 +242,12 @@ describe("change detection across repeated scans", () => {
 
     client.site = "clean";
     await makeDue(client);
-    await drain();
+    await drain(BATCH, AFTER_COOLDOWN);
     expect((await oppsOf(client)).every((o) => o.status === "resolved")).toBe(true);
 
     client.site = "gap"; // the page came down again
     await makeDue(client);
-    await drain();
+    await drain(BATCH, AFTER_TWO_COOLDOWNS);
 
     const run = (await runsOf(client))[0]!;
     expect(run.newCount).toBeGreaterThan(0);
@@ -267,7 +269,7 @@ describe("change detection across repeated scans", () => {
 
     client.site = "unreachable";
     await makeDue(client);
-    await drain();
+    await drain(BATCH, AFTER_COOLDOWN);
 
     const run = (await runsOf(client))[0]!;
     expect(run.outcome).toBe("inconclusive");
@@ -281,7 +283,7 @@ describe("change detection across repeated scans", () => {
     const client = gapClient();
     await drain();
     await makeDue(client);
-    await drain();
+    await drain(BATCH, AFTER_COOLDOWN);
 
     const runs = await runsOf(client);
     expect(runs).toHaveLength(2);

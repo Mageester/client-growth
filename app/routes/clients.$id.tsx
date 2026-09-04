@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Form, Link, useNavigation } from "react-router";
 
 import { ClientSchema, type Client } from "@/core/schema";
+import { isAnalysisLimitExceeded } from "@/db/analysisLimits";
 import { assessCatalogCoverage } from "@/core/rules/registry";
 import { assessAnalysisReadiness, type ReadinessState } from "@/core/analysisReadiness";
 import { assessServiceCoverage } from "@/core/absenceVerification";
@@ -275,6 +276,9 @@ export async function action({ params, request, context }: Route.ActionArgs) {
         },
       };
     } catch (err) {
+      if (isAnalysisLimitExceeded(err)) {
+        return { ok: true as const, message: err.message, limited: true as const, retryAt: err.retryAt };
+      }
       const error =
         err instanceof Response
           ? `${err.status} ${err.statusText}`
@@ -438,7 +442,7 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
         </AnalysisBanner>
       )}
       {!analyzing && actionData && actionData.ok && "message" in actionData && actionData.message && (
-        <div className="notice ok" role="status">
+        <div className={"limited" in actionData ? "notice" : "notice ok"} role="status">
           <Icon name="check" size={15} />
           <span>{actionData.message}</span>
         </div>

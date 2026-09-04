@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Form, redirect, useNavigation } from "react-router";
 
 import * as repo from "@/db/repositories";
@@ -15,6 +15,7 @@ import { Icon } from "../components/ui";
 import { d1Db } from "../lib/d1.server";
 import { requireSession } from "../lib/session.server";
 import { collectEvidenceOnly, runAnalysis } from "../lib/analysis.server";
+import { isAnalysisLimitExceeded, type AnalysisLimit } from "@/db/analysisLimits";
 import {
   normalizeDomain,
   offeringWarnings,
@@ -144,7 +145,12 @@ export async function loader({ request, context }: Route.LoaderArgs) {
         return {
           stage: "confirm" as Stage,
           hasWorkspace: true,
-          client: { id: client.id, name: client.name, domain: client.domain },
+          client: {
+            id: client.id,
+            name: client.name,
+            domain: client.domain,
+            offerings: client.offerings,
+          },
           readFailed,
           // What the crawl actually reached. Null means no crawl has ever
           // stored evidence for this client, which is a different sentence from
@@ -224,7 +230,10 @@ export async function action({ request, context }: Route.ActionArgs) {
     try {
       await runAnalysis(scope, env as never, client.id);
       return redirect("/opportunities?client=" + client.id);
-    } catch {
+    } catch (err) {
+      if (isAnalysisLimitExceeded(err)) {
+        return { error: err.reason, limitation: err.limitation };
+      }
       return redirect("/clients/" + client.id + "?firstRun=failed");
     }
   }
@@ -353,13 +362,14 @@ function ReadingSite({ domain }: { domain: string }) {
 
 export default function Onboarding({ loaderData, actionData }: Route.ComponentProps) {
   const error = actionData?.error;
+  const limitation = actionData?.limitation;
   return (
     <main className="detail onboarding">
       <span className="eyebrow">Setup</span>
       {loaderData.stage === "confirm" && loaderData.client ? (
-        <ConfirmStage loaderData={loaderData} error={error} />
+        <ConfirmStage loaderData={loaderData} error={limitation ? undefined : error} limitation={limitation} />
       ) : (
-        <SetupStage hasWorkspace={loaderData.hasWorkspace} error={error} />
+        <SetupStage hasWorkspace={loaderData.hasWorkspace} error={limitation ? undefined : error} />
       )}
     </main>
   );
@@ -371,6 +381,16 @@ function ErrorNotice({ error }: { error?: string }) {
     <div className="notice err" role="alert">
       <Icon name="alert" size={15} />
       <span>{error}</span>
+    </div>
+  );
+}
+
+function LimitNotice({ limitation }: { limitation?: AnalysisLimit }) {
+  if (!limitation) return null;
+  return (
+    <div className="notice" role="status">
+      <Icon name="clock" size={15} />
+      <span>{limitation.reason}</span>
     </div>
   );
 }
@@ -545,9 +565,11 @@ function SetupStage({ hasWorkspace, error }: { hasWorkspace: boolean; error?: st
 function ConfirmStage({
   loaderData,
   error,
+  limitation,
 }: {
   loaderData: Awaited<ReturnType<typeof loader>>;
   error?: string;
+  limitation?: AnalysisLimit;
 }) {
   const navigation = useNavigation();
   // Busy through the redirect too, not just the POST: a submit that ends in a
@@ -559,13 +581,35 @@ function ConfirmStage({
   const { crawl, suggestions, readFailed } = loaderData;
 
   const [checked, setChecked] = useState<Record<string, boolean>>(() =>
-    Object.fromEntries(suggestions.map((s) => [s.label, s.confidence === "high"])),
+    Object.fromEntries([
+      ...(client?.offerings.map((offering) => [offering, true] as const) ?? []),
+      ...suggestions.map((s) => [s.label, s.confidence === "high"] as const),
+    ]),
   );
   const [extra, setExtra] = useState("");
+
+  // A limit rejection happens after the confirmation POST has saved the
+  // offerings. Loader revalidation therefore returns a new client profile and
+  // fewer suggestions (saved offerings are intentionally excluded from
+  // suggestions). Merge the persisted, already-confirmed entries into the
+  // checkbox state so a retry cannot silently lose them or ask the agency to
+  // remember them again.
+  useEffect(() => {
+    if (!client) return;
+    setChecked((previous) => {
+      const next = { ...previous };
+      for (const offering of client.offerings) next[offering] = true;
+      for (const suggestion of suggestions) {
+        if (!(suggestion.label in next)) next[suggestion.label] = suggestion.confidence === "high";
+      }
+      return next;
+    });
+  }, [client, suggestions]);
 
   if (!client) return null;
 
   const confirmed = dedupeOfferings([
+    ...client.offerings.filter((offering) => checked[offering] !== false),
     ...suggestions.filter((s) => checked[s.label]).map((s) => s.label),
     ...parseOfferings(extra),
   ]);
@@ -608,6 +652,7 @@ function ConfirmStage({
       <Steps current={1} />
 
       <ErrorNotice error={error} />
+      <LimitNotice limitation={limitation} />
 
       {unreadable && (
         <div className="notice" role="status">
@@ -633,6 +678,43 @@ function ConfirmStage({
       <Form method="post">
         <input type="hidden" name="intent" value="analyze" />
         <input type="hidden" name="clientId" value={client.id} />
+
+        {client.offerings.length > 0 && (
+          <section className="section">
+            <div className="section-head">
+              <div>
+                <h2 className="title-section">Already confirmed</h2>
+                <p>
+                  These offerings were saved from your previous confirmation. Keep them checked
+                  to include them in the next analysis, or clear one to remove it.
+                </p>
+              </div>
+            </div>
+            <ul className="suggestion-list confirm-list">
+              {client.offerings.map((offering) => (
+                <li key={"confirmed-" + offering}>
+                  <label className="confirm-toggle">
+                    <input
+                      type="checkbox"
+                      name="offering"
+                      value={offering}
+                      checked={checked[offering] !== false}
+                      onChange={(event) =>
+                        setChecked((prev) => ({ ...prev, [offering]: event.target.checked }))
+                      }
+                    />
+                    <span className="confirm-copy">
+                      <span className="suggestion-head">
+                        <span className="suggestion-label">{offering}</span>
+                        <span className="pill faint">Confirmed</span>
+                      </span>
+                    </span>
+                  </label>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         {suggestions.length > 0 && (
           <section className="section">

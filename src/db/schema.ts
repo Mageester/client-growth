@@ -142,4 +142,22 @@ CREATE INDEX IF NOT EXISTS idx_analysis_runs_ws
   ON analysis_runs (workspace_id, client_id, finished_at DESC);
 CREATE INDEX IF NOT EXISTS idx_analysis_runs_trigger
   ON analysis_runs (workspace_id, trigger, finished_at DESC);
+
+/**
+ * Accepted analysis starts. This is deliberately an append-only workspace
+ * ledger: the client id is descriptive and is not a foreign key, so deleting
+ * and recreating a client cannot reset the workspace's daily cap.
+ */
+CREATE TABLE IF NOT EXISTS analysis_limit_reservations (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  workspace_id TEXT NOT NULL REFERENCES workspaces (id) ON DELETE CASCADE,
+  client_id TEXT NOT NULL,
+  reserved_at TEXT NOT NULL,
+  day_utc TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_analysis_limits_client
+  ON analysis_limit_reservations (workspace_id, client_id, reserved_at DESC);
+CREATE INDEX IF NOT EXISTS idx_analysis_limits_day
+  ON analysis_limit_reservations (workspace_id, day_utc);
 `;

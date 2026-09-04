@@ -7,6 +7,10 @@ import { classifyAnalysis, type AnalysisOutcomeResult } from "@/core/analysisOut
 import { analyzeClient, type AnalyzeClientResult } from "@/pipeline/analyzeClient";
 import * as repo from "@/db/repositories";
 import type { RunTrigger } from "@/db/repositories";
+import {
+  requireAnalysisReservation,
+  type AnalysisLimitOptions,
+} from "@/db/analysisLimits";
 import type { MonitoringChange } from "@/core/monitoring";
 import type { TenantScope } from "@/db/tenant";
 
@@ -64,7 +68,7 @@ export interface RunAnalysisResult extends AnalyzeClientResult {
   change: MonitoringChange;
 }
 
-export interface RunAnalysisOptions {
+export interface RunAnalysisOptions extends AnalysisLimitOptions {
   /** Defaults to "manual" — a person pressed Analyze and is waiting. */
   trigger?: RunTrigger;
 }
@@ -88,7 +92,15 @@ export async function runAnalysis(
   const client = await repo.getClient(t, clientId);
   if (!client) throw new Response("Client not found", { status: 404 });
 
-  const startedAt = new Date().toISOString();
+  // Admission is the first stateful step after the tenant/client lookup. It is
+  // deliberately before env parsing, crawling and evaluator construction so an
+  // accepted start is counted even when a later stage throws.
+  const reservation = await requireAnalysisReservation(t, clientId, {
+    now: options.now,
+    cooldownMs: options.cooldownMs,
+    dailyLimit: options.dailyLimit,
+  });
+  const startedAt = reservation.reservedAt;
   const parsed = parseEnv(env);
   const result = await analyzeClient({
     client,
@@ -98,6 +110,7 @@ export async function runAnalysis(
     evidenceProvider: evidenceProviderFor(client, t.workspaceId),
     evaluator: createEvaluator(parsed),
     maxAiCalls: parsed.MAX_AI_CALLS_PER_RUN,
+    now: options.now,
   });
 
   const verdict = classifyAnalysis({

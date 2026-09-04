@@ -6,6 +6,7 @@ import Database from "better-sqlite3";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import * as repo from "@/db/repositories";
+import { reserveAnalysisStart } from "@/db/analysisLimits";
 import { getWorkspaceForUser } from "@/db/workspaces";
 import { SCHEMA_SQL } from "@/db/schema";
 import { __setSessionResolver } from "../app/lib/session.server";
@@ -302,6 +303,39 @@ describe("onboarding stage two: the agency confirms", () => {
 
     // Now, and only now, is a run recorded.
     expect(await repo.getLatestAnalysisRun(t, clientId)).not.toBeNull();
+  });
+
+  it("keeps offerings confirmed before a limit rejection visible on reload", async () => {
+    const { t, clientId } = await reachStageTwo();
+    await reserveAnalysisStart(t, clientId, { now: new Date() });
+
+    const result = (await call(onboarding.action as never, {
+      request: formReq({
+        intent: "analyze",
+        clientId,
+        offering: ["Heat Pump Installation"],
+        moreOfferings: "boiler servicing",
+      }),
+      context: ctx,
+    })) as { error?: string; limitation?: { code: string } };
+
+    expect(result.limitation?.code).toBe("client-cooldown");
+    expect((await repo.getClient(t, clientId))?.offerings).toEqual([
+      "Heat Pump Installation",
+      "boiler servicing",
+    ]);
+
+    const data = (await call(onboarding.loader as never, {
+      request: new Request("http://localhost/onboarding?client=" + clientId),
+      context: ctx,
+    })) as {
+      client: { offerings: string[] };
+      suggestions: Array<{ label: string }>;
+    };
+    expect(data.client.offerings).toEqual(["Heat Pump Installation", "boiler servicing"]);
+    expect(data.suggestions.map((suggestion) => suggestion.label)).not.toContain(
+      "Heat Pump Installation",
+    );
   });
 
   it("will not re-enter onboarding for a client that has been analyzed", async () => {

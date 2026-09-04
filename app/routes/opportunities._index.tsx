@@ -3,6 +3,7 @@ import { Form, Link, useNavigation, useSearchParams } from "react-router";
 
 import type { Opportunity } from "@/core/schema";
 import { changeHeadline, type MonitoringOutcome } from "@/core/monitoring";
+import { isAnalysisLimitExceeded } from "@/db/analysisLimits";
 import * as monitoringRepo from "@/db/monitoring";
 import * as repo from "@/db/repositories";
 import {
@@ -97,6 +98,14 @@ export async function action({ request, context }: Route.ActionArgs) {
       limitation: result.verdict.limitation,
     };
   } catch (err) {
+    if (isAnalysisLimitExceeded(err)) {
+      return {
+        ok: false as const,
+        clientId,
+        error: err.reason,
+        limitation: err.limitation,
+      };
+    }
     const error =
       err instanceof Response
         ? `${err.status} ${err.statusText}`
@@ -257,8 +266,8 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
         />
       )}
       {!analyzingClient && actionData && !actionData.ok && (
-        <div className="notice err" role="alert">
-          <Icon name="alert" size={15} />
+        <div className={"notice" + (actionData.limitation ? "" : " err")} role={actionData.limitation ? "status" : "alert"}>
+          <Icon name={actionData.limitation ? "clock" : "alert"} size={15} />
           <span>{actionData.error}</span>
         </div>
       )}

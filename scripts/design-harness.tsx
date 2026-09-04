@@ -546,6 +546,7 @@ const onboardingClient = {
   id: "client-northwind",
   name: "Northwind Heating",
   domain: "northwindheating.co.uk",
+  offerings: [],
 };
 
 const screens: Record<string, { nav: string; node: ReactNode; bare?: boolean }> = {
