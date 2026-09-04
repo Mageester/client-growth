@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import { generateAuthMigrationSql } from "../scripts/auth/generate-schema";
-import { makeTestAuth, signUp, headers } from "./helpers/testAuth";
+import { headers, makeTestAuth, signUpVerified } from "./helpers/testAuth";
 
 const migrationPath = join(
   dirname(fileURLToPath(import.meta.url)),
@@ -33,7 +33,12 @@ describe("better-auth schema", () => {
   it("Better Auth initializes and runs against the migrated schema (drift fails loudly)", async () => {
     const { auth, raw } = makeTestAuth();
 
-    const { status, cookie } = await signUp(auth, "a@x.example", "correct-horse-battery");
+    const { status, cookie } = await signUpVerified(
+      auth,
+      raw,
+      "a@x.example",
+      "correct-horse-battery",
+    );
     expect(status).toBe(200);
     expect(cookie).toContain("better-auth");
 

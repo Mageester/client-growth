@@ -16,6 +16,9 @@ export interface AuthDeps {
   sendResetPassword?: NonNullable<
     NonNullable<BetterAuthOptions["emailAndPassword"]>["sendResetPassword"]
   >;
+  sendVerificationEmail?: NonNullable<
+    NonNullable<BetterAuthOptions["emailVerification"]>["sendVerificationEmail"]
+  >;
   backgroundTaskHandler?: (promise: Promise<unknown>) => void;
 }
 
@@ -27,12 +30,20 @@ export function buildAuthOptions(deps: AuthDeps): BetterAuthOptions {
     baseURL: deps.baseURL,
     emailAndPassword: {
       enabled: true,
-      requireEmailVerification: false,
+      requireEmailVerification: true,
       minPasswordLength: 8,
       maxPasswordLength: 128,
       resetPasswordTokenExpiresIn: 60 * 60,
       revokeSessionsOnPasswordReset: true,
       ...(deps.sendResetPassword ? { sendResetPassword: deps.sendResetPassword } : {}),
+    },
+    emailVerification: {
+      ...(deps.sendVerificationEmail
+        ? { sendVerificationEmail: deps.sendVerificationEmail }
+        : {}),
+      sendOnSignUp: true,
+      sendOnSignIn: true,
+      expiresIn: 60 * 60,
     },
     // Plain database-backed sessions. Cookie caching intentionally OFF for now.
     session: {

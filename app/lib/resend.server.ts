@@ -3,7 +3,9 @@ import type { BetterAuthOptions } from "better-auth";
 export const RESEND_EMAILS_URL = "https://api.resend.com/emails";
 
 const PASSWORD_RESET_SUBJECT = "Reset your Axiom Orbit password";
+const EMAIL_VERIFICATION_SUBJECT = "Verify your Axiom Orbit email";
 const PASSWORD_RESET_TIMEOUT_MS = 10_000;
+const EMAIL_VERIFICATION_TIMEOUT_MS = 10_000;
 
 export interface ResendEnv {
   RESEND_API_KEY?: string;
@@ -17,6 +19,10 @@ export interface ResendConfig {
 
 export type PasswordResetSender = NonNullable<
   NonNullable<BetterAuthOptions["emailAndPassword"]>["sendResetPassword"]
+>;
+
+export type VerificationEmailSender = NonNullable<
+  NonNullable<BetterAuthOptions["emailVerification"]>["sendVerificationEmail"]
 >;
 
 export function getResendConfig(env: ResendEnv): ResendConfig | null {
@@ -71,3 +77,43 @@ export function createResendPasswordResetSender(
     }
   };
 }
+
+export function createResendVerificationEmailSender(
+  config: ResendConfig,
+  fetcher: typeof fetch = fetch,
+): VerificationEmailSender {
+  return async ({ user, url, token }) => {
+    const body = {
+      from: config.from,
+      to: [user.email],
+      subject: EMAIL_VERIFICATION_SUBJECT,
+      text: [
+        "Please verify your Axiom Orbit email address.",
+        "",
+        `Verify your email: ${url}`,
+        "",
+        "This link expires in 1 hour.",
+        "If you did not create an Axiom Orbit account, you can ignore this email.",
+      ].join("\n"),
+    };
+
+    let response: Response;
+    try {
+      response = await fetcher(RESEND_EMAILS_URL, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${config.apiKey}`,
+          "Content-Type": "application/json",
+          "Idempotency-Key": `email-verification/${token}`,
+        },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(EMAIL_VERIFICATION_TIMEOUT_MS),
+      });
+    } catch {
+      throw new Error("Verification email delivery failed");
+    }
+
+    if (!response.ok) throw new Error("Verification email delivery failed");
+  };
+}
+

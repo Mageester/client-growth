@@ -3,6 +3,7 @@ import { betterAuth } from "better-auth";
 import { buildAuthOptions } from "./authOptions";
 import {
   createResendPasswordResetSender,
+  createResendVerificationEmailSender,
   getResendConfig,
 } from "./resend.server";
 import { waitUntilInCurrentWorker } from "./workerContext.server";
@@ -55,6 +56,9 @@ export function getAuth(env: AuthEnv): AuthInstance {
       baseURL,
       sendResetPassword: resendConfig
         ? createResendPasswordResetSender(resendConfig)
+        : undefined,
+      sendVerificationEmail: resendConfig
+        ? createResendVerificationEmailSender(resendConfig)
         : undefined,
       backgroundTaskHandler: waitUntilInCurrentWorker,
     }),

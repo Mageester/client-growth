@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { PasswordResetSender } from "../app/lib/resend.server";
-import { headers, makeTestAuth, signUp } from "./helpers/testAuth";
+import { headers, makeTestAuth, signUp, signUpVerified } from "./helpers/testAuth";
 
 const RESET_MESSAGE = "If this email exists in our system, check your email for the reset link";
 
@@ -73,8 +73,8 @@ describe("Better Auth password reset", () => {
 
   it("resets the password once, invalidates every old session, and rejects the old password", async () => {
     const { links, sender } = captureResetLinks();
-    const { auth } = makeTestAuth({ sendResetPassword: sender });
-    const first = await signUp(auth, "owner@example.com", "old-correct-password");
+    const { auth, raw } = makeTestAuth({ sendResetPassword: sender });
+    const first = await signUpVerified(auth, raw, "owner@example.com", "old-correct-password");
     const secondSignIn = await auth.api.signInEmail({
       body: { email: "owner@example.com", password: "old-correct-password" },
       asResponse: true,
@@ -119,11 +119,11 @@ describe("Better Auth password reset", () => {
 
   it("rejects an expired token without changing the password", async () => {
     const { links, sender } = captureResetLinks();
-    const { auth } = makeTestAuth({
+    const { auth, raw } = makeTestAuth({
       sendResetPassword: sender,
       resetPasswordTokenExpiresIn: -1,
     });
-    await signUp(auth, "expired@example.com", "old-correct-password");
+    await signUpVerified(auth, raw, "expired@example.com", "old-correct-password");
 
     await auth.api.requestPasswordReset({
       body: {

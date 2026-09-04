@@ -1,13 +1,19 @@
 import { describe, expect, it } from "vitest";
 
 import { createWorkspaceForOwner, getWorkspaceForUser, newWorkspaceId } from "@/db/workspaces";
-import { makeTestAuth, signUp, headers } from "./helpers/testAuth";
+import { headers, makeTestAuth, signUp, signUpVerified } from "./helpers/testAuth";
 
 describe("auth + workspace flow", () => {
   it("signup creates a user; workspace creation is a separate, idempotent step", async () => {
     const { auth, db, raw } = makeTestAuth();
 
-    const { status, cookie } = await signUp(auth, "owner@x.example", "correct-horse-battery", "Owner");
+    const { status, cookie } = await signUpVerified(
+      auth,
+      raw,
+      "owner@x.example",
+      "correct-horse-battery",
+      "Owner",
+    );
     expect(status).toBe(200);
 
     const session = await auth.api.getSession({ headers: headers(cookie) });
@@ -46,8 +52,8 @@ describe("auth + workspace flow", () => {
   });
 
   it("sign-out invalidates the session", async () => {
-    const { auth } = makeTestAuth();
-    const { cookie } = await signUp(auth, "c@x.example", "correct-horse-battery");
+    const { auth, raw } = makeTestAuth();
+    const { cookie } = await signUpVerified(auth, raw, "c@x.example", "correct-horse-battery");
     expect((await auth.api.getSession({ headers: headers(cookie) }))?.user?.email).toBe("c@x.example");
 
     await auth.api.signOut({ headers: headers(cookie) });

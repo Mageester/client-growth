@@ -6,7 +6,10 @@ import Database from "better-sqlite3";
 import { betterAuth } from "better-auth";
 
 import { buildAuthOptions } from "../../app/lib/authOptions";
-import type { PasswordResetSender } from "../../app/lib/resend.server";
+import type {
+  PasswordResetSender,
+  VerificationEmailSender,
+} from "../../app/lib/resend.server";
 import { SCHEMA_SQL } from "@/db/schema";
 import type { RunResult, SqlDb, SqlStatement, SqlValue } from "@/db/sql";
 
@@ -40,6 +43,7 @@ function sqlDbOver(raw: Database.Database): SqlDb {
  */
 export interface TestAuthOptions {
   sendResetPassword?: PasswordResetSender;
+  sendVerificationEmail?: VerificationEmailSender;
   backgroundTaskHandler?: (promise: Promise<unknown>) => void;
   resetPasswordTokenExpiresIn?: number;
 }
@@ -59,6 +63,7 @@ export function makeTestAuth(options: TestAuthOptions = {}): {
     secret: "test-secret-".padEnd(48, "x"),
     baseURL: "http://localhost:8787",
     sendResetPassword: options.sendResetPassword,
+    sendVerificationEmail: options.sendVerificationEmail,
     backgroundTaskHandler: options.backgroundTaskHandler,
   });
   if (options.resetPasswordTokenExpiresIn !== undefined) {
@@ -78,6 +83,32 @@ export async function signUp(
 ): Promise<{ cookie: string; status: number }> {
   const res = await auth.api.signUpEmail({ body: { email, password, name }, asResponse: true });
   return { cookie: res.headers.get("set-cookie") ?? "", status: res.status };
+}
+
+/**
+ * Explicitly provisions a verified fixture user for tests that exercise an
+ * authenticated or password based flow. Production signup remains subject to
+ * Better Auth's verification gate; this is only deterministic fixture setup.
+ */
+export async function signUpVerified(
+  auth: ReturnType<typeof betterAuth>,
+  raw: Database.Database,
+  email: string,
+  password: string,
+  name = "Test",
+): Promise<{ cookie: string; status: number }> {
+  const signup = await signUp(auth, email, password, name);
+  const updated = raw
+    .prepare('UPDATE "user" SET "emailVerified" = 1 WHERE email = ?')
+    .run(email);
+  if (Number(updated.changes ?? 0) !== 1) {
+    throw new Error(`Verified fixture user was not created for ${email}`);
+  }
+  const signIn = await auth.api.signInEmail({
+    body: { email, password },
+    asResponse: true,
+  });
+  return { cookie: signIn.headers.get("set-cookie") ?? "", status: signup.status };
 }
 
 export function headers(cookie: string): Headers {

@@ -1,7 +1,7 @@
 import { Form, Link, redirect } from "react-router";
 
 import { createWorkspaceForOwner, newWorkspaceId } from "@/db/workspaces";
-import { getAuth } from "../lib/auth.server";
+import { getAuth, getTrustedAuthBaseURL } from "../lib/auth.server";
 import { getSession } from "../lib/session.server";
 import { d1Db } from "../lib/d1.server";
 import { AxiomCredit, BrandLockup, Icon } from "../components/ui";
@@ -29,18 +29,28 @@ export async function action({ request, context }: Route.ActionArgs) {
   let cookie: string | null = null;
   let userId: string;
   try {
+    const callbackURL = new URL(
+      "/login?verified=success",
+      getTrustedAuthBaseURL(context.cloudflare.env as never),
+    ).toString();
     const res = await auth.api.signUpEmail({
-      body: { email, password, name: workspaceName },
+      body: { email, password, name: workspaceName, callbackURL },
+      headers: request.headers,
       asResponse: true,
     });
     cookie = res.headers.get("set-cookie");
-    if (!res.ok || !cookie) {
+    if (!res.ok) {
       return { error: "That email is already in use, or the details were rejected." };
     }
+    // With requireEmailVerification enabled Better Auth intentionally returns
+    // no session cookie. Do not create a workspace from the response body:
+    // duplicate signups use the same generic response shape for privacy.
+    if (!cookie) throw redirect("/login?verify=sent");
     const session = await auth.api.getSession({ headers: new Headers({ cookie }) });
     if (!session?.user) return { error: "Sign-up failed. Please try again." };
     userId = session.user.id;
-  } catch {
+  } catch (error) {
+    if (error instanceof Response) throw error;
     return { error: "That email is already in use, or the details were rejected." };
   }
 

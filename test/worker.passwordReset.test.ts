@@ -106,6 +106,13 @@ describe("Worker password-reset email path", () => {
         },
         asResponse: true,
       });
+      // Password reset coverage needs an authenticated fixture. Mark it
+      // verified explicitly so the signup verification transport is not part
+      // of this test's outbound assertion.
+      raw.prepare('UPDATE "user" SET "emailVerified" = 1 WHERE email = ?').run(
+        "known@example.com",
+      );
+      outbound.mockClear();
 
       const known = await workerBridge.runWithWorkerExecutionContext(
         context,
