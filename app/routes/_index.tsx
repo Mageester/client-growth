@@ -9,7 +9,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const authed = await getSession(request, context);
   if (!authed) return redirect("/login");
   const ws = await getWorkspaceForUser(d1Db(context.cloudflare.env.DB as never), authed.userId);
-  return redirect(ws ? "/opportunities" : "/onboarding");
+  return redirect(ws ? "/changes" : "/onboarding");
 }
 
 export default function Index() {

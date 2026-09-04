@@ -76,6 +76,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 }
 
 const NAV = [
+  { to: "/changes", label: "This week", icon: "refresh" as const },
   { to: "/opportunities", label: "Opportunities", icon: "inbox" as const },
   { to: "/clients", label: "Clients", icon: "users" as const },
   { to: "/services", label: "Services", icon: "briefcase" as const },

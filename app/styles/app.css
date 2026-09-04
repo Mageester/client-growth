@@ -3631,3 +3631,10 @@ a.ev-title:hover {
     scroll-behavior: auto !important;
   }
 }
+/* Weekly changes stay readable as a list on narrow screens. */
+.weekly-list { list-style: none; margin: 0; padding: 0; }
+.weekly-list > li { padding: 16px 0; border-bottom: 1px solid var(--border, #242428); }
+.weekly-list p { margin: 6px 0; overflow-wrap: anywhere; }
+.weekly-row { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; }
+.weekly-row a { overflow-wrap: anywhere; }
+.weekly-row time { color: var(--muted, #9c9ca3); font-size: 12px; }

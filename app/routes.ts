@@ -20,6 +20,7 @@ export default [
   route("internal/monitoring/run", "routes/internal.monitoring.run.tsx"),
 
   // authed + workspace required — each loader/action calls requireTenant itself
+  route("changes", "routes/changes.tsx"),
   route("opportunities", "routes/opportunities._index.tsx"),
   route("opportunities/:id", "routes/opportunities.$id.tsx"),
   route("clients", "routes/clients._index.tsx"),

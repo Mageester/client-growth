@@ -25,6 +25,7 @@ import ServicesIndex from "../app/routes/services._index";
 import OpportunityDetail from "../app/routes/opportunities.$id";
 import ClientDetail from "../app/routes/clients.$id";
 import Onboarding from "../app/routes/onboarding";
+import Changes from "../app/routes/changes";
 import { assessAnalysisReadiness } from "@/core/analysisReadiness";
 import { TOUR_STEPS } from "../app/components/tour";
 import { Icon } from "../app/components/ui";
@@ -551,6 +552,18 @@ const onboardingClient = {
 
 const screens: Record<string, { nav: string; node: ReactNode; bare?: boolean }> = {
   ...corpusScreens(),
+  "weekly-changes": {
+    nav: "This week",
+    node: h(Changes, { loaderData: {
+      since:"2026-08-28T12:00:00.000Z", until:"2026-09-04T12:00:00.000Z",
+      summary:{checks:3,clientsChecked:2,newFindings:2,resolvedFindings:1,inconclusive:1},
+      runs:[
+        {id:3,clientId:"c2",clientName:"Halton Plumbing",finishedAt:"2026-09-04T10:00:00.000Z",outcome:"inconclusive",summary:"This site could not be read well enough to assess.",trigger:"scheduled",newCount:0,resolvedCount:0},
+        {id:2,clientId:"c1",clientName:"Northwind Heating",finishedAt:"2026-09-03T10:00:00.000Z",outcome:"findings",summary:"2 evidence-backed opportunities found.",trigger:"scheduled",newCount:2,resolvedCount:1},
+      ],
+      findings:[{id:"o1",clientId:"c1",clientName:"Northwind Heating",title:"Broken appointment link",status:"resolved"}],
+    }} as never),
+  },
   "onboarding-setup": {
     nav: "Opportunities",
     bare: true,
