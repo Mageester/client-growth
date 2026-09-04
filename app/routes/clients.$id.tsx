@@ -1,13 +1,14 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { Form, Link, useNavigation } from "react-router";
+import { Form, Link, redirect, useNavigation } from "react-router";
 
 import { ClientSchema, type Client } from "@/core/schema";
-import { isAnalysisLimitExceeded } from "@/db/analysisLimits";
 import { assessCatalogCoverage } from "@/core/rules/registry";
 import { assessAnalysisReadiness, type ReadinessState } from "@/core/analysisReadiness";
 import { assessServiceCoverage } from "@/core/absenceVerification";
 import { suggestOfferings, type SuggestedOffering } from "@/core/offeringSuggestions";
+import { deleteClient } from "@/db/deleteClient";
+import { isAnalysisLimitExceeded } from "@/db/analysisLimits";
 import {
   CADENCE_LABEL,
   SELECTABLE_CADENCES,
@@ -133,6 +134,22 @@ export async function action({ params, request, context }: Route.ActionArgs) {
   if (!existing) throw new Response("Client not found", { status: 404 });
   const form = await request.formData();
   const intent = String(form.get("intent") ?? "");
+
+  if (intent === "delete") {
+    const result = await deleteClient(
+      t.scope,
+      existing.id,
+      String(form.get("confirmation") ?? ""),
+    );
+    if (result.status === "confirmation_mismatch") {
+      return {
+        ok: false as const,
+        error: `Type ${existing.name} exactly to confirm deletion.`,
+      };
+    }
+    if (result.status === "not_found") throw new Response("Client not found", { status: 404 });
+    throw redirect("/clients");
+  }
 
   if (intent === "save") {
     const input = {
@@ -310,8 +327,16 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
   const intent = navigation.formData?.get("intent");
   const analyzing = intent === "analyze";
   const saving = intent === "save";
+  const deleting = intent === "delete";
   const busy = navigation.state !== "idle";
   const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteSubmitted, setDeleteSubmitted] = useState(false);
+
+  const closeDeletePanel = () => {
+    setDeleteOpen(false);
+    setDeleteSubmitted(false);
+  };
 
   // A run is worth starting when ANY rule can produce a finding. Blocking it
   // because one rule of several is limited would refuse to look for a broken
@@ -709,6 +734,31 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
         )}
       </section>
 
+      <section className="section" aria-labelledby="delete-client-heading">
+        <div className="section-head">
+          <div>
+            <h2 className="title-section" id="delete-client-heading">
+              Remove client
+            </h2>
+            <p>
+              Permanently remove {client.name}, its findings, site evidence, analysis history, and
+              monitoring schedule.
+            </p>
+          </div>
+          <button
+            className="btn btn-danger"
+            type="button"
+            onClick={() => {
+              setDeleteSubmitted(false);
+              setDeleteOpen(true);
+            }}
+            disabled={busy}
+          >
+            Delete client
+          </button>
+        </div>
+      </section>
+
       <SidePanel
         open={editOpen}
         onClose={() => setEditOpen(false)}
@@ -761,6 +811,48 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
               {saving ? "Saving…" : "Save changes"}
             </button>
             <button type="button" className="btn btn-ghost" onClick={() => setEditOpen(false)}>
+              Cancel
+            </button>
+          </div>
+        </Form>
+      </SidePanel>
+
+      <SidePanel
+        open={deleteOpen}
+        onClose={closeDeletePanel}
+        title={`Delete ${client.name}?`}
+        description="This permanently removes the client and everything recorded for its site."
+      >
+        {deleteSubmitted && actionData && !actionData.ok && (
+          <div className="notice err" role="alert">
+            <Icon name="alert" size={15} />
+            <span>{actionData.error}</span>
+          </div>
+        )}
+        <p className="prose">
+          This removes the findings, crawl evidence, analysis history, and monitoring schedule for
+          {" "}
+          <b>{client.name}</b>. Your agency, service catalog, and other clients stay intact.
+        </p>
+        <Form method="post" onSubmit={() => setDeleteSubmitted(true)}>
+          <input type="hidden" name="intent" value="delete" />
+          <div className="field">
+            <label htmlFor="delete-confirmation">Type {client.name} to confirm</label>
+            <input
+              id="delete-confirmation"
+              name="confirmation"
+              type="text"
+              required
+              autoComplete="off"
+              spellCheck={false}
+            />
+            <div className="field-hint">The name must match exactly.</div>
+          </div>
+          <div className="form-actions">
+            <button type="submit" className="btn btn-danger" disabled={busy}>
+              {deleting ? "Deleting…" : "Delete client permanently"}
+            </button>
+            <button type="button" className="btn btn-ghost" onClick={closeDeletePanel}>
               Cancel
             </button>
           </div>
