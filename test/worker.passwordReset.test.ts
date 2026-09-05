@@ -151,5 +151,9 @@ describe("Worker password-reset email path", () => {
     } finally {
       raw.close();
     }
-  });
+    // Signing a user up runs Better Auth's real scrypt hashing. Alone the test
+    // finishes well inside a second, but the default 5s budget is not enough
+    // when the whole suite runs in parallel on a busy machine — which showed up
+    // as an intermittent failure of a test that has never actually broken.
+  }, 30_000);
 });
