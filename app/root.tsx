@@ -52,6 +52,14 @@ export function links() {
   ];
 }
 
+/**
+ * The public showcase. These render their own shell and their own metadata, so
+ * the app frame, the app's loading bar, and the generic share card all stand
+ * down — a marketing page that inherited them would advertise the product with
+ * the product's own chrome around it.
+ */
+const MARKETING_ROUTES = new Set(["/", "/product"]);
+
 /** React Router's static routes accept trailing slashes and case variations. */
 export function isProposalSharePath(pathname: string): boolean {
   const withoutTrailingSlashes = pathname.replace(/\/+$/, "");
@@ -296,6 +304,7 @@ export function Layout({ children }: { children: ReactNode }) {
   const signedIn = data?.signedIn ?? false;
   const workspaceName = data?.workspaceName ?? null;
   const isProposalShare = isProposalSharePath(location.pathname);
+  const isMarketingRoute = MARKETING_ROUTES.has(location.pathname);
   const showAppNav = signedIn && Boolean(workspaceName) && location.pathname !== "/onboarding";
   const busy = navigation.state === "loading";
 
@@ -313,6 +322,8 @@ export function Layout({ children }: { children: ReactNode }) {
         {!isProposalShare && <>
         <meta property="og:site_name" content="Axiom Orbit" />
         <meta property="og:type" content="website" />
+        </>}
+        {!isProposalShare && !isMarketingRoute && <>
         <meta
           property="og:description"
           content="The client growth platform for agencies."
@@ -331,8 +342,8 @@ export function Layout({ children }: { children: ReactNode }) {
         <a className="skip-link" href="#main-content">
           Skip to content
         </a>
-        {busy && <div className="nav-progress" key={location.key} />}
-        {isProposalShare ? <div id="main-content" className="content public-content">{children}</div> : showAppNav ? (
+        {busy && !isMarketingRoute && <div className="nav-progress" key={location.key} />}
+        {isMarketingRoute ? children : isProposalShare ? <div id="main-content" className="content public-content">{children}</div> : showAppNav ? (
           <div className="app-frame">
             <aside className="app-sidebar">
               <Link className="brand app-brand" to="/opportunities">
