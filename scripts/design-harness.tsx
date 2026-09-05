@@ -27,6 +27,7 @@ import OpportunityDetail from "../app/routes/opportunities.$id";
 import ClientDetail from "../app/routes/clients.$id";
 import Onboarding from "../app/routes/onboarding";
 import Changes from "../app/routes/changes";
+import OpportunitiesIndex from "../app/routes/opportunities._index";
 import Login from "../app/routes/login";
 import Operations from "../app/routes/operations";
 import ProposalShare from "../app/routes/proposal.share";
@@ -61,8 +62,8 @@ const opp = (o: Partial<Opportunity> & { id: string; title: string }): Opportuni
 const clients: Client[] = [
   {
     id: "c1",
-    name: "Northwind Heating",
-    domain: "northwindheating.co.uk",
+    name: "Cambridge Heating",
+    domain: "cambridgeheating.ca",
     offerings: ["Boiler installation", "Emergency repair", "Annual servicing"],
     notes: "",
   },
@@ -107,7 +108,7 @@ const services: Service[] = [
       "Diagnose and repair a broken conversion element so the client stops losing enquiries.",
     priceMin: 600,
     priceMax: 1100,
-    tags: ["conversion"],
+    tags: ["conversion-fix"],
     active: true,
   },
   {
@@ -125,10 +126,10 @@ const services: Service[] = [
 const opportunities: Opportunity[] = [
   opp({
     id: "o1",
-    title: "No page for emergency boiler repair",
-    confidence: 0.88,
-    priceMin: 1200,
-    priceMax: 2400,
+    title: "Water Heater Replacement",
+    confidence: 0.75,
+    priceMin: 900,
+    priceMax: 1800,
   }),
   opp({
     id: "o2",
@@ -190,13 +191,31 @@ function Shell({ active, children }: { active: string; children: ReactNode }) {
       h(
         "a",
         { className: "brand app-brand", href: "#" },
-        h("span", { className: "brand-word" }, "Axiom Orbit"),
+        h(
+          "span",
+          { className: "brand-mark", "aria-hidden": "true" },
+          h("img", {
+            className: "brand-art",
+            src: "/brand/axiom-orbit-icon-chrome-transparent.png",
+            alt: "",
+          }),
+        ),
+        h(
+          "span",
+          { className: "brand-copy" },
+          h("span", { className: "brand-word" }, "Axiom Orbit"),
+          h("small", null, "Client Growth"),
+        ),
       ),
-      h("div", { className: "app-sidebar-label" }, "Revenue workspace"),
       h(
         "nav",
         { className: "app-nav" },
-        ["Opportunities", "Clients", "Services"].map((label) =>
+        [
+          ["Home", "home"],
+          ["Clients", "users"],
+          ["Opportunities", "target"],
+          ["Settings", "settings"],
+        ].map(([label, icon]) =>
           h(
             "a",
             {
@@ -204,7 +223,8 @@ function Shell({ active, children }: { active: string; children: ReactNode }) {
               className: "app-nav-item" + (label === active ? " active" : ""),
               href: "#",
             },
-            label,
+            h(Icon, { name: icon as never, size: 20 }),
+            h("span", null, label),
           ),
         ),
       ),
@@ -215,21 +235,14 @@ function Shell({ active, children }: { active: string; children: ReactNode }) {
         h(
           "button",
           { type: "button", className: "ws-trigger" },
-          h("span", { className: "avatar" }, "AW"),
-          h("span", { className: "ws-name" }, "Axiom Web"),
-        ),
-        h(
-          "div",
-          { className: "menu-pop align-end", role: "menu" },
+          h("span", { className: "avatar" }, "AM"),
           h(
-            "div",
-            { className: "menu-head" },
-            h("strong", null, "Axiom Web"),
-            h("span", null, "aidan.magee2@icloud.com"),
+            "span",
+            { className: "ws-copy" },
+            h("span", { className: "ws-name" }, "Aidan Magee"),
+            h("small", null, "Agency Workspace"),
           ),
-          h("a", { className: "menu-item", href: "#", role: "menuitem" }, "Settings"),
-          h("div", { className: "menu-sep" }),
-          h("button", { className: "menu-item", type: "button", role: "menuitem" }, "Log out"),
+          h(Icon, { name: "chevron-down", size: 14 }),
         ),
       ),
     ),
@@ -237,63 +250,34 @@ function Shell({ active, children }: { active: string; children: ReactNode }) {
   );
 }
 
-const opportunitiesScreen = h(
-  "div",
-  { className: "page" },
-  h(
-    "div",
-    { className: "pagehead" },
-    h(
-      "div",
-      { className: "pagehead-copy" },
-      h("span", { className: "eyebrow" }, "Portfolio"),
-      h("h1", { className: "title-page" }, "Opportunities"),
-    ),
-  ),
-  h(
-    "div",
-    { className: "signal-desk" },
-    h(
-      "section",
-      { className: "signal-main" },
-      h(
-        "div",
-        { className: "signal-toolbar" },
-        h(
-          "div",
-          { className: "feed-head-copy" },
-          h("h2", null, "Everything worth a conversation"),
-          h(
-            "div",
-            { className: "feed-head-meta" },
-            h("span", null, "3 of 4 analyzed · 1 could not be read · ranked by potential value"),
-          ),
-        ),
-      ),
-      h(
-        "div",
-        { className: "signal-list-head", "aria-hidden": "true" },
-        h("span", null, "Opportunity"),
-        h("span", null, "Value"),
-        h("span", null, "Evidence"),
-        h("span", null, "Status"),
-      ),
-      h(
-        "ul",
-        { className: "signal-list" },
-        entries.map((entry) =>
-          h(OpportunitySignalRow, {
-            key: entry.opportunity.id,
-            entry,
-            selected: entry.opportunity.id === entries[0]!.opportunity.id,
-            selectHref: "#",
-          }),
-        ),
-      ),
-    ),
-    h(OpportunityInspector, { entry: entries[0]!, closeHref: "#" }),
-  ),
-);
+const opportunitiesScreen = h(OpportunitiesIndex, {
+  loaderData: {
+    groups: clients.map((client) => ({
+      client,
+      opportunities: opportunities.filter((opportunity) => opportunity.clientId === client.id),
+      totals: totalsFor(opportunities.filter((opportunity) => opportunity.clientId === client.id)),
+      run: runByClient[client.id]
+        ? {
+            ...runByClient[client.id],
+            newCount: 0,
+            resolvedCount: 0,
+            trigger: "manual",
+          }
+        : null,
+      monitoring: { cadence: "off", nextDueAt: null },
+      state: enrichedClients.find((entry) => entry.id === client.id)!.state,
+    })),
+    serviceName: Object.fromEntries(services.map((service) => [service.id, service.name])),
+    monitoring: {
+      monitored: 0,
+      due: 0,
+      unhealthy: 0,
+      newFindings: 0,
+      resolvedFindings: 0,
+      checks: 0,
+    },
+  },
+} as never);
 
 // The tour is a <dialog>, which only paints once script calls showModal(). The
 // harness renders it with the open attribute so its styling can be reviewed.
@@ -579,10 +563,17 @@ const screens: Record<string, { nav: string; node: ReactNode; bare?: boolean; st
       incompleteStarts:1,failedStarts:1,recentErrors:[{id:1,clientName:"Halton Plumbing",finishedAt:"2026-09-04T10:00:00.000Z",outcome:"inconclusive",summary:"This site could not be read well enough to assess.",evaluatorErrors:0}],
     }} as never),
   },
-  "weekly-changes": {
-    nav: "This week",
+  home: {
+    nav: "Home",
     node: h(Changes, { loaderData: {
-      since:"2026-08-28T12:00:00.000Z", until:"2026-09-04T12:00:00.000Z",
+      since:"2026-08-29T12:00:00.000Z", until:"2026-09-05T12:00:00.000Z",
+      firstName:"Aidan",
+      attention:entries.map((entry) => ({
+        client:entry.client,
+        opportunity:entry.opportunity,
+        serviceName:entry.serviceName,
+      })),
+      portfolio:{clients:clients.length,open:3,closed:0,priceMin:2700,priceMax:5300},
       summary:{checks:3,clientsChecked:2,newFindings:2,resolvedFindings:1,inconclusive:1},
       runs:[
         {id:3,clientId:"c2",clientName:"Halton Plumbing",finishedAt:"2026-09-04T10:00:00.000Z",outcome:"inconclusive",summary:"This site could not be read well enough to assess.",trigger:"scheduled",newCount:0,resolvedCount:0},
@@ -643,7 +634,7 @@ const screens: Record<string, { nav: string; node: ReactNode; bare?: boolean; st
     node: h(ClientsIndex, { loaderData: { clients: enrichedClients } } as never),
   },
   services: {
-    nav: "Services",
+    nav: "Settings",
     node: h(ServicesIndex, { loaderData: { services } } as never),
   },
   "opportunity-detail": {
@@ -665,6 +656,7 @@ const screens: Record<string, { nav: string; node: ReactNode; bare?: boolean; st
 const css = [
   readFileSync("app/styles/app.css", "utf8"),
   readFileSync("app/styles/signal-desk.css", "utf8"),
+  readFileSync("app/styles/orbit-approved.css", "utf8"),
 ].join("\n");
 
 const FONT_HREF =
@@ -710,13 +702,16 @@ for (const [name, screen] of Object.entries(screens)) {
     join(outDir, name + ".html"),
     [
       "<!doctype html>",
-      '<html lang="en"><head><meta charset="utf-8">',
+      '<html lang="en" data-theme="dark"><head><meta charset="utf-8">',
       '<meta name="viewport" content="width=device-width,initial-scale=1">',
       '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>',
       '<link rel="stylesheet" href="' + FONT_HREF + '">',
       "<title>" + name + " · design harness</title>",
-      "<style>" + css + "</style></head>",
-      "<body>" + body,
+      "<style>" + css +
+        ".design-harness-viewport{width:1586px;height:992px;overflow:hidden}.design-harness-viewport>.app-frame{width:1586px;height:992px;min-height:992px}.design-harness-viewport .work-surface{min-height:992px}" +
+        "@media (max-width:1585px){.design-harness-viewport,.design-harness-viewport>.app-frame{width:auto;height:auto;min-height:0;overflow:visible}.design-harness-viewport .work-surface{min-height:0}}" +
+        "</style></head>",
+      '<body><div class="design-harness-viewport">' + body + "</div>",
       // A dialog only paints in the top layer once showModal() is called, so the
       // harness opens it the way the app does rather than reviewing the
       // in-flow fallback.

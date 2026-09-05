@@ -80,10 +80,10 @@ export const TOUR_STEPS: TourStep[] = [
     icon: "briefcase",
     title: "Services: your prices, your catalogue",
     body: [
-      "Every finding is priced from a service you sell, and each service says which kind of website gap it answers.",
+      "Every finding is priced from a service you sell, and each service says which kind of website gap it answers. The catalogue lives under Settings.",
       "If nothing in your catalogue answers a given gap, that gap is never raised — the product will not surface work you have no way to deliver or price.",
     ],
-    highlight: "/services",
+    highlight: "/settings",
   },
   {
     icon: "refresh",

@@ -10,15 +10,17 @@ import {
 } from "@/db/proposalShares";
 import { generateProposalDraft } from "@/core/proposal";
 import { buildEvidenceCase } from "../lib/evidence";
-import { isOpen, isSnoozeExpired, nextAction, statusBadge } from "../lib/portfolio";
+import { isOpen, isSnoozeExpired, statusBadge } from "../lib/portfolio";
 import {
   Fact,
   Icon,
+  PageContextMeta,
   formatCurrencyRange,
   formatDate,
   formatRelative,
   pluralize,
 } from "../components/ui";
+import { SectionNav } from "../components/section-nav";
 import { requireTenant } from "../lib/session.server";
 import { getTrustedAuthBaseURL } from "../lib/auth.server";
 import type { Route } from "./+types/opportunities.$id";
@@ -197,17 +199,20 @@ export default function OpportunityDetail({ loaderData, actionData }: Route.Comp
 
   return (
     <div className="detail">
+      <PageContextMeta className="detail-context-meta" />
       <Link
         className="backlink"
         to={client ? "/opportunities?client=" + client.id : "/opportunities"}
       >
         <Icon name="arrow-left" size={14} />
-        Opportunities
+        Back to opportunities
       </Link>
 
       <header className="detail-head">
         <div className="detail-head-row">
           <div className="detail-head-copy">
+            <span className="eyebrow">Opportunity</span>
+            <h1 className="title-lg">{opp.title}</h1>
             <div className="detail-meta detail-meta-top">
               {client ? (
                 <Link className="finding-client" to={"/clients/" + client.id}>
@@ -216,6 +221,8 @@ export default function OpportunityDetail({ loaderData, actionData }: Route.Comp
               ) : (
                 <span>Unknown client</span>
               )}
+              {client && <span className="dot-sep">·</span>}
+              {client && <span className="faint">{client.domain}</span>}
               <span className={"pill " + badge.tone}>{badge.label}</span>
               {lastRunAt && (
                 <>
@@ -224,11 +231,25 @@ export default function OpportunityDetail({ loaderData, actionData }: Route.Comp
                 </>
               )}
             </div>
-            <h1 className="title-lg">{opp.title}</h1>
-            <p className="detail-next">
-              <Icon name="arrow-right" size={13} />
-              {nextAction(opp, now)}
-            </p>
+          </div>
+          <div className="detail-primary-actions">
+            {live && (
+              <Form method="post" className="inline">
+                <input type="hidden" name="intent" value="prepare-proposal" />
+                <button type="submit" className="btn btn-primary" disabled={busy}>
+                  <Icon
+                    name="document"
+                    size={15}
+                    className={pending === "prepare-proposal" ? "spin" : undefined}
+                  />
+                  {pending === "prepare-proposal"
+                    ? "Creating…"
+                    : opp.proposalMd
+                      ? "Regenerate proposal"
+                      : "Create proposal"}
+                </button>
+              </Form>
+            )}
           </div>
         </div>
 
@@ -248,14 +269,19 @@ export default function OpportunityDetail({ loaderData, actionData }: Route.Comp
               <span className="faint">Removed from catalog</span>
             )}
           </Fact>
-          <Fact label="Evidence">
-            {evidence.inspectedCount}{" "}
-            {pluralize(evidence.inspectedCount, "page checked", "pages checked")}
-          </Fact>
           {opp.snoozeUntil && snoozeActive && (
             <Fact label="Returns">{formatDate(opp.snoozeUntil)}</Fact>
           )}
         </dl>
+        <SectionNav
+          label="Opportunity sections"
+          items={[
+            { id: "overview", label: "Overview", icon: "document" },
+            { id: "evidence", label: "Evidence", icon: "image", count: evidence.primary.length + evidence.secondary.length },
+            { id: "recommendations", label: "Recommendations", icon: "briefcase" },
+            { id: "activity", label: "Activity", icon: "clock" },
+          ]}
+        />
       </header>
 
       {actionData?.error && (
@@ -286,20 +312,20 @@ export default function OpportunityDetail({ loaderData, actionData }: Route.Comp
         </div>
       )}
 
-      <section className="section">
-        <h2 className="title-section">The case</h2>
+      <section className="section detail-overview" id="overview">
         <div className="case">
           <div className="case-block">
             <h3 className="subhead">What was found</h3>
             <p className="prose">{opp.detected}</p>
           </div>
           <div className="case-block">
-            <h3 className="subhead">Why it matters to the client</h3>
+            <h3 className="subhead">Why it matters</h3>
             <p className="prose">{opp.rationale}</p>
           </div>
           {opp.suggestedScope.length > 0 && (
-            <div className="case-block">
-              <h3 className="subhead">What the work would be</h3>
+            <div className="case-block recommendation-block" id="recommendations">
+              <h3 className="subhead">Recommended service</h3>
+              {service && <Link className="recommended-service" to="/services"><Icon name="briefcase" size={18} /><span><b>{service.name}</b><small>{service.description}</small></span><Icon name="chevron-right" size={16} /></Link>}
               <ul className="scope-list">
                 {opp.suggestedScope.map((line, index) => (
                   <li key={index}>{line}</li>
@@ -310,7 +336,7 @@ export default function OpportunityDetail({ loaderData, actionData }: Route.Comp
         </div>
       </section>
 
-      <section className="section">
+      <section className="section" id="evidence">
         <div className="section-head">
           <div>
             <h2 className="title-section">Evidence</h2>
@@ -368,7 +394,7 @@ export default function OpportunityDetail({ loaderData, actionData }: Route.Comp
         )}
       </section>
 
-      <section className="section">
+      <section className="section" id="activity">
         <div className="section-head">
           <div>
             <h2 className="title-section">Decide</h2>
@@ -376,23 +402,7 @@ export default function OpportunityDetail({ loaderData, actionData }: Route.Comp
           </div>
         </div>
         <div className="actionbar">
-          {live ? (
-            <Form method="post" className="inline">
-              <input type="hidden" name="intent" value="prepare-proposal" />
-              <button type="submit" className="btn btn-primary" disabled={busy}>
-                <Icon
-                  name="document"
-                  size={14}
-                  className={pending === "prepare-proposal" ? "spin" : undefined}
-                />
-                {pending === "prepare-proposal"
-                  ? "Preparing…"
-                  : opp.proposalMd
-                    ? "Regenerate draft"
-                    : "Prepare proposal"}
-              </button>
-            </Form>
-          ) : (
+          {!live && (
             opp.billableStatus === "billable" && (
               <Form method="post" className="inline">
                 <input type="hidden" name="intent" value="reopen" />

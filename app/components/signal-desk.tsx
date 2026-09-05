@@ -1,9 +1,11 @@
+import { useCallback, useRef, useState } from "react";
 import { Link } from "react-router";
 
 import type { Client, Opportunity } from "@/core/schema";
 import { buildEvidenceCase } from "../lib/evidence";
 import { nextAction, statusBadge } from "../lib/portfolio";
-import { formatCurrencyRange, Icon } from "./ui";
+import { formatCurrencyRange, formatRelative, Icon } from "./ui";
+import { ClientMark, GlyphMark, markForRule } from "./entity-mark";
 
 export interface SignalDeskEntry {
   client: Pick<Client, "id" | "name" | "domain">;
@@ -17,14 +19,73 @@ function confidenceLabel(value: number): string {
   return "Limited";
 }
 
+/**
+ * The opportunity queue.
+ *
+ * One row is always the current one, and the arrow keys move it. That is what
+ * the highlighted row in the approved reference means: not decoration, and not
+ * a stored selection, but the cursor of a work queue you can drive from the
+ * keyboard — Down/Up to move, Enter to open, Home/End for the ends. Only the
+ * current row is tabbable, so the queue is one Tab stop rather than one per
+ * finding.
+ */
+export function OpportunityQueue({
+  entries,
+  hrefFor,
+}: {
+  entries: SignalDeskEntry[];
+  hrefFor: (entry: SignalDeskEntry) => string;
+}) {
+  const [cursor, setCursor] = useState(0);
+  const listRef = useRef<HTMLUListElement>(null);
+
+  const focusRow = useCallback((index: number) => {
+    const rows = listRef.current?.querySelectorAll<HTMLAnchorElement>(".signal-row-select");
+    rows?.[index]?.focus();
+  }, []);
+
+  function onKeyDown(event: React.KeyboardEvent<HTMLUListElement>) {
+    const last = entries.length - 1;
+    let next: number | null = null;
+    if (event.key === "ArrowDown") next = Math.min(cursor + 1, last);
+    else if (event.key === "ArrowUp") next = Math.max(cursor - 1, 0);
+    else if (event.key === "Home") next = 0;
+    else if (event.key === "End") next = last;
+    if (next === null) return;
+    event.preventDefault();
+    setCursor(next);
+    focusRow(next);
+  }
+
+  // The cursor indexes into the list, so a filter or a search that shortens it
+  // must not leave the cursor pointing past the end.
+  const current = Math.min(cursor, Math.max(entries.length - 1, 0));
+
+  return (
+    <ul className="signal-list" ref={listRef} onKeyDown={onKeyDown}>
+      {entries.map((entry, index) => (
+        <OpportunitySignalRow
+          key={entry.opportunity.id}
+          entry={entry}
+          selected={index === current}
+          selectHref={hrefFor(entry)}
+          onFocus={() => setCursor(index)}
+        />
+      ))}
+    </ul>
+  );
+}
+
 export function OpportunitySignalRow({
   entry,
   selected,
   selectHref,
+  onFocus,
 }: {
   entry: SignalDeskEntry;
   selected: boolean;
   selectHref: string;
+  onFocus?: () => void;
 }) {
   const { opportunity, client, serviceName } = entry;
   const badge = statusBadge(opportunity);
@@ -36,26 +97,34 @@ export function OpportunitySignalRow({
         to={selectHref}
         className="signal-row-select"
         aria-current={selected ? "true" : undefined}
+        tabIndex={onFocus ? (selected ? 0 : -1) : undefined}
+        onFocus={onFocus}
       >
         <span className="signal-row-core">
-          <span className="signal-row-title">{opportunity.title}</span>
-          <span className="signal-row-context">
-            <span>{client.name}</span>
-            <span className="dot-sep" aria-hidden="true">
-              ·
+          <GlyphMark {...markForRule(opportunity.ruleId)} size="lg" />
+          <span>
+            <span className="signal-row-title">{opportunity.title}</span>
+            <span className="signal-row-context">
+              <span>{serviceName}</span>
+              {opportunity.priceMax >= 1500 && <small>High value</small>}
             </span>
-            <span>{serviceName}</span>
           </span>
+        </span>
+        <span className="signal-row-client">
+          <ClientMark name={client.name} seed={client.domain} size="sm" />
+          <span className="signal-row-client-name">{client.name}</span>
         </span>
         <span className="signal-row-value">
           <span>{formatCurrencyRange(opportunity.priceMin, opportunity.priceMax)}</span>
-          <small>potential</small>
         </span>
         <span className="signal-row-confidence">
+          <span className={"confidence-dot " + (confidence >= 80 ? "strong" : confidence >= 65 ? "medium" : "low")} />
           <b>{confidence}%</b>
-          <small>{confidenceLabel(opportunity.confidence)} evidence</small>
+          <small className="sr-only">{confidenceLabel(opportunity.confidence)} evidence</small>
         </span>
-        <span className={"signal-status badge " + badge.tone}>{badge.label}</span>
+        <span className="signal-row-age">{formatRelative(opportunity.updatedAt)}</span>
+        <span className={"sr-only signal-status " + badge.tone}>{badge.label}</span>
+        <Icon name="chevron-right" size={17} className="signal-row-chevron" />
       </Link>
     </li>
   );

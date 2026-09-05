@@ -54,7 +54,7 @@ describe("Signal Desk opportunity presentation", () => {
     expect(html).toContain("No page for heat pump installation");
     expect(html).toContain("Blue Peak HVAC");
     expect(html).toContain("Service Landing Page");
-    expect(html).toContain("$900–$1,800");
+    expect(html).toContain("$900 – $1,800");
     expect(html).toContain("86%");
     expect(html).toContain("Open");
     expect(html).toContain('aria-current="true"');

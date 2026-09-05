@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useDeferredValue, useState, type ReactNode } from "react";
 import { Form, Link, useNavigation, useSearchParams } from "react-router";
 
 import type { Opportunity } from "@/core/schema";
@@ -15,17 +15,14 @@ import {
   sumTotals,
   totalsFor,
 } from "../lib/portfolio";
-import {
-  OpportunityInspector,
-  OpportunitySignalRow,
-  type SignalDeskEntry,
-} from "../components/signal-desk";
+import { OpportunityQueue, type SignalDeskEntry } from "../components/signal-desk";
 import {
   AnalysisBanner,
   AnalysisRunning,
   EmptyState,
   Icon,
   Menu,
+  PageContextMeta,
   StateDot,
   formatCompactRange,
   formatDue,
@@ -129,6 +126,8 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
   const { groups, serviceName, monitoring } = loaderData;
   const navigation = useNavigation();
   const [params, setParams] = useSearchParams();
+  const [query, setQuery] = useState("");
+  const deferredQuery = useDeferredValue(query.trim().toLowerCase());
 
   const analyzingId =
     navigation.state === "submitting"
@@ -154,23 +153,27 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
     )
     .sort((a, b) => byPotentialValue(a.opp, b.opp));
 
-  const shown =
+  const filteredByState =
     filter === "all"
       ? [...open, ...closed]
       : filter === "strongest"
         ? open.filter((entry) => entry.opp.confidence >= STRONG_CONFIDENCE)
         : open;
 
+  const shown = deferredQuery
+    ? filteredByState.filter(
+        ({ opp, group }) =>
+          opp.title.toLowerCase().includes(deferredQuery) ||
+          group.client.name.toLowerCase().includes(deferredQuery) ||
+          (serviceName[opp.suggestedServiceId] ?? "").toLowerCase().includes(deferredQuery),
+      )
+    : filteredByState;
+
   const signalEntries: SignalDeskEntry[] = shown.map(({ opp, group }) => ({
     opportunity: opp,
     client: group.client,
     serviceName: serviceName[opp.suggestedServiceId] ?? opp.suggestedServiceId,
   }));
-  const requestedOpportunityId = params.get("opportunity");
-  const requestedEntry =
-    signalEntries.find((entry) => entry.opportunity.id === requestedOpportunityId) ?? null;
-  const activeEntry = requestedEntry ?? signalEntries[0] ?? null;
-
   const totals = sumTotals(scoped.map((group) => group.totals));
   const portfolioTotals = sumTotals(groups.map((group) => group.totals));
   const needsAttention = groups.filter((group) => group.state === "attention").length;
@@ -226,25 +229,93 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
   }
 
   return (
-    <div>
-      <PageHead>
+    <div className="opportunities-page">
+      <PageContextMeta className="opportunities-context-meta" />
+      <PageHead
+        actions={
+          <>
+          <ClientScopeControl
+            groups={groups}
+            selected={selected}
+            portfolioOpen={portfolioTotals.open}
+            needsAttention={needsAttention}
+            hrefFor={(clientId) => withParam("client", clientId)}
+          />
+          {open.length > 0 && (
+            <label className="orbit-select-wrap">
+              <span className="sr-only">Filter findings</span>
+              <select value={filter} onChange={(event) => setFilter(event.target.value as FeedFilter)}>
+                <option value="open">Open ({open.length})</option>
+                <option value="strongest">High confidence</option>
+                <option value="all">All ({open.length + closed.length})</option>
+              </select>
+              <Icon name="chevron-down" size={13} />
+            </label>
+          )}
+          <label className="orbit-search opportunities-search">
+            <Icon name="search" size={17} />
+            <span className="sr-only">Search opportunities</span>
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search opportunities…"
+            />
+          </label>
+          </>
+        }
+      >
         <p className="summary-line">
           <b className="num">{totals.open}</b>
-          <span>
-            open {pluralize(totals.open, "opportunity", "opportunities")}
-            {totals.open > 0 ? " worth" : ""}
-          </span>
+          <span>open {pluralize(totals.open, "opportunity", "opportunities")}</span>
           {totals.open > 0 && (
-            <b className="num">{formatCompactRange(totals.priceMin, totals.priceMax)}</b>
+            <>
+              <span className="dot-sep">·</span>
+              <b className="num">{formatCompactRange(totals.priceMin, totals.priceMax)}</b>
+              <span>potential revenue</span>
+            </>
           )}
-          <span className="dot-sep">·</span>
-          <span>
+          <span className="sr-only">
             {selected
-              ? selected.client.domain
-              : `${groups.length} ${pluralize(groups.length, "client", "clients")} watched`}
+              ? ` for ${selected.client.domain}`
+              : ` across ${groups.length} ${pluralize(groups.length, "client", "clients")}`}
+            {lastRun ? `, last analyzed ${formatRelative(lastRun)}` : ", never analyzed"}
           </span>
-          <span className="dot-sep">·</span>
-          <span>{lastRun ? "last analyzed " + formatRelative(lastRun) : "never analyzed"}</span>
+        </p>
+        <p className="page-context-line">
+          {selected ? (
+            <>
+              <a
+                href={"https://" + selected.client.domain}
+                target="_blank"
+                rel="noreferrer"
+                className="row-tight"
+              >
+                {selected.client.domain}
+                <Icon name="external" size={13} />
+              </a>
+              <span className="dot-sep">·</span>
+              <span>{CLIENT_STATE_LABEL[selected.state]}</span>
+              {selected.run && (
+                <>
+                  <span className="dot-sep">·</span>
+                  <span>{formatRelative(selected.run.finishedAt)}</span>
+                </>
+              )}
+              {selected.monitoring.cadence !== "off" && (
+                <>
+                  <span className="dot-sep">·</span>
+                  <span>next check {formatDue(selected.monitoring.nextDueAt)}</span>
+                </>
+              )}
+            </>
+          ) : (
+            <span>
+              {groups.length - neverAnalyzed} of {groups.length} analyzed
+              {unreadable > 0 ? ` · ${unreadable} could not be read` : ""} · ranked by potential
+              value
+            </span>
+          )}
         </p>
         <MonitoringSummary monitoring={monitoring} />
       </PageHead>
@@ -274,85 +345,6 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
 
       <div className="signal-desk">
         <section aria-label="Opportunities" className="signal-main">
-          <div className="signal-toolbar">
-            <div className="feed-head-copy">
-              <h2>{selected ? selected.client.name : "Everything worth a conversation"}</h2>
-              <div className="feed-head-meta">
-                {selected ? (
-                  <>
-                    <a
-                      href={"https://" + selected.client.domain}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="row-tight"
-                    >
-                      {selected.client.domain}
-                      <Icon name="external" size={12} />
-                    </a>
-                    <span className="dot-sep">·</span>
-                    <span>{CLIENT_STATE_LABEL[selected.state]}</span>
-                    {selected.run && (
-                      <>
-                        <span className="dot-sep">·</span>
-                        <span>{formatRelative(selected.run.finishedAt)}</span>
-                      </>
-                    )}
-                    {selected.monitoring.cadence !== "off" && (
-                      <>
-                        <span className="dot-sep">·</span>
-                        <span>next check {formatDue(selected.monitoring.nextDueAt)}</span>
-                      </>
-                    )}
-                  </>
-                ) : (
-                  <span>
-                    {groups.length - neverAnalyzed} of {groups.length} analyzed
-                    {unreadable > 0 ? ` · ${unreadable} could not be read` : ""} · ranked by
-                    potential value
-                  </span>
-                )}
-              </div>
-            </div>
-            <div className="signal-toolbar-actions">
-              <ClientScopeControl
-                groups={groups}
-                selected={selected}
-                portfolioOpen={portfolioTotals.open}
-                needsAttention={needsAttention}
-                hrefFor={(clientId) => withParam("client", clientId)}
-              />
-              {open.length > 0 && (
-                <div className="segmented" role="group" aria-label="Filter findings">
-                  <button
-                    type="button"
-                    className={filter === "open" ? "on" : undefined}
-                    aria-pressed={filter === "open"}
-                    onClick={() => setFilter("open")}
-                  >
-                    Open
-                  </button>
-                  <button
-                    type="button"
-                    className={filter === "strongest" ? "on" : undefined}
-                    aria-pressed={filter === "strongest"}
-                    onClick={() => setFilter("strongest")}
-                  >
-                    Strongest
-                  </button>
-                  <button
-                    type="button"
-                    className={filter === "all" ? "on" : undefined}
-                    aria-pressed={filter === "all"}
-                    onClick={() => setFilter("all")}
-                  >
-                    All
-                  </button>
-                </div>
-              )}
-              <AnalyzeControl groups={groups} selected={selected} analyzingId={analyzingId} />
-            </div>
-          </div>
-
           {selected?.run && <LastCheck group={selected} />}
 
           {selected?.run?.outcome === "inconclusive" && shown.length > 0 && (
@@ -378,20 +370,18 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
             <>
               <div className="signal-list-head" aria-hidden="true">
                 <span>Opportunity</span>
+                <span>Client</span>
                 <span>Value</span>
-                <span>Evidence</span>
-                <span>Status</span>
+                <span>Confidence</span>
+                <span>Age</span>
+                <span />
               </div>
-              <ul className="signal-list">
-                {signalEntries.map((entry) => (
-                  <OpportunitySignalRow
-                    key={entry.opportunity.id}
-                    entry={entry}
-                    selected={entry.opportunity.id === activeEntry?.opportunity.id}
-                    selectHref={withParam("opportunity", entry.opportunity.id)}
-                  />
-                ))}
-              </ul>
+              <OpportunityQueue
+                entries={signalEntries}
+                hrefFor={(entry) =>
+                  `/opportunities/${encodeURIComponent(entry.opportunity.id)}`
+                }
+              />
             </>
           )}
 
@@ -403,13 +393,6 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
             </button>
           )}
         </section>
-        {activeEntry && (
-          <OpportunityInspector
-            entry={activeEntry}
-            closeHref={withParam("opportunity", null)}
-            openOnMobile={requestedEntry !== null}
-          />
-        )}
       </div>
     </div>
   );
@@ -574,14 +557,15 @@ function LastCheck({ group }: { group: Group }) {
   );
 }
 
-function PageHead({ children }: { children: ReactNode }) {
+function PageHead({ children, actions }: { children: ReactNode; actions?: ReactNode }) {
   return (
     <div className="pagehead">
       <div className="pagehead-copy">
-        <span className="eyebrow">Portfolio</span>
+        <span className="eyebrow">Opportunities</span>
         <h1 className="title-page">Opportunities</h1>
         {children}
       </div>
+      {actions && <div className="pagehead-actions">{actions}</div>}
     </div>
   );
 }
@@ -601,9 +585,11 @@ function AnalyzeControl({
     return (
       <Form method="post">
         <input type="hidden" name="clientId" value={selected.client.id} />
-        <button className="btn btn-primary" type="submit" disabled={busy}>
+        <button className="btn analyze-control" type="submit" disabled={busy}>
           <Icon name="refresh" size={15} className={running ? "spin" : undefined} />
-          {running ? "Reading the site…" : selected.run ? "Re-analyze" : "Analyze site"}
+          <span className="analyze-label">
+            {running ? "Reading the site…" : selected.run ? "Re-analyze" : "Analyze site"}
+          </span>
         </button>
       </Form>
     );
@@ -611,12 +597,12 @@ function AnalyzeControl({
   return (
     <Menu
       align="end"
-      triggerClassName="btn btn-primary"
+      triggerClassName="btn analyze-control"
       triggerLabel="Choose a client to analyze"
       trigger={
         <>
           <Icon name="refresh" size={15} className={busy ? "spin" : undefined} />
-          {busy ? "Reading the site…" : "Analyze"}
+          <span className="analyze-label">{busy ? "Reading the site…" : "Analyze"}</span>
           <Icon name="chevron-down" size={13} />
         </>
       }

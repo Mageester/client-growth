@@ -16,7 +16,14 @@ import {
 
 import "./styles/app.css";
 import "./styles/signal-desk.css";
+import "./styles/orbit-approved.css";
 import "./lib/context";
+import {
+  ThemeContext,
+  THEME_STORAGE_KEY,
+  readStoredTheme,
+  type ThemePreference,
+} from "./lib/theme";
 import { getWorkspaceForUser } from "@/db/workspaces";
 import { AxiomCredit, EmptyState, getInitials, Icon, Menu } from "./components/ui";
 import { ProductTour, useProductTour } from "./components/tour";
@@ -24,15 +31,13 @@ import { d1Db } from "./lib/d1.server";
 import { getSession } from "./lib/session.server";
 import type { Route } from "./+types/root";
 
-export type ThemePreference = "light" | "dark" | "system";
-
-const THEME_STORAGE_KEY = "client-growth-theme";
+export type { ThemePreference };
 
 const EMPTY = {
   signedIn: false,
   workspaceName: null as string | null,
   email: null as string | null,
-  theme: "system" as ThemePreference,
+  theme: "dark" as ThemePreference,
 };
 
 export function links() {
@@ -87,7 +92,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const theme: ThemePreference =
     rawTheme === "light" || rawTheme === "dark" || rawTheme === "system"
       ? rawTheme
-      : "system";
+      : "dark";
   try {
     const authed = await getSession(request, context);
     if (!authed) return { ...EMPTY, theme };
@@ -102,11 +107,10 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 }
 
 const NAV = [
-  { to: "/changes", label: "This week", icon: "refresh" as const },
-  { to: "/opportunities", label: "Opportunities", icon: "inbox" as const },
+  { to: "/changes", label: "Home", icon: "home" as const },
   { to: "/clients", label: "Clients", icon: "users" as const },
-  { to: "/services", label: "Services", icon: "briefcase" as const },
-  { to: "/operations", label: "Check health", icon: "clock" as const },
+  { to: "/opportunities", label: "Opportunities", icon: "target" as const },
+  { to: "/settings", label: "Settings", icon: "settings" as const },
 ];
 
 /**
@@ -136,23 +140,6 @@ function BrandMark() {
 
 function applyTheme(theme: ThemePreference) {
   document.documentElement.dataset.theme = theme;
-}
-
-function readStoredTheme(): ThemePreference {
-  let stored: string | null = null;
-  try {
-    stored = window.localStorage?.getItem(THEME_STORAGE_KEY) ?? null;
-  } catch {
-    // Privacy-focused browser modes may disable storage entirely.
-  }
-  if (!stored) {
-    stored =
-      document.cookie
-        .split("; ")
-        .find((part) => part.startsWith(THEME_STORAGE_KEY + "="))
-        ?.split("=")[1] ?? null;
-  }
-  return stored === "light" || stored === "dark" || stored === "system" ? stored : "system";
 }
 
 function useThemePreference(initialTheme: ThemePreference) {
@@ -260,7 +247,12 @@ function WorkspaceMenu({
       trigger={
         <>
           <span className="avatar">{getInitials(workspaceName)}</span>
-          {!compact && <span className="ws-name">{workspaceName ?? "Set up workspace"}</span>}
+          {!compact && (
+            <span className="ws-copy">
+              <span className="ws-name">{workspaceName ?? "Set up workspace"}</span>
+              <small>Agency Workspace</small>
+            </span>
+          )}
           <Icon name="chevron-down" size={14} />
         </>
       }
@@ -309,6 +301,7 @@ export function Layout({ children }: { children: ReactNode }) {
   const busy = navigation.state === "loading";
 
   return (
+    <ThemeContext.Provider value={{ theme, chooseTheme }}>
     <html lang="en" data-theme={theme}>
       <head>
         <meta charSet="utf-8" />
@@ -346,11 +339,13 @@ export function Layout({ children }: { children: ReactNode }) {
         {isMarketingRoute ? children : isProposalShare ? <div id="main-content" className="content public-content">{children}</div> : showAppNav ? (
           <div className="app-frame">
             <aside className="app-sidebar">
-              <Link className="brand app-brand" to="/opportunities">
+              <Link className="brand app-brand" to="/changes">
                 <BrandMark />
-                <span className="brand-word">Axiom Orbit</span>
+                <span className="brand-copy">
+                  <span className="brand-word">Axiom Orbit</span>
+                  <small>Client Growth</small>
+                </span>
               </Link>
-              <div className="app-sidebar-label">Revenue workspace</div>
               <AppNavigation />
               <div className="app-sidebar-spacer" />
               <WorkspaceMenu
@@ -362,7 +357,7 @@ export function Layout({ children }: { children: ReactNode }) {
               />
             </aside>
             <header className="mobile-appbar">
-              <Link className="brand" to="/opportunities" aria-label="Axiom Orbit home">
+              <Link className="brand" to="/changes" aria-label="Axiom Orbit home">
                 <BrandMark />
                 <span className="brand-word">Axiom Orbit</span>
               </Link>
@@ -422,6 +417,7 @@ export function Layout({ children }: { children: ReactNode }) {
         <Scripts />
       </body>
     </html>
+    </ThemeContext.Provider>
   );
 }
 

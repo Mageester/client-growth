@@ -1026,16 +1026,25 @@ function Readiness({
   const limited = readiness.rules.filter((rule) => rule.state !== "ready");
   if (limited.length === 0) return null;
 
+  // One line, not one banner per rule. A dozen identical amber bars is a wall
+  // the reader stops seeing; the detail is a click away and still complete.
+  const blocked = limited.filter((rule) => rule.state === "not_ready").length;
+
   return (
-    <>
-      {limited.map((rule) => (
-        <div
-          className={rule.state === "not_ready" ? "notice warn" : "notice"}
-          role="status"
-          key={rule.ruleId}
-        >
-          <Icon name="alert" size={15} />
-          <span>
+    <details className={"readiness" + (blocked > 0 ? " is-blocked" : "")}>
+      <summary>
+        <Icon name={blocked > 0 ? "alert" : "shield"} size={17} />
+        <span className="readiness-headline">
+          {blocked > 0
+            ? `${blocked} of ${readiness.rules.length} checks cannot run yet`
+            : `${limited.length} of ${readiness.rules.length} checks are limited by what is on the site`}
+        </span>
+        <span className="readiness-hint">Details</span>
+        <Icon name="chevron-down" size={16} className="readiness-caret" />
+      </summary>
+      <ul>
+        {limited.map((rule) => (
+          <li key={rule.ruleId} data-state={rule.state}>
             <strong>{rule.label}</strong> — {rule.reason}{" "}
             {rule.state === "not_ready" && (
               <Link className="link" to="/services">
@@ -1047,10 +1056,10 @@ function Readiness({
                 {clientName}&rsquo;s setup is not the limit here, so there is nothing to change.
               </span>
             )}
-          </span>
-        </div>
-      ))}
-    </>
+          </li>
+        ))}
+      </ul>
+    </details>
   );
 }
 

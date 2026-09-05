@@ -27,7 +27,7 @@ describe("menu activation", () => {
 });
 
 describe("application navigation", () => {
-  it("keeps the product focused on the three real portfolio workflows", () => {
+  it("keeps the product focused on the approved four-screen hierarchy", () => {
     const html = renderToStaticMarkup(
       createElement(
         MemoryRouter,
@@ -36,9 +36,13 @@ describe("application navigation", () => {
       ),
     );
 
-    expect(html).toContain("Opportunities");
+    expect(html).toContain("Home");
     expect(html).toContain("Clients");
-    expect(html).toContain("Services");
+    expect(html).toContain("Opportunities");
+    expect(html).toContain("Settings");
+    expect(html).not.toContain("Services");
+    expect(html).not.toContain("This week");
+    expect(html).not.toContain("Check health");
     expect(html).not.toContain("Reports");
     expect(html).not.toContain("Monitoring");
   });
@@ -64,19 +68,6 @@ describe("mobile viewport safety", () => {
       .join("\n");
 
     expect(bodyRules).not.toMatch(/min-width\s*:\s*320px/);
-  });
-});
-
-describe("index workspace alignment", () => {
-  it("constrains directory and weekly pageheads to their content columns", () => {
-    const css = readFileSync(new URL("../app/styles/signal-desk.css", import.meta.url), "utf8");
-    expect(css).toMatch(
-      /\.clients-directory\s*>\s*\.pagehead,[\s\S]*\.services-directory\s*>\s*\.pagehead\s*\{[\s\S]*width:\s*min\(calc\(100%\s*-\s*60px\),\s*1080px\)[\s\S]*box-sizing:\s*border-box/,
-    );
-    expect(css).toMatch(/\.weekly-page\s*>\s*\.pagehead\s*\{/);
-
-    const changes = readFileSync(new URL("../app/routes/changes.tsx", import.meta.url), "utf8");
-    expect(changes).toContain('className="detail weekly-page"');
   });
 });
 

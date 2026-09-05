@@ -36,9 +36,12 @@ describe("product tour", () => {
   });
 
   it("covers each screen the product actually has", () => {
+    // The primary sidebar is four destinations; the service catalogue is a
+    // section of Settings rather than a top-level one, so that is where the
+    // catalogue step points.
     const highlights = TOUR_STEPS.map((step) => step.highlight).filter(Boolean);
     expect(highlights).toEqual(
-      expect.arrayContaining(["/opportunities", "/clients", "/services"]),
+      expect.arrayContaining(["/opportunities", "/clients", "/settings"]),
     );
   });
 

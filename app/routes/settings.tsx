@@ -20,8 +20,9 @@ import {
   getResendConfig,
 } from "../lib/resend.server";
 import { getTrustedAuthBaseURL } from "../lib/auth.server";
-import { AxiomCredit, Icon, pluralize } from "../components/ui";
+import { AxiomCredit, Icon, PageContextMeta, pluralize } from "../components/ui";
 import { requireTenant } from "../lib/session.server";
+import { SettingsNavigation } from "../components/settings-navigation";
 import type { Route } from "./+types/settings";
 
 export function meta() {
@@ -144,13 +145,19 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
   const saving = navigation.state !== "idle";
 
   return (
-    <div className="detail detail-narrow">
+    <div className="settings-page">
+      <PageContextMeta />
       <div className="pagehead">
         <div className="pagehead-copy">
-          <span className="eyebrow">Account</span>
+          <span className="eyebrow">Settings</span>
           <h1 className="title-page">Settings</h1>
+          <p className="summary-line">Manage your workspace, services, and integrations.</p>
         </div>
       </div>
+
+      <div className="settings-layout">
+        <SettingsNavigation active="general" />
+        <div className="settings-content">
 
       {actionData &&
         "ok" in actionData &&
@@ -185,7 +192,7 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
         </div>
       )}
 
-      <section className="section">
+      <section className="section" id="general">
         <div className="section-head">
           <div>
             <h2 className="title-section">Workspace</h2>
@@ -227,7 +234,7 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
 
       <MonitoringHealth monitoring={loaderData.monitoring} />
 
-      <section className="section">
+      <section className="section" id="team">
         <div className="section-head">
           <div>
             <h2 className="title-section">Team</h2>
@@ -300,7 +307,7 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
         )}
       </section>
 
-      <section className="section">
+      <section className="section" id="account">
         <div className="section-head">
           <div>
             <h2 className="title-section">Account</h2>
@@ -342,6 +349,8 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
         </div>
         <AxiomCredit />
       </section>
+        </div>
+      </div>
     </div>
   );
 }
@@ -361,7 +370,7 @@ function MonitoringHealth({
   monitoring: Awaited<ReturnType<typeof loader>>["monitoring"];
 }) {
   return (
-    <section className="section">
+    <section className="section" id="monitoring">
       <div className="section-head">
         <div>
           <h2 className="title-section">Monitoring</h2>

@@ -12,11 +12,14 @@ import * as repo from "@/db/repositories";
 import {
   EmptyState,
   Icon,
+  PageContextMeta,
   SidePanel,
   formatCurrencyRange,
   pluralize,
 } from "../components/ui";
+import { GlyphMark, markForTags } from "../components/entity-mark";
 import { requireTenant } from "../lib/session.server";
+import { SettingsNavigation } from "../components/settings-navigation";
 import { validateServiceInput } from "../lib/validation";
 import type { Route } from "./+types/services._index";
 
@@ -154,36 +157,31 @@ export default function ServicesIndex({ loaderData, actionData }: Route.Componen
   );
 
   return (
-    <div className="directory-page services-directory">
+    <div className="settings-page services-directory">
+      <PageContextMeta />
       <div className="pagehead">
         <div className="pagehead-copy">
-          <span className="eyebrow">Catalog</span>
-          <h1 className="title-page">Services</h1>
-          <p className="summary-line">
-            {services.length === 0 ? (
-              <span>The work your agency can sell when a client site shows a real gap</span>
-            ) : (
-              <>
-                <b className="num">{active.length}</b>
-                <span>
-                  {pluralize(active.length, "service", "services")} you can sell
-                  {services.length !== active.length
-                    ? ` · ${services.length - active.length} inactive`
-                    : ""}
-                </span>
-              </>
-            )}
-          </p>
+          <span className="eyebrow">Settings</span>
+          <h1 className="title-page">Settings</h1>
+          <p className="summary-line">Manage your workspace, services, and integrations.</p>
         </div>
-        {services.length > 0 && (
-          <div className="pagehead-actions">
-            <button className="btn btn-primary" type="button" onClick={() => setEditing("new")}>
-              <Icon name="plus" size={15} />
-              New service
-            </button>
-          </div>
-        )}
       </div>
+
+      <div className="settings-layout">
+        <SettingsNavigation active="services" />
+        <section className="settings-content" aria-labelledby="services-title">
+          <div className="settings-content-head">
+            <div>
+              <h2 id="services-title">Services</h2>
+              <p>Manage the services you offer to clients.</p>
+            </div>
+            {services.length > 0 && (
+              <button className="btn btn-primary" type="button" onClick={() => setEditing("new")}>
+                <Icon name="plus" size={15} />
+                New service
+              </button>
+            )}
+          </div>
 
       {actionData?.ok && (
         <div className="notice ok" role="status">
@@ -235,14 +233,24 @@ export default function ServicesIndex({ loaderData, actionData }: Route.Componen
           from this catalog, so nothing is surfaced that you could not deliver.
         </EmptyState>
       ) : (
-        <ul className="records">
+        <div className="records-table services-table">
+          <div className="records-head" aria-hidden="true">
+            <span>Service</span>
+            <span>Price range</span>
+            <span />
+          </div>
+          <ul className="records">
           {ordered.map((service) => (
             <li key={service.id}>
               <ServiceRow service={service} onEdit={() => setEditing(service)} busy={busy} />
             </li>
           ))}
-        </ul>
+          </ul>
+        </div>
       )}
+
+        </section>
+      </div>
 
       <SidePanel
         open={editing !== null}
@@ -251,12 +259,32 @@ export default function ServicesIndex({ loaderData, actionData }: Route.Componen
         description="How you describe this work, what you charge, and when it should be offered."
       >
         {editing !== null && (
-          <ServiceForm
-            key={editing === "new" ? "new" : editing.id}
-            service={editing === "new" ? undefined : editing}
-            busy={busy}
-            onCancel={() => setEditing(null)}
-          />
+          <>
+            {editing !== "new" && (
+              <Form method="post" className="service-activation">
+                <input type="hidden" name="intent" value="toggle-active" />
+                <input type="hidden" name="id" value={editing.id} />
+                {!editing.active && <input type="hidden" name="active" value="on" />}
+                <div>
+                  <b>Availability</b>
+                  <span>
+                    {editing.active
+                      ? "Active services can be matched to new findings."
+                      : "Inactive services stay in your catalog but are not matched."}
+                  </span>
+                </div>
+                <button type="submit" className="btn" disabled={busy}>
+                  {editing.active ? "Deactivate" : "Activate"}
+                </button>
+              </Form>
+            )}
+            <ServiceForm
+              key={editing === "new" ? "new" : editing.id}
+              service={editing === "new" ? undefined : editing}
+              busy={busy}
+              onCancel={() => setEditing(null)}
+            />
+          </>
         )}
       </SidePanel>
     </div>
@@ -273,9 +301,11 @@ function ServiceRow({
   busy: boolean;
 }) {
   const matches = matchesOf(service);
+  const mark = markForTags(matches, service.name);
   return (
     <div className={"record service-record" + (service.active ? "" : " is-off")}>
       <div className="record-main">
+        <GlyphMark {...mark} className="service-mark" size="lg" />
         <div className="record-name">{service.name}</div>
         {service.description ? (
           <p className="offer-line">{service.description}</p>
@@ -302,26 +332,9 @@ function ServiceRow({
           <b className="num">{formatCurrencyRange(service.priceMin, service.priceMax)}</b>
           <span>typical range</span>
         </div>
-        <Form method="post" className="inline">
-          <input type="hidden" name="intent" value="toggle-active" />
-          <input type="hidden" name="id" value={service.id} />
-          {!service.active && <input type="hidden" name="active" value="on" />}
-          <button
-            type="submit"
-            className={"state-toggle" + (service.active ? " on" : "")}
-            disabled={busy}
-            aria-label={
-              (service.active ? "Deactivate " : "Activate ") + service.name
-            }
-          >
-            <span className={"dot" + (service.active ? "" : " hollow")} />
-            {service.active ? "Active" : "Inactive"}
-          </button>
-        </Form>
         <div className="record-actions">
-          <button className="btn btn-sm" type="button" onClick={onEdit}>
-            <Icon name="pencil" size={13} />
-            Edit
+          <button className="service-edit" type="button" onClick={onEdit} aria-label={`Edit ${service.name}`}>
+            <Icon name="chevron-right" size={18} />
           </button>
         </div>
       </div>

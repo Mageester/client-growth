@@ -11,6 +11,7 @@ import { Link, useLocation } from "react-router";
 import type { AnalysisOutcome } from "@/core/analysisOutcome";
 import type { EvidenceCase } from "../lib/evidence";
 import type { ClientState } from "../lib/portfolio";
+import { useTheme } from "../lib/theme";
 
 export type IconName =
   | "alert"
@@ -26,17 +27,23 @@ export type IconName =
   | "document"
   | "external"
   | "globe"
+  | "heading"
+  | "home"
+  | "image"
   | "inbox"
   | "link"
   | "logout"
+  | "moon"
   | "pencil"
   | "plus"
   | "refresh"
   | "search"
   | "settings"
+  | "route"
   | "shield"
   | "signal"
   | "sliders"
+  | "sun"
   | "tag"
   | "target"
   | "users"
@@ -178,10 +185,50 @@ const iconPaths: Record<IconName, ReactNode> = {
       <circle cx="8" cy="17.5" r="1.9" />
     </>
   ),
+  sun: (
+    <>
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+    </>
+  ),
   tag: (
     <>
       <path d="M4 5.6A1.6 1.6 0 0 1 5.6 4H12l7.4 7.4a1.9 1.9 0 0 1 0 2.7l-5.3 5.3a1.9 1.9 0 0 1-2.7 0L4 12z" />
       <circle cx="8.4" cy="8.4" r="1.1" />
+    </>
+  ),
+  heading: (
+    <>
+      <path d="M6 5v14" />
+      <path d="M14 5v14" />
+      <path d="M6 12h8" />
+      <path d="M17.5 19v-6.2l-1.9 1.3" />
+    </>
+  ),
+  home: (
+    <>
+      <path d="M4 10.4 12 4l8 6.4" />
+      <path d="M6 9.6V19a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V9.6" />
+      <path d="M10 20v-5.4h4V20" />
+    </>
+  ),
+  image: (
+    <>
+      <rect x="3.5" y="4.5" width="17" height="15" rx="2.4" />
+      <circle cx="9" cy="10" r="1.6" />
+      <path d="m4.6 17.4 4.2-4a1.6 1.6 0 0 1 2.2 0l5 4.8" />
+      <path d="m14.4 14.2 1.6-1.5a1.6 1.6 0 0 1 2.2 0l1.9 1.8" />
+    </>
+  ),
+  moon: <path d="M20 13.4A8.2 8.2 0 0 1 10.6 4a8.4 8.4 0 1 0 9.4 9.4" />,
+  route: (
+    <>
+      <circle cx="6.5" cy="6" r="2.5" />
+      <circle cx="17.5" cy="18" r="2.5" />
+      <circle cx="6.5" cy="18" r="2.5" />
+      <path d="M6.5 8.5v7" />
+      <path d="M9 18h6" />
+      <path d="M9 6h4.5A3.5 3.5 0 0 1 17 9.5v6" />
     </>
   ),
   target: (
@@ -223,6 +270,61 @@ export function Icon({
     >
       {iconPaths[name]}
     </svg>
+  );
+}
+
+export function PageContextMeta({
+  dateTime,
+  className = "",
+}: {
+  dateTime?: string;
+  className?: string;
+}) {
+  const date = new Date(dateTime ?? Date.now());
+  const label = new Intl.DateTimeFormat("en-CA", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(date);
+
+  return (
+    <div className={("page-context-meta " + className).trim()}>
+      <time dateTime={date.toISOString()} suppressHydrationWarning>
+        {label}
+      </time>
+      <AppearanceToggle />
+    </div>
+  );
+}
+
+/**
+ * The appearance control beside the page date. It carries the same preference
+ * as the one in the workspace menu, so this is a shortcut rather than a second
+ * setting. Rendered as a real button: an icon that only looks clickable is
+ * worse than no icon at all.
+ */
+export function AppearanceToggle() {
+  const { theme, chooseTheme } = useTheme();
+  const resolved =
+    theme === "system"
+      ? typeof window !== "undefined" &&
+        window.matchMedia?.("(prefers-color-scheme: light)").matches
+        ? "light"
+        : "dark"
+      : theme;
+  const next = resolved === "dark" ? "light" : "dark";
+
+  return (
+    <button
+      className="appearance-toggle"
+      type="button"
+      onClick={() => chooseTheme(next)}
+      aria-label={`Switch to ${next} appearance`}
+      title={`Switch to ${next} appearance`}
+    >
+      <Icon name={resolved === "dark" ? "sun" : "moon"} size={21} strokeWidth={1.6} />
+    </button>
   );
 }
 
@@ -445,7 +547,7 @@ export function getInitials(value: string | null | undefined): string {
 }
 
 export function formatCurrencyRange(min: number, max: number): string {
-  return `$${min.toLocaleString()}–$${max.toLocaleString()}`;
+  return `$${min.toLocaleString()} – $${max.toLocaleString()}`;
 }
 
 /** Compact money for summary copy: 950 -> $950, 12400 -> $12.4k. */
@@ -457,7 +559,7 @@ export function formatCompact(value: number): string {
 }
 
 export function formatCompactRange(min: number, max: number): string {
-  return formatCompact(min) + "–" + formatCompact(max);
+  return formatCompact(min) + " – " + formatCompact(max);
 }
 
 /**

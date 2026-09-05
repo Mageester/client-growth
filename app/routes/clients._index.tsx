@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useDeferredValue, useEffect, useRef, useState } from "react";
 import { Form, Link, useNavigation } from "react-router";
 
 import { ClientSchema } from "@/core/schema";
@@ -8,17 +8,18 @@ import {
   CLIENT_STATE_ORDER,
   clientState,
   totalsFor,
-  type ClientState,
 } from "../lib/portfolio";
 import {
   EmptyState,
   Icon,
+  PageContextMeta,
   SidePanel,
   StateDot,
   formatCompactRange,
   formatRelative,
   pluralize,
 } from "../components/ui";
+import { ClientMark } from "../components/entity-mark";
 import { OfferingGuidance } from "../components/offering-guidance";
 import { requireTenant } from "../lib/session.server";
 import { normalizeDomain, validateClientInput } from "../lib/validation";
@@ -102,6 +103,8 @@ export default function ClientsIndex({ loaderData, actionData }: Route.Component
   const busy = navigation.state !== "idle";
   const [addOpen, setAddOpen] = useState(false);
   const [newOfferings, setNewOfferings] = useState("");
+  const [query, setQuery] = useState("");
+  const deferredQuery = useDeferredValue(query.trim().toLowerCase());
   const handled = useRef<string | null>(null);
 
   useEffect(() => {
@@ -112,55 +115,57 @@ export default function ClientsIndex({ loaderData, actionData }: Route.Component
     }
   }, [actionData]);
 
-  const counts = clients.reduce<Record<ClientState, number>>(
-    (acc, client) => ({ ...acc, [client.state]: acc[client.state] + 1 }),
-    { attention: 0, clean: 0, inconclusive: 0, never: 0 },
-  );
   const ordered = [...clients].sort(
     (a, b) =>
       CLIENT_STATE_ORDER[a.state] - CLIENT_STATE_ORDER[b.state] ||
       b.totals.priceMax - a.totals.priceMax ||
       a.name.localeCompare(b.name),
   );
+  const shown = deferredQuery
+    ? ordered.filter(
+        (client) =>
+          client.name.toLowerCase().includes(deferredQuery) ||
+          client.domain.toLowerCase().includes(deferredQuery),
+      )
+    : ordered;
+  const portfolioValue = clients.reduce(
+    (total, client) => ({
+      min: total.min + client.totals.priceMin,
+      max: total.max + client.totals.priceMax,
+    }),
+    { min: 0, max: 0 },
+  );
 
   return (
     <div className="directory-page clients-directory">
+      <PageContextMeta />
       <div className="pagehead">
         <div className="pagehead-copy">
-          <span className="eyebrow">Portfolio</span>
+          <span className="eyebrow">Clients</span>
           <h1 className="title-page">Clients</h1>
           <p className="summary-line">
             <b className="num">{clients.length}</b>
-            <span>{pluralize(clients.length, "site watched", "sites watched")}</span>
-            {clients.length > 0 && (
-              <>
-                <span className="dot-sep">·</span>
-                <span>
-                  {counts.attention > 0
-                    ? `${counts.attention} ${pluralize(counts.attention, "needs", "need")} attention`
-                    : "none need attention"}
-                </span>
-                {counts.inconclusive > 0 && (
-                  <>
-                    <span className="dot-sep">·</span>
-                    <span>{counts.inconclusive} could not be read</span>
-                  </>
-                )}
-                {counts.never > 0 && (
-                  <>
-                    <span className="dot-sep">·</span>
-                    <span>{counts.never} not yet analyzed</span>
-                  </>
-                )}
-              </>
-            )}
+            <span>{pluralize(clients.length, "client", "clients")}</span>
+            <span className="dot-sep">·</span>
+            <b className="num">
+              {portfolioValue.max > 0
+                ? formatCompactRange(portfolioValue.min, portfolioValue.max)
+                : "—"}
+            </b>
+            <span>potential revenue</span>
           </p>
         </div>
         <div className="pagehead-actions">
-          <Link className="btn btn-ghost" to="/clients/import">
-            <Icon name="document" size={15} />
-            Import clients
-          </Link>
+          <label className="orbit-search">
+            <Icon name="search" size={17} />
+            <span className="sr-only">Search clients</span>
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search clients…"
+            />
+          </label>
           {clients.length > 0 && (
             <button className="btn btn-primary" type="button" onClick={() => setAddOpen(true)}>
               <Icon name="plus" size={15} />
@@ -201,13 +206,26 @@ export default function ClientsIndex({ loaderData, actionData }: Route.Component
           when there is legitimate, billable work worth bringing up.
         </EmptyState>
       ) : (
-        <ul className="records">
-          {ordered.map((client) => (
+        <div className="records-table clients-table">
+          <div className="records-head" aria-hidden="true">
+            <span>Client</span>
+            <span>Opportunities</span>
+            <span>Potential value</span>
+            <span>Status</span>
+            <span>Last checked</span>
+            <span />
+          </div>
+          <ul className="records">
+          {shown.map((client) => (
             <li key={client.id}>
               <ClientRow client={client} />
             </li>
           ))}
-        </ul>
+          </ul>
+          {shown.length === 0 && (
+            <p className="table-empty">No clients match “{query}”.</p>
+          )}
+        </div>
       )}
 
       <SidePanel
@@ -216,6 +234,10 @@ export default function ClientsIndex({ loaderData, actionData }: Route.Component
         title="Add a client"
         description="The website, and what this business sells. Both feed every analysis."
       >
+        <Link className="panel-import-link" to="/clients/import">
+          Import multiple clients instead
+          <Icon name="arrow-right" size={14} />
+        </Link>
         <Form method="post">
           <div className="field">
             <label htmlFor="new-client-name">Client name</label>
@@ -278,37 +300,24 @@ export default function ClientsIndex({ loaderData, actionData }: Route.Component
 function ClientRow({ client }: { client: EnrichedClient }) {
   return (
     <Link className="record" to={"/clients/" + client.id}>
-      <StateDot state={client.state} />
+      <ClientMark name={client.name} seed={client.domain} className="client-mark" />
       <span className="record-main">
         <span className="record-name">{client.name}</span>
-        <span className="record-meta">
-          <span className="record-domain">{client.domain}</span>
-          <span className="dot-sep">·</span>
-          <span>{CLIENT_STATE_LABEL[client.state]}</span>
-          <span className="dot-sep">·</span>
-          <span>
-            {client.offerings.length} {pluralize(client.offerings.length, "offering", "offerings")}
-          </span>
-        </span>
+        <span className="record-domain">{client.domain}</span>
       </span>
+      <span className="client-opportunities num">{client.totals.open}</span>
+      <span className="client-value num">
+        {client.totals.open > 0
+          ? formatCompactRange(client.totals.priceMin, client.totals.priceMax)
+          : "—"}
+      </span>
+      <span className={`client-status ${client.state}`}>
+        <StateDot state={client.state} />
+        {CLIENT_STATE_LABEL[client.state]}
+      </span>
+      <span className="client-checked">{formatRelative(client.lastRunAt)}</span>
       <span className="record-end">
-        <span className={"record-stat" + (client.totals.open > 0 ? "" : " is-zero")}>
-          <b className="num">{client.totals.open > 0 ? client.totals.open : "—"}</b>
-          <span>{pluralize(client.totals.open, "opportunity", "opportunities")}</span>
-        </span>
-        <span className={"record-stat wide" + (client.totals.open > 0 ? "" : " is-zero")}>
-          <b className="num">
-            {client.totals.open > 0
-              ? formatCompactRange(client.totals.priceMin, client.totals.priceMax)
-              : "—"}
-          </b>
-          <span>potential value</span>
-        </span>
-        <span className="record-stat wide is-zero">
-          <b>{formatRelative(client.lastRunAt)}</b>
-          <span>analyzed</span>
-        </span>
-        <Icon name="chevron-right" size={15} className="record-chevron" />
+        <Icon name="chevron-right" size={16} className="record-chevron" />
       </span>
     </Link>
   );
