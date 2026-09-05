@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { HttpEvidenceProvider } from "@/adapters/evidence/HttpEvidenceProvider";
 import { ClientSchema, type Client } from "@/core/schema";
+import { crawlKey } from "@/adapters/evidence/urlPolicy";
 
 /**
  * Crawl discovery on the shapes real small-business websites actually have.
@@ -190,6 +191,29 @@ describe("the boundary is still a boundary", () => {
 });
 
 describe("frontier priority and budgets", () => {
+  it("collapses index files and trailing slashes before spending crawl slots", async () => {
+    const { fetchImpl, requested } = siteFetch({
+      "https://example.com/": page("Home", [
+        "/index.html",
+        "/index.htm",
+        "/index.php",
+        "/about/",
+        "/about",
+      ]),
+      "https://example.com/about": page("About"),
+    });
+
+    const evidence = await new HttpEvidenceProvider({ fetchImpl, maxPages: 2 })
+      .getEvidence(client("example.com"));
+
+    expect(urlsOf(evidence.site.pages).map(crawlKey)).toEqual([
+      "https://example.com/",
+      "https://example.com/about",
+    ]);
+    expect(requested.filter((url) => crawlKey(url) === "https://example.com/about")).toHaveLength(1);
+    expect(requested.filter((url) => /\/index\.(?:html?|php)$/i.test(url))).toHaveLength(0);
+  });
+
   it("spends its page budget on services rather than on About and Careers", async () => {
     const boring = [
       "/about",

@@ -1,5 +1,10 @@
 import type { Candidate, EvidenceBundle, EvidencePage, RuleId } from "@/core/schema";
-import { normalizeAndValidateUrl, isSameSite } from "@/adapters/evidence/urlPolicy";
+import {
+  canonicalizeCrawlUrl,
+  crawlKey,
+  isSameSite,
+  normalizeAndValidateUrl,
+} from "@/adapters/evidence/urlPolicy";
 import {
   isArchivePath,
   isEditorialPath,
@@ -44,6 +49,17 @@ export function isReadablePage(page: EvidencePage): boolean {
   return page.status >= 200 && page.status < 300 && page.wordCount > 0;
 }
 
+/** Keep the first evidence page for each crawl identity. */
+export function uniquePages(pages: readonly EvidencePage[]): EvidencePage[] {
+  const seen = new Set<string>();
+  return pages.filter((page) => {
+    const key = crawlKey(page.url);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 export function normalizedTitle(value: string): string {
   return value.trim().replace(/\s+/g, " ").toLowerCase();
 }
@@ -56,8 +72,8 @@ export function isServiceShapedPage(url: string): boolean {
 /** Structured data is checked on the homepage and service shaped pages. */
 export function isStructuredDataRelevantPage(page: EvidencePage): boolean {
   try {
-    const parsed = new URL(page.url);
-    return parsed.pathname === "/" || parsed.pathname === "" || isServiceShapedPage(page.url);
+    const parsed = canonicalizeCrawlUrl(page.url);
+    return parsed.pathname === "/" || parsed.pathname === "" || isServiceShapedPage(parsed.toString());
   } catch {
     return false;
   }
@@ -137,22 +153,33 @@ function aggregateTechnicalGroup(input: {
 }): Candidate | null {
   const contributing: Candidate[] = [];
   const suppressedPages = new Set(
-    input.suppressedEvidenceRefs.filter((ref) => ref.startsWith("page:")),
+    input.suppressedEvidenceRefs
+      .filter((ref) => ref.startsWith("page:"))
+      .map((ref) => normalizedPageUrl(ref.slice("page:".length)) ?? ref),
   );
 
   for (const candidate of input.candidates) {
     const pageRefs = candidate.evidenceRefs.filter((ref) => ref.startsWith("page:"));
-    const keptPageRefs = pageRefs.filter((ref) => !suppressedPages.has(ref));
+    const keptPageRefs = pageRefs.filter(
+      (ref) => !suppressedPages.has(normalizedPageUrl(ref.slice("page:".length)) ?? ref),
+    );
+    const keptPageKeys = new Set(
+      keptPageRefs.map(
+        (ref) => normalizedPageUrl(ref.slice("page:".length)) ?? ref,
+      ),
+    );
 
     // Page-scoped candidates are fully dismissed when their only page is
     // suppressed. A duplicate title needs two remaining pages to still be a
     // duplicate; a broken target may remain if a different source page still
     // links to it.
-    if (pageRefs.length > 0 && keptPageRefs.length === 0) continue;
-    if (input.ruleId === "duplicate-title" && keptPageRefs.length < 2) continue;
+    if (pageRefs.length > 0 && keptPageKeys.size === 0) continue;
+    if (input.ruleId === "duplicate-title" && keptPageKeys.size < 2) continue;
 
     const evidenceRefs = candidate.evidenceRefs.filter(
-      (ref) => !ref.startsWith("page:") || !suppressedPages.has(ref),
+      (ref) =>
+        !ref.startsWith("page:") ||
+        !suppressedPages.has(normalizedPageUrl(ref.slice("page:".length)) ?? ref),
     );
     contributing.push({ ...candidate, evidenceRefs });
   }
@@ -162,14 +189,30 @@ function aggregateTechnicalGroup(input: {
   const evidenceRefs = unique(
     contributing.flatMap((candidate) => candidate.evidenceRefs),
   );
-  const pageCount = evidenceRefs.filter((ref) => ref.startsWith("page:")).length;
-  const targetCount = evidenceRefs.filter((ref) => ref.startsWith("target:")).length;
-  const imageCount = contributing.reduce(
-    (total, candidate) =>
-      total +
-      candidate.evidenceRefs.reduce((sum, ref) => sum + missingImageCount(ref), 0),
-    0,
-  );
+  const pageUrls = evidenceRefs
+    .filter((ref) => ref.startsWith("page:"))
+    .map((ref) => ref.slice("page:".length));
+  const targetUrls = evidenceRefs
+    .filter((ref) => ref.startsWith("target:"))
+    .map((ref) => ref.slice("target:".length));
+  const pageCount = pageUrls.length;
+  const targetCount = targetUrls.length;
+  const imageCountByPage = new Map<string, number>();
+  for (const candidate of contributing) {
+    const pageRef = candidate.evidenceRefs.find((ref) => ref.startsWith("page:"));
+    if (!pageRef) continue;
+    const pageUrl = pageRef.slice("page:".length);
+    const pageKey = crawlKey(pageUrl);
+    const countForCandidate = candidate.evidenceRefs.reduce(
+      (total, ref) => total + missingImageCount(ref),
+      0,
+    );
+    imageCountByPage.set(
+      pageKey,
+      Math.max(imageCountByPage.get(pageKey) ?? 0, countForCandidate),
+    );
+  }
+  const imageCount = [...imageCountByPage.values()].reduce((total, count) => total + count, 0);
   const first = contributing[0]!;
 
   return {
@@ -180,6 +223,11 @@ function aggregateTechnicalGroup(input: {
       pageCount,
       targetCount,
       imageCount,
+      pageUrls,
+      targetUrls,
+      titleValues: evidenceRefs
+        .filter((ref) => ref.startsWith("title:"))
+        .map((ref) => ref.slice("title:".length)),
     }),
     evidenceRefs,
     // Keep every historic suppression, even when the page happens not to be
@@ -192,7 +240,24 @@ function aggregateTechnicalGroup(input: {
 }
 
 function unique(values: readonly string[]): string[] {
-  return [...new Set(values)];
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const value of values) {
+    const key = evidenceRefKey(value);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(value);
+  }
+  return result;
+}
+
+function evidenceRefKey(ref: string): string {
+  if (ref.startsWith("page:") || ref.startsWith("target:")) {
+    const prefix = ref.slice(0, ref.indexOf(":") + 1);
+    const url = normalizedPageUrl(ref.slice(prefix.length));
+    return `${prefix}${url ?? ref.slice(prefix.length)}`;
+  }
+  return ref;
 }
 
 function missingImageCount(ref: string): number {
@@ -209,40 +274,46 @@ function aggregateDetected(input: {
   pageCount: number;
   targetCount: number;
   imageCount: number;
+  pageUrls: readonly string[];
+  targetUrls: readonly string[];
+  titleValues: readonly string[];
 }): string {
   const pages = count(input.pageCount, "affected page");
+  const pageList = input.pageUrls.length > 0 ? `${input.pageUrls.join(", ")}.` : "none.";
   switch (input.ruleId) {
     case "missing-title":
-      return `${pages} ${input.pageCount === 1 ? "is" : "are"} missing a non-empty HTML title.`;
+      return `${pages} ${input.pageCount === 1 ? "is" : "are"} missing a non-empty HTML title: ${pageList}`;
     case "duplicate-title":
-      return `Duplicate HTML titles affect ${pages}.`;
+      return input.titleValues.length > 0
+        ? `The title "${input.titleValues[0]}" is repeated on ${count(input.pageCount, "readable page")}: ${pageList}`
+        : `Duplicate HTML titles affect ${pages}: ${pageList}`;
     case "thin-service-page":
-      return `${pages} ${input.pageCount === 1 ? "is" : "are"} below the technical content threshold.`;
+      return `${pages} ${input.pageCount === 1 ? "is" : "are"} below the technical content threshold: ${pageList}`;
     case "missing-h1":
-      return `${pages} ${input.pageCount === 1 ? "has" : "have"} no non-empty H1 heading.`;
+      return `${pages} ${input.pageCount === 1 ? "has" : "have"} no non-empty H1 heading: ${pageList}`;
     case "broken-internal-link":
       return `${count(input.targetCount, "verified broken internal-link target")} ${
         input.targetCount === 1 ? "is" : "are"
-      } linked from ${pages}.`;
+      } linked from ${pages}. Targets: ${input.targetUrls.join(", ") || "none"}. Sources: ${pageList}`;
     case "missing-meta-description":
-      return `${pages} ${input.pageCount === 1 ? "is" : "are"} missing a non-empty meta description.`;
+      return `${pages} ${input.pageCount === 1 ? "is" : "are"} missing a non-empty meta description: ${pageList}`;
     case "missing-structured-data":
-      return `${pages} ${input.pageCount === 1 ? "has" : "have"} no observed LocalBusiness or Service structured-data type.`;
+      return `${pages} ${input.pageCount === 1 ? "has" : "have"} no observed LocalBusiness or Service structured-data type: ${pageList}`;
     case "missing-image-alt":
       return `${count(input.imageCount, "image")} across ${pages} ${
         input.imageCount === 1 ? "is" : "are"
-      } missing an alt attribute; decorative alt="" images are excluded.`;
+      } missing an alt attribute; decorative alt="" images are excluded. Pages: ${pageList}`;
   }
 }
 
 function normalizedPageUrl(url: string): string | null {
   const parsed = normalizeAndValidateUrl(url);
-  return parsed.ok ? parsed.url.toString() : null;
+  return parsed.ok ? crawlKey(parsed.url) : null;
 }
 
 function knownPageUrls(evidence: EvidenceBundle): Set<string> {
   return new Set(
-    evidence.site.pages
+    uniquePages(evidence.site.pages)
       .map((page) => normalizedPageUrl(page.url))
       .filter((url): url is string => url !== null),
   );
@@ -250,7 +321,7 @@ function knownPageUrls(evidence: EvidenceBundle): Set<string> {
 
 function readablePageUrls(evidence: EvidenceBundle): Set<string> {
   return new Set(
-    evidence.site.pages
+    uniquePages(evidence.site.pages)
       .filter(isReadablePage)
       .map((page) => normalizedPageUrl(page.url))
       .filter((url): url is string => url !== null),
@@ -269,13 +340,14 @@ export function canReconcileTechnicalRule(
   if (!isTechnicalRuleId(ruleId)) return false;
   if (!evidence.site.crawlExhaustive || evidence.networkEvents.length > 0) return false;
 
-  const readablePages = evidence.site.pages.filter(isReadablePage);
+  const canonicalPages = uniquePages(evidence.site.pages);
+  const readablePages = canonicalPages.filter(isReadablePage);
   if (readablePages.length === 0) return false;
   // A successful response with no readable body is not a page we can vouch
   // for. It may be an empty shell or a partial fetch, so do not close a prior
   // finding merely because other pages in the crawl were readable.
   if (
-    evidence.site.pages.some(
+    canonicalPages.some(
       (page) => page.status >= 200 && page.status < 300 && page.wordCount === 0,
     )
   ) {

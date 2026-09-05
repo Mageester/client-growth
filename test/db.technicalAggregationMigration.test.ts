@@ -53,7 +53,7 @@ describe("technical aggregation migration", () => {
           status, snooze_until, proposal_md, verification, conversion_defect, updated_at
         ) VALUES
           ('title-dismissed', 'ws_live', 'old-title-root', 'client_live', 'missing-title', 'Missing page title', 'root missing', '["page:https://live.example/","title:missing"]', 'why', 'svc_title_default', '[]', 150, 400, .9, 'billable', 'dismissed', NULL, '# page-only draft', NULL, NULL, '2026-09-01T00:00:00.000Z'),
-          ('title-open', 'ws_live', 'old-title-about', 'client_live', 'missing-title', 'Missing page title', 'about missing', '["page:https://live.example/about","title:missing"]', 'why', 'svc_title_default', '[]', 150, 400, .9, 'billable', 'new', NULL, NULL, NULL, NULL, '2026-09-01T00:00:00.000Z'),
+          ('title-open', 'ws_live', 'old-title-about', 'client_live', 'missing-title', 'Missing page title', 'about missing', '["page:https://live.example/about","page:https://live.example/index.html","title:missing"]', 'why', 'svc_title_default', '[]', 150, 400, .9, 'billable', 'new', NULL, NULL, NULL, NULL, '2026-09-01T00:00:00.000Z'),
           ('h1-dismissed', 'ws_live', 'old-h1-root', 'client_live', 'missing-h1', 'Missing H1', 'root missing', '["page:https://live.example/","h1:missing"]', 'why', 'svc_h1_default', '[]', 150, 400, .9, 'billable', 'dismissed', NULL, NULL, NULL, NULL, '2026-09-01T00:00:00.000Z'),
           ('meta-dismissed', 'ws_live', 'old-meta-root', 'client_live', 'missing-meta-description', 'Missing meta', 'root missing', '["page:https://live.example/","meta-description:missing"]', 'why', 'svc_meta_default', '[]', 200, 500, .9, 'billable', 'dismissed', NULL, NULL, NULL, NULL, '2026-09-01T00:00:00.000Z'),
           ('meta-open', 'ws_live', 'old-meta-about', 'client_live', 'missing-meta-description', 'Missing meta', 'about missing', '["page:https://live.example/about","meta-description:missing"]', 'why', 'svc_meta_default', '[]', 200, 500, .9, 'billable', 'new', NULL, NULL, NULL, NULL, '2026-09-01T00:00:00.000Z'),
@@ -61,6 +61,8 @@ describe("technical aggregation migration", () => {
       `);
 
       await db.exec(readFileSync(join(migrationsDir, "0013_technical_aggregation.sql"), "utf8"));
+      await db.exec(readFileSync(join(migrationsDir, "0014_technical_aggregate_titles.sql"), "utf8"));
+      await db.exec(readFileSync(join(migrationsDir, "0015_canonical_technical_aggregate_titles.sql"), "utf8"));
 
       expect(
         await db.prepare("SELECT price_min, price_max FROM services WHERE id = 'svc_title_default'").first(),
@@ -103,6 +105,7 @@ describe("technical aggregation migration", () => {
         proposal_md: null,
       });
       const titleRow = title!;
+      expect(titleRow.title).toBe("Missing page title — 2 pages");
       expect(JSON.parse(titleRow.suppressed_evidence_refs!)).toEqual(["page:https://live.example/"]);
       expect(JSON.parse(titleRow.evidence_refs!)).toEqual(
         expect.arrayContaining(["page:https://live.example/", "page:https://live.example/about"]),
@@ -114,9 +117,10 @@ describe("technical aggregation migration", () => {
       expect(h1?.status).toBe("dismissed");
 
       const meta = await db
-        .prepare("SELECT status, suppressed_evidence_refs FROM opportunities WHERE dedupe_key = 'technical::client_live::missing-meta-description'")
-        .first<{ status: string; suppressed_evidence_refs: string }>();
+        .prepare("SELECT status, title, suppressed_evidence_refs FROM opportunities WHERE dedupe_key = 'technical::client_live::missing-meta-description'")
+        .first<{ status: string; title: string; suppressed_evidence_refs: string }>();
       expect(meta?.status).toBe("new");
+      expect(meta?.title).toBe("Missing meta description — 2 pages");
       expect(JSON.parse(meta!.suppressed_evidence_refs)).toEqual(["page:https://live.example/"]);
 
       const imageAlt = await db

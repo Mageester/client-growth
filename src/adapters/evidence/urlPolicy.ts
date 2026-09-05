@@ -267,6 +267,30 @@ export function isSameSite(a: URL | string, b: URL | string): boolean {
   }
 }
 
+function canonicalCrawlPathname(pathname: string): string {
+  const withoutTrailingSlash = pathname.length > 1 ? pathname.replace(/\/+$/, "") : "/";
+  if (!/\/index\.(?:html?|php)$/i.test(withoutTrailingSlash)) {
+    return withoutTrailingSlash || "/";
+  }
+
+  const parent = withoutTrailingSlash.slice(0, withoutTrailingSlash.lastIndexOf("/"));
+  return parent || "/";
+}
+
+/**
+ * Normalize URL spellings that commonly identify one crawlable document.
+ *
+ * This is deliberately a crawl identity operation, not a redirect or fetch
+ * policy. The actual URL retained in evidence remains the URL the server
+ * returned, while frontier and technical-count bookkeeping use this shape.
+ */
+export function canonicalizeCrawlUrl(input: string | URL): URL {
+  const url = new URL(String(input));
+  url.hash = "";
+  url.pathname = canonicalCrawlPathname(url.pathname);
+  return url;
+}
+
 /**
  * A stable identity for "the same page" across the shapes a site serves it in.
  *
@@ -278,9 +302,8 @@ export function isSameSite(a: URL | string, b: URL | string): boolean {
  */
 export function crawlKey(input: string | URL): string {
   try {
-    const url = new URL(String(input));
-    const path = url.pathname.length > 1 ? url.pathname.replace(/\/+$/, "") : "/";
-    return `${url.protocol}//${canonicalSiteHost(url.hostname)}${url.port ? `:${url.port}` : ""}${path}${url.search}`;
+    const url = canonicalizeCrawlUrl(input);
+    return `${url.protocol}//${canonicalSiteHost(url.hostname)}${url.port ? `:${url.port}` : ""}${url.pathname}${url.search}`;
   } catch {
     return String(input);
   }

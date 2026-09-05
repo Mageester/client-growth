@@ -5,6 +5,7 @@ import {
   isReadablePage,
   isStructuredDataRelevantPage,
   pageCandidate,
+  uniquePages,
 } from "@/core/rules/technical";
 
 const TAG = "missing-structured-data";
@@ -61,7 +62,7 @@ export async function missingStructuredDataRule(ctx: RuleContext): Promise<Candi
   const service = serviceForRule(ctx.catalog, TAG);
   if (!service) return [];
 
-  return ctx.evidence.site.pages
+  return uniquePages(ctx.evidence.site.pages)
     .filter(
       (page) =>
         isReadablePage(page) &&

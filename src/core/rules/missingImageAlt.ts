@@ -1,7 +1,7 @@
 import type { Candidate } from "@/core/schema";
 import type { RuleContext } from "@/core/rules/context";
 import { serviceForRule } from "@/core/rules/registry";
-import { isReadablePage, pageCandidate } from "@/core/rules/technical";
+import { isReadablePage, pageCandidate, uniquePages } from "@/core/rules/technical";
 
 const TAG = "missing-image-alt";
 
@@ -10,7 +10,7 @@ export async function missingImageAltRule(ctx: RuleContext): Promise<Candidate[]
   const service = serviceForRule(ctx.catalog, TAG);
   if (!service) return [];
 
-  return ctx.evidence.site.pages
+  return uniquePages(ctx.evidence.site.pages)
     .filter((page) => {
       if (!isReadablePage(page) || page.images === undefined) return false;
       return page.images.some((image) => image.alt === undefined);

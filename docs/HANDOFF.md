@@ -4,9 +4,29 @@
 
 **Date:** 2026-09-04
 **Repo:** `C:\Users\aidan\OneDrive\Documents\client-growth` (remote `Mageester/client-growth`)
-**Branch:** `main`, clean, pushed
-**Live:** https://client-growth-production.aidan-magee2.workers.dev (version `10ee7e9f`)
-**Next session focus:** animated/guided onboarding, then the top-5 launch priorities below.
+**Branch:** `main`, local P0 addendum changes are uncommitted; existing `.analyzability-after2.json` is preserved
+**Live:** https://client-growth-production.aidan-magee2.workers.dev (version `54671317-d736-4b92-b782-e0d480cd6acc`)
+**Next session focus:** measure production crawler reach separately from the residential cache, then continue the top-5 launch priorities below.
+
+## 2026-09-04 P0 addendum status
+
+The crawl/finding addendum is deployed. URL-shape aliases now share one crawl
+identity and page budget; technical findings aggregate by canonical page or
+target while retaining affected URLs in their evidence case; discovered same-
+site links receive reserved broken-link probe capacity; the `/clients`,
+`/services`, and `/changes` index headings are aligned; and long mapped-service
+values wrap in the opportunity inspector. Additive migrations `0013` and
+`0014` are applied to production, and the remote foreign-key check is clean.
+
+The refreshed residential/cache corpus remains **19/24 analyzable**, with
+`atlasplumbing.ca` 8/8 readable and `cambridgeheating.ca` 7/7 readable after
+canonicalization. This is not a production-reach measurement. The deployed
+canonical auth origin currently has no active session (`/api/auth/get-session`
+returns `null`; `/clients` redirects to `/login`), and there is no authorized
+Worker-side corpus check available in this handoff. Therefore Cambridge has
+not been re-analyzed in production, and no finding count or value claim is
+being made from the cache. P1 discovery tuning is blocked until a production
+reach run reports its own analyzable/total and blocked/inconclusive counts.
 
 ---
 

@@ -1,7 +1,7 @@
 import type { Candidate } from "@/core/schema";
 import type { RuleContext } from "@/core/rules/context";
 import { serviceForRule } from "@/core/rules/registry";
-import { isReadablePage, pageCandidate } from "@/core/rules/technical";
+import { isReadablePage, pageCandidate, uniquePages } from "@/core/rules/technical";
 
 const TAG = "missing-h1";
 
@@ -10,7 +10,7 @@ export async function missingH1Rule(ctx: RuleContext): Promise<Candidate[]> {
   const service = serviceForRule(ctx.catalog, TAG);
   if (!service) return [];
 
-  return ctx.evidence.site.pages
+  return uniquePages(ctx.evidence.site.pages)
     .filter((page) => isReadablePage(page) && page.h1s.length === 0)
     .map((page) =>
       pageCandidate({

@@ -12,6 +12,7 @@ import { missingMetaDescriptionRule } from "@/core/rules/missingMetaDescription"
 import { missingStructuredDataRule } from "@/core/rules/missingStructuredData";
 import { missingImageAltRule } from "@/core/rules/missingImageAlt";
 import { aggregateTechnicalCandidates } from "@/core/rules/technical";
+import { serviceForRule } from "@/core/rules/registry";
 
 export type { Rule, RuleContext };
 
@@ -34,7 +35,37 @@ export const allRules: Rule[] = [
 ];
 
 export async function runRules(ctx: RuleContext): Promise<Candidate[]> {
-  const batches = await Promise.all(allRules.map((rule) => rule(ctx)));
+  const configuredProbeBudget = ctx.probeBudget?.remaining;
+  const totalProbeBudget = Math.max(
+    0,
+    Number.isFinite(configuredProbeBudget) ? Math.floor(configuredProbeBudget!) : 8,
+  );
+  const internalLinkActive = serviceForRule(ctx.catalog, "broken-internal-link") !== null;
+  const conversionActive = serviceForRule(ctx.catalog, "conversion-fix") !== null;
+  const internalLinkBudget =
+    internalLinkActive && conversionActive
+      ? Math.ceil(totalProbeBudget / 2)
+      : internalLinkActive
+        ? totalProbeBudget
+        : 0;
+  const conversionBudget =
+    conversionActive && internalLinkActive
+      ? totalProbeBudget - internalLinkBudget
+      : conversionActive
+        ? totalProbeBudget
+        : 0;
+
+  const contextFor = (rule: Rule): RuleContext => {
+    if (rule === brokenInternalLinkRule) {
+      return { ...ctx, probeBudget: { remaining: internalLinkBudget } };
+    }
+    if (rule === brokenConversionPathRule) {
+      return { ...ctx, probeBudget: { remaining: conversionBudget } };
+    }
+    return ctx;
+  };
+
+  const batches = await Promise.all(allRules.map((rule) => rule(contextFor(rule))));
   return aggregateTechnicalCandidates({
     client: ctx.client,
     candidates: batches.flat(),

@@ -575,35 +575,45 @@ export class HttpEvidenceProvider implements EvidenceProvider {
     // links than this crawl has page fetches, so the question is never "which
     // links exist" but "which ten are worth reading", and template order puts
     // Careers and Privacy Policy ahead of the services. See crawlPriority.
-    const frontier = new Map<string, { priority: number; discovered: number }>();
+    const frontier = new Map<string, { url: string; priority: number; discovered: number }>();
     let discovered = 0;
     const enqueue = (rawUrl: string, options: { inNav?: boolean } = {}): void => {
       const parsed = normalizeAndValidateUrl(rawUrl);
       if (!parsed.ok || !isSameSite(parsed.url, origin)) return;
+      // The canonical key owns crawl identity and the page slot. Keep the
+      // first valid spelling as the representative request so existing
+      // trailing-slash routes, redirects, and cache entries remain usable.
       const url = parsed.url.toString();
-      if (visited.has(crawlKey(url))) return;
+      const key = crawlKey(url);
+      if (visited.has(key)) return;
       const priority = crawlPriority(url, options);
-      const existing = frontier.get(url);
+      const existing = frontier.get(key);
       // A URL found in several places keeps its best score: a service page that
       // is also in the navigation should not be demoted by the second sighting.
       if (existing && existing.priority >= priority) return;
-      frontier.set(url, { priority, discovered: existing?.discovered ?? discovered++ });
+      frontier.set(key, {
+        url: existing?.url ?? url,
+        priority,
+        discovered: existing?.discovered ?? discovered++,
+      });
     };
 
     const takeNext = (): string | undefined => {
-      let best: string | undefined;
-      let bestKey = { priority: Number.NEGATIVE_INFINITY, discovered: Number.POSITIVE_INFINITY };
-      for (const [url, key] of frontier) {
+      let bestKey: string | undefined;
+      let bestScore = { priority: Number.NEGATIVE_INFINITY, discovered: Number.POSITIVE_INFINITY };
+      for (const [key, candidate] of frontier) {
         if (
-          key.priority > bestKey.priority ||
-          (key.priority === bestKey.priority && key.discovered < bestKey.discovered)
+          candidate.priority > bestScore.priority ||
+          (candidate.priority === bestScore.priority && candidate.discovered < bestScore.discovered)
         ) {
-          best = url;
           bestKey = key;
+          bestScore = candidate;
         }
       }
-      if (best !== undefined) frontier.delete(best);
-      return best;
+      if (bestKey === undefined) return undefined;
+      const selected = frontier.get(bestKey)?.url;
+      frontier.delete(bestKey);
+      return selected;
     };
 
     enqueue(`${origin}/`);
@@ -913,7 +923,7 @@ export class HttpEvidenceProvider implements EvidenceProvider {
       return { locs, isIndex: /<sitemapindex[\s>]/i.test(body.text) };
     };
 
-    const canonicalSameOrigin = (url: string): string | null => {
+    const sameOriginUrl = (url: string): string | null => {
       const parsed = normalizeAndValidateUrl(url);
       if (!parsed.ok || parsed.url.origin !== origin) return null;
       return parsed.url.toString();
@@ -925,7 +935,7 @@ export class HttpEvidenceProvider implements EvidenceProvider {
     const rawUrls: string[] = [];
     if (root.isIndex) {
       const children = root.locs
-        .map(canonicalSameOrigin)
+        .map(sameOriginUrl)
         .filter((url): url is string => url !== null)
         .slice(0, MAX_SITEMAP_INDEX_CHILDREN);
       for (const child of children) {
@@ -942,9 +952,10 @@ export class HttpEvidenceProvider implements EvidenceProvider {
     const seen = new Set<string>();
     for (const rawUrl of rawUrls) {
       if (urls.length >= maxUrls) break;
-      const url = canonicalSameOrigin(rawUrl);
-      if (!url || seen.has(url)) continue;
-      seen.add(url);
+      const url = sameOriginUrl(rawUrl);
+      const key = url ? crawlKey(url) : null;
+      if (!url || !key || seen.has(key)) continue;
+      seen.add(key);
       urls.push(url);
     }
     return urls;

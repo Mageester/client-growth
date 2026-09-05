@@ -1,5 +1,6 @@
 import type { ConversionDefect, Opportunity, Verification } from "@/core/schema";
 import { isDefectRef, isPageRef, parseEvidenceRef } from "@/core/evidenceRef";
+import { crawlKey } from "@/adapters/evidence/urlPolicy";
 
 /**
  * Turns the raw provenance stored on an opportunity into something an agency
@@ -145,9 +146,10 @@ export function buildEvidenceCase(opp: Opportunity): EvidenceCase {
 
   const push = (bucket: EvidenceItem[], item: EvidenceItem): EvidenceItem | null => {
     if (item.url) {
-      const existing = byUrl.get(item.url);
+      const key = crawlKey(item.url);
+      const existing = byUrl.get(key);
       if (existing) return existing;
-      byUrl.set(item.url, item);
+      byUrl.set(key, item);
     } else {
       const key = item.kind + "|" + item.title;
       if (seenLabels.has(key)) return null;

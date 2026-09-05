@@ -25,6 +25,7 @@ import { assessServiceCoverage } from "@/core/absenceVerification";
 import { classifyAnalysis, measureEvidenceReach } from "@/core/analysisOutcome";
 import { dedupeKey } from "@/core/dedupe";
 import { runRules } from "@/core/rules";
+import { crawlKey } from "@/adapters/evidence/urlPolicy";
 import { assessCatalogCoverage, RULE_SERVICE_LINKS } from "@/core/rules/registry";
 import {
   TECHNICAL_RULE_IDS,
@@ -186,7 +187,17 @@ function titleFor(candidate: Candidate): string {
     "missing-structured-data": "Missing LocalBusiness or Service schema",
     "missing-image-alt": "Missing image alt attribute",
   };
-  if (technicalTitles[candidate.ruleId]) return technicalTitles[candidate.ruleId]!;
+  const technical = technicalTitles[candidate.ruleId];
+  if (technical) {
+    const prefix = candidate.ruleId === "broken-internal-link" ? "target:" : "page:";
+    const count = new Set(
+      candidate.evidenceRefs
+        .filter((ref) => ref.startsWith(prefix))
+        .map((ref) => crawlKey(ref.slice(prefix.length))),
+    ).size;
+    const noun = prefix === "target:" ? "target" : "page";
+    return `${technical} — ${count} ${count === 1 ? noun : `${noun}s`}`;
+  }
   return `No page for ${candidate.subject}`;
 }
 

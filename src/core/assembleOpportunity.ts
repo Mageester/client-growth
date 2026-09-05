@@ -8,6 +8,7 @@ import {
 } from "@/core/schema";
 import { dedupeKey } from "@/core/dedupe";
 import { titleCase } from "@/core/text";
+import { crawlKey } from "@/adapters/evidence/urlPolicy";
 
 /** Opportunity title, per rule. */
 function titleFor(candidate: Candidate): string {
@@ -47,7 +48,16 @@ function titleFor(candidate: Candidate): string {
     "missing-image-alt": "Missing image alt attribute",
   };
   const technical = technicalTitle[candidate.ruleId];
-  if (technical) return technical;
+  if (technical) {
+    const prefix = candidate.ruleId === "broken-internal-link" ? "target:" : "page:";
+    const count = new Set(
+      candidate.evidenceRefs
+        .filter((ref) => ref.startsWith(prefix))
+        .map((ref) => crawlKey(ref.slice(prefix.length))),
+    ).size;
+    const noun = prefix === "target:" ? "target" : "page";
+    return `${technical} — ${count} ${count === 1 ? noun : `${noun}s`}`;
+  }
 
   return `${titleCase(candidate.subject)} — dedicated service page`;
 }

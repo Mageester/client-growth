@@ -60,6 +60,25 @@ describe("Signal Desk opportunity presentation", () => {
     expect(html).toContain('aria-current="true"');
   });
 
+  it("keeps the affected-page count in an aggregate signal title", () => {
+    const html = render(
+      createElement(OpportunitySignalRow, {
+        entry: {
+          ...entry,
+          opportunity: {
+            ...entry.opportunity,
+            ruleId: "missing-meta-description",
+            title: "Missing meta description — 7 pages",
+          },
+        },
+        selected: false,
+        selectHref: "?opportunity=opp-meta",
+      }),
+    );
+
+    expect(html).toContain("Missing meta description — 7 pages");
+  });
+
   it("turns the selected signal into an evidence-backed next action", () => {
     const html = render(createElement(OpportunityInspector, { entry, closeHref: "?" }));
 

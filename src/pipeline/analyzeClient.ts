@@ -51,7 +51,7 @@ export interface AnalyzeClientInput {
   maxAiCalls?: number;
   /** Cap on targeted GETs across absence verification for this run. Default 12. */
   maxVerifyFetches?: number;
-  /** Cap on status probes across broken-conversion-path for this run. Default 8. */
+  /** Cap on status probes across broken-link rules for this run. Default 8. */
   maxProbes?: number;
 }
 

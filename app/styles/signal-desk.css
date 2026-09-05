@@ -1077,21 +1077,21 @@ textarea:hover {
 }
 
 .inspector-metrics dd {
-  display: flex;
+  display: block;
+  flex: 0 1 68%;
   min-width: 0;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 7px;
   margin: 0;
-  overflow: hidden;
+  overflow: visible;
+  overflow-wrap: anywhere;
   color: var(--ink);
   font-family: var(--mono);
   font-size: 13px;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
+  word-break: break-word;
   text-align: right;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  text-overflow: clip;
+  white-space: normal;
 }
 
 .inspector-section {
@@ -1249,6 +1249,22 @@ textarea:hover {
 .directory-page .pagehead {
   align-items: center;
   margin: 0;
+}
+
+.clients-directory > .pagehead,
+.services-directory > .pagehead {
+  width: min(calc(100% - 60px), 1080px);
+  box-sizing: border-box;
+  margin: 0 auto;
+  padding-right: 12px;
+  padding-left: 12px;
+}
+
+.weekly-page > .pagehead {
+  min-height: 0;
+  margin: 0 0 16px;
+  padding: 0 0 20px;
+  background: transparent;
 }
 
 .directory-page > .notice,
@@ -1709,6 +1725,13 @@ a.record:hover .record-name {
     padding: 24px 24px 20px;
   }
 
+  .clients-directory > .pagehead,
+  .services-directory > .pagehead {
+    width: min(calc(100% - 40px), 1080px);
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
   .signal-desk {
     display: block;
     min-height: calc(100vh - 186px);
@@ -1753,6 +1776,17 @@ a.record:hover .record-name {
   .pagehead {
     min-height: 0;
     padding: 20px 16px 18px;
+  }
+
+  .clients-directory > .pagehead,
+  .services-directory > .pagehead {
+    width: calc(100% - 24px);
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+
+  .weekly-page > .pagehead {
+    padding: 0 18px 18px;
   }
 
   .pagehead .title-page {

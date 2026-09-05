@@ -21,7 +21,7 @@ export interface RuleContext {
 
   /** Optional: HEAD/GET status check for one URL (broken-conversion-path). */
   probe?: (url: string) => Promise<ProbeResult>;
-  /** Shared probe budget for one analysis run. */
+  /** Bounded probe budget for this rule; runRules allocates the run total. */
   probeBudget?: { remaining: number };
 
   /**

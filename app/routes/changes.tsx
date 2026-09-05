@@ -11,7 +11,7 @@ export async function loader({request,context}:Route.LoaderArgs) {
 }
 export default function Changes({loaderData:data}:Route.ComponentProps) {
   const s = data.summary;
-  return <main className="detail">
+  return <main className="detail weekly-page">
     <div className="pagehead"><div className="pagehead-copy">
       <span className="eyebrow">Your portfolio</span><h1 className="title-page">What changed this week</h1>
       <p className="prose">The last seven days of completed checks. A site we could not assess stays inconclusive.</p>

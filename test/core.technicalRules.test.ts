@@ -298,6 +298,150 @@ describe("expanded deterministic rules", () => {
     expect(imageFinding?.detected).toContain('decorative alt="" images are excluded');
   });
 
+  it("lists every affected page in an aggregate technical case", () => {
+    const aggregated = aggregateTechnicalCandidates({
+      client,
+      candidates: [
+        pageCandidate({
+          ruleId: "missing-meta-description",
+          subject: ROOT,
+          detected: "home is missing a meta description",
+          evidenceRefs: [`page:${ROOT}`, "meta-description:missing"],
+          suggestedServiceId: "svc-missing-meta-description",
+        }),
+        pageCandidate({
+          ruleId: "missing-meta-description",
+          subject: `${ORIGIN}/about`,
+          detected: "about is missing a meta description",
+          evidenceRefs: [`page:${ORIGIN}/about`, "meta-description:missing"],
+          suggestedServiceId: "svc-missing-meta-description",
+        }),
+        pageCandidate({
+          ruleId: "missing-meta-description",
+          subject: `${ORIGIN}/contact`,
+          detected: "contact is missing a meta description",
+          evidenceRefs: [`page:${ORIGIN}/contact`, "meta-description:missing"],
+          suggestedServiceId: "svc-missing-meta-description",
+        }),
+      ],
+    });
+
+    expect(aggregated[0]?.detected).toContain(ROOT);
+    expect(aggregated[0]?.detected).toContain(`${ORIGIN}/about`);
+    expect(aggregated[0]?.detected).toContain(`${ORIGIN}/contact`);
+  });
+
+  it("counts URL aliases once in a technical aggregate", async () => {
+    const base = evidenceWithAllTechnicalFindings();
+    const evidence = EvidenceBundleSchema.parse({
+      ...base,
+      site: {
+        ...base.site,
+        pages: [
+          ...base.site.pages,
+          { ...base.site.pages[0]!, url: `${ORIGIN}/index.html` },
+        ],
+      },
+    });
+
+    const candidates = await runRules({
+      client,
+      catalog,
+      evidence,
+      probe,
+      probeBudget: { remaining: 20 },
+    });
+    const imageFinding = candidates.find((candidate) => candidate.ruleId === "missing-image-alt");
+    const pageRefs = imageFinding?.evidenceRefs.filter((ref) => ref.startsWith("page:"));
+
+    expect(pageRefs).toEqual(expect.arrayContaining([`page:${ROOT}`, `page:${ORIGIN}/about`]));
+    expect(pageRefs).toHaveLength(2);
+    expect(imageFinding?.detected).toContain("2 images");
+    expect(imageFinding?.detected).toContain("2 affected pages");
+  });
+
+  it("reserves a probe for a discovered navigation link", async () => {
+    const conversionLinks = Array.from({ length: 12 }, (_, index) => ({
+      href: `${ORIGIN}/contact-${index}`,
+      label: "Contact Us",
+      scheme: "http" as const,
+      ariaLabel: "",
+      title: "",
+      inNav: false,
+      foundOn: [ROOT],
+    }));
+    const evidence = EvidenceBundleSchema.parse({
+      clientId: client.id,
+      source: "fixture",
+      capturedAt: "2026-09-04T00:00:00.000Z",
+      site: {
+        pages: [
+          {
+            url: ROOT,
+            status: 200,
+            title: "Home",
+            h1s: ["Home"],
+            headings: [],
+            textExcerpt: "Readable home page content.",
+            wordCount: 220,
+            forms: [],
+          },
+        ],
+        nav: [],
+        links: [
+          ...conversionLinks,
+          {
+            href: `${ORIGIN}/service.html`,
+            label: "Services",
+            scheme: "http" as const,
+            ariaLabel: "",
+            title: "",
+            inNav: true,
+            foundOn: [ROOT],
+          },
+        ],
+        sitemapUrls: [],
+        crawlExhaustive: false,
+      },
+      networkEvents: [],
+    });
+    const probeCalls: string[] = [];
+    const results = await runRules({
+      client,
+      catalog: [
+        catalog.find((service) => service.tags.includes("broken-internal-link"))!,
+        ServiceSchema.parse({
+          id: "svc-conversion-fix",
+          name: "Conversion fixes",
+          description: "",
+          priceMin: 100,
+          priceMax: 200,
+          tags: ["conversion-fix"],
+          active: true,
+        }),
+      ],
+      evidence,
+      probe: async (url) => {
+        probeCalls.push(url);
+        const status = url.endsWith("/service.html") ? 404 : 200;
+        return {
+          requestedUrl: url,
+          status,
+          finalUrl: url,
+          ok: status < 400,
+          outcome: "complete" as const,
+        };
+      },
+      probeBudget: { remaining: 8 },
+    });
+
+    const broken = results.find((candidate) => candidate.ruleId === "broken-internal-link");
+    expect(broken?.evidenceRefs).toEqual(
+      expect.arrayContaining([`page:${ROOT}`, `target:${ORIGIN}/service.html`, "status:404"]),
+    );
+    expect(probeCalls).toHaveLength(8);
+  });
+
   it("does not re-raise page evidence the agency dismissed before site-level aggregation", async () => {
     const candidates = await runRules({
       client,

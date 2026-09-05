@@ -5,6 +5,7 @@ import {
   isReadablePage,
   normalizedTitle,
   pageCandidate,
+  uniquePages,
 } from "@/core/rules/technical";
 
 const TAG = "duplicate-title";
@@ -15,7 +16,7 @@ export async function duplicateTitleRule(ctx: RuleContext): Promise<Candidate[]>
   if (!service) return [];
 
   const groups = new Map<string, Array<{ url: string; title: string }>>();
-  for (const page of ctx.evidence.site.pages) {
+  for (const page of uniquePages(ctx.evidence.site.pages)) {
     if (!isReadablePage(page)) continue;
     const title = page.title.trim();
     const key = normalizedTitle(title);

@@ -67,6 +67,28 @@ describe("mobile viewport safety", () => {
   });
 });
 
+describe("index workspace alignment", () => {
+  it("constrains directory and weekly pageheads to their content columns", () => {
+    const css = readFileSync(new URL("../app/styles/signal-desk.css", import.meta.url), "utf8");
+    expect(css).toMatch(
+      /\.clients-directory\s*>\s*\.pagehead,[\s\S]*\.services-directory\s*>\s*\.pagehead\s*\{[\s\S]*width:\s*min\(calc\(100%\s*-\s*60px\),\s*1080px\)[\s\S]*box-sizing:\s*border-box/,
+    );
+    expect(css).toMatch(/\.weekly-page\s*>\s*\.pagehead\s*\{/);
+
+    const changes = readFileSync(new URL("../app/routes/changes.tsx", import.meta.url), "utf8");
+    expect(changes).toContain('className="detail weekly-page"');
+  });
+});
+
+describe("opportunity inspector values", () => {
+  it("wraps long metric values instead of clipping their left edge", () => {
+    const css = readFileSync(new URL("../app/styles/signal-desk.css", import.meta.url), "utf8");
+    expect(css).toMatch(/\.inspector-metrics\s+dd\s*\{[\s\S]*display:\s*block/);
+    expect(css).toMatch(/\.inspector-metrics\s+dd\s*\{[\s\S]*overflow-wrap:\s*anywhere/);
+    expect(css).toMatch(/\.inspector-metrics\s+dd\s*\{[\s\S]*white-space:\s*normal/);
+  });
+});
+
 describe("public proposal share shell", () => {
   it.each(["/proposal/share", "/proposal/share/", "/PROPOSAL/SHARE/", "/proposal/%73hare"]) (
     "recognizes %s as the standalone share path",

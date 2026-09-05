@@ -246,6 +246,9 @@ describe("pipeline expanded deterministic rules", () => {
     expect(result.stats.aiCalls).toBe(0);
     expect(result.stats.evaluatorErrors).toBe(0);
     expect(result.opportunities.every((opp) => opp.status === "new")).toBe(true);
+    expect(
+      result.opportunities.find((item) => item.ruleId === "missing-meta-description")?.title,
+    ).toBe("Missing meta description — 1 page");
   });
 
   it("keeps a partial technical repair open under the same site-level identity", async () => {

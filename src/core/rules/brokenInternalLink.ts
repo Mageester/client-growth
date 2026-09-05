@@ -2,8 +2,9 @@ import type { Candidate, EvidenceLink } from "@/core/schema";
 import type { ProbeResult } from "@/ports/EvidenceProvider";
 import type { RuleContext } from "@/core/rules/context";
 import { serviceForRule } from "@/core/rules/registry";
-import { isSameSite, normalizeAndValidateUrl } from "@/adapters/evidence/urlPolicy";
-import { pageCandidate } from "@/core/rules/technical";
+import { classifyConversionLink } from "@/core/conversionIntent";
+import { crawlKey, isSameSite, normalizeAndValidateUrl } from "@/adapters/evidence/urlPolicy";
+import { pageCandidate, uniquePages } from "@/core/rules/technical";
 
 const TAG = "broken-internal-link";
 
@@ -38,22 +39,25 @@ export async function brokenInternalLinkRule(ctx: RuleContext): Promise<Candidat
   const service = serviceForRule(ctx.catalog, TAG);
   if (!service) return [];
 
-  const firstPage = ctx.evidence.site.pages[0]?.url;
+  const pages = uniquePages(ctx.evidence.site.pages);
+  const firstPage = pages[0]?.url;
   if (!firstPage) return [];
   const base = new URL(firstPage);
   base.pathname = "/";
   base.search = "";
   base.hash = "";
   const pageByUrl = new Map<string, { status: number }>();
-  for (const page of ctx.evidence.site.pages) {
+  for (const page of pages) {
     const url = normalizedUrl(page.url, base.toString());
-    if (url) pageByUrl.set(url, page);
+    if (url) pageByUrl.set(crawlKey(url), page);
   }
 
   const budget = ctx.probeBudget ?? { remaining: 8 };
   const targets = new Map<string, BrokenTarget>();
-  for (const link of ctx.evidence.site.links) {
-    if (link.scheme !== "http") continue;
+  const links = [...ctx.evidence.site.links]
+    .filter((link) => link.scheme === "http")
+    .sort((left, right) => linkPriority(right) - linkPriority(left));
+  for (const link of links) {
     let target: string | null;
     try {
       target = normalizedUrl(link.href, base.toString());
@@ -64,7 +68,8 @@ export async function brokenInternalLinkRule(ctx: RuleContext): Promise<Candidat
     const parsedTarget = new URL(target);
     if (!isSameSite(parsedTarget, base)) continue;
 
-    const crawled = pageByUrl.get(target);
+    const key = crawlKey(target);
+    const crawled = pageByUrl.get(key);
     let status: 404 | 410 | undefined;
     if (crawled?.status === 404 || crawled?.status === 410) {
       status = crawled.status;
@@ -75,13 +80,13 @@ export async function brokenInternalLinkRule(ctx: RuleContext): Promise<Candidat
     }
     if (status === undefined) continue;
 
-    const existing = targets.get(target);
+    const existing = targets.get(key);
     if (existing) {
       existing.foundOn = [...new Set([...existing.foundOn, ...link.foundOn])];
       if (existing.label === "(unlabelled)") existing.label = elementLabel(link);
       continue;
     }
-    targets.set(target, {
+    targets.set(key, {
       target,
       status,
       foundOn: [...link.foundOn],
@@ -105,4 +110,10 @@ export async function brokenInternalLinkRule(ctx: RuleContext): Promise<Candidat
       rawConfidence: 0.95,
     }),
   );
+}
+
+function linkPriority(link: EvidenceLink): number {
+  const isConversion = classifyConversionLink(link) !== null;
+  if (!isConversion) return link.inNav ? 3 : 2;
+  return link.inNav ? 1 : 0;
 }

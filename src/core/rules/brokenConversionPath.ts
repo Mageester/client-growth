@@ -6,8 +6,9 @@ import {
   telDefect,
   type ConversionIntent,
 } from "@/core/conversionIntent";
-import { normalizeAndValidateUrl, normalizeOrigin } from "@/adapters/evidence/urlPolicy";
+import { crawlKey, normalizeAndValidateUrl, normalizeOrigin } from "@/adapters/evidence/urlPolicy";
 import { serviceForRule } from "@/core/rules/registry";
+import { uniquePages } from "@/core/rules/technical";
 
 /**
  * broken-conversion-path
@@ -92,8 +93,9 @@ export async function brokenConversionPathRule(ctx: RuleContext): Promise<Candid
   if (!origin) return [];
   const probe = ctx.probe;
   const budget = ctx.probeBudget ?? { remaining: 8 };
+  const pages = uniquePages(ctx.evidence.site.pages);
   const pageByUrl = new Map(
-    ctx.evidence.site.pages.map((p) => [normalizeTarget(p.url) ?? p.url, p]),
+    pages.map((p) => [crawlKey(normalizeTarget(p.url) ?? p.url), p]),
   );
   const defects: ConversionDefect[] = [];
   const seenKeys = new Set<string>();
@@ -128,7 +130,7 @@ export async function brokenConversionPathRule(ctx: RuleContext): Promise<Candid
   }
 
   // ---- 2. form actions ---------------------------------------------------
-  for (const page of ctx.evidence.site.pages) {
+  for (const page of pages) {
     for (const form of page.forms) {
       const action = form.action.trim();
       if (!action || action === "#") continue; // JS-handled -> unverifiable
@@ -201,9 +203,10 @@ export async function brokenConversionPathRule(ctx: RuleContext): Promise<Candid
     if (!target) continue;
     const intent = classifyConversionLink({ ...link, href: target });
     if (!intent) continue;
-    const existing = targets.get(target);
+    const key = crawlKey(target);
+    const existing = targets.get(key);
     if (!existing) {
-      targets.set(target, { link: { ...link, href: target, foundOn: [...link.foundOn] }, intent });
+      targets.set(key, { link: { ...link, href: target, foundOn: [...link.foundOn] }, intent });
     } else {
       existing.link.foundOn = [...new Set([...existing.link.foundOn, ...link.foundOn])];
     }
@@ -228,7 +231,7 @@ export async function brokenConversionPathRule(ctx: RuleContext): Promise<Candid
     }
 
     // Same-origin. Prefer the crawled status if we already have it.
-    const crawled = pageByUrl.get(target);
+    const crawled = pageByUrl.get(crawlKey(target));
     if (crawled) {
       if (crawled.status < 400) continue; // healthy
       if (isDeadLinkStatus(crawled.status)) {
@@ -255,7 +258,7 @@ export async function brokenConversionPathRule(ctx: RuleContext): Promise<Candid
     if (page.status < 400) continue;
     const target = normalizeTarget(page.url);
     if (!target || new URL(target).origin !== origin) continue;
-    if (targets.has(target)) continue; // already handled as a link target
+    if (targets.has(crawlKey(target))) continue; // already handled as a link target
     // Is this URL a conversion page by its own path?
     const asLink: EvidenceLink = {
       href: target,

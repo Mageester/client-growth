@@ -1,7 +1,7 @@
 import type { Candidate } from "@/core/schema";
 import type { RuleContext } from "@/core/rules/context";
 import { serviceForRule } from "@/core/rules/registry";
-import { isReadablePage, isServiceShapedPage, pageCandidate } from "@/core/rules/technical";
+import { isReadablePage, isServiceShapedPage, pageCandidate, uniquePages } from "@/core/rules/technical";
 
 const TAG = "thin-service-page";
 /** A small, fixed observation threshold; the candidate reports the measured count. */
@@ -12,7 +12,7 @@ export async function thinServicePageRule(ctx: RuleContext): Promise<Candidate[]
   const service = serviceForRule(ctx.catalog, TAG);
   if (!service) return [];
 
-  return ctx.evidence.site.pages
+  return uniquePages(ctx.evidence.site.pages)
     .filter(
       (page) =>
         isReadablePage(page) &&
