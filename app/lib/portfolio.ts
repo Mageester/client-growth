@@ -121,6 +121,10 @@ export function statusBadge(opp: Opportunity, now = new Date()): StatusBadge {
     return { label: "Already covered", tone: "warn" };
   }
   if (isSnoozeExpired(opp, now)) return { label: "Open", tone: "accent" };
+  // Distinct from "Fixed by the client": one is a win, the other is the client
+  // doing it themselves. Collapsing them would erase the only outcome the
+  // product measures.
+  if (opp.status === "sold") return { label: "Sold", tone: "pos" };
   if (opp.status === "resolved") return { label: "Fixed by the client", tone: "pos" };
   if (opp.status === "superseded") return { label: "Superseded", tone: "quiet" };
   if (opp.status === "dismissed") return { label: "Dismissed", tone: "quiet" };

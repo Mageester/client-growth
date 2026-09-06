@@ -11,6 +11,7 @@ import {
   type Service,
 } from "@/core/schema";
 import { ANALYSIS_OUTCOMES, type AnalysisOutcome } from "@/core/analysisOutcome";
+import { parseOfferingLabels } from "@/core/offeringDrift";
 import { SCHEMA_SQL } from "@/db/schema";
 import type { SqlDb } from "@/db/sql";
 import { CrossWorkspaceError, existsInWorkspace, type TenantScope } from "@/db/tenant";
@@ -118,6 +119,7 @@ interface ClientRow {
   name: string;
   domain: string;
   offerings: string;
+  average_job_value: number | null;
   notes: string;
 }
 
@@ -127,6 +129,7 @@ function toClient(row: ClientRow): Client {
     name: row.name,
     domain: row.domain,
     offerings: JSON.parse(row.offerings) as string[],
+    averageJobValue: row.average_job_value ?? undefined,
     notes: row.notes,
   });
 }
@@ -158,10 +161,11 @@ export async function upsertClient(t: TenantScope, client: Client): Promise<void
   }
   await t.db
     .prepare(
-      `INSERT INTO clients (id, workspace_id, name, domain, offerings, notes, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)
+      `INSERT INTO clients (id, workspace_id, name, domain, offerings, average_job_value, notes, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET
          name = excluded.name, domain = excluded.domain, offerings = excluded.offerings,
+         average_job_value = excluded.average_job_value,
          notes = excluded.notes, updated_at = excluded.updated_at
        WHERE clients.workspace_id = ?`,
     )
@@ -171,6 +175,7 @@ export async function upsertClient(t: TenantScope, client: Client): Promise<void
       c.name,
       c.domain,
       JSON.stringify(c.offerings),
+      c.averageJobValue ?? null,
       c.notes,
       nowIso(),
       t.workspaceId,
@@ -311,6 +316,8 @@ interface OpportunityRow {
   status: string;
   snooze_until: string | null;
   proposal_md: string | null;
+  sold_amount: number | null;
+  sold_at: string | null;
   verification: string | null;
   conversion_defect: string | null;
   updated_at: string;
@@ -338,6 +345,8 @@ function toOpportunity(row: OpportunityRow): Opportunity {
     status: row.status,
     snoozeUntil: row.snooze_until ?? undefined,
     proposalMd: row.proposal_md ?? undefined,
+    soldAmount: row.sold_amount ?? undefined,
+    soldAt: row.sold_at ?? undefined,
     updatedAt: row.updated_at,
   });
 }
@@ -470,10 +479,43 @@ export async function setOpportunityStatus(
       `UPDATE opportunities
        SET status = ?, snooze_until = ?,
            suppressed_evidence_refs = CASE WHEN ? = 'new' THEN '[]' ELSE suppressed_evidence_refs END,
+           -- Moving a finding to any other state un-sells it. Leaving the
+           -- amount behind would quietly inflate every win rate computed from
+           -- this table with a sale the agency has taken back.
+           sold_amount = CASE WHEN ? = 'sold' THEN sold_amount ELSE NULL END,
+           sold_at = CASE WHEN ? = 'sold' THEN sold_at ELSE NULL END,
            updated_at = ?
        WHERE id = ? AND workspace_id = ? AND status <> 'superseded'`,
     )
-    .bind(status, snoozeUntil ?? null, status, nowIso(), id, t.workspaceId)
+    .bind(status, snoozeUntil ?? null, status, status, status, nowIso(), id, t.workspaceId)
+    .run();
+  return r.rowsAffected > 0;
+}
+
+/**
+ * Record that the agency sold this work.
+ *
+ * The amount is optional: knowing a finding sold is the signal that matters,
+ * and demanding a number would cost that fact whenever someone does not have
+ * one to hand. Scoped like every other write, and refused on a superseded row.
+ */
+export async function recordOpportunitySale(
+  t: TenantScope,
+  id: string,
+  input: { amount?: number; at?: string } = {},
+): Promise<boolean> {
+  const amount =
+    typeof input.amount === "number" && Number.isFinite(input.amount) && input.amount >= 0
+      ? input.amount
+      : null;
+  const now = nowIso();
+  const r = await t.db
+    .prepare(
+      `UPDATE opportunities
+       SET status = 'sold', snooze_until = NULL, sold_amount = ?, sold_at = ?, updated_at = ?
+       WHERE id = ? AND workspace_id = ? AND status <> 'superseded'`,
+    )
+    .bind(amount, input.at ?? now, now, id, t.workspaceId)
     .run();
   return r.rowsAffected > 0;
 }
@@ -549,6 +591,9 @@ interface AnalysisRunRow {
   evaluator_calls: number;
   evaluator_rejections: number;
   evaluator_errors: number;
+  crawl_exhaustive: number;
+  suggested_offerings: string;
+  offering_drift: string;
 }
 
 /** What started a run. Scheduled runs are the only ones nobody was watching. */
@@ -580,9 +625,22 @@ export interface AnalysisRun {
   evaluatorRejections: number;
   /** Evaluator threw. Failed closed; the run is incomplete. */
   evaluatorErrors: number;
+  /** Whether the crawl reached every discovered page without a limitation. */
+  crawlExhaustive: boolean;
+  /** Service labels suggested from the evidence in this run. */
+  suggestedOfferings: string[];
+  /** Labels first seen relative to the previous exhaustive baseline. */
+  offeringDrift: string[];
 }
 
-export type NewAnalysisRun = Omit<AnalysisRun, "id">;
+export type NewAnalysisRun = Omit<
+  AnalysisRun,
+  "id" | "crawlExhaustive" | "suggestedOfferings" | "offeringDrift"
+> & {
+  crawlExhaustive?: boolean;
+  suggestedOfferings?: string[];
+  offeringDrift?: string[];
+};
 
 function toAnalysisRun(row: AnalysisRunRow): AnalysisRun {
   const outcome = (ANALYSIS_OUTCOMES as readonly string[]).includes(row.outcome)
@@ -618,6 +676,9 @@ function toAnalysisRun(row: AnalysisRunRow): AnalysisRun {
     evaluatorCalls: Number(row.evaluator_calls) || 0,
     evaluatorRejections: Number(row.evaluator_rejections) || 0,
     evaluatorErrors: Number(row.evaluator_errors) || 0,
+    crawlExhaustive: row.crawl_exhaustive === 1,
+    suggestedOfferings: parseOfferingLabels(row.suggested_offerings),
+    offeringDrift: parseOfferingLabels(row.offering_drift),
   };
 }
 
@@ -630,8 +691,9 @@ export async function recordAnalysisRun(t: TenantScope, run: NewAnalysisRun): Pr
       `INSERT INTO analysis_runs (
          workspace_id, client_id, started_at, finished_at, source, outcome, summary, limitation,
          pages_read, pages_fetched, blocked_events, inconclusive_events, surfaced, stats,
-         trigger, new_count, resolved_count, evaluator_calls, evaluator_rejections, evaluator_errors
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         trigger, new_count, resolved_count, evaluator_calls, evaluator_rejections, evaluator_errors,
+         crawl_exhaustive, suggested_offerings, offering_drift
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .bind(
       t.workspaceId,
@@ -654,8 +716,28 @@ export async function recordAnalysisRun(t: TenantScope, run: NewAnalysisRun): Pr
       run.evaluatorCalls,
       run.evaluatorRejections,
       run.evaluatorErrors,
+      run.crawlExhaustive ? 1 : 0,
+      JSON.stringify(run.suggestedOfferings ?? []),
+      JSON.stringify(run.offeringDrift ?? []),
     )
     .run();
+}
+
+/** The most recent exhaustive snapshot, regardless of whether it was manual or scheduled. */
+export async function getLatestExhaustiveAnalysisRun(
+  t: TenantScope,
+  clientId: string,
+): Promise<AnalysisRun | null> {
+  const row = await t.db
+    .prepare(
+      `SELECT * FROM analysis_runs
+       WHERE client_id = ? AND workspace_id = ? AND crawl_exhaustive = 1
+       ORDER BY finished_at DESC, id DESC
+       LIMIT 1`,
+    )
+    .bind(clientId, t.workspaceId)
+    .first<AnalysisRunRow>();
+  return row ? toAnalysisRun(row) : null;
 }
 
 export async function getLatestAnalysisRun(

@@ -9,6 +9,8 @@ import {
   revokeProposalShares,
 } from "@/db/proposalShares";
 import { generateProposalDraft } from "@/core/proposal";
+import { rationaleForOpportunity } from "@/core/rules/deterministicEvaluation";
+import { jobsToPayback, parseJobValue, paybackSentence } from "@/core/clientValue";
 import { buildEvidenceCase } from "../lib/evidence";
 import { isOpen, isSnoozeExpired, statusBadge } from "../lib/portfolio";
 import {
@@ -47,6 +49,15 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
     activeShareCount,
     canManageShares: t.userId === t.workspace.ownerUserId,
     evidence: buildEvidenceCase(opportunity),
+    // Null whenever the agency has not recorded what a job is worth to this
+    // client. Nothing is defaulted or estimated in its place.
+    payback: paybackSentence(
+      jobsToPayback({
+        priceMin: opportunity.priceMin,
+        priceMax: opportunity.priceMax,
+        averageJobValue: client?.averageJobValue,
+      }),
+    ),
   };
 }
 
@@ -61,6 +72,17 @@ export async function action({ params, request, context }: Route.ActionArgs) {
     case "dismiss":
       await repo.setOpportunityStatus(t.scope, opp.id, "dismissed");
       break;
+    case "sold": {
+      // The one outcome that teaches the product anything. Everything else it
+      // records is a judgement about a finding; this is what happened to it.
+      const raw = String(form.get("soldAmount") ?? "").trim();
+      const parsed = parseJobValue(raw);
+      if (!parsed.ok) {
+        return { error: "Enter what you charged as a number, or leave it blank." };
+      }
+      await repo.recordOpportunitySale(t.scope, opp.id, { amount: parsed.value });
+      break;
+    }
     case "reopen":
       if (opp.billableStatus === "already_covered") {
         return {
@@ -170,11 +192,13 @@ export default function OpportunityDetail({ loaderData, actionData }: Route.Comp
     evidence,
     activeShareCount = 0,
     canManageShares = false,
+    payback,
   } = loaderData;
   const navigation = useNavigation();
   const busy = navigation.state !== "idle";
   const pending = navigation.formData?.get("intent");
   const now = new Date();
+  const rationale = rationaleForOpportunity(opp);
   const snoozeActive = opp.status === "snoozed" && !isSnoozeExpired(opp, now);
   const badge = statusBadge(opp, now);
   const live = isOpen(opp, now);
@@ -257,6 +281,16 @@ export default function OpportunityDetail({ loaderData, actionData }: Route.Comp
           <Fact label="Potential value">
             <span className="num">{formatCurrencyRange(opp.priceMin, opp.priceMax)}</span>
           </Fact>
+          {/* What it costs the client in their own terms. Shown only when the
+              agency recorded a job value for them — never estimated. */}
+          {payback && <Fact label="For the client">{payback}</Fact>}
+          {opp.status === "sold" && (
+            <Fact label="Sold">
+              {typeof opp.soldAmount === "number"
+                ? formatCurrencyRange(opp.soldAmount, opp.soldAmount)
+                : "Recorded"}
+            </Fact>
+          )}
           <Fact label="Confidence">
             <span className="num">{Math.round(opp.confidence * 100)}%</span>
           </Fact>
@@ -320,7 +354,7 @@ export default function OpportunityDetail({ loaderData, actionData }: Route.Comp
           </div>
           <div className="case-block">
             <h3 className="subhead">Why it matters</h3>
-            <p className="prose">{opp.rationale}</p>
+             <p className="prose">{rationale}</p>
           </div>
           {opp.suggestedScope.length > 0 && (
             <div className="case-block recommendation-block" id="recommendations">
@@ -432,6 +466,26 @@ export default function OpportunityDetail({ loaderData, actionData }: Route.Comp
                 <span className="faint snooze-unit">days</span>
                 <button type="submit" className="btn" disabled={busy}>
                   Snooze
+                </button>
+              </Form>
+              <Form method="post" className="row-tight">
+                <input type="hidden" name="intent" value="sold" />
+                <label className="sr-only" htmlFor="sold-amount">
+                  What you charged
+                </label>
+                <input
+                  id="sold-amount"
+                  name="soldAmount"
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="Amount (optional)"
+                  size={14}
+                />
+                {/* Deliberately not the primary button. The default action on an
+                    open finding is still to prepare a proposal; recording the
+                    outcome is what you come back and do afterwards. */}
+                <button type="submit" className="btn" disabled={busy}>
+                  {pending === "sold" ? "Recording…" : "Mark sold"}
                 </button>
               </Form>
               <span className="spacer" />

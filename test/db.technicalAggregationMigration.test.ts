@@ -10,9 +10,13 @@ import { nodeSqliteDb } from "@/db/nodeSqlite";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const migrationsDir = join(root, "migrations");
 
-async function applyThrough(db: ReturnType<typeof nodeSqliteDb>, last: string): Promise<void> {
+async function applyThrough(
+  db: ReturnType<typeof nodeSqliteDb>,
+  last: string,
+  after = "",
+): Promise<void> {
   const migrations = readdirSync(migrationsDir)
-    .filter((file) => file.endsWith(".sql") && file <= last)
+    .filter((file) => file.endsWith(".sql") && file <= last && file > after)
     .sort();
   for (const migration of migrations) {
     await db.exec(readFileSync(join(migrationsDir, migration), "utf8"));
@@ -63,6 +67,12 @@ describe("technical aggregation migration", () => {
       await db.exec(readFileSync(join(migrationsDir, "0013_technical_aggregation.sql"), "utf8"));
       await db.exec(readFileSync(join(migrationsDir, "0014_technical_aggregate_titles.sql"), "utf8"));
       await db.exec(readFileSync(join(migrationsDir, "0015_canonical_technical_aggregate_titles.sql"), "utf8"));
+      // Everything after the aggregation migrations, applied the way production
+      // applies it: fully migrated before any current code touches the rows.
+      // The assertions below are still about 0013-0015; these later migrations
+      // are additive and exist so the repository helpers used further down are
+      // running against the schema they were written for.
+      await applyThrough(db, "9999", "0015_canonical_technical_aggregate_titles.sql");
 
       expect(
         await db.prepare("SELECT price_min, price_max FROM services WHERE id = 'svc_title_default'").first(),

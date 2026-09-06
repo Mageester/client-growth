@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { runRules } from "@/core/rules";
 import {
   aggregateTechnicalCandidates,
+  isServiceShapedPage,
   pageCandidate,
   TECHNICAL_STARTER_PRICE_BANDS,
 } from "@/core/rules/technical";
@@ -203,6 +204,16 @@ function probe(url: string): Promise<ProbeResult> {
 }
 
 describe("expanded deterministic rules", () => {
+  it("does not treat IANA registry records as service-shaped pages", () => {
+    for (const url of [
+      "https://www.iana.org/domains/root/db/build.html",
+      "https://www.iana.org/dnssec/procedures",
+    ]) {
+      expect(isServiceShapedPage(url), url).toBe(false);
+    }
+    expect(isServiceShapedPage("https://x.example/services/build-a-website")).toBe(true);
+  });
+
   it("aggregates technical observations without changing unrelated rule candidates", () => {
     const nonTechnical: Candidate = {
       ruleId: "missing-service-page",

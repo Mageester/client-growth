@@ -18,6 +18,9 @@ const context = {
       DB: {},
       BETTER_AUTH_SECRET: "x".repeat(40),
       BETTER_AUTH_URL: "https://app.example.com",
+      // Delivery itself is covered by email.transport.test.ts; these suites
+      // only need an environment that is capable of sending.
+      EMAIL_TRANSPORT: "console",
     },
   },
 };

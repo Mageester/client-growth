@@ -78,6 +78,26 @@ export function parseEvidenceRef(raw: string): ParsedEvidenceRef {
   return { kind: "unknown", value: ref, url: null };
 }
 
+function describeUnknownEvidenceRef(value: string): string {
+  const imagesWithoutAlt = /^images-without-alt:(\d+)$/i.exec(value);
+  if (imagesWithoutAlt) return `${imagesWithoutAlt[1]} images without alt text`;
+
+  const wordCount = /^word-count:(\d+)$/i.exec(value);
+  if (wordCount) return `Observed word count: ${wordCount[1]}`;
+
+  if (/^title:missing$/i.test(value)) return "No page title observed";
+  if (/^h1:missing$/i.test(value)) return "No H1 heading observed";
+  if (/^meta-description:missing$/i.test(value)) return "No meta description observed";
+  if (/^structured-data:localbusiness-or-service-missing$/i.test(value)) {
+    return "No LocalBusiness or Service structured data observed";
+  }
+
+  const competitor = /^competitor:(.+)$/i.exec(value);
+  if (competitor) return `Competitor site: ${competitor[1]}`;
+
+  return value;
+}
+
 /** A plain-English line for one ref, for proposals and any other prose output. */
 export function describeEvidenceRef(ref: ParsedEvidenceRef): string {
   switch (ref.kind) {
@@ -94,6 +114,6 @@ export function describeEvidenceRef(ref: ParsedEvidenceRef): string {
     case "nav":
       return `Navigation entry: ${ref.value}`;
     default:
-      return ref.value;
+      return ref.kind === "unknown" ? describeUnknownEvidenceRef(ref.value) : ref.value;
   }
 }

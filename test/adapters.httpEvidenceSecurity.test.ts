@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { HttpEvidenceProvider } from "@/adapters/evidence/HttpEvidenceProvider";
+import { DEFAULT_USER_AGENT, HttpEvidenceProvider } from "@/adapters/evidence/HttpEvidenceProvider";
 import { normalizeAndValidateUrl } from "@/adapters/evidence/urlPolicy";
 import { analyzeClient } from "@/pipeline/analyzeClient";
 import { ClientSchema, EvidenceBundleSchema, ServiceSchema } from "@/core/schema";
@@ -213,7 +213,11 @@ describe("HttpEvidenceProvider network policy", () => {
     expect(result.outcome).toBe("complete");
     const init = (fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0]?.[1] as RequestInit;
     expect(init.redirect).toBe("manual");
-    expect((init.headers as Record<string, string>)["user-agent"]).toMatch(/ClientGrowthBot/i);
+    const userAgent = (init.headers as Record<string, string>)["user-agent"]!;
+    expect(userAgent).toBe(DEFAULT_USER_AGENT);
+    // Identifiable and contactable: a bot with neither is treated as a scraper.
+    expect(userAgent).toMatch(/AxiomOrbitBot/);
+    expect(userAgent).toMatch(/\+https:\/\//);
   });
 
   it("records a blocked initial domain as network evidence without issuing a request", async () => {

@@ -6,9 +6,30 @@ BETTER_AUTH_SECRET=dev-only-change-me-to-32-plus-random-characters
 # Explicit, trusted base URL. Local dev = the wrangler dev origin.
 BETTER_AUTH_URL=http://localhost:8788
 
-# --- Password-reset email (required for an external pilot) ---
+# --- Email (REQUIRED: sign-in needs a verified address) ---
+# Sign-up refuses outright when neither of these is set, because an account
+# that can never receive its verification link can never be used.
+#
+# Local development without a Resend key: print the link to the console.
+# Production preflight rejects this variable, so it cannot escape.
+EMAIL_TRANSPORT=console
+# Real delivery (required for any external pilot):
 # RESEND_API_KEY=re_...
-# RESEND_FROM_EMAIL=Client Growth <auth@your-verified-domain.example>
+# RESEND_FROM_EMAIL=Axiom Orbit <auth@your-verified-domain.example>
+
+# --- Admission (who may create a workspace) ---
+# "invite" (default, and the default in code when unset) or "open".
+# Local development is normally "open" so you can sign yourself up.
+SIGNUP_MODE=open
+# Comma or space separated. Full addresses, or "@domain" for a whole domain.
+# SIGNUP_ALLOWLIST=owner@your-agency.example,@your-agency.example
+
+# --- Spend ceilings ---
+# Analyses one workspace may start per UTC day.
+# ANALYSIS_WORKSPACE_DAILY_LIMIT=50
+# Analyses EVERY workspace may start between them per UTC day. This is the only
+# limit that bounds the operator's own bill.
+# ANALYSIS_PLATFORM_DAILY_LIMIT=200
 
 # --- AI (opt-in) ---
 AI_PROVIDER=mock

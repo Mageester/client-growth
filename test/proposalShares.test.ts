@@ -338,7 +338,11 @@ describe("proposal share routes", () => {
   });
 
   it("renders proposal text as escaped React text and revokes every active link", async () => {
-    await repo.saveOpportunityProposalText(scopeA, "opp_a", "# Review\n\n**Saved terms**\n\n- First item\n- <script>alert(1)</script>");
+    await repo.saveOpportunityProposalText(
+      scopeA,
+      "opp_a",
+      "# Review\n\n**Saved terms**\n\n- First item\n- <script>alert(1)</script>\n\n## Evidence reviewed\n\n- https://client-a.example/services\n- images-without-alt:4\n- competitor:competitor.example",
+    );
     const created = await createProposalShare(scopeA, "opp_a", {
       createdByUserId: "u_a",
       preparedBy: "Avery Owner",
@@ -354,6 +358,17 @@ describe("proposal share routes", () => {
     expect(html).toContain("<h3>Review</h3>");
     expect(html).toContain("<strong>Saved terms</strong>");
     expect(html).toContain("<li>First item</li>");
+    expect(html).toMatch(/<li><a href="https:\/\/client-a\.example\/services"/);
+    expect(html).not.toContain("<li>https://client-a.example/services</li>");
+    expect(html).toContain("<li>4 images without alt text</li>");
+    expect(html).not.toContain("<li>images-without-alt:4</li>");
+    expect(html).toContain("<li>Competitor site: competitor.example</li>");
+    expect(html).not.toContain("<li>competitor:competitor.example</li>");
+    expect(html).toContain("Sources checked");
+    expect(html).not.toMatch(/<h3[^>]*>What was found<\/h3>/);
+    expect(html).not.toMatch(/<h3[^>]*>Why it matters<\/h3>/);
+    expect(html).toContain('href="https://client-a.example/services"');
+    expect(html).not.toContain("<li>https://client-a.example/services</li>");
 
     const result = (await call(opportunityDetail.action as never, {
       request: formReq({ intent: "revoke-shares" }),

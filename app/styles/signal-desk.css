@@ -2360,3 +2360,20 @@ a.record:hover .record-name {
     color: #111 !important;
   }
 }
+
+/* ---------------------------------------------------------------------------
+ * The break between the work worth selling and the site-health appendix.
+ *
+ * Nine of the eleven rules produce hygiene findings that every SEO crawler
+ * already gives away. They belong in the product — they are true, evidenced and
+ * billable — but not interleaved with the two or three findings that answer
+ * "what could we sell this client", which they outnumber roughly four to one on
+ * the real corpus. This rule is what stops the appendix from reading as the
+ * headline. It reuses the toolbar's own type scale rather than inventing a
+ * second heading style.
+ * ------------------------------------------------------------------------ */
+.signal-section-break {
+  margin-top: 36px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}

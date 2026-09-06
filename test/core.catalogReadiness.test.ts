@@ -5,6 +5,7 @@ import {
   RULE_SERVICE_LINKS,
   assessCatalogCoverage,
   serviceForRule,
+  RULES_PRODUCED_OUTSIDE_PIPELINE,
 } from "@/core/rules/registry";
 import { analyzeClient } from "@/pipeline/analyzeClient";
 import { MockEvaluator } from "@/adapters/evaluator/MockEvaluator";
@@ -61,7 +62,26 @@ function bundle(): EvidenceBundle {
 
 describe("rule/service registry", () => {
   it("covers every rule the pipeline actually runs", () => {
-    expect(RULE_SERVICE_LINKS).toHaveLength(allRules.length);
+    // Every rule `runRules` can produce must be priceable, or it can never
+    // surface. The reverse is deliberately NOT required: competitor-service-gap
+    // is produced by app/lib/competitors.server.ts rather than by the pipeline,
+    // because it needs several crawls rather than one evidence bundle. It still
+    // needs a catalog tag, a tier and a starter price, so it lives here.
+    expect(RULE_SERVICE_LINKS).toHaveLength(
+      allRules.length + RULES_PRODUCED_OUTSIDE_PIPELINE.length,
+    );
+  });
+
+  it("names every registry entry the pipeline cannot produce", () => {
+    // If this list grows, each addition should be a deliberate decision that a
+    // rule cannot be expressed as a function of ONE evidence bundle — not a
+    // rule that was added to the registry and then forgotten.
+    expect(RULES_PRODUCED_OUTSIDE_PIPELINE).toEqual(["competitor-service-gap"]);
+
+    const registered = new Set(RULE_SERVICE_LINKS.map((link) => link.ruleId));
+    for (const ruleId of RULES_PRODUCED_OUTSIDE_PIPELINE) {
+      expect(registered.has(ruleId), ruleId).toBe(true);
+    }
   });
 
   it("only matches an ACTIVE service", () => {

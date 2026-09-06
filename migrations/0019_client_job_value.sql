@@ -1,0 +1,13 @@
+-- What one typical job is worth to the client's own business.
+--
+-- Every finding is already priced at what the AGENCY charges, which tells the
+-- agency what to invoice and gives them nothing to say to the client. This is
+-- the other half of that conversation, and it is deliberately a number the
+-- agency types in rather than one the product estimates: the derived figures
+-- are arithmetic on it, so they inherit its provenance instead of inventing
+-- their own.
+--
+-- Nullable, and stays null for every existing client. A finding with no job
+-- value shows no payback line at all, which is the correct answer rather than
+-- a defaulted one.
+ALTER TABLE clients ADD COLUMN average_job_value REAL;

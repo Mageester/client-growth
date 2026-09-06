@@ -103,6 +103,27 @@ describe("evidence ref parsing", () => {
     expect(describeEvidenceRef(parseEvidenceRef("status:404"))).toBe("Server response: HTTP 404");
     expect(describeEvidenceRef(parseEvidenceRef("element:tel:x"))).toBe("Broken element: tel:x");
   });
+
+  it("describes deterministic observation metrics instead of leaking storage tokens", () => {
+    expect(describeEvidenceRef(parseEvidenceRef("images-without-alt:4"))).toBe(
+      "4 images without alt text",
+    );
+    expect(describeEvidenceRef(parseEvidenceRef("word-count:12"))).toBe("Observed word count: 12");
+    expect(describeEvidenceRef(parseEvidenceRef("title:missing"))).toBe("No page title observed");
+    expect(describeEvidenceRef(parseEvidenceRef("h1:missing"))).toBe("No H1 heading observed");
+    expect(describeEvidenceRef(parseEvidenceRef("meta-description:missing"))).toBe(
+      "No meta description observed",
+    );
+    expect(
+      describeEvidenceRef(parseEvidenceRef("structured-data:localbusiness-or-service-missing")),
+    ).toBe("No LocalBusiness or Service structured data observed");
+  });
+
+  it("describes competitor provenance without exposing its storage tag", () => {
+    expect(describeEvidenceRef(parseEvidenceRef("competitor:competitor.example"))).toBe(
+      "Competitor site: competitor.example",
+    );
+  });
 });
 
 describe("evidence panel", () => {

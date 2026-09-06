@@ -122,6 +122,8 @@ export function MarketingFooter() {
         </div>
         <nav aria-label="Footer navigation" className="marketing-footer-nav">
           <Link to="/product">Product</Link>
+          <Link to="/privacy">Privacy</Link>
+          <Link to="/terms">Terms</Link>
           <Link to="/signup">Request access</Link>
           <Link to="/login">Sign in</Link>
         </nav>

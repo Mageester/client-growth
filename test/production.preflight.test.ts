@@ -3,7 +3,12 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { stripJsonComments, validateProductionConfig } from "../scripts/production-preflight";
+import { SIGNUP_MODES } from "@/core/signupAccess";
+import {
+  productionConfigWarnings,
+  stripJsonComments,
+  validateProductionConfig,
+} from "../scripts/production-preflight";
 
 const configPath = join(process.cwd(), "wrangler.jsonc");
 
@@ -171,9 +176,73 @@ describe("production Wrangler configuration", () => {
       );
     }
   });
+
+  it("requires production to state who may sign up, rather than inheriting a default", () => {
+    const config = clone(readConfig());
+    expect(validateProductionConfig(config)).toEqual([]);
+
+    delete config.env.production.vars.SIGNUP_MODE;
+    expect(validateProductionConfig(config)).toEqual(
+      expect.arrayContaining([expect.stringMatching(/SIGNUP_MODE/)]),
+    );
+
+    for (const value of ["OPEN", "public", "closed", ""]) {
+      const broken = clone(readConfig());
+      broken.env.production.vars.SIGNUP_MODE = value;
+      expect(validateProductionConfig(broken), value).toEqual(
+        expect.arrayContaining([
+          expect.stringMatching(/SIGNUP_MODE must be "open" or "invite"/),
+        ]),
+      );
+    }
+  });
+
+  it("requires a declared platform ceiling on paid analysis", () => {
+    const config = clone(readConfig());
+    delete config.env.production.vars.ANALYSIS_PLATFORM_DAILY_LIMIT;
+    expect(validateProductionConfig(config)).toEqual(
+      expect.arrayContaining([expect.stringMatching(/ANALYSIS_PLATFORM_DAILY_LIMIT/)]),
+    );
+
+    for (const value of ["0", "-1", "20000", "lots", "2.5"]) {
+      const broken = clone(readConfig());
+      broken.env.production.vars.ANALYSIS_PLATFORM_DAILY_LIMIT = value;
+      expect(validateProductionConfig(broken), value).toEqual(
+        expect.arrayContaining([
+          expect.stringMatching(/ANALYSIS_PLATFORM_DAILY_LIMIT must be a whole number/),
+        ]),
+      );
+    }
+  });
+
+  it("says out loud what the worst paid day costs, and warns when signup is open", () => {
+    const config = clone(readConfig());
+    expect(productionConfigWarnings(config)).toEqual([
+      expect.stringMatching(/2000 \(200 analyses x 10 calls\)/),
+    ]);
+
+    config.env.production.vars.SIGNUP_MODE = "open";
+    const warnings = productionConfigWarnings(config);
+    expect(warnings).toEqual(
+      expect.arrayContaining([expect.stringMatching(/anyone with an email address/)]),
+    );
+    // A warning is not a failure: someone may mean it. It must not be silent.
+    expect(validateProductionConfig(config)).toEqual([]);
+  });
+
+  it("keeps the preflight's copy of the signup modes in step with the domain", () => {
+    // The script cannot import the app, so the list is duplicated. This is the
+    // thing that notices when the two drift apart.
+    const config = clone(readConfig());
+    for (const mode of SIGNUP_MODES) {
+      const candidate = clone(config);
+      candidate.env.production.vars.SIGNUP_MODE = mode;
+      expect(validateProductionConfig(candidate), mode).toEqual([]);
+    }
+  });
 });
 
-/** The parts of wrangler.jsonc these two cases mutate. */
+/** The parts of wrangler.jsonc these cases mutate. */
 interface MutableConfig {
   triggers?: { crons?: string[] };
   env: {

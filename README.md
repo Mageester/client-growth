@@ -69,6 +69,98 @@ deterministic rules            (missing-service-page, broken-conversion-path)
 
 `AI_PROVIDER` defaults to `mock`. Nothing costs money unless the environment opts in.
 
+## Admission and spend ceilings
+
+Two separate questions, both of which have to be answered on purpose:
+
+**Who may create a workspace** — `SIGNUP_MODE` is `invite` by default
+(`src/core/signupAccess.ts`). Self-serve signup, metered paid analysis and no way
+to charge is a bill with strangers' names on it, so admission is a decision
+somebody makes: `SIGNUP_ALLOWLIST` admits named addresses or whole domains
+(`@agency.example`), and anyone holding a live team invitation is admitted
+without being listed. Delete the gate the day billing exists.
+
+**How much the whole service may spend in a day** — the per-workspace cap of 50
+analyses bounds one tenant and says nothing about how many tenants there are, so
+`ANALYSIS_PLATFORM_DAILY_LIMIT` (200) bounds all of them together. Crossing it
+pauses paid work for everyone until UTC midnight, which is the right failure for
+a runaway bill. `pnpm production:preflight` prints the worst-case paid call count
+for the configured values on every deploy, and refuses to deploy unless both
+`SIGNUP_MODE` and `ANALYSIS_PLATFORM_DAILY_LIMIT` are declared explicitly.
+
+## Competitors
+
+The only rule that reads a site the client does not own, and the answer to a measured problem:
+across 24 real sites the engine produced four commercially sellable findings, because a tidy
+small-business website does not contain many more billable observations. A competitor's website
+does.
+
+An agency names up to three competitors per client. A comparison crawls them, extracts what each
+one sells pages for, and reports services **two or more** of them have that the client has neither
+a page nor a recorded offering for. One competitor having a page is that competitor's choice; two
+is a pattern. An unreadable competitor is excluded from the count entirely rather than voting
+"does not have it", and when too few could be read the result is a stated limitation rather than
+"no gaps found" — which would read as "your client is level with the market".
+
+It is a separate, explicit action rather than part of every analysis: one comparison crawls up to
+three whole sites, so folding it in would triple the cost of the most-pressed button in the app,
+invisibly. It takes a slot from the same daily ledger, and every gap passes the same judgment gate
+as a missing service page — a label scraped from a competitor's navigation is no more trustworthy
+than one typed into an offerings box.
+
+`src/core/competitorGaps.ts` (pure), `app/lib/competitors.server.ts` (orchestration),
+`src/db/competitors.ts` (storage).
+
+## What leads the queue
+
+Eleven rules, but they do not all answer the same question, and treating them as
+if they did is what made the product feel like a free tool with a login.
+
+**Commercial** (`missing-service-page`, `no-service-pages`,
+`broken-conversion-path`) answer *what could this agency sell this client*. They
+depend on knowing what the client's business sells — which comes from the
+offerings the agency recorded, and which no crawler has.
+
+**Site health** (titles, duplicate titles, thin pages, H1s, internal links, meta
+descriptions, structured data, image alt) are hygiene. They are true, evidenced
+and billable, and they are also what Screaming Frog, Lighthouse and every SEO
+suite already give away. On the real 24-site corpus they outnumber the commercial
+findings **24 to 6** — interleaved in one list, a broken internal link led and
+"no page for water heater replacement" sat six rows down.
+
+So `tierForRule` (`src/core/rules/registry.ts`) separates them, and the
+commercial tier always leads whatever the win rates say. The appendix is still
+there; it is just no longer the headline.
+
+## Two numbers that are not the same number
+
+Every finding is priced from the agency's own catalog — that is what the AGENCY
+charges, and it tells them what to invoice.
+
+`Client.averageJobValue` is the other half: what one typical job is worth to
+*that client's business*, entered by the agency. From it,
+`src/core/clientValue.ts` derives one sentence — "Pays for itself with one job."
+It is division and a ceiling, nothing else. There is no traffic model, no market
+estimate and no multiplier, because a confident-sounding invented number is
+precisely what the judgment gate exists to keep out; the calibration run that
+deleted model confidence scores is the precedent. No recorded job value means no
+sentence, not a default.
+
+## What the agency actually sells
+
+`sold` is a first-class opportunity status carrying an optional amount. It is
+distinct from `dismissed` (declined), `already_covered` (in the contract) and
+`resolved` (the client fixed it themselves) — only one of those is a win, and
+conflating them would destroy the measurement.
+
+`src/core/winRates.ts` counts sold against decided, per rule, and orders the
+queue by what *this* agency converts rather than by what a rule happens to price
+highly. It is descriptive: a rule with two outcomes reports "2 of 2", never
+"100%", and a rule nobody has tried inherits its tier's observed rate rather than
+sorting as though it had been rejected. Settings → Check health shows the
+history. A sold finding is suppressed from re-analysis, so paid-for work never
+returns to the queue and a re-run cannot overwrite the record of the win.
+
 ## The judgment gate
 
 The deterministic rules answer "is there evidence?". They cannot answer the
@@ -142,8 +234,15 @@ Copy `.dev.vars.example` to `.dev.vars` (git-ignored) and set:
 
 - `BETTER_AUTH_SECRET` — 32+ random chars (`openssl rand -base64 32`)
 - `BETTER_AUTH_URL` — the wrangler dev origin, e.g. `http://localhost:8976`
-- `RESEND_API_KEY` — Resend API key; required for password-reset email delivery
-- `RESEND_FROM_EMAIL` — verified Resend sender, e.g. `Axiom Orbit <auth@your-verified-domain.example>`
+- `EMAIL_TRANSPORT=console` — prints verification/reset links to the server log
+  instead of sending them. **Sign-up refuses outright when no transport is
+  configured**, because email verification is required to sign in and an account
+  that can never receive its link is an account nobody can ever use. Production
+  preflight rejects this variable, so the development transport cannot escape.
+- `RESEND_API_KEY` / `RESEND_FROM_EMAIL` — real delivery; required for any
+  external pilot. Set both or neither.
+- `SIGNUP_MODE=open` locally. It defaults to `invite` **in code**, so an
+  environment that says nothing is closed rather than open.
 - optionally `AI_PROVIDER=deepseek` + `DEEPSEEK_API_KEY=...` for real evaluations
 
 Then `pnpm db:migrate:local && pnpm db:seed:local && pnpm dev`, and sign up at
@@ -171,6 +270,12 @@ pnpm deploy:production
 Monitoring is opt-in per client and defaults to `off`, including for every client
 that already exists. Nothing is scanned in the background until someone turns it
 on from the client's page.
+
+Each completed analysis also stores the service labels the crawl suggests. The
+first exhaustive crawl is a silent baseline; a later exhaustive scheduled crawl
+can show newly observed labels in the weekly Portfolio changes view. Manual and
+incomplete crawls never emit drift, and these advisory labels never become
+opportunities or pricing.
 
 ```
 cron (hourly)  ->  scheduled()  ->  runMonitoringTick()
@@ -210,7 +315,9 @@ Locally: `wrangler dev --test-scheduled`, then `curl -X POST localhost:8788/__sc
 - **Commercial judgment layer** — structured `subjectType` /
   `commerciallyActionable` contract with a fail-closed gate, plus a 37-case
   adversarial judgment benchmark (true services, trust signals, promotions,
-  generic claims, ambiguous edges). Production still runs `AI_PROVIDER=mock`.
+  generic claims, ambiguous edges). Local verification keeps `AI_PROVIDER=mock`;
+  the production Wrangler environment is explicitly configured for DeepSeek and
+  incurs provider spend when production analyses run.
 - **Rule #1** `missing-service-page` — V0 complete (absence verification + crawl-coverage gate).
 - **Rule #2** `broken-conversion-path` — V0 complete (dead CTA / broken form / malformed `tel:` / placeholder booking link, all deterministically established before AI).
 - **Multi-tenancy** — Better Auth + per-workspace isolation enforced at the repo
@@ -222,8 +329,28 @@ Locally: `wrangler dev --test-scheduled`, then `curl -X POST localhost:8788/__sc
 - **Recurring monitoring** — opt-in per client (`off` / `weekly`), hourly
   scheduler, bounded batches, claim-based duplicate prevention, bounded failure
   backoff, and change detection (new / still open / resolved) recorded on every
-  run. Ships with monitoring **off for every existing client**; canary first.
+  run. Exhaustive scheduled runs also surface newly observed service labels in
+  Home's weekly changes view; those labels remain advisory. Ships with
+  monitoring **off for every existing client**; canary first.
 
-Not built: Stripe/billing, pricing enforcement, team invites/RBAC, email
-verification, client portal, autonomous outreach, Morrow execution, email or
-Slack digests, a third opportunity rule.
+- **Crawler courtesy** — identifies itself as `AxiomOrbitBot` with a contact
+  address, reads and obeys `robots.txt` before requesting any page, and enforces
+  it in absence verification and link probes too, where ignoring it would
+  manufacture a false "this page is missing" or "this link is broken". A
+  disallowed page is recorded as blocked, never as clean. Zero change to the
+  24-site corpus.
+- **Admission and spend** — invite-only signup by default, a platform-wide daily
+  analysis ceiling, and a preflight that refuses to deploy unless both are stated
+  explicitly.
+
+Not built: Stripe/billing, pricing enforcement, RBAC beyond owner/member, client
+portal, autonomous outreach, Morrow execution, email or Slack digests, a third
+commercial opportunity rule.
+
+Current handoff: [docs/HANDOFF-2026-09-06.md](docs/HANDOFF-2026-09-06.md) — what shipped, the
+two agreed features that are not built yet, and how to work on this codebase.
+
+Before an external pilot, read [docs/legal-review.md](docs/legal-review.md),
+[docs/backup-and-restore.md](docs/backup-and-restore.md) and
+[docs/alerting.md](docs/alerting.md) — each records something that is configured
+outside this repository and is currently unset.

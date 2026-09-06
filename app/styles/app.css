@@ -3747,8 +3747,23 @@ a.ev-title:hover {
 
 @media (max-width: 640px) {
   .detail.detail-narrow.proposal-share-page {
+    box-sizing: border-box;
     width: calc(100% - 24px);
+    max-width: 100%;
+    min-width: 0;
     padding-top: 1.5rem;
+  }
+
+  .proposal-share-page .section,
+  .proposal-share-page .case,
+  .proposal-share-page .case-block,
+  .proposal-share-page .scope-list,
+  .proposal-share-page .scope-list li,
+  .proposal-share-page .proposal-share-copy {
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
   }
 
   .proposal-share-brand {
@@ -3764,4 +3779,18 @@ a.ev-title:hover {
   .proposal-share-copy {
     padding: 1rem;
   }
+}
+
+/* ---------------------------------------------------------------------------
+ * Adding a competitor: two short fields and a button on one line, wrapping to
+ * their own rows on a narrow screen rather than squeezing to unusable widths.
+ * ------------------------------------------------------------------------ */
+.competitor-add {
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.competitor-add input {
+  flex: 1 1 12rem;
+  min-width: 0;
 }

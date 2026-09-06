@@ -1,7 +1,10 @@
 import { Form, Link, redirect } from "react-router";
 
+import { decideSignup, parseSignupPolicy } from "@/core/signupAccess";
+import { hasPendingInvitationForEmail } from "@/db/teamInvitations";
 import { createWorkspaceForOwner, newWorkspaceId } from "@/db/workspaces";
 import { getAuth, getTrustedAuthBaseURL } from "../lib/auth.server";
+import { canDeliverEmail } from "../lib/resend.server";
 import { getSession } from "../lib/session.server";
 import { d1Db } from "../lib/d1.server";
 import { AxiomCredit, BrandLockup, Icon } from "../components/ui";
@@ -25,7 +28,11 @@ export function meta() {
 export async function loader({ request, context }: Route.LoaderArgs) {
   const returnTo = safeReturnTo(new URL(request.url).searchParams.get("returnTo"));
   if (await getSession(request, context)) throw redirect(returnTo ?? "/");
-  return { returnTo };
+  // Say so on the page rather than only after the form is filled in. An
+  // invited colleague still gets the form: their invitation is checked on
+  // submit, against the address they actually type.
+  const policy = parseSignupPolicy(context.cloudflare.env as never);
+  return { returnTo, publicSignup: policy.mode === "open" };
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
@@ -39,6 +46,34 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   if (!email || !password || !workspaceName) return { error: "Fill in every field." };
   if (password.length < 8) return { error: "Use a password of at least 8 characters." };
+
+  // Admission to the product, checked before Better Auth creates anything. An
+  // invited colleague passes on the invitation their owner already sent them.
+  const policy = parseSignupPolicy(context.cloudflare.env as never);
+  const decision = decideSignup({
+    policy,
+    email,
+    hasPendingInvitation:
+      policy.mode === "open"
+        ? false
+        : await hasPendingInvitationForEmail(d1Db(context.cloudflare.env.DB as never), email),
+  });
+  if (!decision.allowed) return { error: decision.reason };
+
+  // Signing in REQUIRES a verified email, so an environment that cannot send
+  // one cannot create a usable account — it creates a dead one, silently, with
+  // no way back for the person holding it. Refuse before Better Auth writes a
+  // user row, and make the cause loud where an operator will see it.
+  if (!canDeliverEmail(context.cloudflare.env as never)) {
+    console.error(
+      "[auth] sign-up refused: no email transport is configured, so the required " +
+        "verification email cannot be sent. Set RESEND_API_KEY and RESEND_FROM_EMAIL.",
+    );
+    return {
+      error:
+        "Account creation is temporarily unavailable. Nothing was created — please try again shortly.",
+    };
+  }
 
   const auth = getAuth(context.cloudflare.env as never);
   let cookie: string | null = null;
@@ -92,6 +127,15 @@ export default function Signup({ loaderData, actionData }: Route.ComponentProps)
       <p className="auth-sub">
         Create a workspace for the client sites you already look after.
       </p>
+      {!loaderData.publicSignup && (
+        <div className="notice" role="status" style={{ marginTop: "1.25rem", marginBottom: 0 }}>
+          <Icon name="alert" size={15} />
+          <span>
+            Axiom Orbit is invitation-only right now. If a colleague invited you, use the
+            address the invitation was sent to.
+          </span>
+        </div>
+      )}
       {actionData?.error && (
         <div className="notice err" role="alert" style={{ marginTop: "1.25rem", marginBottom: 0 }}>
           <Icon name="alert" size={15} />

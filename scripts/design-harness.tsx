@@ -30,6 +30,8 @@ import Changes from "../app/routes/changes";
 import OpportunitiesIndex from "../app/routes/opportunities._index";
 import Login from "../app/routes/login";
 import Operations from "../app/routes/operations";
+import { tierForRule } from "../src/core/rules/registry";
+import { jobsToPayback, paybackSentence } from "../src/core/clientValue";
 import ProposalShare from "../app/routes/proposal.share";
 import { assessAnalysisReadiness } from "@/core/analysisReadiness";
 import { TOUR_STEPS } from "../app/components/tour";
@@ -268,6 +270,30 @@ const opportunitiesScreen = h(OpportunitiesIndex, {
       state: enrichedClients.find((entry) => entry.id === client.id)!.state,
     })),
     serviceName: Object.fromEntries(services.map((service) => [service.id, service.name])),
+    // A workspace with a short sales history: enough for the queue to be
+    // ordered by evidence rather than by price alone.
+    winRates: [
+      {
+        ruleId: "missing-service-page",
+        tier: "commercial",
+        decided: 8,
+        sold: 6,
+        soldValue: 8700,
+        valuedSales: 6,
+        rate: 0.75,
+        averageSale: 1450,
+      },
+      {
+        ruleId: "missing-image-alt",
+        tier: "health",
+        decided: 5,
+        sold: 0,
+        soldValue: 0,
+        valuedSales: 0,
+        rate: 0,
+        averageSale: null,
+      },
+    ],
     monitoring: {
       monitored: 0,
       due: 0,
@@ -382,11 +408,22 @@ function corpusScreens(): Record<string, { nav: string; node: ReactNode }> {
     };
   });
 
-  const corpusEntries: SignalDeskEntry[] = fixture.candidates.map((row) => ({
+  const allCorpusEntries: SignalDeskEntry[] = fixture.candidates.map((row) => ({
     client: { id: row.clientId, name: row.clientName, domain: row.clientDomain },
     opportunity: row.opportunity,
     serviceName: row.serviceName,
   }));
+  // Split exactly as the real route does. Before this, the harness showed one
+  // mixed list in which a broken internal link led and the two "no page for
+  // water heater replacement" findings sat six rows down behind duplicate
+  // titles and missing meta descriptions — a faithful picture of the bug, and
+  // a misleading picture of the product now that the route no longer does it.
+  const corpusEntries = allCorpusEntries.filter(
+    (entry) => tierForRule(entry.opportunity.ruleId) === "commercial",
+  );
+  const corpusHealthEntries = allCorpusEntries.filter(
+    (entry) => tierForRule(entry.opportunity.ruleId) === "health",
+  );
 
   const readable = fixture.clients.filter((c) => c.outcome !== "inconclusive").length;
 
@@ -422,7 +459,7 @@ function corpusScreens(): Record<string, { nav: string; node: ReactNode }> {
               h(
                 "span",
                 null,
-                `${readable} of ${fixture.clients.length} real sites analyzed · ranked by potential value`,
+                `${readable} of ${fixture.clients.length} real sites analyzed · ${corpusEntries.length} worth selling, ${corpusHealthEntries.length} site-health checks`,
               ),
             ),
           ),
@@ -447,6 +484,38 @@ function corpusScreens(): Record<string, { nav: string; node: ReactNode }> {
             }),
           ),
         ),
+        corpusHealthEntries.length > 0
+          ? h(
+              "section",
+              { className: "signal-section-break" },
+              h(
+                "div",
+                { className: "feed-head-copy" },
+                h("h2", null, "Site health"),
+                h(
+                  "div",
+                  { className: "feed-head-meta" },
+                  h(
+                    "span",
+                    null,
+                    `${corpusHealthEntries.length} checks worth fixing — titles, headings, descriptions and links. Supporting work rather than the reason to call.`,
+                  ),
+                ),
+              ),
+              h(
+                "ul",
+                { className: "signal-list" },
+                corpusHealthEntries.map((entry) =>
+                  h(OpportunitySignalRow, {
+                    key: entry.opportunity.id,
+                    entry,
+                    selected: false,
+                    selectHref: "#",
+                  }),
+                ),
+              ),
+            )
+          : null,
       ),
       corpusEntries[0]
         ? h(OpportunityInspector, { entry: corpusEntries[0], closeHref: "#" })
@@ -484,6 +553,13 @@ const clientDetailScreen = h(ClientDetail, {
     firstRunFailed: false,
     readiness: assessAnalysisReadiness({ catalog: services, offerings: 0 }),
     suggestions: [],
+    // A client with two competitors named: the state where the Compare control
+    // is live and the comparison would actually be allowed to draw a conclusion.
+    competitors: [
+      { id: "cmp_1", clientId: thinClient.id, name: "Northwind Roofing", domain: "northwindroofing.co.uk", createdAt: "2026-09-01T00:00:00.000Z" },
+      { id: "cmp_2", clientId: thinClient.id, name: "Cotswold Roofline", domain: "cotswoldroofline.co.uk", createdAt: "2026-09-01T00:00:00.000Z" },
+    ],
+    maxCompetitors: 3,
     hasEvidence: false,
     state: "never",
   },
@@ -561,6 +637,12 @@ const screens: Record<string, { nav: string; node: ReactNode; bare?: boolean; st
       current:{checks:10,clean:1,findings:3,inconclusive:6,evaluatorErrors:2,evaluatorCalls:14},previous:{checks:10,clean:4,findings:5,inconclusive:1,evaluatorErrors:0,evaluatorCalls:12},
       rate:0.6,previousRate:0.1,alert:"Axiom Orbit could not fully assess 6 of 10 checks this week. Review client setup and recent check results before relying on this portfolio.",
       incompleteStarts:1,failedStarts:1,recentErrors:[{id:1,clientName:"Halton Plumbing",finishedAt:"2026-09-04T10:00:00.000Z",outcome:"inconclusive",summary:"This site could not be read well enough to assess.",evaluatorErrors:0}],
+      email:{deliverable:true,detail:"Verification and password-reset email is configured."},
+      sales:{totalSold:7,totalSoldValue:9400,rows:[
+        {ruleId:"missing-service-page",label:"A missing service page",tier:"commercial",decided:8,sold:6,averageSale:1450},
+        {ruleId:"broken-conversion-path",label:"A broken conversion path",tier:"commercial",decided:2,sold:1,averageSale:700},
+        {ruleId:"missing-image-alt",label:"Add missing image alt attributes",tier:"health",decided:5,sold:0,averageSale:null},
+      ]},
     }} as never),
   },
   home: {
@@ -577,7 +659,7 @@ const screens: Record<string, { nav: string; node: ReactNode; bare?: boolean; st
       summary:{checks:3,clientsChecked:2,newFindings:2,resolvedFindings:1,inconclusive:1},
       runs:[
         {id:3,clientId:"c2",clientName:"Halton Plumbing",finishedAt:"2026-09-04T10:00:00.000Z",outcome:"inconclusive",summary:"This site could not be read well enough to assess.",trigger:"scheduled",newCount:0,resolvedCount:0},
-        {id:2,clientId:"c1",clientName:"Northwind Heating",finishedAt:"2026-09-03T10:00:00.000Z",outcome:"findings",summary:"2 evidence-backed opportunities found.",trigger:"scheduled",newCount:2,resolvedCount:1},
+        {id:2,clientId:"c1",clientName:"Northwind Heating",finishedAt:"2026-09-03T10:00:00.000Z",outcome:"findings",summary:"2 evidence-backed opportunities found.",trigger:"scheduled",newCount:2,resolvedCount:1,offeringDrift:["Heat Pump Servicing"]},
       ],
       findings:[{id:"o1",clientId:"c1",clientName:"Northwind Heating",title:"Broken appointment link",status:"resolved"}],
     }} as never),
@@ -642,10 +724,18 @@ const screens: Record<string, { nav: string; node: ReactNode; bare?: boolean; st
     node: h(OpportunityDetail, {
       loaderData: {
         opportunity: opportunities[0]!,
-        client: clients[0]!,
+        client: { ...clients[0]!, averageJobValue: 4000 },
         service: services[0]!,
         lastRunAt: "2026-09-01T09:00:00.000Z",
         evidence: buildEvidenceCase(opportunities[0]!),
+        // Present only because this fixture's client has a recorded job value.
+        payback: paybackSentence(
+          jobsToPayback({
+            priceMin: opportunities[0]!.priceMin,
+            priceMax: opportunities[0]!.priceMax,
+            averageJobValue: 4000,
+          }),
+        ),
       },
     } as never),
   },

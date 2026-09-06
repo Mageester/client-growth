@@ -49,7 +49,15 @@ export function judge(candidate: Candidate, evaluation: Evaluation): JudgmentDec
     return { surface: false, reason: "evaluator judged it not commercially actionable" };
   }
 
-  if (candidate.ruleId === "missing-service-page") {
+  // Both rules put a SUBJECT in front of a client and price a page for it, and
+  // in both cases the subject is text scraped from a free-text source — the
+  // agency's offerings box for one, a competitor's own navigation for the
+  // other. "Fully insured" priced as a landing page is the same mistake
+  // whichever site it was read from, so both face the same classification.
+  if (
+    candidate.ruleId === "missing-service-page" ||
+    candidate.ruleId === "competitor-service-gap"
+  ) {
     const subjectType = evaluation.subjectType;
     if (subjectType === undefined) {
       // Fail closed: an evaluator that does not classify the subject has not

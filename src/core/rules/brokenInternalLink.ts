@@ -1,6 +1,7 @@
 import type { Candidate, EvidenceLink } from "@/core/schema";
 import type { ProbeResult } from "@/ports/EvidenceProvider";
 import type { RuleContext } from "@/core/rules/context";
+import { isPlatformInfrastructurePath } from "@/core/siteStructure";
 import { serviceForRule } from "@/core/rules/registry";
 import { classifyConversionLink } from "@/core/conversionIntent";
 import { crawlKey, isSameSite, normalizeAndValidateUrl } from "@/adapters/evidence/urlPolicy";
@@ -67,6 +68,11 @@ export async function brokenInternalLinkRule(ctx: RuleContext): Promise<Candidat
     if (!target) continue;
     const parsedTarget = new URL(target);
     if (!isSameSite(parsedTarget, base)) continue;
+    // Never probe, and never report, a path the hosting platform injected. See
+    // isPlatformInfrastructurePath: the one broken link this rule found across
+    // 24 real sites was Cloudflare's email-obfuscation endpoint, which 404s to
+    // a bot and works for every human.
+    if (isPlatformInfrastructurePath(target)) continue;
 
     const key = crawlKey(target);
     const crawled = pageByUrl.get(key);

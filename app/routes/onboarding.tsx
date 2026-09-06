@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Form, redirect, useNavigation } from "react-router";
+import { Form, Link, redirect, useNavigation } from "react-router";
 
 import * as repo from "@/db/repositories";
 import { ClientSchema, ServiceSchema, type RuleId } from "@/core/schema";
@@ -16,7 +16,11 @@ import { Icon } from "../components/ui";
 import { OfferingGuidance } from "../components/offering-guidance";
 import { d1Db } from "../lib/d1.server";
 import { requireSession } from "../lib/session.server";
-import { collectEvidenceOnly, runAnalysis } from "../lib/analysis.server";
+import {
+  AnalysisAbortedError,
+  collectEvidenceOnly,
+  runAnalysis,
+} from "../lib/analysis.server";
 import { isAnalysisLimitExceeded, type AnalysisLimit } from "@/db/analysisLimits";
 import {
   normalizeDomain,
@@ -81,6 +85,15 @@ const STARTER_DEFAULTS: Record<
     min: 2500,
     max: 6000,
     when: "a client's whole website never describes anything they sell",
+  },
+  "competitor-service-gap": {
+    field: "competitorgap",
+    name: "Competitor Gap Page",
+    // The deliverable is the same artefact as a service landing page, so the
+    // band matches it. What differs is the argument for buying it, not the work.
+    min: 900,
+    max: 1800,
+    when: "two or more of a client's competitors sell something the client has no page for",
   },
   "broken-conversion-path": {
     field: "conversion",
@@ -257,9 +270,10 @@ export async function action({ request, context }: Route.ActionArgs) {
 
     if (intent === "reread") {
       try {
-        await collectEvidenceOnly(scope, client.id);
+        await collectEvidenceOnly(scope, client.id, request.signal);
         return redirect("/onboarding?client=" + client.id);
-      } catch {
+      } catch (err) {
+        if (err instanceof AnalysisAbortedError) return { error: err.message };
         return redirect("/onboarding?client=" + client.id + "&read=failed");
       }
     }
@@ -286,12 +300,13 @@ export async function action({ request, context }: Route.ActionArgs) {
     // says what happened and offers a retry, instead of dropping the user on an
     // empty feed with no explanation.
     try {
-      await runAnalysis(scope, env as never, client.id);
+      await runAnalysis(scope, env as never, client.id, { signal: request.signal });
       return redirect("/opportunities?client=" + client.id);
     } catch (err) {
       if (isAnalysisLimitExceeded(err)) {
         return { error: err.reason, limitation: err.limitation };
       }
+      if (err instanceof AnalysisAbortedError) return { error: err.message };
       return redirect("/clients/" + client.id + "?firstRun=failed");
     }
   }
@@ -366,9 +381,10 @@ export async function action({ request, context }: Route.ActionArgs) {
   // be read is never left looking analyzed. A failure is carried to stage two
   // and said out loud there rather than retried silently or hidden.
   try {
-    await collectEvidenceOnly(scope, client.id);
+    await collectEvidenceOnly(scope, client.id, request.signal);
     return redirect("/onboarding?client=" + client.id);
-  } catch {
+  } catch (err) {
+    if (err instanceof AnalysisAbortedError) return { error: err.message };
     return redirect("/onboarding?client=" + client.id + "&read=failed");
   }
 }
@@ -397,7 +413,7 @@ function Steps({ current }: { current: 0 | 1 | 2 }) {
  * that nothing is being judged yet. No page counter ticks up here, because
  * there is no page count to read.
  */
-function ReadingSite({ domain }: { domain: string }) {
+function ReadingSite({ domain, stopHref }: { domain: string; stopHref: string }) {
   return (
     <div className="runcard running readingcard" role="status" aria-live="polite">
       <span className="runcard-mark">
@@ -413,6 +429,9 @@ function ReadingSite({ domain }: { domain: string }) {
         <span className="runbar" aria-hidden="true">
           <span />
         </span>
+        <Link className="btn btn-sm run-cancel" to={stopHref} replace>
+          Stop reading
+        </Link>
       </div>
     </div>
   );
@@ -475,7 +494,7 @@ function SetupStage({ hasWorkspace, error }: { hasWorkspace: boolean; error?: st
 
       <ErrorNotice error={error} />
 
-      {submitting && <ReadingSite domain={normalizeDomain(domain)} />}
+      {submitting && <ReadingSite domain={normalizeDomain(domain)} stopHref="/opportunities" />}
 
       <Form method="post" hidden={submitting}>
         {!hasWorkspace && (
@@ -881,6 +900,9 @@ function ConfirmStage({
                 <span className="runbar" aria-hidden="true">
                   <span />
                 </span>
+                <Link className="btn btn-sm run-cancel" to={`/clients/${client.id}`} replace>
+                  Stop reading
+                </Link>
               </div>
             </div>
           ) : (

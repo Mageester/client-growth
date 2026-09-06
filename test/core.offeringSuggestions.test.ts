@@ -272,6 +272,41 @@ describe("what must never be suggested", () => {
 
     expect(labels(evidence)).toEqual([]);
   });
+
+  it("does not turn registry records or generic marketing CTAs into services", () => {
+    const evidence = bundle({
+      pages: [
+        {
+          url: "https://www.iana.org/dnssec/procedures",
+          h1s: ["Policies & Procedures"],
+        },
+        {
+          url: "https://www.iana.org/domains/root/db/build.html",
+          h1s: ["Delegation Record for .BUILD"],
+        },
+      ],
+      links: [
+        {
+          href: "https://www.iana.org/dnssec/procedures",
+          label: "Policies & Procedures",
+        },
+        {
+          href: "https://www.iana.org/domains/root/db/build.html",
+          label: "Delegation Record for .BUILD",
+        },
+        { href: "https://x.example/services/see-solution", label: "See solution" },
+        { href: "https://x.example/solutions/ai", label: "Build without boundaries" },
+        { href: "https://x.example/services/build-a-website", label: "Build a Website" },
+      ],
+    });
+
+    const result = labels(evidence);
+    expect(result).not.toContain("Policies & Procedures");
+    expect(result).not.toContain("Delegation Record for .BUILD");
+    expect(result).not.toContain("See solution");
+    expect(result).not.toContain("Build without boundaries");
+    expect(result).toContain("Build a Website");
+  });
 });
 
 /**

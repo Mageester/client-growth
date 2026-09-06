@@ -124,6 +124,76 @@ describe("every analysis persists a truthful outcome", () => {
     expect(["findings", "clean"]).toContain(run!.outcome);
   });
 
+  it("records suggestion snapshots and announces new offerings only after an exhaustive baseline", async () => {
+    let includeNewOffering = false;
+    const driftSiteFetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input));
+      if (url.pathname === "/robots.txt" || url.pathname === "/sitemap.xml") {
+        return new Response("", { status: 404 });
+      }
+      if (url.pathname === "/") {
+        return new Response(
+          `<!doctype html><html><head><title>Cool Air</title></head><body>
+            <h1>Cool Air Heating</h1><a href="/services">Services</a>
+            <p>${"We service homes across the county. ".repeat(30)}</p>
+          </body></html>`,
+          { status: 200, headers: { "content-type": "text/html" } },
+        );
+      }
+      if (url.pathname === "/services") {
+        return new Response(
+          `<!doctype html><html><head><title>Services</title></head><body>
+            <h1>Our services</h1>
+            <a href="/services/duct-cleaning">Duct Cleaning</a>
+            ${includeNewOffering ? '<a href="/services/heat-pump-servicing">Heat Pump Servicing</a>' : ""}
+          </body></html>`,
+          { status: 200, headers: { "content-type": "text/html" } },
+        );
+      }
+      if (url.pathname === "/services/duct-cleaning") {
+        return new Response(
+          `<!doctype html><html><head><title>Duct Cleaning</title></head><body>
+            <h1>Duct Cleaning</h1><p>${"Duct cleaning for homes. ".repeat(40)}</p>
+          </body></html>`,
+          { status: 200, headers: { "content-type": "text/html" } },
+        );
+      }
+      if (url.pathname === "/services/heat-pump-servicing") {
+        return new Response(
+          `<!doctype html><html><head><title>Heat Pump Servicing</title></head><body>
+            <h1>Heat Pump Servicing</h1><p>${"Heat pump servicing for homes. ".repeat(40)}</p>
+          </body></html>`,
+          { status: 200, headers: { "content-type": "text/html" } },
+        );
+      }
+      return new Response("not found", { status: 404 });
+    }) as unknown as typeof fetch;
+
+    await repo.upsertClient(
+      scope,
+      ClientSchema.parse({
+        id: "cli_a",
+        name: "Cool Air",
+        domain: "coolair.example",
+        offerings: ["furnace repair"],
+        notes: "",
+      }),
+    );
+    vi.stubGlobal("fetch", driftSiteFetch);
+
+    await runAnalysis(scope, env, "cli_a", { now: FIRST_RUN_AT, trigger: "scheduled" });
+    const baseline = await repo.getLatestAnalysisRun(scope, "cli_a");
+    expect(baseline!.crawlExhaustive).toBe(true);
+    expect(baseline!.suggestedOfferings).toEqual(["Duct Cleaning"]);
+    expect(baseline!.offeringDrift).toEqual([]);
+
+    includeNewOffering = true;
+    await runAnalysis(scope, env, "cli_a", { now: SECOND_RUN_AT, trigger: "scheduled" });
+    const changed = await repo.getLatestAnalysisRun(scope, "cli_a");
+    expect(changed!.suggestedOfferings).toEqual(["Duct Cleaning", "Heat Pump Servicing"]);
+    expect(changed!.offeringDrift).toEqual(["Heat Pump Servicing"]);
+  });
+
   it("honours MAX_AI_CALLS_PER_RUN from the environment", async () => {
     // The per-run spend ceiling is configuration, not a constant, so the wiring
     // from env -> pipeline is asserted rather than assumed. Candidates beyond the

@@ -13,6 +13,13 @@ import {
 } from "@/core/schema";
 import { parseHtml } from "@/adapters/evidence/parseHtml";
 import {
+  ALLOW_ALL,
+  isAllowed,
+  policyFor,
+  robotsPath,
+  type RobotsPolicy,
+} from "@/adapters/evidence/robots";
+import {
   crawlKey,
   isSameSite,
   normalizeAndValidateUrl,
@@ -20,7 +27,12 @@ import {
   redactUrl,
   type UrlPolicyFailure,
 } from "@/adapters/evidence/urlPolicy";
-import { crawlPriority, isServiceHub, looksLikeServiceUrl } from "@/core/siteStructure";
+import {
+  crawlPriority,
+  isPlatformInfrastructurePath,
+  isServiceHub,
+  looksLikeServiceUrl,
+} from "@/core/siteStructure";
 
 /**
  * Minimal real website evidence provider.
@@ -88,10 +100,21 @@ function decoderFor(response: Response): TextDecoder {
   }
 }
 
+/**
+ * Identify the crawler honestly and give whoever reads a server log somewhere
+ * to go. A nameless bot with no contact address is indistinguishable from a
+ * scraper, and gets treated like one.
+ */
 export const DEFAULT_USER_AGENT =
-  "ClientGrowthBot/0.1 (+website evidence; operated by the agency)";
+  "AxiomOrbitBot/1.0 (+https://getaxiom.ca/bot; website evidence for the site's own agency)";
 
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
+
+function analysisAbortError(): Error {
+  const error = new Error("analysis aborted");
+  error.name = "AbortError";
+  return error;
+}
 
 export interface HttpEvidenceProviderOptions {
   fetchImpl?: typeof fetch;
@@ -105,6 +128,8 @@ export interface HttpEvidenceProviderOptions {
   /** Optional override for integrations; defaults to DEFAULT_USER_AGENT. */
   userAgent?: string;
   now?: () => Date;
+  /** Aborts the crawl when the owning request or analysis deadline ends. */
+  signal?: AbortSignal;
 }
 
 interface SafeResponse {
@@ -237,6 +262,10 @@ function pageFetchFailure(url: string | URL, failure: RequestFailure | {
 
 export class HttpEvidenceProvider implements EvidenceProvider {
   private requestBudgetRemaining: number | null = null;
+  /** Resolved once per crawl, then consulted before every same-site request. */
+  private robots: RobotsPolicy = ALLOW_ALL;
+  /** The origin `robots` was read from. Rules never apply to another origin. */
+  private robotsOrigin: string | null = null;
   private networkEvents: EvidenceNetworkEvent[] = [];
   private lastEvidence: EvidenceBundle | null = null;
 
@@ -321,6 +350,10 @@ export class HttpEvidenceProvider implements EvidenceProvider {
     this.recordNetworkEvent(failure.url, failure.outcome, failure.reason);
   }
 
+  private throwIfAborted(): void {
+    if (this.options.signal?.aborted) throw analysisAbortError();
+  }
+
   /**
    * Fetch one URL with manual redirects. Each hop is parsed and policy-checked
    * before its request is issued. The request budget is charged per hop.
@@ -331,6 +364,7 @@ export class HttpEvidenceProvider implements EvidenceProvider {
     allowedOrigin?: string,
   ): Promise<SafeRequestResult> {
     this.ensureRun();
+    this.throwIfAborted();
 
     const initial = normalizeAndValidateUrl(input);
     if (!initial.ok) return policyFailure(input, initial);
@@ -344,6 +378,7 @@ export class HttpEvidenceProvider implements EvidenceProvider {
     let redirects = 0;
 
     for (;;) {
+      this.throwIfAborted();
       if (allowedOrigin && current !== initialUrl && !isSameSite(current, allowedOrigin)) {
         return originFailure(current, redirects);
       }
@@ -354,6 +389,26 @@ export class HttpEvidenceProvider implements EvidenceProvider {
       const controller = new AbortController();
       let timedOut = false;
       let timer: ReturnType<typeof setTimeout> | undefined;
+      const externalSignal = this.options.signal;
+      let removeExternalAbortListener: (() => void) | undefined;
+      let rejectExternalAbort: ((reason?: unknown) => void) | undefined;
+      const externalAbort = externalSignal
+        ? new Promise<never>((_, reject) => {
+            rejectExternalAbort = reject;
+          })
+        : null;
+      const onExternalAbort = () => {
+        controller.abort(externalSignal?.reason);
+        rejectExternalAbort?.(analysisAbortError());
+      };
+      if (externalSignal) {
+        if (externalSignal.aborted) onExternalAbort();
+        else {
+          externalSignal.addEventListener("abort", onExternalAbort, { once: true });
+          removeExternalAbortListener = () =>
+            externalSignal.removeEventListener("abort", onExternalAbort);
+        }
+      }
       const requestTimeout = new Promise<never>((_, reject) => {
         timer = setTimeout(() => {
           timedOut = true;
@@ -364,14 +419,16 @@ export class HttpEvidenceProvider implements EvidenceProvider {
 
       let response: Response;
       try {
-        response = await Promise.race([
+        const pending = [
           fetchImpl(current, {
             ...init,
             redirect: "manual",
             signal: controller.signal,
           }),
           requestTimeout,
-        ]);
+        ];
+        if (externalAbort) pending.push(externalAbort);
+        response = await Promise.race(pending);
         if (timedOut) {
           await cancelResponseBody(response);
           return {
@@ -383,6 +440,7 @@ export class HttpEvidenceProvider implements EvidenceProvider {
           };
         }
       } catch {
+        if (this.options.signal?.aborted) throw analysisAbortError();
         return {
           kind: "failure",
           outcome: "inconclusive",
@@ -392,6 +450,7 @@ export class HttpEvidenceProvider implements EvidenceProvider {
         };
       } finally {
         if (timer !== undefined) clearTimeout(timer);
+        removeExternalAbortListener?.();
       }
 
       // A custom fetch implementation must not be able to silently replace
@@ -464,6 +523,7 @@ export class HttpEvidenceProvider implements EvidenceProvider {
   }
 
   private async readBoundedText(response: Response): Promise<BodyReadResult> {
+    this.throwIfAborted();
     const maxBytes = this.maxResponseBytes();
     if (contentLengthExceeds(response, maxBytes)) {
       await cancelResponseBody(response);
@@ -501,6 +561,26 @@ export class HttpEvidenceProvider implements EvidenceProvider {
     let totalBytes = 0;
     let timedOut = false;
     let bodyTimer: ReturnType<typeof setTimeout> | undefined;
+    const externalSignal = this.options.signal;
+    let removeExternalAbortListener: (() => void) | undefined;
+    let rejectExternalAbort: ((reason?: unknown) => void) | undefined;
+    const externalAbort = externalSignal
+      ? new Promise<never>((_, reject) => {
+          rejectExternalAbort = reject;
+        })
+      : null;
+    const onExternalAbort = () => {
+      cancelReader("analysis aborted");
+      rejectExternalAbort?.(analysisAbortError());
+    };
+    if (externalSignal) {
+      if (externalSignal.aborted) onExternalAbort();
+      else {
+        externalSignal.addEventListener("abort", onExternalAbort, { once: true });
+        removeExternalAbortListener = () =>
+          externalSignal.removeEventListener("abort", onExternalAbort);
+      }
+    }
     const bodyTimeout = new Promise<never>((_, reject) => {
       bodyTimer = setTimeout(() => {
         timedOut = true;
@@ -510,7 +590,9 @@ export class HttpEvidenceProvider implements EvidenceProvider {
     });
     try {
       for (;;) {
-        const { done, value } = await Promise.race([reader.read(), bodyTimeout]);
+        const pending = [reader.read(), bodyTimeout];
+        if (externalAbort) pending.push(externalAbort);
+        const { done, value } = await Promise.race(pending);
         if (done) break;
         totalBytes += value.byteLength;
         if (totalBytes > maxBytes) {
@@ -527,6 +609,7 @@ export class HttpEvidenceProvider implements EvidenceProvider {
       return { ok: true, text: chunks.join("") };
     } catch {
       cancelReader("response body could not be read");
+      if (this.options.signal?.aborted) throw analysisAbortError();
       return {
         ok: false,
         outcome: "inconclusive",
@@ -534,6 +617,7 @@ export class HttpEvidenceProvider implements EvidenceProvider {
       };
     } finally {
       if (bodyTimer !== undefined) clearTimeout(bodyTimer);
+      removeExternalAbortListener?.();
       try {
         reader.releaseLock();
       } catch {
@@ -543,6 +627,7 @@ export class HttpEvidenceProvider implements EvidenceProvider {
   }
 
   async getEvidence(client: Client): Promise<EvidenceBundle> {
+    this.throwIfAborted();
     this.startRun();
     const capturedAt = (this.options.now?.() ?? new Date()).toISOString();
     const originResult = normalizeOrigin(client.domain);
@@ -618,6 +703,11 @@ export class HttpEvidenceProvider implements EvidenceProvider {
 
     enqueue(`${origin}/`);
 
+    // robots.txt is read before anything else is requested, because a rule we
+    // have not read yet is a rule we are already breaking.
+    this.robots = await this.readRobots(origin);
+    this.robotsOrigin = origin;
+
     // The sitemap is read BEFORE the page budget is spent, not after. It costs
     // the same request either way, and reading it first is the difference
     // between knowing a site has /services/heat-pumps and finding out once
@@ -632,6 +722,15 @@ export class HttpEvidenceProvider implements EvidenceProvider {
       if (url === undefined) break;
       if (visited.has(crawlKey(url))) continue;
       visited.add(crawlKey(url));
+
+      // Checked before the page budget is charged: a page we are not allowed to
+      // request did not cost us a request. It is recorded as blocked, never as
+      // an empty or missing page — the whole point is that "asked not to look"
+      // and "looked and found nothing" must not collapse into the same silence.
+      if (!this.robotsAllows(url)) {
+        this.recordNetworkEvent(url, "blocked", "disallowed by the site's robots.txt");
+        continue;
+      }
       pageRequests++;
 
       const fetched = await this.safeRequest(url, { headers: fetchHeaders }, origin);
@@ -691,6 +790,10 @@ export class HttpEvidenceProvider implements EvidenceProvider {
         }
 
         if (link.scheme !== "http") continue;
+        // A platform-injected path is not site content, and spending one of ten
+        // page slots on Cloudflare's email-obfuscation endpoint costs a real
+        // page of the client's website.
+        if (isPlatformInfrastructurePath(link.href)) continue;
         enqueue(link.href, { inNav: link.inNav });
       }
     }
@@ -736,10 +839,24 @@ export class HttpEvidenceProvider implements EvidenceProvider {
   /** Fetch and parse one specific URL. Used by targeted absence verification. */
   async fetchPage(url: string): Promise<EvidencePage | PageFetchFailure | null> {
     this.ensureRun();
+    this.throwIfAborted();
     const initial = normalizeAndValidateUrl(url);
     if (!initial.ok) {
       const failure = policyFailure(url, initial);
       this.recordFailure(failure);
+      return pageFetchFailure(url, failure);
+    }
+
+    // Absence verification asks "is this page really not there?". A page we
+    // were asked not to request is not a page that is missing, and answering
+    // as though it were would manufacture the exact false claim — "your client
+    // has no heat-pump page" — this product exists to refuse to make.
+    if (!this.robotsAllows(initial.url)) {
+      const failure = {
+        outcome: "blocked" as const,
+        reason: "disallowed by the site's robots.txt",
+      };
+      this.recordNetworkEvent(initial.url.toString(), failure.outcome, failure.reason);
       return pageFetchFailure(url, failure);
     }
 
@@ -796,6 +913,7 @@ export class HttpEvidenceProvider implements EvidenceProvider {
    */
   async probe(url: string): Promise<ProbeResult> {
     this.ensureRun();
+    this.throwIfAborted();
     const initial = normalizeAndValidateUrl(url);
     if (!initial.ok) {
       const failure = policyFailure(url, initial);
@@ -808,6 +926,23 @@ export class HttpEvidenceProvider implements EvidenceProvider {
         outcome: failure.outcome,
         reason: failure.reason,
         redirects: failure.redirects,
+      };
+    }
+
+    // Same reasoning as fetchPage: an unrequestable URL is not a broken one,
+    // and reporting it as a 404 would sell the agency a repair for a link that
+    // works perfectly well for everyone allowed to follow it.
+    if (!this.robotsAllows(initial.url)) {
+      const reason = "disallowed by the site's robots.txt";
+      this.recordNetworkEvent(initial.url.toString(), "blocked", reason);
+      return {
+        requestedUrl: initial.url.toString(),
+        status: 0,
+        finalUrl: initial.url.toString(),
+        ok: false,
+        outcome: "blocked",
+        reason,
+        redirects: 0,
       };
     }
 
@@ -866,6 +1001,52 @@ export class HttpEvidenceProvider implements EvidenceProvider {
     };
     await cancelResponseBody(head.response);
     return result;
+  }
+
+  /** Whether robots.txt permits requesting this same-site URL. */
+  private robotsAllows(url: string | URL): boolean {
+    if (this.robots.unrestricted || this.robotsOrigin === null) return true;
+    try {
+      const parsed = typeof url === "string" ? new URL(url) : url;
+      // A policy is a statement by one origin about itself. An outbound link
+      // probe to somewhere else is not covered by the client's robots.txt.
+      if (parsed.origin !== this.robotsOrigin) return true;
+      return isAllowed(this.robots, robotsPath(parsed));
+    } catch {
+      // An unparseable URL is refused by the URL policy moments later anyway;
+      // do not let robots matching be the thing that throws.
+      return true;
+    }
+  }
+
+  /**
+   * Read and parse /robots.txt.
+   *
+   * Absent or unreadable means unrestricted, deliberately. RFC 9309 permits
+   * treating a 5xx as a full disallow, and for a general-purpose web crawler
+   * that is the polite reading. This crawler only ever visits sites its own
+   * operator's client has engaged them to look after, so letting one flaky
+   * response silently convert an analysis into "we could not look" would cost
+   * the agency real information to buy a courtesy nobody asked for. A file that
+   * loads and says no is obeyed exactly.
+   */
+  private async readRobots(origin: string): Promise<RobotsPolicy> {
+    const fetched = await this.safeRequest(
+      `${origin}/robots.txt`,
+      { headers: { "user-agent": this.userAgent(), accept: "text/plain" } },
+      origin,
+    );
+    if (fetched.kind === "failure") return ALLOW_ALL;
+
+    const { response } = fetched;
+    if (!response.ok) {
+      await cancelResponseBody(response);
+      return ALLOW_ALL;
+    }
+
+    const body = await this.readBoundedText(response);
+    if (!body.ok) return ALLOW_ALL;
+    return policyFor(body.text, this.userAgent());
   }
 
   /** Best-effort /sitemap.xml read (follows one level of sitemap index). */

@@ -37,6 +37,19 @@ const client = ClientSchema.parse({
 });
 
 describe("HttpEvidenceProvider", () => {
+  it("stops before requesting a site when the caller has already aborted", async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const fetchImpl = makeFetch();
+    const provider = new HttpEvidenceProvider({
+      fetchImpl,
+      signal: controller.signal,
+    } as never);
+
+    await expect(provider.getEvidence(client)).rejects.toMatchObject({ name: "AbortError" });
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
   it("crawls same-origin pages via injected fetch and returns an http bundle", async () => {
     const fetchImpl = makeFetch();
     const provider = new HttpEvidenceProvider({

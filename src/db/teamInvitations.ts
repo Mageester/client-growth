@@ -153,6 +153,30 @@ export async function listPendingWorkspaceInvitations(
   return rows.map(toInvitation);
 }
 
+/**
+ * Whether ANY workspace currently has a live invitation out to this address.
+ *
+ * Deliberately unscoped by workspace: the signup gate runs before the person
+ * has an account, let alone a tenant, so there is no scope to run it in. It
+ * returns a boolean about the address the caller is signing up with and
+ * nothing else — never which workspace invited them, by whom, or how many.
+ */
+export async function hasPendingInvitationForEmail(
+  db: SqlDb,
+  email: string,
+  now = new Date(),
+): Promise<boolean> {
+  const row = await db
+    .prepare(
+      `SELECT 1 AS present FROM workspace_invitations
+       WHERE invited_email = ? AND accepted_at IS NULL AND revoked_at IS NULL AND expires_at > ?
+       LIMIT 1`,
+    )
+    .bind(normalizeInvitationEmail(email), now.toISOString())
+    .first<{ present: number }>();
+  return row?.present === 1;
+}
+
 export async function getWorkspaceInvitationByToken(
   db: SqlDb,
   token: string,

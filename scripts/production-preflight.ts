@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+
 import { fileURLToPath } from "node:url";
 import { dirname, join, resolve } from "node:path";
 
@@ -6,6 +7,9 @@ type JsonObject = Record<string, unknown>;
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const CONFIG_PATH = join(ROOT, "wrangler.jsonc");
+
+/** Kept in step with src/core/signupAccess.ts; this script must not import the app. */
+const SIGNUP_MODES = ["open", "invite"] as const;
 const PRODUCTION_DATABASE_NAME = "client-growth-production";
 const REQUIRED_SECRETS = ["BETTER_AUTH_SECRET", "RESEND_API_KEY"] as const;
 const SECRET_LIKE_VAR_NAME = /(?:^|_)(?:API_KEY|KEY|SECRET|TOKEN|PASSWORD|CREDENTIALS?|PRIVATE_KEY)$/i;
@@ -231,6 +235,45 @@ export function validateProductionConfig(config: unknown): string[] {
     errors.push("MONITORING_MAX_CLIENTS_PER_RUN must be a whole number between 1 and 25");
   }
 
+  // Admission to the product and the ceiling on the operator's own bill are
+  // both things that must be true on purpose. Both have safe defaults in code,
+  // but a default is what you get when nobody decided — so production is
+  // required to say what it means, out loud, in a file under review.
+  const signupMode = stringValue(productionVars.SIGNUP_MODE);
+  if (signupMode === undefined) {
+    errors.push(
+      'production must declare SIGNUP_MODE explicitly ("invite" while there is no billing, ' +
+        '"open" only as a deliberate decision)',
+    );
+  } else if (!SIGNUP_MODES.includes(signupMode as (typeof SIGNUP_MODES)[number])) {
+    errors.push('production SIGNUP_MODE must be "open" or "invite"');
+  }
+
+  // The console transport prints verification links to the log instead of
+  // sending them. In production that would mean every account is unverifiable
+  // and every reset link is in a log file, so it may not exist here at all.
+  if (productionVars.EMAIL_TRANSPORT !== undefined) {
+    errors.push(
+      "production must not set EMAIL_TRANSPORT: it selects the development transport that " +
+        "prints email instead of sending it",
+    );
+  }
+
+  const platformCap = stringValue(productionVars.ANALYSIS_PLATFORM_DAILY_LIMIT);
+  const platformCapValue = platformCap === undefined ? undefined : Number(platformCap);
+  if (platformCap === undefined) {
+    errors.push(
+      "production must declare ANALYSIS_PLATFORM_DAILY_LIMIT: the per-workspace cap bounds " +
+        "one tenant, not how many tenants there are",
+    );
+  } else if (
+    !Number.isInteger(platformCapValue) ||
+    platformCapValue! < 1 ||
+    platformCapValue! > 10_000
+  ) {
+    errors.push("ANALYSIS_PLATFORM_DAILY_LIMIT must be a whole number between 1 and 10000");
+  }
+
   if (!flags.includes("nodejs_compat")) {
     errors.push('compatibility_flags must include "nodejs_compat"');
   }
@@ -242,6 +285,37 @@ export function validateProductionConfig(config: unknown): string[] {
   }
 
   return [...new Set(errors)];
+}
+
+/**
+ * Configuration that is legal, but that someone should have to read out loud
+ * before a deploy. A warning never fails the gate — it exists so that the
+ * expensive settings cannot be changed quietly.
+ */
+export function productionConfigWarnings(config: unknown): string[] {
+  const warnings: string[] = [];
+  const root = objectValue(config);
+  const production = objectValue(objectValue(root.env).production);
+  const vars = objectValue(production.vars);
+
+  if (stringValue(vars.SIGNUP_MODE) === "open") {
+    warnings.push(
+      'SIGNUP_MODE is "open": anyone with an email address can create a workspace and draw ' +
+        "on the platform's daily analysis allowance. Safe only with billing, or with a " +
+        "platform ceiling you would be content to pay in full.",
+    );
+  }
+
+  const platformCap = Number(stringValue(vars.ANALYSIS_PLATFORM_DAILY_LIMIT));
+  const perRun = Number(stringValue(vars.MAX_AI_CALLS_PER_RUN));
+  if (Number.isInteger(platformCap) && Number.isInteger(perRun)) {
+    warnings.push(
+      `Worst-case paid evaluator calls in one UTC day: ${platformCap * perRun} ` +
+        `(${platformCap} analyses x ${perRun} calls). Confirm that number is one you would pay.`,
+    );
+  }
+
+  return warnings;
 }
 
 function readConfig(): unknown {
@@ -266,6 +340,10 @@ function main(): void {
     for (const error of errors) console.error(`- ${error}`);
     process.exitCode = 1;
     return;
+  }
+
+  for (const warning of productionConfigWarnings(config)) {
+    console.warn(`! ${warning}`);
   }
 
   console.log(

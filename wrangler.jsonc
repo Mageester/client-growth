@@ -61,6 +61,19 @@
         // Hard ceiling per scheduled tick. With MAX_AI_CALLS_PER_RUN that caps
         // one tick at 30 evaluator calls, whatever the portfolio looks like.
         "MONITORING_MAX_CLIENTS_PER_RUN": "3",
+        // The ceiling on the operator's own bill, across EVERY workspace. The
+        // per-workspace cap of 50 bounds one tenant and says nothing about how
+        // many tenants exist, so without this the worst case is unbounded.
+        // 200 analyses x 10 evaluator calls = 2,000 paid calls in the worst day.
+        // Raise it as a decision; never discover it from an invoice.
+        "ANALYSIS_PLATFORM_DAILY_LIMIT": "200",
+        // Who may create a workspace. "invite" while there is no billing:
+        // self-serve signup plus metered paid work plus no way to charge is a
+        // bill with strangers' names on it. Delete this the day billing lands.
+        // The allowlist admits named addresses or whole domains; an owner's
+        // team invitation admits its recipient without touching this list.
+        "SIGNUP_MODE": "invite",
+        "SIGNUP_ALLOWLIST": "",
         // The canonical public origin, and the ONE origin Better Auth trusts —
         // it is never derived from a request's Host or Origin header (see
         // getTrustedAuthBaseURL). orbit.getaxiom.ca now fronts this Worker, and

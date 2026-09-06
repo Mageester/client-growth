@@ -1,6 +1,7 @@
 import { Form, Link, redirect } from "react-router";
 
 import { getAuth, getTrustedAuthBaseURL } from "../lib/auth.server";
+import { canDeliverEmail } from "../lib/resend.server";
 import { getSession } from "../lib/session.server";
 import { AxiomCredit, BrandLockup, Icon } from "../components/ui";
 import type { Route } from "./+types/login";
@@ -57,6 +58,15 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   if (intent === "resend-verification") {
     if (!email) return withReturnTo({ error: "Enter your email address." });
+    // Better Auth's send is a no-op when no transport is configured, and it
+    // reports success. Claiming "we sent a new link" to someone who is locked
+    // out and waiting for it is the worst available answer, so check first.
+    if (!canDeliverEmail(context.cloudflare.env as never)) {
+      console.error(
+        "[auth] verification resend refused: no email transport is configured.",
+      );
+      return withReturnTo({ error: VERIFICATION_RESEND_ERROR, email });
+    }
     try {
       const callbackURL = verificationCallbackURL(
         getTrustedAuthBaseURL(context.cloudflare.env as never),

@@ -26,4 +26,55 @@ describe("weekly portfolio changes", () => {
       expect(JSON.stringify(result)).not.toContain('Beta');
     } finally { db.close(); }
   });
+
+  it("projects advisory offering drift without crossing the tenant boundary", async () => {
+    const db = nodeSqliteDb();
+    try {
+      await db.exec(SCHEMA_SQL);
+      await db.exec(`INSERT INTO workspaces VALUES ('a','Agency','ua','2026-01-01'),('b','Other','ub','2026-01-01');
+        INSERT INTO clients (id,workspace_id,name,domain,updated_at) VALUES ('ca','a','Alpha','alpha.example','2026-01-01'),('cb','b','Beta','beta.example','2026-01-01');`);
+      await db
+        .prepare(`INSERT INTO analysis_runs
+          (workspace_id,client_id,started_at,finished_at,source,outcome,summary,pages_read,pages_fetched,
+           blocked_events,inconclusive_events,surfaced,stats,new_count,resolved_count,trigger,crawl_exhaustive,
+           suggested_offerings,offering_drift)
+          VALUES (?,?,?,?, 'http',?, 'Measured result',1,1,0,0,0,'{}',0,0,'scheduled',1,?,?)`)
+        .bind(
+          "a",
+          "ca",
+          "2026-09-03T12:00:00.000Z",
+          "2026-09-03T12:00:00.000Z",
+          "findings",
+          JSON.stringify(["Heat Pump Repair", "Boiler Service"]),
+          JSON.stringify(["Boiler Service"]),
+        )
+        .run();
+      await db
+        .prepare(`INSERT INTO analysis_runs
+          (workspace_id,client_id,started_at,finished_at,source,outcome,summary,pages_read,pages_fetched,
+           blocked_events,inconclusive_events,surfaced,stats,new_count,resolved_count,trigger,crawl_exhaustive,
+           suggested_offerings,offering_drift)
+          VALUES (?,?,?,?, 'http',?, 'Measured result',1,1,0,0,0,'{}',0,0,'scheduled',1,?,?)`)
+        .bind(
+          "b",
+          "cb",
+          "2026-09-03T12:00:00.000Z",
+          "2026-09-03T12:00:00.000Z",
+          "findings",
+          JSON.stringify(["Different Service"]),
+          JSON.stringify(["Different Service"]),
+        )
+        .run();
+
+      const result = await portfolioChanges(
+        { db, workspaceId: "a" },
+        new Date("2026-09-04T12:00:00.000Z"),
+      );
+
+      expect(result.runs[0]?.offeringDrift).toEqual(["Boiler Service"]);
+      expect(JSON.stringify(result)).not.toContain("Different Service");
+    } finally {
+      db.close();
+    }
+  });
 });

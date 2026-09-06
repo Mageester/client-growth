@@ -1,7 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { analyzeClient } from "@/pipeline/analyzeClient";
-import { deterministicEvaluationFor } from "@/core/rules/deterministicEvaluation";
+import {
+  deterministicEvaluationFor,
+  rationaleForOpportunity,
+  technicalRationaleFor,
+} from "@/core/rules/deterministicEvaluation";
 import { assembleOpportunity } from "@/core/assembleOpportunity";
 import { judge } from "@/core/judgment";
 import {
@@ -100,6 +104,18 @@ const client = ClientSchema.parse({
 });
 
 describe("deterministic evaluation", () => {
+  it("keeps a technical detection separate from its client-readable explanation", () => {
+    const c = candidate({
+      ruleId: "missing-structured-data",
+      detected: "7 affected pages have no observed LocalBusiness or Service structured-data type.",
+    });
+    const evaluation = deterministicEvaluationFor(c)!;
+
+    expect(evaluation.rationale).toBe(technicalRationaleFor("missing-structured-data"));
+    expect(evaluation.rationale).not.toBe(c.detected);
+    expect(rationaleForOpportunity({ ...c, rationale: c.detected })).toBe(evaluation.rationale);
+  });
+
   it("judges no-service-pages without a model", () => {
     const evaluation = deterministicEvaluationFor(candidate());
 

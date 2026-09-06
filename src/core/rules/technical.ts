@@ -8,6 +8,7 @@ import {
 import {
   isArchivePath,
   isEditorialPath,
+  isRegistryPath,
   looksLikeServiceUrl,
 } from "@/core/siteStructure";
 
@@ -66,7 +67,12 @@ export function normalizedTitle(value: string): string {
 
 /** Service shaped pages exclude editorial and archive paths. */
 export function isServiceShapedPage(url: string): boolean {
-  return looksLikeServiceUrl(url) && !isEditorialPath(url) && !isArchivePath(url);
+  return (
+    !isRegistryPath(url) &&
+    looksLikeServiceUrl(url) &&
+    !isEditorialPath(url) &&
+    !isArchivePath(url)
+  );
 }
 
 /** Structured data is checked on the homepage and service shaped pages. */

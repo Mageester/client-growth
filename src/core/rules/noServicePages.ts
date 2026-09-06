@@ -82,12 +82,19 @@ export async function noServicePagesRule(ctx: RuleContext): Promise<Candidate[]>
       // of pages, and splitting it would invent a price per page that the
       // agency never quoted.
       subject: client.domain,
+      // Wording checked against the real corpus. "None of them describes a
+      // service" was measurably too strong: atlasplumbing.ca has five location
+      // pages, and the Toronto one carries an "Plumbing Services Available in
+      // Toronto" section — it describes services, it is simply not ABOUT one.
+      // Overstating turns a sharp, defensible observation ("your site is
+      // organised by location, not by service") into a claim the client's own
+      // developer can disprove by opening one page.
       detected:
         `The crawl followed every link on ${client.domain} and read ${count(readablePages, "page")}, ` +
-        `and none of them describes a service this business sells. ` +
+        `and not one of them is dedicated to a single service this business sells. ` +
         `Nothing was blocked and nothing was left unread, so this is the whole site. ` +
         `The client is recorded as offering ${named}, ` +
-        `so the site currently gives a visitor no page to land on for any of it.`,
+        `so a visitor searching for any one of those has no page to land on.`,
       evidenceRefs: evidence.site.pages.map((page) => page.url),
       // A complete crawl with a definitive negative. There is no absence to
       // verify page-by-page here — the absence IS the whole finding, and it was

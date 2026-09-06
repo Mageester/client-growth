@@ -23,7 +23,8 @@ const REPAIR_VERB: Record<NonNullable<Candidate["conversionDefect"]>["kind"], st
  * default test suite. Makes no network calls and costs nothing.
  *
  * It applies NO commercial judgment and must not be mistaken for it. It ASSERTS
- * `subjectType: "distinct_service"` for every missing-service-page candidate
+ * `subjectType: "distinct_service"` for every missing-service-page and
+ * competitor-service-gap candidate
  * rather than deciding it, which is exactly why it will happily price a landing
  * page for "fully insured" (see the judgment cases in the benchmark). Its value
  * is that it is deterministic and free, so the rest of the suite can test the
@@ -51,6 +52,31 @@ export class MockEvaluator implements OpportunityEvaluator {
           `On-page SEO targeting "${candidate.subject}" and local variants`,
           `Primary lead-capture form and call to action`,
           `Internal links from the homepage and main navigation`,
+        ],
+      });
+    }
+
+    if (candidate.ruleId === "competitor-service-gap") {
+      const label = titleCase(candidate.subject);
+      // Asserted, not judged — exactly like the missing-service-page branch
+      // above, and with exactly the same caveat: this stub will happily price a
+      // page for "Free Quotes" if a competitor's navigation happened to say it.
+      // The real evaluator is what decides whether a scraped label is a service.
+      return Promise.resolve({
+        verdict: "surface",
+        confidence: Math.min(0.9, Number((candidate.rawConfidence + 0.1).toFixed(2))),
+        rationale:
+          `Competitors of this client sell "${label}" and give it its own page, ` +
+          `while this client has neither a page nor a recorded offering for it. ` +
+          `That is a gap a visitor comparing local options sees immediately, and ` +
+          `a well-scoped page is individually sellable work.`,
+        subjectType: "distinct_service",
+        commerciallyActionable: true,
+        suggestedScope: [
+          `Design and build a dedicated "${label}" page`,
+          `Positioning against the competitors already ranking for it`,
+          `On-page SEO targeting "${candidate.subject}" and local variants`,
+          `Primary lead-capture form and call to action`,
         ],
       });
     }

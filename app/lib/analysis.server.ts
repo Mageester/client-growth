@@ -2,8 +2,10 @@ import type { Client } from "@/core/schema";
 import { FixtureEvidenceProvider } from "@/adapters/evidence/FixtureEvidenceProvider";
 import { HttpEvidenceProvider } from "@/adapters/evidence/HttpEvidenceProvider";
 import { createEvaluator } from "@/adapters/evaluator/createEvaluator";
-import { parseEnv } from "@/config/env";
+import { parseAnalysisCaps, parseEnv } from "@/config/env";
 import { classifyAnalysis, type AnalysisOutcomeResult } from "@/core/analysisOutcome";
+import { detectOfferingDrift } from "@/core/offeringDrift";
+import { suggestOfferings } from "@/core/offeringSuggestions";
 import { analyzeClient, type AnalyzeClientResult } from "@/pipeline/analyzeClient";
 import * as repo from "@/db/repositories";
 import type { RunTrigger } from "@/db/repositories";
@@ -23,11 +25,61 @@ import hvacEvidence from "../../fixtures/hvac/evidence.json";
 const DEMO_FIXTURE_CLIENT_ID = "client-coolbreeze";
 const DEMO_WORKSPACE_ID = "ws_demo";
 
-function evidenceProviderFor(client: Client, workspaceId: string) {
+/**
+ * A run is one request today, so its wall-clock budget has to be shorter than
+ * the Worker request limit. Per-request timeouts alone are not enough: a DNS
+ * failure can otherwise spend the full request budget on every crawl, probe,
+ * and absence check before the UI gets a response.
+ */
+export const ANALYSIS_TIMEOUT_MS = 45_000;
+
+export type AnalysisAbortReason = "timeout" | "cancelled";
+
+export class AnalysisAbortedError extends Error {
+  readonly reason: AnalysisAbortReason;
+
+  constructor(reason: AnalysisAbortReason) {
+    super(
+      reason === "timeout"
+        ? "This site did not finish reading within 45 seconds. The run was stopped before it could make a claim; check the domain or try again later."
+        : "The site reading was stopped before it finished. No finding was saved from this incomplete run.",
+    );
+    this.name = "AnalysisAbortedError";
+    this.reason = reason;
+  }
+}
+
+export function createAnalysisDeadline(parent?: AbortSignal) {
+  const controller = new AbortController();
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    controller.abort("analysis timeout");
+  }, ANALYSIS_TIMEOUT_MS);
+
+  const onParentAbort = () => controller.abort(parent?.reason ?? "request aborted");
+  if (parent) {
+    if (parent.aborted) onParentAbort();
+    else parent.addEventListener("abort", onParentAbort, { once: true });
+  }
+
+  return {
+    signal: controller.signal,
+    get timedOut() {
+      return timedOut;
+    },
+    dispose() {
+      clearTimeout(timer);
+      parent?.removeEventListener("abort", onParentAbort);
+    },
+  };
+}
+
+function evidenceProviderFor(client: Client, workspaceId: string, signal?: AbortSignal) {
   if (client.id === DEMO_FIXTURE_CLIENT_ID && workspaceId === DEMO_WORKSPACE_ID) {
     return new FixtureEvidenceProvider([hvacEvidence]);
   }
-  return new HttpEvidenceProvider({ maxPages: 10 });
+  return new HttpEvidenceProvider({ maxPages: 10, signal });
 }
 
 /**
@@ -47,18 +99,26 @@ function evidenceProviderFor(client: Client, workspaceId: string) {
 export async function collectEvidenceOnly(
   t: TenantScope,
   clientId: string,
+  parentSignal?: AbortSignal,
 ): Promise<{ readablePages: number }> {
   const client = await repo.getClient(t, clientId);
   if (!client) throw new Response("Client not found", { status: 404 });
 
-  const evidence = await evidenceProviderFor(client, t.workspaceId).getEvidence(client);
-  await repo.saveEvidence(t, evidence);
+  const deadline = createAnalysisDeadline(parentSignal);
+  try {
+    const evidence = await evidenceProviderFor(client, t.workspaceId, deadline.signal).getEvidence(
+      client,
+    );
+    await repo.saveEvidence(t, evidence);
 
-  return {
-    readablePages: evidence.site.pages.filter(
-      (page) => page.status >= 200 && page.status < 300 && page.wordCount > 0,
-    ).length,
-  };
+    return {
+      readablePages: evidence.site.pages.filter(
+        (page) => page.status >= 200 && page.status < 300 && page.wordCount > 0,
+      ).length,
+    };
+  } finally {
+    deadline.dispose();
+  }
 }
 
 export interface RunAnalysisResult extends AnalyzeClientResult {
@@ -71,6 +131,8 @@ export interface RunAnalysisResult extends AnalyzeClientResult {
 export interface RunAnalysisOptions extends AnalysisLimitOptions {
   /** Defaults to "manual" — a person pressed Analyze and is waiting. */
   trigger?: RunTrigger;
+  /** The owning request signal; scheduled runs omit it but still get a deadline. */
+  signal?: AbortSignal;
 }
 
 /**
@@ -93,22 +155,33 @@ export async function runAnalysis(
   if (!client) throw new Response("Client not found", { status: 404 });
 
   // Admission is the first stateful step after the tenant/client lookup. It is
-  // deliberately before env parsing, crawling and evaluator construction so an
-  // accepted start is counted even when a later stage throws.
+  // deliberately before full env parsing, crawling and evaluator construction
+  // so an accepted start is counted even when a later stage throws — including
+  // a stage that throws because the environment is misconfigured. Only the caps
+  // themselves are read first, and only they can reject a start from here.
+  const caps = parseAnalysisCaps(env);
   const reservation = await requireAnalysisReservation(t, clientId, {
     now: options.now,
     cooldownMs: options.cooldownMs,
-    dailyLimit: options.dailyLimit,
+    dailyLimit: options.dailyLimit ?? caps.ANALYSIS_WORKSPACE_DAILY_LIMIT,
+    platformDailyLimit:
+      options.platformDailyLimit ?? caps.ANALYSIS_PLATFORM_DAILY_LIMIT,
   });
   const startedAt = reservation.reservedAt;
+  const trigger = options.trigger ?? "manual";
+  const deadline = createAnalysisDeadline(options.signal);
   try {
+    // Only exhaustive runs can be baselines. Keeping this lookup separate from
+    // the current evidence makes an incomplete crawl unable to overwrite the
+    // last trustworthy view of what the site advertised.
+    const previousOfferingRun = await repo.getLatestExhaustiveAnalysisRun(t, clientId);
     const parsed = parseEnv(env);
     const result = await analyzeClient({
       client,
       catalog: await repo.listServices(t),
       coverage: await repo.listCoverage(t, clientId),
       existing: await repo.listOpportunities(t, clientId),
-      evidenceProvider: evidenceProviderFor(client, t.workspaceId),
+      evidenceProvider: evidenceProviderFor(client, t.workspaceId, deadline.signal),
       evaluator: createEvaluator(parsed),
       maxAiCalls: parsed.MAX_AI_CALLS_PER_RUN,
       now: options.now,
@@ -130,6 +203,27 @@ export async function runAnalysis(
       resolvedCount: result.resolved.length,
     };
 
+    // The client page shows a short list for confirmation. A run snapshot is
+    // wider so a lower-ranked service can still become meaningful drift later.
+    const suggestedOfferings = suggestOfferings({
+      evidence: result.evidence,
+      existingOfferings: client.offerings,
+      max: 40,
+    }).map((suggestion) => suggestion.label);
+    const offeringDrift = detectOfferingDrift({
+      trigger,
+      current: {
+        labels: suggestedOfferings,
+        crawlExhaustive: result.evidence.site.crawlExhaustive,
+      },
+      previous: previousOfferingRun
+        ? {
+            labels: previousOfferingRun.suggestedOfferings,
+            crawlExhaustive: previousOfferingRun.crawlExhaustive,
+          }
+        : null,
+    });
+
     await repo.saveEvidence(t, result.evidence);
     await repo.saveAnalysis(t, [
       ...result.opportunities,
@@ -150,19 +244,27 @@ export async function runAnalysis(
       inconclusiveEvents: verdict.reach.inconclusiveEvents,
       surfaced: result.opportunities.length,
       stats: { ...result.stats },
-      trigger: options.trigger ?? "manual",
+      trigger,
       newCount: change.newCount,
       resolvedCount: change.resolvedCount,
       evaluatorCalls: result.stats.aiCalls,
       evaluatorRejections: result.stats.rejectedByEvaluator,
       evaluatorErrors: result.stats.evaluatorErrors,
+      crawlExhaustive: result.evidence.site.crawlExhaustive,
+      suggestedOfferings,
+      offeringDrift,
     });
 
     await finishReservation(false);
     return { ...result, verdict, change };
   } catch (error) {
     await finishReservation(true);
+    if (deadline.signal.aborted) {
+      throw new AnalysisAbortedError(deadline.timedOut ? "timeout" : "cancelled");
+    }
     throw error;
+  } finally {
+    deadline.dispose();
   }
 
   async function finishReservation(failed: boolean) {

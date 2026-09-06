@@ -1,8 +1,12 @@
 import { Link } from "react-router";
 
 import { analysisHealth } from "@/db/workspaceOperations";
-import { formatDate, PageContextMeta } from "../components/ui";
+import * as repo from "@/db/repositories";
+import { RULE_SERVICE_LINKS } from "@/core/rules/registry";
+import { computeWinRates } from "@/core/winRates";
+import { formatCurrencyRange, formatDate, PageContextMeta, pluralize } from "../components/ui";
 import { SettingsNavigation } from "../components/settings-navigation";
+import { resolveMailTransport } from "../lib/resend.server";
 import { requireTenant } from "../lib/session.server";
 import type { Route } from "./+types/operations";
 
@@ -12,7 +16,44 @@ export function meta() {
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const t = await requireTenant(request, context);
-  return analysisHealth(t.scope);
+  const [health, oppsByClient] = await Promise.all([
+    analysisHealth(t.scope),
+    repo.listOpportunitiesByClient(t.scope),
+  ]);
+  // What this workspace actually converts. Descriptive only: it reports the
+  // decisions the agency has made and predicts nothing from them.
+  const winRates = computeWinRates([...oppsByClient.values()].flat());
+  const ruleLabel = Object.fromEntries(
+    RULE_SERVICE_LINKS.map((link) => [link.ruleId, link.label]),
+  );
+  // Email delivery is not a per-workspace fact, but it is the failure that
+  // strands people outside the product entirely — nobody can verify, nobody
+  // can sign in, and nothing else on this page would show it.
+  const transport = resolveMailTransport(context.cloudflare.env as never);
+  return {
+    ...health,
+    sales: {
+      rows: winRates.ranked.map((entry) => ({
+        ruleId: entry.ruleId,
+        label: ruleLabel[entry.ruleId] ?? entry.ruleId,
+        tier: entry.tier,
+        decided: entry.decided,
+        sold: entry.sold,
+        averageSale: entry.averageSale,
+      })),
+      totalSold: winRates.totalSold,
+      totalSoldValue: winRates.totalSoldValue,
+    },
+    email: {
+      deliverable: transport.kind !== "none",
+      detail:
+        transport.kind === "resend"
+          ? "Verification and password-reset email is configured."
+          : transport.kind === "console"
+            ? "Email is being printed to the server log, not sent. This is a development setting."
+            : transport.reason,
+    },
+  };
 }
 
 export default function Operations({ loaderData: d }: Route.ComponentProps) {
@@ -39,6 +80,12 @@ export default function Operations({ loaderData: d }: Route.ComponentProps) {
               </p>
             </div>
           </div>
+
+          {!d.email.deliverable && (
+            <div className="notice err" role="alert">
+              No one can create an account or reset a password: {d.email.detail}
+            </div>
+          )}
 
           {d.alert && (
             <div className="notice warn" role="alert">
@@ -117,6 +164,49 @@ export default function Operations({ loaderData: d }: Route.ComponentProps) {
                   </li>
                 ))}
               </ul>
+            )}
+          </section>
+
+          <section className="settings-section">
+            <h2 className="title-section">What you actually sell</h2>
+            {d.sales.rows.length === 0 ? (
+              <p className="prose">
+                Nothing recorded yet. Each time you mark a finding sold — or dismiss one —
+                it is counted here, per kind of work. Once there is a history, the
+                opportunity queue is ordered by what <em>this</em> agency converts rather
+                than by what a rule happens to price highly.
+              </p>
+            ) : (
+              <>
+                <p className="prose">
+                  {d.sales.totalSold} {pluralize(d.sales.totalSold, "finding", "findings")} sold
+                  {d.sales.totalSoldValue > 0 && (
+                    <>
+                      , {formatCurrencyRange(d.sales.totalSoldValue, d.sales.totalSoldValue)}{" "}
+                      recorded
+                    </>
+                  )}
+                  . Counted only where you made a decision; findings still in the queue are
+                  not counted either way.
+                </p>
+                <ul className="weekly-list">
+                  {d.sales.rows.map((row) => (
+                    <li key={row.ruleId}>
+                      <b>{row.label}</b>
+                      {row.tier === "health" && <span className="faint"> · site health</span>}
+                      <p>
+                        Sold {row.sold} of {row.decided}
+                        {row.averageSale !== null && (
+                          <>
+                            {" "}
+                            · {formatCurrencyRange(row.averageSale, row.averageSale)} average
+                          </>
+                        )}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              </>
             )}
           </section>
 

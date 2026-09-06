@@ -61,6 +61,13 @@ export default {
    *
    * `waitUntil` keeps the invocation alive for the whole tick; the tick's own
    * wall-clock budget is what actually ends it, well inside the platform limit.
+   *
+   * This is the one path nobody is watching while it runs, so it must never fail
+   * quietly. A tick that throws before its own error handling — a bad binding, a
+   * D1 outage, a malformed env — used to reject straight out of this handler and
+   * leave no log line at all: the hour simply produced nothing. Now the failure
+   * is logged in the same shape as a success and then rethrown, so it also lands
+   * in the platform's own cron error rate where an alert can reach a human.
    */
   async scheduled(_controller: ScheduledController, env: CloudflareEnvironment, ctx: ExecutionContext) {
     const tick = runWithWorkerExecutionContext(ctx, () =>
@@ -70,8 +77,19 @@ export default {
         limit: parseEnv(env as unknown as Record<string, unknown>).MONITORING_MAX_CLIENTS_PER_RUN,
       }),
     );
-    ctx.waitUntil(tick);
-    const result = await tick;
+    // The rejection is handled below; this copy only keeps the invocation alive,
+    // so it is silenced to avoid reporting the same failure twice.
+    ctx.waitUntil(tick.catch(() => undefined));
+
+    let result: Awaited<typeof tick>;
+    try {
+      result = await tick;
+    } catch (error) {
+      const cause = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+      console.error(`[monitoring] tick failed before reporting: ${cause}`);
+      throw error;
+    }
+
     console.log(
       `[monitoring] considered=${result.considered} scanned=${result.scanned} ` +
         `skipped=${result.skipped} failed=${result.failed} new=${result.newFindings} ` +

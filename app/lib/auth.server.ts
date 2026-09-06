@@ -2,9 +2,10 @@ import { betterAuth } from "better-auth";
 
 import { buildAuthOptions } from "./authOptions";
 import {
+  createConsoleEmailSender,
   createResendPasswordResetSender,
   createResendVerificationEmailSender,
-  getResendConfig,
+  resolveMailTransport,
 } from "./resend.server";
 import { waitUntilInCurrentWorker } from "./workerContext.server";
 
@@ -23,6 +24,7 @@ export interface AuthEnv {
   BETTER_AUTH_URL?: string;
   RESEND_API_KEY?: string;
   RESEND_FROM_EMAIL?: string;
+  EMAIL_TRANSPORT?: string;
 }
 
 export function getTrustedAuthBaseURL(env: Pick<AuthEnv, "BETTER_AUTH_URL">): string {
@@ -47,19 +49,25 @@ export function getAuth(env: AuthEnv): AuthInstance {
     );
   }
   const baseURL = getTrustedAuthBaseURL(env);
-  const resendConfig = getResendConfig(env);
+  const transport = resolveMailTransport(env);
 
   const auth = betterAuth(
     buildAuthOptions({
       database: env.DB as never,
       secret,
       baseURL,
-      sendResetPassword: resendConfig
-        ? createResendPasswordResetSender(resendConfig)
-        : undefined,
-      sendVerificationEmail: resendConfig
-        ? createResendVerificationEmailSender(resendConfig)
-        : undefined,
+      sendResetPassword:
+        transport.kind === "resend"
+          ? createResendPasswordResetSender(transport.config)
+          : transport.kind === "console"
+            ? createConsoleEmailSender("password reset")
+            : undefined,
+      sendVerificationEmail:
+        transport.kind === "resend"
+          ? createResendVerificationEmailSender(transport.config)
+          : transport.kind === "console"
+            ? createConsoleEmailSender("email verification")
+            : undefined,
       backgroundTaskHandler: waitUntilInCurrentWorker,
     }),
   );

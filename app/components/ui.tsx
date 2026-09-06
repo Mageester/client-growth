@@ -547,6 +547,10 @@ export function getInitials(value: string | null | undefined): string {
 }
 
 export function formatCurrencyRange(min: number, max: number): string {
+  // A single amount is not a range. Recorded sales and single-price services
+  // both arrive here with equal ends, and "$9,400 - $9,400" reads as a
+  // formatting accident rather than a number.
+  if (min === max) return `$${min.toLocaleString()}`;
   return `$${min.toLocaleString()} – $${max.toLocaleString()}`;
 }
 
@@ -823,7 +827,16 @@ export function AxiomCredit({ className = "" }: { className?: string }) {
  * Rather than fake a step-by-step bar, this states what the run is doing and
  * roughly how long it takes, and announces itself to assistive technology.
  */
-export function AnalysisRunning({ clientName, domain }: { clientName: string; domain?: string }) {
+export function AnalysisRunning({
+  clientName,
+  domain,
+  stopHref,
+}: {
+  clientName: string;
+  domain?: string;
+  /** Navigating away aborts the owning form request and its server-side crawl. */
+  stopHref?: string;
+}) {
   return (
     <div className="runcard running" role="status" aria-live="polite">
       <span className="runcard-mark">
@@ -833,11 +846,16 @@ export function AnalysisRunning({ clientName, domain }: { clientName: string; do
         <p className="runcard-title">Reading {clientName}</p>
         <p className="runcard-summary">
           Fetching pages from {domain ?? "the site"}, then checking every offering against what the
-          site actually shows. This usually takes a few seconds.
+          site actually shows. Most sites finish in under a minute.
         </p>
         <span className="runbar" aria-hidden="true">
           <span />
         </span>
+        {stopHref && (
+          <Link className="btn btn-sm run-cancel" to={stopHref} replace>
+            Stop reading
+          </Link>
+        )}
       </div>
     </div>
   );

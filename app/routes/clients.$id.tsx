@@ -18,8 +18,21 @@ import {
   type MonitoringState,
 } from "@/core/monitoring";
 import * as monitoringRepo from "@/db/monitoring";
+import { parseJobValue } from "@/core/clientValue";
+import { MAX_COMPETITORS_PER_CLIENT } from "@/core/competitorGaps";
+import {
+  addCompetitor,
+  listCompetitors,
+  removeCompetitor,
+  CompetitorError,
+} from "@/db/competitors";
+import { compareWithCompetitors } from "../lib/competitors.server";
 import * as repo from "@/db/repositories";
-import { collectEvidenceOnly, runAnalysis } from "../lib/analysis.server";
+import {
+  AnalysisAbortedError,
+  collectEvidenceOnly,
+  runAnalysis,
+} from "../lib/analysis.server";
 import {
   byPotentialValue,
   clientState,
@@ -74,14 +87,16 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
   const firstRunFailed = new URL(request.url).searchParams.get("firstRun") === "failed";
   const client = await repo.getClient(t.scope, params.id);
   if (!client) throw new Response("Client not found", { status: 404 });
-  const [services, coverage, opportunities, runs, monitoring, evidence] = await Promise.all([
-    repo.listServices(t.scope),
-    repo.listCoverage(t.scope, client.id),
-    repo.listOpportunities(t.scope, client.id),
-    repo.listAnalysisRuns(t.scope, client.id, 6),
-    monitoringRepo.getMonitoring(t.scope, client.id),
-    repo.getLatestEvidence(t.scope, client.id),
-  ]);
+  const [services, coverage, opportunities, runs, monitoring, evidence, competitors] =
+    await Promise.all([
+      repo.listServices(t.scope),
+      repo.listCoverage(t.scope, client.id),
+      repo.listOpportunities(t.scope, client.id),
+      repo.listAnalysisRuns(t.scope, client.id, 6),
+      monitoringRepo.getMonitoring(t.scope, client.id),
+      repo.getLatestEvidence(t.scope, client.id),
+      listCompetitors(t.scope, client.id),
+    ]);
   const totals = totalsFor(opportunities);
   const latest = runs[0] ?? null;
 
@@ -123,6 +138,8 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
     firstRunFailed,
     readiness,
     suggestions,
+    competitors,
+    maxCompetitors: MAX_COMPETITORS_PER_CLIENT,
     /** Whether a crawl has ever stored evidence for this client. */
     hasEvidence: evidence !== null,
     state: clientState({ outcome: latest?.outcome ?? null, openCount: totals.open }),
@@ -160,6 +177,8 @@ export async function action({ params, request, context }: Route.ActionArgs) {
     };
     const problem = validateClientInput(input);
     if (problem) return { ok: false as const, error: problem };
+    const jobValue = parseJobValue(String(form.get("averageJobValue") ?? ""));
+    if (!jobValue.ok) return { ok: false as const, error: jobValue.error };
     await repo.upsertClient(
       t.scope,
       ClientSchema.parse({
@@ -170,6 +189,7 @@ export async function action({ params, request, context }: Route.ActionArgs) {
           .split("\n")
           .map((s) => s.trim())
           .filter(Boolean),
+        ...(jobValue.value === undefined ? {} : { averageJobValue: jobValue.value }),
         notes: String(form.get("notes") ?? "").trim(),
       }),
     );
@@ -181,7 +201,7 @@ export async function action({ params, request, context }: Route.ActionArgs) {
   // running one would spend AI calls to conclude what is already known.
   if (intent === "suggest-from-site") {
     try {
-      const { readablePages } = await collectEvidenceOnly(t.scope, existing.id);
+      const { readablePages } = await collectEvidenceOnly(t.scope, existing.id, request.signal);
       if (readablePages === 0) {
         return {
           ok: false as const,
@@ -249,6 +269,63 @@ export async function action({ params, request, context }: Route.ActionArgs) {
     return { ok: true as const, message: "Coverage removed. Future gaps here become billable." };
   }
 
+  if (intent === "add-competitor") {
+    const name = String(form.get("competitorName") ?? "").trim();
+    const rawDomain = String(form.get("competitorDomain") ?? "");
+    const domain = normalizeDomain(rawDomain);
+    if (!name) return { ok: false as const, error: "Give the competitor a name." };
+    if (!domain) return { ok: false as const, error: "Enter the competitor's website." };
+    try {
+      await addCompetitor(t.scope, {
+        clientId: existing.id,
+        name,
+        domain,
+        clientDomain: existing.domain,
+      });
+    } catch (error) {
+      if (error instanceof CompetitorError) return { ok: false as const, error: error.message };
+      throw error;
+    }
+    return { ok: true as const, message: `${name} added. Run a comparison to see the gaps.` };
+  }
+
+  if (intent === "remove-competitor") {
+    await removeCompetitor(t.scope, existing.id, String(form.get("competitorId") ?? ""));
+    return { ok: true as const, message: "Competitor removed." };
+  }
+
+  if (intent === "compare-competitors") {
+    try {
+      const result = await compareWithCompetitors(
+        t.scope,
+        context.cloudflare.env as never,
+        existing.id,
+      );
+      if (result.limitation) return { ok: false as const, error: result.limitation };
+      if (result.catalogGap) return { ok: false as const, error: result.catalogGap };
+      if (result.surfaced === 0) {
+        return {
+          ok: true as const,
+          message:
+            `Read ${result.readableCompetitors.length} competitor ` +
+            `${result.readableCompetitors.length === 1 ? "site" : "sites"} and found no service ` +
+            `they share that this client is missing.`,
+        };
+      }
+      return {
+        ok: true as const,
+        message:
+          `Found ${result.surfaced} ${result.surfaced === 1 ? "gap" : "gaps"} against ` +
+          `${result.readableCompetitors.length} competitor sites. They are in the opportunity queue.`,
+      };
+    } catch (error) {
+      if (isAnalysisLimitExceeded(error)) {
+        return { ok: false as const, error: error.reason, limitation: error.limitation };
+      }
+      throw error;
+    }
+  }
+
   if (intent === "set-monitoring") {
     const cadence = String(form.get("cadence") ?? "");
     if (!isMonitoringCadence(cadence)) {
@@ -283,7 +360,9 @@ export async function action({ params, request, context }: Route.ActionArgs) {
       };
     }
     try {
-      const result = await runAnalysis(t.scope, context.cloudflare.env as never, existing.id);
+      const result = await runAnalysis(t.scope, context.cloudflare.env as never, existing.id, {
+        signal: request.signal,
+      });
       return {
         ok: true as const,
         message: null,
@@ -296,6 +375,9 @@ export async function action({ params, request, context }: Route.ActionArgs) {
     } catch (err) {
       if (isAnalysisLimitExceeded(err)) {
         return { ok: true as const, message: err.message, limited: true as const, retryAt: err.retryAt };
+      }
+      if (err instanceof AnalysisAbortedError) {
+        return { ok: false as const, error: err.message, analysisAborted: true as const };
       }
       const error =
         err instanceof Response
@@ -323,12 +405,17 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
     firstRunFailed,
     readiness,
     suggestions,
+    // Defaulted: loader data is a boundary, and a page rendered from a fixture
+    // or an older payload must degrade rather than throw.
+    competitors = [],
+    maxCompetitors = MAX_COMPETITORS_PER_CLIENT,
   } = loaderData;
   const navigation = useNavigation();
   const intent = navigation.formData?.get("intent");
   const analyzing = intent === "analyze";
   const saving = intent === "save";
   const deleting = intent === "delete";
+  const comparing = intent === "compare-competitors";
   const busy = navigation.state !== "idle";
   const [editOpen, setEditOpen] = useState(false);
   const [editOfferings, setEditOfferings] = useState(() => client.offerings.join("\n"));
@@ -459,7 +546,13 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
         onEditClient={() => setEditOpen(true)}
       />
 
-      {analyzing && <AnalysisRunning clientName={client.name} domain={client.domain} />}
+      {analyzing && (
+        <AnalysisRunning
+          clientName={client.name}
+          domain={client.domain}
+          stopHref={`/clients/${client.id}`}
+        />
+      )}
       {!analyzing && actionData && "run" in actionData && actionData.run && (
         <AnalysisBanner
           outcome={actionData.run.outcome}
@@ -684,6 +777,83 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
       <section className="section">
         <div className="section-head">
           <div>
+            <h2 className="title-section">Who they compete with</h2>
+            <p>
+              Name the businesses this client actually loses work to. A comparison reads
+              their sites and reports services two or more of them sell that this client
+              has no page for — the strongest argument for a new page there is.
+            </p>
+          </div>
+          {competitors.length > 0 && (
+            <Form method="post" className="inline">
+              <input type="hidden" name="intent" value="compare-competitors" />
+              <button className="btn btn-sm" type="submit" disabled={busy}>
+                {comparing ? "Comparing…" : "Compare"}
+              </button>
+            </Form>
+          )}
+        </div>
+
+        {competitors.length === 0 ? (
+          <p className="prose faint">
+            None recorded. Two are the minimum for a comparison — one competitor having a
+            page is that competitor&rsquo;s choice, not a pattern worth telling a client
+            about.
+          </p>
+        ) : (
+          <ul className="tag-row tag-row-lg">
+            {competitors.map((competitor) => (
+              <li key={competitor.id} className="pill quiet">
+                {competitor.name}
+                <span className="faint"> · {competitor.domain}</span>
+                <Form method="post" className="inline">
+                  <input type="hidden" name="intent" value="remove-competitor" />
+                  <input type="hidden" name="competitorId" value={competitor.id} />
+                  <button
+                    className="linklike"
+                    type="submit"
+                    disabled={busy}
+                    aria-label={`Remove ${competitor.name}`}
+                  >
+                    ×
+                  </button>
+                </Form>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {competitors.length < maxCompetitors && (
+          <Form method="post" className="row-tight competitor-add">
+            <input type="hidden" name="intent" value="add-competitor" />
+            <label className="sr-only" htmlFor="competitor-name">
+              Competitor name
+            </label>
+            <input id="competitor-name" name="competitorName" type="text" placeholder="Name" required />
+            <label className="sr-only" htmlFor="competitor-domain">
+              Competitor website
+            </label>
+            <input
+              id="competitor-domain"
+              name="competitorDomain"
+              type="text"
+              placeholder="competitor.example"
+              required
+            />
+            <button className="btn btn-sm" type="submit" disabled={busy}>
+              Add
+            </button>
+          </Form>
+        )}
+        <p className="field-hint">
+          Up to {maxCompetitors}. A comparison crawls every one of them and takes a slot
+          from the same daily analysis limit.
+        </p>
+      </section>
+
+      <section className="section">
+        <div className="section-head">
+          <div>
             <h2 className="title-section">Analysis history</h2>
             <p>
               Every check and what it concluded, including the ones that concluded nothing and the
@@ -806,6 +976,23 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
               Two or more makes the analysis far better.
             </div>
             <OfferingGuidance raw={editOfferings} />
+          </div>
+          <div className="field">
+            <label htmlFor="edit-job-value">Typical job value (optional)</label>
+            <input
+              id="edit-job-value"
+              name="averageJobValue"
+              type="text"
+              inputMode="decimal"
+              defaultValue={client.averageJobValue ?? ""}
+              placeholder="e.g. 4000"
+            />
+            <div className="field-hint">
+              What one typical job is worth to <em>this business</em>, not to you. Findings then
+              say what the work costs in their terms — &ldquo;pays for itself with one job&rdquo;
+              is a sentence you can say on a call. Leave it blank if you do not know; nothing is
+              estimated from it.
+            </div>
           </div>
           <div className="field">
             <label htmlFor="edit-notes">Notes</label>

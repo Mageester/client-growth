@@ -35,6 +35,18 @@ export const ClientSchema = z.object({
   domain: z.string().min(1),
   /** The CLIENT's own business services (what they sell to their customers). */
   offerings: z.array(z.string().min(1)).default([]),
+  /**
+   * What one typical job is worth to THIS CLIENT'S business — not to the
+   * agency. Optional, and supplied by the agency rather than inferred.
+   *
+   * It exists so a finding can be expressed in the only currency that moves a
+   * client: their own work. "$900-$1,800" is an invoice line; "less than one
+   * job" is a reason to say yes. Everything derived from it is arithmetic on
+   * this number (see core/clientValue.ts) — there is no model, no traffic
+   * estimate and no multiplier, because a confident-sounding invented number
+   * is precisely what this product refuses to produce.
+   */
+  averageJobValue: z.number().positive().optional(),
   notes: z.string().default(""),
 });
 export type Client = z.infer<typeof ClientSchema>;
@@ -159,6 +171,12 @@ export const RuleIdSchema = z.enum([
   "missing-service-page",
   "no-service-pages",
   "broken-conversion-path",
+  /**
+   * The only rule that reads a site the client does not own. Two or more of the
+   * client's named competitors have a page for a service the client neither
+   * offers nor has a page for.
+   */
+  "competitor-service-gap",
   "missing-title",
   "duplicate-title",
   "thin-service-page",
@@ -357,6 +375,17 @@ export const OpportunityStatusSchema = z.enum([
   "already_covered",
   "snoozed",
   /**
+   * The agency sold this work. The single most valuable fact the product can
+   * hold: it is the only signal that says which findings are worth surfacing,
+   * as opposed to which ones are merely true.
+   *
+   * Distinct from every other terminal state. "dismissed" is the agency
+   * declining to sell it, "already_covered" is work the contract includes, and
+   * "resolved" is the client fixing it themselves. Only this one is a win, and
+   * conflating it with any of the others would destroy the measurement.
+   */
+  "sold",
+  /**
    * Retained for audit after a page-level technical row has been folded into
    * its canonical site-level opportunity. Superseded rows are never listed or
    * actionable, so an old decision cannot re-enter the agency's feed.
@@ -395,6 +424,13 @@ export const OpportunitySchema = z.object({
   confidence: z.number().min(0).max(1),
   billableStatus: BillabilityStatusSchema,
   status: OpportunityStatusSchema,
+  /**
+   * What the agency actually charged, recorded when they mark the work sold.
+   * Optional even on a sold finding: knowing that it sold is worth capturing
+   * on its own, and forcing a number would cost the more important fact.
+   */
+  soldAmount: z.number().nonnegative().optional(),
+  soldAt: z.string().optional(),
   snoozeUntil: z.string().optional(),
   proposalMd: z.string().optional(),
   updatedAt: z.string().min(1),

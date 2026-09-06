@@ -24,6 +24,12 @@ const EXPECTED_MIGRATIONS = [
   "0013_technical_aggregation.sql",
   "0014_technical_aggregate_titles.sql",
   "0015_canonical_technical_aggregate_titles.sql",
+  "0016_platform_analysis_ceiling.sql",
+  "0017_invitation_email_lookup.sql",
+  "0018_opportunity_outcomes.sql",
+  "0019_client_job_value.sql",
+  "0020_competitors.sql",
+  "0021_offering_drift.sql",
 ] as const;
 
 const DEMO_IDENTIFIERS = [
@@ -77,7 +83,7 @@ describe("production migration baseline", () => {
    * The migration that matters is not the one that runs on an empty database —
    * it is the one that runs on the schema production is on right now, with rows
    * in it. This walks 0001..0007, populates it the way production is populated,
-   * then applies 0008 through 0015 alone.
+   * then applies 0008 through 0021 alone.
    */
   it("upgrades the live production schema in place without touching existing rows", async () => {
     const db = nodeSqliteDb(":memory:");
@@ -115,6 +121,12 @@ describe("production migration baseline", () => {
       await db.exec(readFileSync(join(migrationsDir, "0013_technical_aggregation.sql"), "utf8"));
       await db.exec(readFileSync(join(migrationsDir, "0014_technical_aggregate_titles.sql"), "utf8"));
       await db.exec(readFileSync(join(migrationsDir, "0015_canonical_technical_aggregate_titles.sql"), "utf8"));
+      await db.exec(readFileSync(join(migrationsDir, "0016_platform_analysis_ceiling.sql"), "utf8"));
+      await db.exec(readFileSync(join(migrationsDir, "0017_invitation_email_lookup.sql"), "utf8"));
+      await db.exec(readFileSync(join(migrationsDir, "0018_opportunity_outcomes.sql"), "utf8"));
+      await db.exec(readFileSync(join(migrationsDir, "0019_client_job_value.sql"), "utf8"));
+      await db.exec(readFileSync(join(migrationsDir, "0020_competitors.sql"), "utf8"));
+      await db.exec(readFileSync(join(migrationsDir, "0021_offering_drift.sql"), "utf8"));
 
       expect(await db.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
 

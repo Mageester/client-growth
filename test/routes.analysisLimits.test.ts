@@ -139,6 +139,7 @@ describe("analysis limit route handling", () => {
         },
       ],
       serviceName: {},
+      winRates: [],
       monitoring: { monitored: 0, due: 0, unhealthy: 0, newFindings: 0, resolvedFindings: 0, checks: 0 },
     };
     const html = renderToStaticMarkup(

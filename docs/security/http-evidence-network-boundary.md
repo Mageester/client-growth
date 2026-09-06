@@ -59,9 +59,48 @@ Binary/arbitrary content types are rejected before parsing. HTML accepts
 `+xml`, and text forms used by real sites, while retaining URL and byte caps.
 
 The default User-Agent is the stable product identifier
-`ClientGrowthBot/0.1 (+website evidence; operated by the agency)`. It is
-centralized and configurable, but does not claim to be a browser or search
-engine.
+`AxiomOrbitBot/1.0 (+https://getaxiom.ca/bot; website evidence for the site's own
+agency)`. It is centralized and configurable, names the product, and carries a
+contact address. It does not claim to be a browser or a search engine.
+
+## robots.txt
+
+`/robots.txt` is fetched once per crawl, before any page is requested, and
+parsed per RFC 9309 (`src/adapters/evidence/robots.ts`): groups, `Allow` and
+`Disallow`, `*` wildcards, the `$` end anchor, longest-match-wins with ties
+going to `Allow`, and a group naming this crawler taking precedence over the
+wildcard group entirely.
+
+It is enforced in three places, not one:
+
+- **the crawl**, before the page budget is charged — an unrequestable page costs
+  no budget;
+- **`fetchPage`**, used by absence verification;
+- **`probe`**, used by broken-link checks.
+
+The last two matter more than the first. Absence verification asks "is this page
+really not there?", and a page we were asked not to request is not a page that is
+missing — answering otherwise would manufacture the exact false claim ("your
+client has no heat-pump page") the product exists to refuse. Likewise a
+disallowed URL reported as a 404 would sell a repair for a link that works.
+
+A disallowed destination is recorded as a **blocked** network event, so it flows
+into the same "we could not look" accounting as any other refusal and can never
+read as clean. Rules only apply to the origin the file was read from; an outbound
+link to another site is not covered by this client's robots.txt.
+
+An absent, unreadable or failing `/robots.txt` is treated as unrestricted. RFC
+9309 permits reading a 5xx as a full disallow, and for a general-purpose crawler
+that is the polite choice — but this crawler only ever visits sites whose owner
+has engaged the operator's customer to look after them, and letting one flaky
+response silently downgrade an analysis to "we could not look" would cost the
+agency real information to buy a courtesy nobody asked for.
+
+The offline analyzability corpus cannot exercise this: its cache holds no
+`/robots.txt` responses, so replayed crawls always resolve to unrestricted.
+Enforcement is covered by `test/adapters.robotsEnforcement.test.ts` against a
+fixture site instead. Adding robots support changed **zero** of the 24 corpus
+sites.
 
 ## Failure semantics
 

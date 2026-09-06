@@ -40,6 +40,13 @@ async function call(fn: (a: never) => unknown, args: unknown): Promise<unknown> 
 }
 
 beforeEach(async () => {
+  // The fixture schedules clients relative to NOW, including some that are
+  // deliberately NOT yet due. Freeze the clock to NOW so "due" stays a property
+  // of the fixture rather than of the day the suite happens to run: with a real
+  // clock, every not-yet-due client silently becomes due once that date passes.
+  // Only Date is faked — timers stay real so awaited work still settles.
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(NOW);
   portfolio = await buildPortfolio({ workspaces: 2, perWorkspace: 6, now: NOW });
   scope = portfolio.scopeFor("ws_a");
   __setSessionResolver(async () => ({
@@ -61,6 +68,7 @@ beforeEach(async () => {
 afterEach(() => {
   __setSessionResolver(null);
   vi.unstubAllGlobals();
+  vi.useRealTimers();
   portfolio.close();
 });
 

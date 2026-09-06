@@ -5,6 +5,7 @@ import {
   isArchivePath,
   isEditorialPath,
   isInServiceSection,
+  isRegistryPath,
   isServiceHub,
   hasServiceWordInSlug,
   pathSegments,
@@ -78,7 +79,10 @@ export interface SuggestOfferingsInput {
  * When the words are furniture the URL is the better name.
  */
 const FURNITURE =
-  /^(home|menu|search|book(ing)?( (online|now))?|schedule( (online|service|now))?|call( us)?|contact( us)?|email( us)?|get (a )?(quote|estimate|started)|request (a )?(quote|estimate|appointment|service)|apply( (now|locally))?|careers?|jobs?|login|log in|sign in|sign up|my account|account|cart|checkout|read more|learn more|find out more|more|more info(rmation)?|see (all|more|details)|view (all|more|details?|service|services|page)|explore( more)?|discover( more)?|start( (here|now|this path))?|details|continue|next|previous|back|top|skip to (main )?content|our services|all services|services|français|english|espa[nñ]ol)$/i;
+  /^(home|menu|search|book(ing)?( (online|now))?|schedule( (online|service|now))?|call( us)?|contact( us)?|email( us)?|get (a )?(quote|estimate|started)|request (a )?(quote|estimate|appointment|service)|apply( (now|locally))?|careers?|jobs?|login|log in|sign in|sign up|my account|account|cart|checkout|read more|learn more|find out more|more|more info(rmation)?|see (all|more|details|solution)|view (all|more|details?|service|services|page)|explore( more)?|discover( more)?|start( (here|now|this path))?|details|continue|next|previous|back|top|skip to (main )?content|our services|all services|services|français|english|espa[nñ]ol)$/i;
+
+/** A brand promise is not a named service, even when it links to one. */
+const MARKETING_TAGLINE = /^build without boundaries$/i;
 
 /** A location page ("Toronto", "Find My Local X") is not a service. */
 const LOCATION_LIKE = /^(find (my|a) (local|nearby)|locations?|areas? (we )?serve|service areas?)\b/i;
@@ -88,7 +92,7 @@ const BORING_PAGE =
   /^(about( us)?|our (story|team|mission|process|approach|philosophy)|meet the (team|doctors?|staff)|blog|news|press|media|articles|resources|reviews?|testimonials?|privacy( policy)?|terms.*|sitemap|gallery|photos|portfolio|projects|work|faqs?|financing|finance|specials?|special offers?|coupons?|promos?|promotions?|offers?|deals?|careers?|who we are|what we do|glossary|read|overview|introduction)$/i;
 
 /** A page about what something costs is not the thing being sold. */
-const PRICE_PAGE = /(cost|costs|price|prices|pricing|rates|fees)$/i;
+const PRICE_PAGE = /\b(cost|costs|price|prices|pricing|rates|fees)$/i;
 
 /**
  * "All Plumbing Services" is the index page above the plumbing services, not
@@ -163,6 +167,7 @@ function usableLabel(label: string): boolean {
   if (PRICE_PAGE.test(label)) return false;
   if (UMBRELLA_INDEX.test(label)) return false;
   if (FURNITURE.test(label)) return false;
+  if (MARKETING_TAGLINE.test(label)) return false;
   if (BORING_PAGE.test(label)) return false;
   if (LOCATION_LIKE.test(label)) return false;
   if (classifyCommercialLanguage(label) !== null) return false;
@@ -179,6 +184,7 @@ function usableLabel(label: string): boolean {
  * business sells.
  */
 function usableUrl(url: string): boolean {
+  if (isRegistryPath(url)) return false;
   if (DOCUMENT_URL.test(new URL(url, "https://client-growth.invalid/").pathname)) return false;
   // A page under /blog or /project-gallery is writing about the work, not an
   // offer of it. goddardschool.com/blog/babyproofing-your-home was being

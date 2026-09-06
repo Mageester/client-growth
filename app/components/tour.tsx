@@ -46,7 +46,7 @@ export const TOUR_STEPS: TourStep[] = [
     icon: "inbox",
     title: "Opportunities is the working screen",
     body: [
-      "Findings across your whole portfolio, ranked by what the work is worth. Select one to see the case for it: what was found, why it matters to that client, and what the job would be.",
+      "Findings across your whole portfolio: the work you could sell first, with site-health checks kept underneath it. Once you start marking findings sold, the order follows what you actually sell. Select one to see the case for it: what was found, why it matters to that client, and what the job would be.",
       "This is the only screen you need day to day. The other two exist to feed it.",
     ],
     highlight: "/opportunities",

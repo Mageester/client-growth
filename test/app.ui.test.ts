@@ -4,8 +4,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router";
 import { readFileSync } from "node:fs";
 
-import { deferMenuClose } from "../app/components/ui";
+import { AnalysisRunning, formatCurrencyRange, deferMenuClose } from "../app/components/ui";
 import { AppNavigation, ThemePicker, isProposalSharePath, loader as rootLoader } from "../app/root";
+import { homeRenderClock } from "../app/routes/changes";
+import { healthSectionDescription } from "../app/routes/opportunities._index";
 import { __setSessionResolver } from "../app/lib/session.server";
 
 describe("menu activation", () => {
@@ -69,6 +71,65 @@ describe("mobile viewport safety", () => {
 
     expect(bodyRules).not.toMatch(/min-width\s*:\s*320px/);
   });
+
+  it("gives a running analysis an explicit stop action", () => {
+    const html = renderToStaticMarkup(
+      createElement(
+        MemoryRouter,
+        { initialEntries: ["/clients/client-1"] },
+        createElement(AnalysisRunning, {
+          clientName: "Northstar Growth Studio",
+          domain: "northstar.example",
+          stopHref: "/clients/client-1",
+        } as never),
+      ),
+    );
+
+    expect(html).toContain("Stop reading");
+    expect(html).toContain('href="/clients/client-1"');
+  });
+
+  it("switches the Orbit detail and opportunity feed to fluid phone layouts", () => {
+    const css = readFileSync(new URL("../app/styles/orbit-approved.css", import.meta.url), "utf8");
+    const phoneRules = css.slice(css.lastIndexOf("@media (max-width: 700px)"));
+
+    expect(phoneRules).toMatch(/\.app-frame \.detail\s*\{[\s\S]*box-sizing:\s*border-box/);
+    expect(phoneRules).toMatch(/\.app-frame \.signal-row-select\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\)/);
+    expect(phoneRules).toMatch(/\.app-frame \.signal-row-client\s*\{[\s\S]*grid-column:\s*1/);
+    expect(phoneRules).toMatch(/\.app-frame \.signal-row-age\s*\{[\s\S]*display:\s*none/);
+    expect(phoneRules).toMatch(/\.app-frame \.attention-tags\s*\{[\s\S]*flex-wrap:\s*wrap/);
+    expect(phoneRules).toMatch(/\.app-frame \.detail-overview \.case[\s\S]*min-width:\s*0/);
+    expect(phoneRules).toMatch(/\.app-frame \.settings-nav\s*\{[\s\S]*grid-template-columns:\s*repeat\(2/);
+    expect(phoneRules).toMatch(/\.app-frame \.services-table\s*\{[\s\S]*overflow:\s*visible/);
+    expect(phoneRules).toMatch(/\.app-frame \.services-table \.records\s*\{[\s\S]*min-width:\s*0/);
+    expect(phoneRules).toMatch(/\.app-frame \.services-table \.record-name\s*\{[\s\S]*text-overflow:\s*clip/);
+    expect(phoneRules).toMatch(/\.app-frame \.services-table \.record-name\s*\{[\s\S]*white-space:\s*normal/);
+    expect(phoneRules).toMatch(/\.app-frame \.detail \.record-meta\s*\{[\s\S]*min-width:\s*0/);
+    expect(phoneRules).toMatch(/\.app-frame \.detail \.record-meta > span:last-child\s*\{[\s\S]*overflow-wrap:\s*anywhere/);
+    expect(css).toMatch(/\.app-frame \.opportunities-page \.orbit-select-wrap\s*\{[\s\S]*width:\s*180px/);
+  });
+
+  it("keeps public proposal pages fluid on a phone", () => {
+    const css = readFileSync(new URL("../app/styles/app.css", import.meta.url), "utf8");
+    expect(css).toMatch(
+      /@media\s*\(max-width:\s*640px\)[\s\S]*\.detail\.detail-narrow\.proposal-share-page\s*\{[\s\S]*box-sizing:\s*border-box[\s\S]*max-width:\s*100%/,
+    );
+  });
+
+  it("anchors time-sensitive home copy to the loader snapshot", () => {
+    const changes = readFileSync(new URL("../app/routes/changes.tsx", import.meta.url), "utf8");
+    const until = "2026-09-06T18:00:00.000Z";
+    expect(homeRenderClock(until)).toBe(Date.parse(until));
+    expect(changes).toContain("const renderNow = homeRenderClock(data.until);");
+    expect(changes).toContain("greeting(new Date(renderNow))");
+    expect(changes).toContain("formatRelative(run.finishedAt, renderNow)");
+  });
+
+  it("labels the all-findings view as history instead of open work", () => {
+    expect(healthSectionDescription(3, "open")).toMatch(/worth fixing/);
+    expect(healthSectionDescription(3, "all")).toMatch(/history/i);
+    expect(healthSectionDescription(3, "all")).not.toMatch(/worth fixing/);
+  });
 });
 
 describe("opportunity inspector values", () => {
@@ -119,5 +180,17 @@ describe("public proposal share shell", () => {
     expect(css).toMatch(/@media\s+print\s*\{/);
     expect(css).toMatch(/@media\s+print[\s\S]*--bg:\s*#fff/);
     expect(css).toMatch(/@media\s+print[\s\S]*\.proposal-share-page/);
+  });
+});
+
+describe("money formatting", () => {
+  it("shows a single amount as an amount, not as a range with equal ends", () => {
+    // Recorded sales and single-price services both arrive with min === max.
+    expect(formatCurrencyRange(9400, 9400)).toBe("$9,400");
+    expect(formatCurrencyRange(0, 0)).toBe("$0");
+  });
+
+  it("still shows a real range as a range", () => {
+    expect(formatCurrencyRange(900, 1800)).toBe("$900 – $1,800");
   });
 });

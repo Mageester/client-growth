@@ -3,6 +3,8 @@ import {
   getProposalShareByToken,
   type ProposalSharePublic,
 } from "@/db/proposalShares";
+import { describeEvidenceRef, isPageRef, parseEvidenceRef } from "@/core/evidenceRef";
+import { titleFromUrl } from "../lib/evidence";
 import { Icon, formatCurrencyRange } from "../components/ui";
 import type { ReactNode } from "react";
 
@@ -114,14 +116,6 @@ export default function ProposalShare({ loaderData }: { loaderData: ProposalShar
       <section className="section">
         <h2 className="title-section">Scope and evidence</h2>
         <div className="case">
-          <div className="case-block">
-            <h3 className="subhead">What was found</h3>
-            <p className="prose">{opportunity.detected}</p>
-          </div>
-          <div className="case-block">
-            <h3 className="subhead">Why it matters</h3>
-            <p className="prose">{opportunity.rationale}</p>
-          </div>
           {opportunity.suggestedScope.length > 0 && (
             <div className="case-block">
               <h3 className="subhead">What the work includes</h3>
@@ -137,7 +131,9 @@ export default function ProposalShare({ loaderData }: { loaderData: ProposalShar
               <h3 className="subhead">Sources checked</h3>
               <ul className="scope-list">
                 {opportunity.evidenceRefs.map((reference, index) => (
-                  <li key={index}>{reference}</li>
+                  <li key={index}>
+                    <PublicEvidenceReference reference={reference} />
+                  </li>
                 ))}
               </ul>
             </div>
@@ -153,10 +149,72 @@ export default function ProposalShare({ loaderData }: { loaderData: ProposalShar
   );
 }
 
-/** A small presentation grammar for our saved drafts; HTML and URLs remain text. */
+export function publicEvidenceReference(reference: string): {
+  label: string;
+  url: string | null;
+} {
+  const parsed = parseEvidenceRef(reference);
+  if (isPageRef(parsed) && parsed.url) {
+    const qualifier =
+      parsed.kind === "verified"
+        ? " (fetched to confirm)"
+        : parsed.kind === "considered"
+          ? " (considered and ruled out)"
+          : "";
+    return { label: titleFromUrl(parsed.url) + qualifier, url: parsed.url };
+  }
+  return { label: describeEvidenceRef(parsed), url: null };
+}
+
+function PublicEvidenceReference({ reference }: { reference: string }) {
+  const item = publicEvidenceReference(reference);
+  return item.url ? (
+    <a href={item.url} target="_blank" rel="noreferrer">
+      {item.label}
+    </a>
+  ) : (
+    item.label
+  );
+}
+
+const SAVED_EVIDENCE_TOKEN =
+  /(^|\s)(images-without-alt:\d+|word-count:\d+|title:missing|h1:missing|meta-description:missing|structured-data:localbusiness-or-service-missing|competitor:[^\s]+)(?=\s|$)/gi;
+
+/** A small presentation grammar for saved drafts; URLs and evidence tokens become readable. */
 function ProposalText({ text }: { text: string }) {
-  const inline = (line: string): ReactNode[] => line.split(/(\*\*[^*]+\*\*)/g).map((part, index) =>
-    part.startsWith("**") && part.endsWith("**") ? <strong key={index}>{part.slice(2, -2)}</strong> : part);
+  const inline = (line: string): ReactNode[] => {
+    const readableLine = line.replace(SAVED_EVIDENCE_TOKEN, (_match, prefix: string, token: string) =>
+      `${prefix}${describeEvidenceRef(parseEvidenceRef(token))}`,
+    );
+
+    return readableLine.split(/(\*\*[^*]+\*\*|https?:\/\/[^\s]+)/g).map((part, index) => {
+      if (part.startsWith("**") && part.endsWith("**")) {
+        return <strong key={index}>{part.slice(2, -2)}</strong>;
+      }
+
+      if (!/^https?:\/\//i.test(part)) return part;
+      let url = part;
+      let trailing = "";
+      while (/[.,;:!?]$/.test(url)) {
+        trailing = url.slice(-1) + trailing;
+        url = url.slice(0, -1);
+      }
+      try {
+        const parsed = new URL(url);
+        if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return part;
+        return (
+          <span key={index}>
+            <a href={url} target="_blank" rel="noreferrer">
+              {titleFromUrl(url)}
+            </a>
+            {trailing}
+          </span>
+        );
+      } catch {
+        return part;
+      }
+    });
+  };
   const blocks: ReactNode[] = [];
   const lines = text.split(/\r?\n/);
   for (let i = 0; i < lines.length; i++) {

@@ -53,6 +53,11 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   };
 }
 
+export function homeRenderClock(until: string): number {
+  const parsed = Date.parse(until);
+  return Number.isFinite(parsed) ? parsed : Date.now();
+}
+
 function greeting(now = new Date()): string {
   const hour = now.getHours();
   if (hour < 12) return "Good morning";
@@ -61,6 +66,7 @@ function greeting(now = new Date()): string {
 }
 
 export default function Changes({ loaderData: data }: Route.ComponentProps) {
+  const renderNow = homeRenderClock(data.until);
   const summary = data.summary;
   const firstName = data.firstName ?? "there";
   const attention = data.attention ?? [];
@@ -78,7 +84,7 @@ export default function Changes({ loaderData: data }: Route.ComponentProps) {
         <div>
           <span className="eyebrow">Home</span>
           <h1 className="title-page">
-            {greeting()}, {firstName}.
+            {greeting(new Date(renderNow))}, {firstName}.
           </h1>
           <p className="page-statement">
             {attention.length > 0
@@ -186,13 +192,18 @@ export default function Changes({ loaderData: data }: Route.ComponentProps) {
               <li key={run.id}>
                 <div className="weekly-row">
                   <Link to={`/clients/${encodeURIComponent(run.clientId)}`}>{run.clientName}</Link>
-                  <time dateTime={run.finishedAt}>{formatRelative(run.finishedAt)}</time>
+                  <time dateTime={run.finishedAt}>{formatRelative(run.finishedAt, renderNow)}</time>
                 </div>
                 <p>
                   {run.outcome === "inconclusive"
                     ? "Could not fully assess"
                     : `${run.newCount} new · ${run.resolvedCount} confirmed fixed`}
                 </p>
+                {(run.offeringDrift?.length ?? 0) > 0 && (
+                  <p className="weekly-drift">
+                    <strong>New on site:</strong> {run.offeringDrift.join(", ")}
+                  </p>
+                )}
               </li>
             ))}
           </ul>

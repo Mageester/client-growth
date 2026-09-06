@@ -43,6 +43,82 @@ function bundle(partial: {
 
 const NO_FETCH = { fetchPage: undefined };
 
+describe("absence verification — corpus audit regressions", () => {
+  /**
+   * Found by auditing every finding the engine produced on the 24-site corpus.
+   * Two dental practices were each told "No page for Invisalign clear aligners"
+   * — one at 90% confidence — while their Invisalign page was linked from every
+   * page of the site. The offering has three head tokens, so a link named
+   * `/invisalign/` covered a third of the phrase, scored 0.33, and fell under
+   * the 0.5 floor that gated the signature-token rule.
+   */
+  it("accepts a link named after the one word that identifies the service", async () => {
+    const v = await verifyOfferingAbsence({
+      offering: "Invisalign clear aligners",
+      allOfferings: ["teeth whitening", "porcelain veneers", "Invisalign clear aligners"],
+      evidence: bundle({
+        pages: [{ url: "https://ex.example/", title: "Home" }],
+        links: [
+          { href: "https://ex.example/invisalign/", label: "Invisalign", inNav: true },
+          { href: "https://ex.example/teeth-whitening/", label: "Teeth Whitening", inNav: true },
+        ],
+      }),
+      ...NO_FETCH,
+    });
+
+    expect(v.conclusion).not.toBe("absent");
+  });
+
+  it("accepts the bare nav label too, not only the href", async () => {
+    const v = await verifyOfferingAbsence({
+      offering: "Invisalign clear aligners",
+      allOfferings: ["teeth whitening", "Invisalign clear aligners"],
+      evidence: bundle({
+        pages: [{ url: "https://ex.example/", title: "Home" }],
+        nav: ["Home", "Invisalign", "Contact"],
+      }),
+      ...NO_FETCH,
+    });
+
+    expect(v.conclusion).not.toBe("absent");
+  });
+
+  it("still reports a genuine absence when nothing names the service", async () => {
+    // The fix must not become a blanket suppressor: cambridgeheating.ca really
+    // has no water-heater page, and that finding has to survive.
+    const v = await verifyOfferingAbsence({
+      offering: "Water heater replacement",
+      allOfferings: ["furnace installation", "furnace repair", "Water heater replacement"],
+      evidence: bundle({
+        pages: [{ url: "https://ex.example/", title: "HVAC" }],
+        links: [
+          { href: "https://ex.example/furnace-installation.html", label: "Furnace Installation" },
+          { href: "https://ex.example/furnace-repair.html", label: "Furnace Repair" },
+        ],
+      }),
+      ...NO_FETCH,
+    });
+
+    expect(v.conclusion).toBe("absent");
+  });
+
+  it("does not let a different service's page satisfy an offering", async () => {
+    // A candidate that introduces its own tokens is not "saying nothing new",
+    // so the subset escape hatch must not fire for it.
+    const v = await verifyOfferingAbsence({
+      offering: "Invisalign clear aligners",
+      allOfferings: ["Invisalign clear aligners", "dental implants"],
+      evidence: bundle({
+        pages: [{ url: "https://ex.example/", title: "Home" }],
+        links: [{ href: "https://ex.example/clear-braces-and-retainers/", label: "Clear Braces" }],
+      }),
+      ...NO_FETCH,
+    });
+
+    expect(v.conclusion).toBe("absent");
+  });
+});
+
 describe("absence verification — validation regressions", () => {
   it("recognizes a nav label that omits the offering's modifier word (sump pump installation ~ 'Sump Pump Services')", async () => {
     const v = await verifyOfferingAbsence({

@@ -7,7 +7,25 @@ export const ANALYSIS_CLIENT_COOLDOWN_MS = 5 * 60 * 1000;
 /** Default maximum number of analysis starts per workspace UTC day. */
 export const ANALYSIS_WORKSPACE_DAILY_LIMIT = 50;
 
-export const ANALYSIS_LIMIT_CODES = ["client-cooldown", "workspace-daily-cap"] as const;
+/**
+ * Default maximum number of analysis starts across EVERY workspace in one UTC
+ * day — the ceiling on the operator's own bill.
+ *
+ * The per-workspace cap bounds what one tenant can spend; it does nothing about
+ * how many tenants there are. With open signup, `workspaces x 50` is unbounded,
+ * so this is the only limit that is actually a limit. It is deliberately a
+ * blunt instrument: crossing it pauses paid work for everyone until UTC
+ * midnight, which is the correct failure for a runaway bill and the wrong one
+ * for a healthy business — if real customers ever reach it, raise it knowingly
+ * rather than discovering it from an invoice.
+ */
+export const ANALYSIS_PLATFORM_DAILY_LIMIT = 200;
+
+export const ANALYSIS_LIMIT_CODES = [
+  "client-cooldown",
+  "workspace-daily-cap",
+  "platform-daily-cap",
+] as const;
 export type AnalysisLimitCode = (typeof ANALYSIS_LIMIT_CODES)[number];
 
 export interface AnalysisLimit {
@@ -24,6 +42,8 @@ export interface AnalysisLimitOptions {
   now?: Date;
   cooldownMs?: number;
   dailyLimit?: number;
+  /** Starts allowed across all workspaces in one UTC day. */
+  platformDailyLimit?: number;
 }
 
 export type AnalysisReservation =
@@ -132,6 +152,11 @@ export async function reserveAnalysisStart(
     ANALYSIS_WORKSPACE_DAILY_LIMIT,
     "dailyLimit",
   );
+  const platformDailyLimit = validInteger(
+    options.platformDailyLimit,
+    ANALYSIS_PLATFORM_DAILY_LIMIT,
+    "platformDailyLimit",
+  );
   const reservedAt = now.toISOString();
   const day = utcDay(now);
   const cooldownBoundary = new Date(nowMs - cooldownMs).toISOString();
@@ -151,6 +176,10 @@ export async function reserveAnalysisStart(
          AND (
            SELECT COUNT(*) FROM analysis_limit_reservations
            WHERE workspace_id = ? AND day_utc = ?
+         ) < ?
+         AND (
+           SELECT COUNT(*) FROM analysis_limit_reservations
+           WHERE day_utc = ?
          ) < ?`,
     )
     .bind(
@@ -166,6 +195,8 @@ export async function reserveAnalysisStart(
       t.workspaceId,
       day,
       dailyLimit,
+      day,
+      platformDailyLimit,
     )
     .run();
 
@@ -188,7 +219,7 @@ export async function reserveAnalysisStart(
     };
   }
 
-  const [latest, count] = await Promise.all([
+  const [latest, count, platformCount] = await Promise.all([
     t.db
       .prepare(
         `SELECT id, reserved_at FROM analysis_limit_reservations
@@ -204,49 +235,59 @@ export async function reserveAnalysisStart(
       )
       .bind(t.workspaceId, day)
       .first<{ count: number }>(),
+    // Deliberately unscoped: the operator's bill is a property of the whole
+    // service, not of one tenant. This reads a COUNT and nothing else — no row,
+    // id, name or workspace of another tenant is selected, returned, or exposed
+    // in the message built from it.
+    t.db
+      .prepare(
+        `SELECT COUNT(*) AS count FROM analysis_limit_reservations WHERE day_utc = ?`,
+      )
+      .bind(day)
+      .first<{ count: number }>(),
   ]);
 
+  const midnightMs = nextUtcMidnight(now).getTime();
   const cooldownRetryMs = latest
     ? Date.parse(latest.reserved_at) + cooldownMs
     : Number.NEGATIVE_INFINITY;
-  const dailyRetryMs = Number(count?.count ?? 0) >= dailyLimit
-    ? nextUtcMidnight(now).getTime()
-    : Number.NEGATIVE_INFINITY;
 
-  // If both gates are closed, retry only when BOTH are open. The later instant
-  // is therefore the correct retry time; the reason names both constraints.
-  if (cooldownRetryMs > nowMs && dailyRetryMs > nowMs) {
-    const retryAtMs = Math.max(cooldownRetryMs, dailyRetryMs);
-    return {
-      allowed: false,
-      limitation: limitation(
-        retryAtMs === dailyRetryMs ? "workspace-daily-cap" : "client-cooldown",
-        `This client was analyzed recently and this workspace has reached its daily analysis limit. Try again after ${new Date(retryAtMs).toISOString()}.`,
-        retryAtMs,
-        nowMs,
-      ),
-    };
+  // Every closed gate, most-to-least general. Retry is only possible once ALL
+  // of them are open, so the latest boundary is the real retry time; the code
+  // reported is the broadest gate still shut, because that is the one the
+  // reader can do least about and most needs to understand.
+  const gates: Array<{ code: AnalysisLimitCode; retryAtMs: number; reason: string }> = [];
+  if (Number(platformCount?.count ?? 0) >= platformDailyLimit) {
+    gates.push({
+      code: "platform-daily-cap",
+      retryAtMs: midnightMs,
+      reason: "analysis is paused across the service for the rest of today",
+    });
   }
-
-  if (dailyRetryMs > nowMs) {
-    return {
-      allowed: false,
-      limitation: limitation(
-        "workspace-daily-cap",
-        `This workspace has reached its daily analysis limit. Try again after ${new Date(dailyRetryMs).toISOString()}.`,
-        dailyRetryMs,
-        nowMs,
-      ),
-    };
+  if (Number(count?.count ?? 0) >= dailyLimit) {
+    gates.push({
+      code: "workspace-daily-cap",
+      retryAtMs: midnightMs,
+      reason: "this workspace has reached its daily analysis limit",
+    });
   }
-
   if (cooldownRetryMs > nowMs) {
+    gates.push({
+      code: "client-cooldown",
+      retryAtMs: cooldownRetryMs,
+      reason: "this client was analyzed recently",
+    });
+  }
+
+  if (gates.length > 0) {
+    const retryAtMs = Math.max(...gates.map((gate) => gate.retryAtMs));
+    const sentence = gates.map((gate) => gate.reason).join(" and ");
     return {
       allowed: false,
       limitation: limitation(
-        "client-cooldown",
-        `This client was analyzed recently. Try again after ${new Date(cooldownRetryMs).toISOString()}.`,
-        cooldownRetryMs,
+        gates[0]!.code,
+        `${sentence.charAt(0).toUpperCase()}${sentence.slice(1)}. Try again after ${new Date(retryAtMs).toISOString()}.`,
+        retryAtMs,
         nowMs,
       ),
     };

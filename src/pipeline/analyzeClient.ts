@@ -112,6 +112,12 @@ export interface AnalyzeClientResult {
 }
 
 function isSuppressed(opp: Opportunity, now: Date): boolean {
+  // A sold finding is finished work, and re-surfacing it would do two kinds of
+  // damage at once: it would put work the agency has already been paid for back
+  // into their queue as an upsell, and the re-analysis would overwrite the sale
+  // record with a fresh "new" row, destroying the only measurement of what this
+  // agency actually converts.
+  if (opp.status === "sold") return true;
   if (opp.status === "dismissed" || opp.status === "already_covered") return true;
   if (opp.status === "snoozed") {
     return !opp.snoozeUntil || opp.snoozeUntil > now.toISOString();

@@ -179,6 +179,80 @@ describe("analysis admission limits", () => {
     expect(third.limitation.code).toBe("workspace-daily-cap");
   });
 
+  it("stops one workspace's spend from being the only ceiling", async () => {
+    // ws_a exhausts the platform allowance on its own. ws_b is a different
+    // tenant, well inside its own daily cap, and must still be refused: the
+    // limit that protects the operator's bill is not a per-tenant limit.
+    for (let i = 0; i < 3; i += 1) {
+      const accepted = await reserveAnalysisStart(A, "client_a", {
+        now: NOW,
+        cooldownMs: 0,
+        dailyLimit: 50,
+        platformDailyLimit: 3,
+      });
+      expect(accepted.allowed, `start ${i}`).toBe(true);
+    }
+
+    const denied = await reserveAnalysisStart(B, "client_b", {
+      now: NOW,
+      cooldownMs: 0,
+      dailyLimit: 50,
+      platformDailyLimit: 3,
+    });
+    expect(denied.allowed).toBe(false);
+    if (denied.allowed) return;
+    expect(denied.limitation.code).toBe("platform-daily-cap");
+    expect(denied.limitation.retryAt).toBe("2026-09-05T00:00:00.000Z");
+    // The refusal explains the service is paused without exposing that another
+    // tenant exists, how many there are, or what any of them did.
+    expect(denied.limitation.reason).not.toMatch(/ws_a|client_a|workspace_id/);
+  });
+
+  it("reopens the platform ceiling at UTC midnight, not on a rolling window", async () => {
+    for (let i = 0; i < 2; i += 1) {
+      await reserveAnalysisStart(A, "client_a", {
+        now: NOW,
+        cooldownMs: 0,
+        platformDailyLimit: 2,
+      });
+    }
+
+    const sameDay = await reserveAnalysisStart(B, "client_b", {
+      now: new Date("2026-09-04T23:59:59.999Z"),
+      cooldownMs: 0,
+      platformDailyLimit: 2,
+    });
+    expect(sameDay.allowed).toBe(false);
+
+    const nextDay = await reserveAnalysisStart(B, "client_b", {
+      now: new Date("2026-09-05T00:00:00.000Z"),
+      cooldownMs: 0,
+      platformDailyLimit: 2,
+    });
+    expect(nextDay.allowed).toBe(true);
+  });
+
+  it("names the broadest closed gate when more than one is shut", async () => {
+    await reserveAnalysisStart(A, "client_a", { now: NOW, platformDailyLimit: 1 });
+
+    // Every gate is now closed for this client at once: the cooldown has not
+    // elapsed, and both day caps are full.
+    const denied = await reserveAnalysisStart(A, "client_a", {
+      now: NOW,
+      dailyLimit: 1,
+      platformDailyLimit: 1,
+    });
+    expect(denied.allowed).toBe(false);
+    if (denied.allowed) return;
+    expect(denied.limitation.code).toBe("platform-daily-cap");
+    // Retry is only possible once ALL of them are open, so the latest boundary
+    // wins even though the cooldown alone would have expired sooner.
+    expect(denied.limitation.retryAt).toBe("2026-09-05T00:00:00.000Z");
+    expect(denied.limitation.reason).toMatch(/service/i);
+    expect(denied.limitation.reason).toMatch(/workspace/i);
+    expect(denied.limitation.reason).toMatch(/recently/i);
+  });
+
   it("returns a typed limitation with a human readable reason and retry time", async () => {
     await reserveAnalysisStart(A, "client_a", { now: NOW });
     const denied = await reserveAnalysisStart(A, "client_a", { now: NOW });

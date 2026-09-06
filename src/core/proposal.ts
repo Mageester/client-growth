@@ -1,5 +1,6 @@
 import type { Client, Opportunity, Service } from "@/core/schema";
 import { describeEvidenceRef, isDefectRef, parseEvidenceRef } from "@/core/evidenceRef";
+import { rationaleForOpportunity } from "@/core/rules/deterministicEvaluation";
 
 export interface ProposalInputs {
   opportunity: Opportunity;
@@ -56,7 +57,7 @@ export function generateProposalDraft({ opportunity, client, service }: Proposal
     ``,
     `## Why it matters`,
     ``,
-    opportunity.rationale,
+    rationaleForOpportunity(opportunity),
     ``,
     `## Proposed scope`,
     ``,

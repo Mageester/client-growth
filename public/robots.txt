@@ -1,0 +1,20 @@
+# Axiom Orbit. The marketing pages are public; nothing behind sign-in is, and
+# proposal share links are private URLs that must never be indexed (they also
+# send X-Robots-Tag: noindex, nofollow and Cache-Control: private, no-store).
+User-agent: *
+Disallow: /proposal/
+Disallow: /opportunities
+Disallow: /clients
+Disallow: /services
+Disallow: /settings
+Disallow: /operations
+Disallow: /changes
+Disallow: /onboarding
+Disallow: /export/
+Disallow: /internal/
+Disallow: /api/
+Disallow: /invite/
+Disallow: /reset-password
+Disallow: /forgot-password
+
+Sitemap: https://orbit.getaxiom.ca/sitemap.xml

@@ -56,6 +56,37 @@ export const SERVICE_WORD =
   /(repair|install|installation|replacement|replace|cleaning|clean|control|removal|remove|treatment|maintenance|remediation|restoration|inspection|encapsulation|pruning|grinding|rewiring|lighting|irrigation|whitening|extraction|therapy|training|tuning|tune-up|detailing|resurfacing|relining|waterproofing|underpinning|renovation|remodel|landscaping|paving|roofing|plumbing|heating|cooling|wiring|grooming|coaching|consulting|design|build|repairs|servicing)/i;
 
 /** Lowercase path segments of a URL, empty ones dropped. */
+/**
+ * Paths a hosting platform injects into a page, which no human ever navigates
+ * to and which the site's author did not write.
+ *
+ * This exists because of a measured false positive. Cloudflare's Email Address
+ * Obfuscation rewrites every `mailto:` in the HTML into
+ * `/cdn-cgi/l/email-protection#<encoded>` and a Cloudflare script rewrites it
+ * back on load. Requested by a bot without the fragment, that path returns 404
+ * — so the broken-link rule "verified" it as broken and reported a fault on
+ * nine pages of a site whose email links work perfectly for every real visitor.
+ *
+ * On the 24-site corpus that was the ONLY thing the broken-link rule found. A
+ * rule whose entire real-world output is an artefact of the client's CDN is
+ * worse than a rule that finds nothing, because the agency takes it to their
+ * client and is corrected by their client's developer.
+ *
+ * Deliberately narrow: one namespace, owned unambiguously by one platform,
+ * demonstrated to produce a false claim. It is not a general suppression list,
+ * and nothing should be added to it without a case like this one behind it.
+ */
+export function isPlatformInfrastructurePath(url: string): boolean {
+  try {
+    const path = new URL(url).pathname.toLowerCase();
+    // Cloudflare reserves /cdn-cgi/ entirely: email protection, challenge
+    // pages, RUM beacons, /cdn-cgi/trace. None of it is site content.
+    return path === "/cdn-cgi" || path.startsWith("/cdn-cgi/");
+  } catch {
+    return false;
+  }
+}
+
 export function pathSegments(url: string): string[] {
   let path = url;
   try {
@@ -64,6 +95,27 @@ export function pathSegments(url: string): string[] {
     /* treat an unparseable value as a raw path */
   }
   return path.toLowerCase().split("/").filter(Boolean);
+}
+
+/**
+ * URL namespaces used for public registries and technical records rather than
+ * customer-facing services. These shapes are intentionally structural: the
+ * crawler must not turn a registry's word "build" or "procedures" into a paid
+ * service suggestion just because the page sits on a real public site.
+ */
+const REGISTRY_PATH_PATTERNS: readonly (readonly string[])[] = [
+  ["domains", "root", "db"],
+  ["dnssec", "procedures"],
+];
+
+export function isRegistryPath(url: string): boolean {
+  const segments = pathSegments(url);
+  return REGISTRY_PATH_PATTERNS.some((pattern) => {
+    for (let start = 0; start <= segments.length - pattern.length; start++) {
+      if (pattern.every((segment, index) => segments[start + index] === segment)) return true;
+    }
+    return false;
+  });
 }
 
 /** Is this segment one of the boring pages every site has? */
@@ -77,11 +129,13 @@ export function isNonServiceSegment(segment: string): boolean {
  * inside it just as much as the hub itself.
  */
 export function isInServiceSection(url: string): boolean {
+  if (isRegistryPath(url)) return false;
   return pathSegments(url).some((segment) => SERVICE_SECTION_SEGMENTS.has(segment));
 }
 
 /** Is this URL the service hub page itself, rather than a page underneath it? */
 export function isServiceHub(url: string): boolean {
+  if (isRegistryPath(url)) return false;
   const segments = pathSegments(url);
   return segments.length === 1 && SERVICE_SECTION_SEGMENTS.has(segments[0]!);
 }
@@ -91,6 +145,7 @@ export function isServiceHub(url: string): boolean {
  * missing-service-page claim has to be checked against?
  */
 export function isServiceSectionChild(url: string): boolean {
+  if (isRegistryPath(url)) return false;
   const segments = pathSegments(url);
   const hub = segments.findIndex((segment) => SERVICE_SECTION_SEGMENTS.has(segment));
   return hub !== -1 && hub < segments.length - 1;
@@ -102,6 +157,7 @@ export function isServiceSectionChild(url: string): boolean {
  * Plenty of small sites are built exactly this way.
  */
 export function hasServiceWordInSlug(url: string): boolean {
+  if (isRegistryPath(url)) return false;
   const segments = pathSegments(url);
   const last = segments[segments.length - 1] ?? "";
   if (!last || isNonServiceSegment(last)) return false;
@@ -110,6 +166,7 @@ export function hasServiceWordInSlug(url: string): boolean {
 
 /** Any structural reason to believe this URL describes something the business sells. */
 export function looksLikeServiceUrl(url: string): boolean {
+  if (isRegistryPath(url)) return false;
   return isInServiceSection(url) || hasServiceWordInSlug(url);
 }
 

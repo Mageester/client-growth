@@ -94,13 +94,34 @@ function strengthOf(
   const score = overlap / head.length;
   const hasAllDiscriminating =
     discriminating.length > 0 && discriminating.every((t) => has(candidateTokens, t));
-  // A long distinctive word matches AND the candidate shares enough of the rest
-  // of the phrase to be about the same thing ("trenchless sewer line repair"
-  // for "trenchless pipe repair"), not just any page that happens to say
-  // "plumbing".
-  const hasSignature =
-    score >= 0.5 &&
-    discriminating.some((t) => t.length >= SIGNATURE_MIN_LEN && has(candidateTokens, t));
+  const signatureToken = discriminating.some(
+    (t) => t.length >= SIGNATURE_MIN_LEN && has(candidateTokens, t),
+  );
+
+  // The candidate introduces no concept the offering does not already contain.
+  //
+  // This is what rescues a page named after the ONE word that identifies it.
+  // "Invisalign clear aligners" has three head tokens, so the link
+  // `/invisalign/` covers a third of the phrase and scores 0.33 — under the 0.5
+  // floor below, and therefore, before this existed, invisible. On the real
+  // corpus that produced two confident, priced findings ("No page for
+  // Invisalign clear aligners") for two dental practices whose Invisalign page
+  // is linked from every page of the site. A false claim of absence is the one
+  // failure this product cannot afford; erring the other way merely stays
+  // quiet, which its own judgment prompt already calls the cheaper mistake.
+  //
+  // Deliberately narrow. It requires the candidate to be a SUBSET: a slug or a
+  // nav label saying nothing beyond the offering's own words. A crawled page's
+  // title and headings never qualify, and a candidate naming a different
+  // service never qualifies, because either introduces tokens of its own.
+  const saysNothingNew =
+    candidateTokens.size > 0 &&
+    [...candidateTokens].every((t) => head.includes(t));
+
+  // A long distinctive word matches AND either the candidate shares enough of
+  // the rest of the phrase to be about the same thing ("trenchless sewer line
+  // repair" for "trenchless pipe repair"), or it adds nothing of its own.
+  const hasSignature = signatureToken && (score >= 0.5 || saysNothingNew);
   return { score, hasAllDiscriminating, hasSignature };
 }
 

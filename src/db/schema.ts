@@ -42,6 +42,9 @@ CREATE INDEX IF NOT EXISTS idx_workspace_invitations_workspace
   ON workspace_invitations (workspace_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_workspace_invitations_email
   ON workspace_invitations (workspace_id, invited_email, expires_at);
+-- The signup gate looks an address up before it has a workspace to be scoped by.
+CREATE INDEX IF NOT EXISTS idx_workspace_invitations_email_all
+  ON workspace_invitations (invited_email, expires_at);
 
 CREATE TRIGGER IF NOT EXISTS workspace_invitation_accept_member
 AFTER UPDATE OF accepted_at ON workspace_invitations
@@ -76,6 +79,8 @@ CREATE TABLE IF NOT EXISTS clients (
   name TEXT NOT NULL,
   domain TEXT NOT NULL,
   offerings TEXT NOT NULL DEFAULT '[]',
+  -- One typical job, in the client's own business. Agency-supplied. See 0019.
+  average_job_value REAL,
   notes TEXT NOT NULL DEFAULT '',
   updated_at TEXT NOT NULL,
   monitoring_cadence TEXT NOT NULL DEFAULT 'off',
@@ -136,6 +141,9 @@ CREATE TABLE IF NOT EXISTS opportunities (
   status TEXT NOT NULL,
   snooze_until TEXT,
   proposal_md TEXT,
+  -- What the agency charged when they marked this work sold. See 0018.
+  sold_amount REAL,
+  sold_at TEXT,
   verification TEXT,
   conversion_defect TEXT,
   updated_at TEXT NOT NULL,
@@ -144,6 +152,7 @@ CREATE TABLE IF NOT EXISTS opportunities (
 );
 
 CREATE INDEX IF NOT EXISTS idx_opp_ws ON opportunities (workspace_id, client_id);
+CREATE INDEX IF NOT EXISTS idx_opp_sold ON opportunities (workspace_id, rule_id, status);
 
 CREATE TABLE IF NOT EXISTS analysis_runs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -167,6 +176,9 @@ CREATE TABLE IF NOT EXISTS analysis_runs (
   evaluator_calls INTEGER NOT NULL DEFAULT 0,
   evaluator_rejections INTEGER NOT NULL DEFAULT 0,
   evaluator_errors INTEGER NOT NULL DEFAULT 0,
+  crawl_exhaustive INTEGER NOT NULL DEFAULT 0,
+  suggested_offerings TEXT NOT NULL DEFAULT '[]',
+  offering_drift TEXT NOT NULL DEFAULT '[]',
   FOREIGN KEY (workspace_id, client_id) REFERENCES clients (workspace_id, id) ON DELETE CASCADE
 );
 
@@ -180,6 +192,24 @@ CREATE INDEX IF NOT EXISTS idx_analysis_runs_trigger
  * ledger: the client id is descriptive and is not a foreign key, so deleting
  * and recreating a client cannot reset the workspace's daily cap.
  */
+/**
+ * Competitors an agency names for a client. See migration 0020 for why this is
+ * agency-supplied rather than discovered, and why it is capped at three.
+ */
+CREATE TABLE IF NOT EXISTS client_competitors (
+  id TEXT PRIMARY KEY,
+  workspace_id TEXT NOT NULL,
+  client_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  domain TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  UNIQUE (workspace_id, client_id, domain),
+  FOREIGN KEY (workspace_id, client_id) REFERENCES clients (workspace_id, id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_client_competitors
+  ON client_competitors (workspace_id, client_id, created_at);
+
 CREATE TABLE IF NOT EXISTS analysis_limit_reservations (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   workspace_id TEXT NOT NULL REFERENCES workspaces (id) ON DELETE CASCADE,
@@ -194,6 +224,10 @@ CREATE INDEX IF NOT EXISTS idx_analysis_limits_client
   ON analysis_limit_reservations (workspace_id, client_id, reserved_at DESC);
 CREATE INDEX IF NOT EXISTS idx_analysis_limits_day
   ON analysis_limit_reservations (workspace_id, day_utc);
+-- The platform-wide daily ceiling counts across every workspace, so it cannot
+-- use an index that leads with workspace_id.
+CREATE INDEX IF NOT EXISTS idx_analysis_limits_day_all
+  ON analysis_limit_reservations (day_utc);
 
 /**
  * Explicitly saved workspace branding used when an owner creates a proposal

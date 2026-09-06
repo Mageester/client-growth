@@ -72,7 +72,20 @@ describe("approved page anatomy", () => {
           since: "2026-08-29T12:00:00.000Z",
           until: "2026-09-05T12:00:00.000Z",
           summary: { checks: 1, clientsChecked: 1, newFindings: 1, resolvedFindings: 0, inconclusive: 0 },
-          runs: [],
+          runs: [
+            {
+              id: 1,
+              clientId: "c1",
+              clientName: "Cambridge Heating",
+              finishedAt: "2026-09-05T12:00:00.000Z",
+              outcome: "clean",
+              summary: "No new opportunity findings.",
+              trigger: "scheduled",
+              newCount: 0,
+              resolvedCount: 0,
+              offeringDrift: ["Heat Pump Servicing"],
+            },
+          ],
           findings: [],
         },
       } as never),
@@ -82,6 +95,8 @@ describe("approved page anatomy", () => {
     expect(html).toContain("What deserves your attention");
     expect(html).toContain("Cambridge Heating");
     expect(html).toContain("$900 – $1,800");
+    expect(html).toContain("New on site");
+    expect(html).toContain("Heat Pump Servicing");
   });
 
   it("gives Clients the approved scannable columns", () => {

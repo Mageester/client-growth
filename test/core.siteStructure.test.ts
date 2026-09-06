@@ -5,6 +5,7 @@ import {
   hasServiceWordInSlug,
   isArchivePath,
   isInServiceSection,
+  isRegistryPath,
   isServiceHub,
   isServiceSectionChild,
   looksLikeServiceUrl,
@@ -108,6 +109,27 @@ describe("weak-signal rejection", () => {
     expect(isArchivePath("https://x.example/category/teeth-whitening")).toBe(true);
     expect(isArchivePath("https://x.example/blog/page/3")).toBe(true);
     expect(isArchivePath("https://x.example/services/heat-pumps")).toBe(false);
+  });
+});
+
+describe("registry path recognition", () => {
+  it("does not treat public registries and DNSSEC procedures as services", () => {
+    for (const url of [
+      "https://www.iana.org/domains/root/db/build.html",
+      "https://www.iana.org/domains/root/db/build",
+      "https://www.iana.org/dnssec/procedures",
+    ]) {
+      expect(isRegistryPath(url), url).toBe(true);
+      expect(isInServiceSection(url), url).toBe(false);
+      expect(hasServiceWordInSlug(url), url).toBe(false);
+      expect(looksLikeServiceUrl(url), url).toBe(false);
+    }
+  });
+
+  it("keeps a genuine service page outside those namespaces", () => {
+    const url = "https://x.example/services/build-a-website";
+    expect(isRegistryPath(url)).toBe(false);
+    expect(looksLikeServiceUrl(url)).toBe(true);
   });
 });
 

@@ -2,6 +2,8 @@ import { useDeferredValue, useState, type ReactNode } from "react";
 import { Form, Link, useNavigation, useSearchParams } from "react-router";
 
 import type { Opportunity } from "@/core/schema";
+import { tierForRule } from "@/core/rules/registry";
+import { byEvidencedValue, computeWinRates, winRatesFromRanked } from "@/core/winRates";
 import { changeHeadline, type MonitoringOutcome } from "@/core/monitoring";
 import { isAnalysisLimitExceeded } from "@/db/analysisLimits";
 import * as monitoringRepo from "@/db/monitoring";
@@ -29,7 +31,7 @@ import {
   formatRelative,
   pluralize,
 } from "../components/ui";
-import { runAnalysis } from "../lib/analysis.server";
+import { AnalysisAbortedError, runAnalysis } from "../lib/analysis.server";
 import { requireTenant } from "../lib/session.server";
 import type { Route } from "./+types/opportunities._index";
 
@@ -68,9 +70,13 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   // The smallest portfolio-level fact that makes monitoring worth having: how
   // much is watched, how much is waiting, and what changed while you were away.
   const portfolio = monitoringRepo.summarizePortfolio(monitoringByClient.values());
+  // Measured across the whole portfolio, not the current filter: what this
+  // agency converts is a property of the agency, not of the page they are on.
+  const winRates = computeWinRates([...oppsByClient.values()].flat());
   return {
     groups,
     serviceName,
+    winRates: winRates.ranked,
     monitoring: {
       ...portfolio,
       newFindings: health.newFindings,
@@ -86,7 +92,9 @@ export async function action({ request, context }: Route.ActionArgs) {
   const clientId = String(form.get("clientId") ?? "");
   if (!clientId) return { ok: false as const, error: "Pick a client to analyze." };
   try {
-    const result = await runAnalysis(t.scope, context.cloudflare.env as never, clientId);
+    const result = await runAnalysis(t.scope, context.cloudflare.env as never, clientId, {
+      signal: request.signal,
+    });
     return {
       ok: true as const,
       clientId,
@@ -103,6 +111,9 @@ export async function action({ request, context }: Route.ActionArgs) {
         limitation: err.limitation,
       };
     }
+    if (err instanceof AnalysisAbortedError) {
+      return { ok: false as const, clientId, error: err.message, analysisAborted: true as const };
+    }
     const error =
       err instanceof Response
         ? `${err.status} ${err.statusText}`
@@ -118,12 +129,23 @@ const RECENT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
 type Group = Awaited<ReturnType<typeof loader>>["groups"][number];
 type Entry = { opp: Opportunity; group: Group };
-type FeedFilter = "open" | "strongest" | "all";
+export type FeedFilter = "open" | "strongest" | "all";
 
 const STRONG_CONFIDENCE = 0.75;
 
+export function healthSectionDescription(count: number, filter: FeedFilter): string {
+  if (filter === "all") {
+    return `${count} ${pluralize(count, "health finding", "health findings")} in this view. Closed items remain here for history.`;
+  }
+  return `${count} ${pluralize(count, "check", "checks")} worth fixing — titles, headings, descriptions and links. Supporting work rather than the reason to call.`;
+}
+
 export default function OpportunitiesIndex({ loaderData, actionData }: Route.ComponentProps) {
-  const { groups, serviceName, monitoring } = loaderData;
+  const { groups, serviceName, monitoring, winRates } = loaderData;
+  // Findings are ordered by what this agency actually sells, and commercial
+  // work always outranks site health however the rates fall.
+  const rates = winRatesFromRanked(winRates);
+  const rank = byEvidencedValue(rates);
   const navigation = useNavigation();
   const [params, setParams] = useSearchParams();
   const [query, setQuery] = useState("");
@@ -146,12 +168,12 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
 
   const open: Entry[] = scoped
     .flatMap((group) => group.opportunities.filter(isOpen).map((opp) => ({ opp, group })))
-    .sort((a, b) => byPotentialValue(a.opp, b.opp));
+    .sort((a, b) => rank(a.opp, b.opp));
   const closed: Entry[] = scoped
     .flatMap((group) =>
       group.opportunities.filter((opp) => !isOpen(opp)).map((opp) => ({ opp, group })),
     )
-    .sort((a, b) => byPotentialValue(a.opp, b.opp));
+    .sort((a, b) => rank(a.opp, b.opp));
 
   const filteredByState =
     filter === "all"
@@ -174,6 +196,18 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
     client: group.client,
     serviceName: serviceName[opp.suggestedServiceId] ?? opp.suggestedServiceId,
   }));
+  // The separation that decides what this product looks like. Nine of the
+  // eleven rules produce site hygiene that Screaming Frog, Lighthouse and every
+  // SEO suite already give away; mixed into one list they outnumber and bury
+  // the two or three findings that answer "what could we sell this client",
+  // and a queue led by alt-text warnings reads as a free tool with a login.
+  // Same data, same evidence, same prices — the commercial work simply leads.
+  const commercialEntries = signalEntries.filter(
+    (entry) => tierForRule(entry.opportunity.ruleId) === "commercial",
+  );
+  const healthEntries = signalEntries.filter(
+    (entry) => tierForRule(entry.opportunity.ruleId) === "health",
+  );
   const totals = sumTotals(scoped.map((group) => group.totals));
   const portfolioTotals = sumTotals(groups.map((group) => group.totals));
   const needsAttention = groups.filter((group) => group.state === "attention").length;
@@ -247,7 +281,7 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
               <select value={filter} onChange={(event) => setFilter(event.target.value as FeedFilter)}>
                 <option value="open">Open ({open.length})</option>
                 <option value="strongest">High confidence</option>
-                <option value="all">All ({open.length + closed.length})</option>
+                <option value="all">All findings ({open.length + closed.length})</option>
               </select>
               <Icon name="chevron-down" size={13} />
             </label>
@@ -312,8 +346,10 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
           ) : (
             <span>
               {groups.length - neverAnalyzed} of {groups.length} analyzed
-              {unreadable > 0 ? ` · ${unreadable} could not be read` : ""} · ranked by potential
-              value
+              {unreadable > 0 ? ` · ${unreadable} could not be read` : ""} ·{" "}
+              {rates.totalSold > 0
+                ? "ranked by what you sell"
+                : "ranked by potential value"}
             </span>
           )}
         </p>
@@ -324,6 +360,7 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
         <AnalysisRunning
           clientName={analyzingClient.client.name}
           domain={analyzingClient.client.domain}
+          stopHref={params.toString() ? `/opportunities?${params.toString()}` : "/opportunities"}
         />
       )}
       {!analyzingClient && actionData?.ok && (
@@ -368,20 +405,51 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
             />
           ) : (
             <>
-              <div className="signal-list-head" aria-hidden="true">
-                <span>Opportunity</span>
-                <span>Client</span>
-                <span>Value</span>
-                <span>Confidence</span>
-                <span>Age</span>
-                <span />
-              </div>
-              <OpportunityQueue
-                entries={signalEntries}
-                hrefFor={(entry) =>
-                  `/opportunities/${encodeURIComponent(entry.opportunity.id)}`
-                }
-              />
+              {commercialEntries.length > 0 && (
+                <>
+                  <div className="signal-list-head" aria-hidden="true">
+                    <span>Opportunity</span>
+                    <span>Client</span>
+                    <span>Value</span>
+                    <span>Confidence</span>
+                    <span>Age</span>
+                    <span />
+                  </div>
+                  <OpportunityQueue
+                    entries={commercialEntries}
+                    hrefFor={(entry) =>
+                      `/opportunities/${encodeURIComponent(entry.opportunity.id)}`
+                    }
+                  />
+                </>
+              )}
+
+              {healthEntries.length > 0 && (
+                <section className="signal-section-break">
+                  <div className="feed-head-copy">
+                    <h2>Site health</h2>
+                    <div className="feed-head-meta">
+                      <span>
+                        {healthSectionDescription(healthEntries.length, filter)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="signal-list-head" aria-hidden="true">
+                    <span>Finding</span>
+                    <span>Client</span>
+                    <span>Value</span>
+                    <span>Confidence</span>
+                    <span>Age</span>
+                    <span />
+                  </div>
+                  <OpportunityQueue
+                    entries={healthEntries}
+                    hrefFor={(entry) =>
+                      `/opportunities/${encodeURIComponent(entry.opportunity.id)}`
+                    }
+                  />
+                </section>
+              )}
             </>
           )}
 
