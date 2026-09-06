@@ -857,6 +857,22 @@ textarea:hover {
   padding: 0 24px 0 0;
 }
 
+.signal-row-client {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.signal-row-client-name {
+  min-width: 0;
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+  white-space: normal;
+  line-height: 1.35;
+}
+
 .signal-row-title {
   /* A finding's title is the sentence the agency reads; wrap it rather than
      truncating, which loses the end of the claim on a narrower screen. */
@@ -867,6 +883,7 @@ textarea:hover {
   line-height: 1.3;
   letter-spacing: -0.005em;
   overflow-wrap: anywhere;
+  text-overflow: clip;
 }
 
 .signal-row-context {
@@ -874,11 +891,25 @@ textarea:hover {
   min-width: 0;
   align-items: center;
   gap: 5px;
-  overflow: hidden;
+  overflow: visible;
   color: var(--muted);
   font-size: 12.5px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.signal-row-action {
+  display: block;
+  margin-top: 8px;
+  color: var(--accent-strong);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .signal-row-value,
@@ -901,6 +932,10 @@ textarea:hover {
   font-family: var(--font);
   font-size: 11px;
   font-weight: 400;
+}
+
+.signal-row-confidence .evidence-strength {
+  line-height: 1.3;
 }
 
 .signal-status {
@@ -1169,12 +1204,13 @@ textarea:hover {
 .inspector-evidence-list a,
 .inspector-evidence-list b,
 .service-match b {
-  overflow: hidden;
+  overflow: visible;
+  overflow-wrap: anywhere;
   color: var(--ink-soft);
   font-size: 13px;
   font-weight: 500;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  text-overflow: clip;
+  white-space: normal;
 }
 
 .inspector-evidence-list small,
@@ -1443,6 +1479,38 @@ a.record:hover .record-name {
   box-shadow: none;
 }
 
+.detail-primary-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+}
+
+.detail-evidence-summary {
+  display: grid;
+  max-width: 38rem;
+  gap: 5px;
+  margin-top: 18px;
+  padding: 14px 16px;
+  background: var(--raised);
+  border-left: 2px solid var(--line-strong);
+}
+
+.detail-evidence-summary .eyebrow {
+  margin: 0;
+}
+
+.detail-evidence-summary p {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.detail-evidence-summary small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
 .detail .title-lg {
   color: var(--ink);
   font-family: var(--font-display);
@@ -1573,6 +1641,36 @@ a.record:hover .record-name {
   background: transparent;
   border: 0;
   border-radius: 0;
+}
+
+.disposition-controls {
+  display: grid;
+  width: 100%;
+  gap: 10px;
+  margin-top: 8px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.disposition-label {
+  color: var(--faint);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.disposition-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.disposition-actions .snooze-form,
+.disposition-actions .row-tight {
+  max-width: 100%;
 }
 
 .monitorbar {
@@ -1837,12 +1935,10 @@ a.record:hover .record-name {
   }
 
   .signal-row-title {
-    display: -webkit-box;
-    overflow: hidden;
+    display: block;
+    overflow: visible;
     line-height: 1.35;
     white-space: normal;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
   }
 
   .signal-row-context span:last-child,
@@ -1850,6 +1946,28 @@ a.record:hover .record-name {
   .signal-row-value,
   .signal-status {
     display: none;
+  }
+
+  .signal-row-client-name {
+    line-height: 1.4;
+  }
+
+  .detail-primary-actions {
+    width: 100%;
+  }
+
+  .detail-primary-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .disposition-actions {
+    align-items: stretch;
+  }
+
+  .disposition-actions > form,
+  .disposition-actions > form .btn {
+    max-width: 100%;
   }
 
   .monitorline {
@@ -2295,6 +2413,22 @@ a.record:hover .record-name {
   font-size: 12.5px;
 }
 
+.proposal-estimate-note {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.proposal-next-step {
+  background: var(--raised);
+}
+
+.proposal-next-step .eyebrow {
+  display: block;
+  margin-bottom: 8px;
+}
+
 /* Public proposal shares are documents first when a recipient prints them. */
 @media print {
   :root,
@@ -2356,6 +2490,8 @@ a.record:hover .record-name {
   .proposal-share-page .prose,
   .proposal-share-page .fact dt,
   .proposal-share-page .fact dd,
+  .proposal-share-page .proposal-estimate-note,
+  .proposal-share-page .proposal-next-step,
   .proposal-share-page .proposal-share-footer {
     color: #111 !important;
   }
@@ -2376,4 +2512,42 @@ a.record:hover .record-name {
   margin-top: 36px;
   padding-top: 24px;
   border-top: 1px solid var(--line);
+}
+
+/*
+ * orbit-approved.css is intentionally loaded after this file. Keep these
+ * selectors more specific than its row rules so identity text still wraps in
+ * the rendered cascade instead of being clipped by a later ellipsis rule.
+ */
+.app-frame .signal-desk .signal-row-title {
+  display: block;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+  white-space: normal;
+  -webkit-box-orient: initial;
+  -webkit-line-clamp: unset;
+}
+
+.app-frame .signal-desk .signal-row-context {
+  overflow: visible;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.app-frame .signal-desk .signal-row-context > span {
+  min-width: 0;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.app-frame .signal-desk .signal-row-client-name {
+  min-width: 0;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+  white-space: normal;
 }

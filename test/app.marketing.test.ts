@@ -155,8 +155,18 @@ describe("Axiom Orbit marketing shell", () => {
     expect(html).toContain('href="/product"');
     expect(html).toContain('href="/signup"');
     expect(html).toContain('href="/login"');
-    expect(html).toContain("Request access");
+    expect(html).toContain("Request pilot access");
+    expect(html).not.toContain("Request access");
     expect(html).toContain("Sign in");
+  });
+
+  it("uses the pilot-access label in desktop, mobile, and footer CTAs", () => {
+    const header = renderMarketing(createElement(MarketingHeader));
+    const footer = renderMarketing(createElement(MarketingFooter));
+
+    expect(header.match(/Request pilot access/g)).toHaveLength(2);
+    expect(footer).toContain("Request pilot access");
+    expect(footer).not.toContain("Request access");
   });
 
   it("keeps the restrained footer free from fabricated proof", () => {
@@ -245,7 +255,7 @@ describe("Axiom Orbit public product detail", () => {
 
     expect(html).toContain("Available now · opt-in, per-client weekly monitoring");
     expect(html).toContain("Available now · bounded public-site evidence");
-    expect(html).toContain("Available now · three detection categories");
+    expect(html).toContain("Available now · evidence-backed checks across capability families");
     expect(html).toContain("Available now · review + proposal draft");
     expect(html).toContain("Direction · revenue and outcome tracking");
   });
@@ -256,7 +266,7 @@ describe("Axiom Orbit public product detail", () => {
     expect(html).toContain('href="/signup"');
     expect(html).toContain('href="#monitor"');
     expect(html).toContain("See how it works");
-    expect(html).toContain("Request access");
+    expect(html).toContain("Request pilot access");
   });
 
   it("names the bounded workflow without fabricated proof or hype", () => {
@@ -264,13 +274,30 @@ describe("Axiom Orbit public product detail", () => {
 
     expect(html).toContain("Not a CRM. Not a generic scanner.");
     expect(html).toContain("focused post-sale growth workflow");
-    expect(html).toContain("Missing service page");
-    expect(html).toContain("No service pages only when the read supports it");
-    expect(html).toContain("Broken conversion path");
+    expect(html).toContain("Commercial gaps");
+    expect(html).toContain("Conversion failures");
+    expect(html).toContain("Technical content issues");
+    expect(html).toContain("Evidence review");
+    expect(html).toContain("Proposal drafting and sharing");
+    expect(html).toContain("Opt-in monitoring");
     expect(html).toContain("Nothing is sent");
     expect(html).not.toMatch(
       /trusted by|case stud(?:y|ies)|testimonials?|revenue generated|\bROI\b|\d+%|10x|unlock hidden revenue|nothing gets missed|real-time monitoring|always-on monitoring/i,
     );
+  });
+
+  it("describes current evidence-backed capability families and deliberate proposal sharing", () => {
+    const landing = renderLanding();
+    const product = renderProduct();
+
+    for (const html of [landing, product]) {
+      expect(html).toContain("evidence-backed checks");
+      expect(html).toMatch(/proposal drafting and sharing/i);
+      expect(html).toContain("expiring share link");
+      expect(html).toContain("Nothing is sent automatically");
+      expect(html).not.toContain("three detection categories");
+      expect(html).not.toContain("Drafts stay inside Axiom Orbit until you copy them out");
+    }
   });
 
   it("publishes a route-specific absolute product metadata set", () => {

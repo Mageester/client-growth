@@ -346,12 +346,12 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
           ) : (
             <span>
               {groups.length - neverAnalyzed} of {groups.length} analyzed
-              {unreadable > 0 ? ` · ${unreadable} could not be read` : ""} ·{" "}
-              {rates.totalSold > 0
-                ? "ranked by what you sell"
-                : "ranked by potential value"}
+              {unreadable > 0 ? ` · ${unreadable} could not be read` : ""}
             </span>
           )}
+        </p>
+        <p className="page-context-line signal-ordering-copy">
+          Ordered by commercial fit first, then what your agency converts, potential value, and confidence.
         </p>
         <MonitoringSummary monitoring={monitoring} />
       </PageHead>

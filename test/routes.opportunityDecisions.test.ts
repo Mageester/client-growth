@@ -1,6 +1,9 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { createMemoryRouter, RouterProvider } from "react-router";
 
 import Database from "better-sqlite3";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -294,5 +297,47 @@ describe("counts agree across every surface", () => {
     } as never)) as { totals: { priceMin: number; priceMax: number } };
     expect(detail.totals.priceMin).toBe(900);
     expect(detail.totals.priceMax).toBe(1800);
+  });
+});
+
+describe("opportunity queue presentation", () => {
+  it("explains the actual tier, win-rate, value, and confidence ordering", () => {
+    const page = createElement(oppIndex.default, {
+      loaderData: {
+        groups: [
+          {
+            client: { id: "cli_a", name: "Client A", domain: "cli-a.example" },
+            opportunities: [opp()],
+            totals: { open: 1, closed: 0, priceMin: 900, priceMax: 1800 },
+            run: null,
+            monitoring: { cadence: "off", nextDueAt: null },
+            state: "attention",
+          },
+        ],
+        serviceName: { svc_a: "Service Landing Page" },
+        winRates: [],
+        monitoring: {
+          monitored: 0,
+          due: 0,
+          checks: 0,
+          unhealthy: 0,
+          newFindings: 0,
+          resolvedFindings: 0,
+        },
+      },
+      actionData: undefined,
+    } as never);
+    const router = createMemoryRouter([{ path: "*", element: page }], {
+      initialEntries: ["/opportunities"],
+    });
+    const html = renderToStaticMarkup(
+      createElement(RouterProvider, { router }),
+    );
+
+    expect(html).toContain("commercial fit");
+    expect(html).toContain("what your agency converts");
+    expect(html).toContain("potential value");
+    expect(html).toContain("confidence");
+    expect(html).not.toContain("recency");
   });
 });

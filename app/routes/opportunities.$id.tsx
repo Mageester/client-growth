@@ -23,6 +23,7 @@ import {
   pluralize,
 } from "../components/ui";
 import { SectionNav } from "../components/section-nav";
+import { proposalActionLabel } from "../components/signal-desk";
 import { requireTenant } from "../lib/session.server";
 import { getTrustedAuthBaseURL } from "../lib/auth.server";
 import type { Route } from "./+types/opportunities.$id";
@@ -202,6 +203,7 @@ export default function OpportunityDetail({ loaderData, actionData }: Route.Comp
   const snoozeActive = opp.status === "snoozed" && !isSnoozeExpired(opp, now);
   const badge = statusBadge(opp, now);
   const live = isOpen(opp, now);
+  const proposalAction = proposalActionLabel(opp);
   const [showAllEvidence, setShowAllEvidence] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -255,9 +257,21 @@ export default function OpportunityDetail({ loaderData, actionData }: Route.Comp
                 </>
               )}
             </div>
+            <div className="detail-evidence-summary" aria-label="Evidence summary">
+              <span className="eyebrow">Evidence summary</span>
+              <p>{evidence.headline}</p>
+              <small>
+                {evidence.inspectedCount} {pluralize(evidence.inspectedCount, "source", "sources")} checked
+              </small>
+            </div>
           </div>
           <div className="detail-primary-actions">
-            {live && (
+            {proposalAction === "Review proposal" ? (
+              <Link to="#proposal-draft" className="btn btn-primary">
+                <Icon name="document" size={15} />
+                Review proposal
+              </Link>
+            ) : proposalAction === "Prepare client proposal" && live ? (
               <Form method="post" className="inline">
                 <input type="hidden" name="intent" value="prepare-proposal" />
                 <button type="submit" className="btn btn-primary" disabled={busy}>
@@ -266,14 +280,10 @@ export default function OpportunityDetail({ loaderData, actionData }: Route.Comp
                     size={15}
                     className={pending === "prepare-proposal" ? "spin" : undefined}
                   />
-                  {pending === "prepare-proposal"
-                    ? "Creating…"
-                    : opp.proposalMd
-                      ? "Regenerate proposal"
-                      : "Create proposal"}
+                  {pending === "prepare-proposal" ? "Creating…" : "Prepare client proposal"}
                 </button>
               </Form>
-            )}
+            ) : null}
           </div>
         </div>
 
@@ -448,54 +458,56 @@ export default function OpportunityDetail({ loaderData, actionData }: Route.Comp
           )}
 
           {live && (
-            <>
-              <Form method="post" className="inline">
-                <input type="hidden" name="intent" value="cover" />
-                <button type="submit" className="btn" disabled={busy}>
-                  Already covered
-                </button>
-              </Form>
-              <Form method="post" className="row-tight snooze-form">
-                <input type="hidden" name="intent" value="snooze" />
-                <label className="sr-only" htmlFor="snooze-days">
-                  Snooze for how many days
-                </label>
-                <span className="snooze-field">
-                  <input id="snooze-days" type="number" name="days" defaultValue={30} min={1} max={365} />
-                </span>
-                <span className="faint snooze-unit">days</span>
-                <button type="submit" className="btn" disabled={busy}>
-                  Snooze
-                </button>
-              </Form>
-              <Form method="post" className="row-tight">
-                <input type="hidden" name="intent" value="sold" />
-                <label className="sr-only" htmlFor="sold-amount">
-                  What you charged
-                </label>
-                <input
-                  id="sold-amount"
-                  name="soldAmount"
-                  type="text"
-                  inputMode="decimal"
-                  placeholder="Amount (optional)"
-                  size={14}
-                />
-                {/* Deliberately not the primary button. The default action on an
-                    open finding is still to prepare a proposal; recording the
-                    outcome is what you come back and do afterwards. */}
-                <button type="submit" className="btn" disabled={busy}>
-                  {pending === "sold" ? "Recording…" : "Mark sold"}
-                </button>
-              </Form>
-              <span className="spacer" />
-              <Form method="post" className="inline">
-                <input type="hidden" name="intent" value="dismiss" />
-                <button type="submit" className="btn btn-danger" disabled={busy}>
-                  Dismiss
-                </button>
-              </Form>
-            </>
+            <div className="disposition-controls" aria-labelledby="disposition-label">
+              <span className="disposition-label" id="disposition-label">Disposition</span>
+              <div className="disposition-actions">
+                <Form method="post" className="inline">
+                  <input type="hidden" name="intent" value="cover" />
+                  <button type="submit" className="btn" disabled={busy}>
+                    Already covered
+                  </button>
+                </Form>
+                <Form method="post" className="row-tight snooze-form">
+                  <input type="hidden" name="intent" value="snooze" />
+                  <label className="sr-only" htmlFor="snooze-days">
+                    Snooze for how many days
+                  </label>
+                  <span className="snooze-field">
+                    <input id="snooze-days" type="number" name="days" defaultValue={30} min={1} max={365} />
+                  </span>
+                  <span className="faint snooze-unit">days</span>
+                  <button type="submit" className="btn" disabled={busy}>
+                    Snooze
+                  </button>
+                </Form>
+                <Form method="post" className="row-tight">
+                  <input type="hidden" name="intent" value="sold" />
+                  <label className="sr-only" htmlFor="sold-amount">
+                    What you charged
+                  </label>
+                  <input
+                    id="sold-amount"
+                    name="soldAmount"
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="Amount (optional)"
+                    size={14}
+                  />
+                  {/* Deliberately not the primary button. The default action on an
+                      open finding is still to prepare a proposal; recording the
+                      outcome is what you come back and do afterwards. */}
+                  <button type="submit" className="btn" disabled={busy}>
+                    {pending === "sold" ? "Recording…" : "Mark sold"}
+                  </button>
+                </Form>
+                <Form method="post" className="inline">
+                  <input type="hidden" name="intent" value="dismiss" />
+                  <button type="submit" className="btn btn-danger" disabled={busy}>
+                    Dismiss
+                  </button>
+                </Form>
+              </div>
+            </div>
           )}
 
           {opp.status === "already_covered" && (
@@ -545,7 +557,7 @@ export default function OpportunityDetail({ loaderData, actionData }: Route.Comp
       </section>
 
       {opp.proposalMd && (
-        <section className="section draft-area">
+        <section className="section draft-area" id="proposal-draft">
           <div className="section-head">
             <div>
               <h2 className="title-section">Proposal draft</h2>
@@ -558,10 +570,10 @@ export default function OpportunityDetail({ loaderData, actionData }: Route.Comp
           </div>
           <Form method="post">
             <input type="hidden" name="intent" value="save-proposal" />
-            <label className="sr-only" htmlFor="proposal-draft">
+            <label className="sr-only" htmlFor="proposal-draft-editor">
               Proposal draft
             </label>
-            <textarea id="proposal-draft" name="proposalMd" defaultValue={opp.proposalMd} rows={18} />
+            <textarea id="proposal-draft-editor" name="proposalMd" defaultValue={opp.proposalMd} rows={18} />
             <div className="form-actions">
               <button type="submit" className="btn btn-primary" disabled={busy}>
                 {pending === "save-proposal" ? "Saving…" : "Save draft"}

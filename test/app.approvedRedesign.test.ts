@@ -7,6 +7,7 @@ import { AppNavigation } from "../app/root";
 import ClientsIndex from "../app/routes/clients._index";
 import Changes from "../app/routes/changes";
 import OpportunityDetail from "../app/routes/opportunities.$id";
+import Onboarding from "../app/routes/onboarding";
 import ServicesIndex from "../app/routes/services._index";
 import { OpportunityQueue } from "../app/components/signal-desk";
 import { PageContextMeta } from "../app/components/ui";
@@ -56,6 +57,50 @@ describe("approved primary information architecture", () => {
 });
 
 describe("approved page anatomy", () => {
+  it("keeps activation fields intact inside the collapsed pricing review", () => {
+    const html = render(
+      createElement(Onboarding, {
+        loaderData: {
+          stage: "setup",
+          hasWorkspace: false,
+          client: null,
+          readFailed: false,
+          crawl: null,
+          suggestions: [],
+        },
+        actionData: undefined,
+      } as never),
+      "/onboarding",
+    );
+
+    expect(html).toContain("Review starter pricing");
+    expect(html).not.toMatch(/<details[^>]*\bopen(?:=|>)/);
+    const starters = [
+      ["landing", "Service Landing Page", "900", "1800"],
+      ["servicepages", "Service Pages Build", "2500", "6000"],
+      ["competitorgap", "Competitor Gap Page", "900", "1800"],
+      ["conversion", "Conversion Path Fix", "300", "900"],
+      ["missingtitle", "Page Title Repair", "150", "300"],
+      ["duplicatetitle", "Duplicate Title Repair", "200", "400"],
+      ["thinservice", "Thin Service Page", "400", "800"],
+      ["missingh1", "H1 Heading Repair", "150", "300"],
+      ["internallink", "Internal Link Repair", "200", "500"],
+      ["metadescription", "Meta Description Repair", "200", "500"],
+      ["structureddata", "LocalBusiness or Service Schema", "300", "700"],
+      ["imagealt", "Image Alt Attribute Repair", "150", "400"],
+    ] as const;
+    for (const [field, name, min, max] of starters) {
+      expect(html).toContain(`name="${field}On"`);
+      expect(html).toContain(`name="${field}Name"`);
+      expect(html).toContain(`name="${field}Min"`);
+      expect(html).toContain(`name="${field}Max"`);
+      expect(html).toContain(`value="${name}"`);
+      expect(html).toContain(`value="${min}"`);
+      expect(html).toContain(`value="${max}"`);
+    }
+    expect(html.match(/type="checkbox"[^>]*checked=""/g)).toHaveLength(starters.length);
+  });
+
   it("makes Home an attention-first view backed by portfolio data", () => {
     const html = render(
       createElement(Changes, {
@@ -151,7 +196,7 @@ describe("approved page anatomy", () => {
     for (const label of ["Overview", "Evidence", "Recommendations", "Activity"]) {
       expect(html).toContain(label);
     }
-    expect(html).toContain("Create proposal");
+    expect(html).toContain("Prepare client proposal");
   });
 
   it("places Services inside a secondary Settings navigation", () => {

@@ -3,7 +3,7 @@ import { Link } from "react-router";
 
 import type { Client, Opportunity } from "@/core/schema";
 import { buildEvidenceCase } from "../lib/evidence";
-import { nextAction, statusBadge } from "../lib/portfolio";
+import { isOpen, nextAction, statusBadge } from "../lib/portfolio";
 import { formatCurrencyRange, formatRelative, Icon } from "./ui";
 import { ClientMark, GlyphMark, markForRule } from "./entity-mark";
 
@@ -17,6 +17,12 @@ function confidenceLabel(value: number): string {
   if (value >= 0.8) return "Strong";
   if (value >= 0.6) return "Moderate";
   return "Limited";
+}
+
+export function proposalActionLabel(opportunity: Opportunity): string {
+  if (opportunity.proposalMd) return "Review proposal";
+  if (isOpen(opportunity)) return "Prepare client proposal";
+  return "Review finding";
 }
 
 /**
@@ -108,6 +114,7 @@ export function OpportunitySignalRow({
               <span>{serviceName}</span>
               {opportunity.priceMax >= 1500 && <small>High value</small>}
             </span>
+            <small className="signal-row-action">{proposalActionLabel(opportunity)}</small>
           </span>
         </span>
         <span className="signal-row-client">
@@ -120,7 +127,7 @@ export function OpportunitySignalRow({
         <span className="signal-row-confidence">
           <span className={"confidence-dot " + (confidence >= 80 ? "strong" : confidence >= 65 ? "medium" : "low")} />
           <b>{confidence}%</b>
-          <small className="sr-only">{confidenceLabel(opportunity.confidence)} evidence</small>
+          <small className="evidence-strength">{confidenceLabel(opportunity.confidence)} evidence</small>
         </span>
         <span className="signal-row-age">{formatRelative(opportunity.updatedAt)}</span>
         <span className={"sr-only signal-status " + badge.tone}>{badge.label}</span>
@@ -143,7 +150,6 @@ export function OpportunityInspector({
   const evidence = buildEvidenceCase(opportunity);
   const badge = statusBadge(opportunity);
   const confidence = Math.round(opportunity.confidence * 100);
-  const proposalReady = opportunity.status === "proposal_prepared";
 
   return (
     <aside
@@ -241,7 +247,7 @@ export function OpportunityInspector({
           {nextAction(opportunity)}
         </p>
         <Link to={`/opportunities/${opportunity.id}`} className="btn btn-primary full">
-          {proposalReady ? "Open proposal draft" : "Review & prepare proposal"}
+          {proposalActionLabel(opportunity)}
           <Icon name="arrow-right" size={15} />
         </Link>
       </footer>

@@ -106,6 +106,9 @@ export default function ProposalShare({ loaderData }: { loaderData: ProposalShar
             </div>
           )}
         </dl>
+        <p className="proposal-estimate-note">
+          This is an estimate, not a quote. The agency will confirm the final scope and price before work starts.
+        </p>
       </section>
 
       <section className="section">
@@ -139,6 +142,14 @@ export default function ProposalShare({ loaderData }: { loaderData: ProposalShar
             </div>
           )}
         </div>
+      </section>
+
+      <section className="section proposal-next-step">
+        <span className="eyebrow">Next step</span>
+        <h2 className="title-section">Review the recommendation with {snapshot.agencyName}</h2>
+        <p className="prose">
+          Contact the preparing agency to confirm the final scope before work starts.
+        </p>
       </section>
 
       <footer className="proposal-share-footer">

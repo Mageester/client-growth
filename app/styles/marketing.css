@@ -1854,6 +1854,7 @@
 }
 
 .marketing-product-visual-footnote {
+  max-width: 56ch;
   margin: 1.5rem 0 0;
   padding-top: 1rem;
   border-top: 1px solid var(--product-line);
@@ -2155,6 +2156,7 @@
 
 .marketing-product-proposal-boundary {
   margin: 0.2rem 0 0;
+  overflow-wrap: anywhere;
   color: var(--product-muted);
   font-family: var(--product-mono);
   font-size: 0.65rem;
@@ -2491,6 +2493,11 @@
   .marketing-product-fragment-action {
     grid-column: 2;
     justify-self: start;
+  }
+
+  .marketing-product-proposal-boundary,
+  .marketing-product-visual-footnote {
+    max-width: none;
   }
 }
 

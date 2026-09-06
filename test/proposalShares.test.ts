@@ -365,6 +365,12 @@ describe("proposal share routes", () => {
     expect(html).toContain("<li>Competitor site: competitor.example</li>");
     expect(html).not.toContain("<li>competitor:competitor.example</li>");
     expect(html).toContain("Sources checked");
+    expect(html).toContain("Next step");
+    expect(html).toContain("confirm the final scope");
+    expect(html).toContain("estimate");
+    expect(html).not.toMatch(/<form\b|<button\b/i);
+    expect(html).not.toMatch(/accept proposal|sign|pay now/i);
+    expect(html).not.toMatch(/acceptance|payment/i);
     expect(html).not.toMatch(/<h3[^>]*>What was found<\/h3>/);
     expect(html).not.toMatch(/<h3[^>]*>Why it matters<\/h3>/);
     expect(html).toContain('href="https://client-a.example/services"');

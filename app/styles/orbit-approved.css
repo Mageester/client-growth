@@ -2355,6 +2355,88 @@ html[data-theme="light"] .app-frame .entity-mark {
   to { transform: translateX(100%); }
 }
 
+/* ----------------------------------------------------- onboarding activation */
+
+:is(.onboarding, .app-frame .onboarding) .starter-pricing {
+  margin-top: 24px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: rgba(200, 224, 255, 0.02);
+}
+
+:is(.onboarding, .app-frame .onboarding) .starter-pricing > summary {
+  min-height: 64px;
+  box-sizing: border-box;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  color: var(--ink);
+  cursor: pointer;
+  list-style: none;
+}
+
+:is(.onboarding, .app-frame .onboarding) .starter-pricing > summary::-webkit-details-marker {
+  display: none;
+}
+
+:is(.onboarding, .app-frame .onboarding) .starter-pricing > summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+:is(.onboarding, .app-frame .onboarding) .starter-pricing-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+:is(.onboarding, .app-frame .onboarding) .starter-pricing-copy strong {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+:is(.onboarding, .app-frame .onboarding) .starter-pricing-copy > span {
+  color: var(--ink-3);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+:is(.onboarding, .app-frame .onboarding) .starter-pricing-caret {
+  width: 9px;
+  height: 9px;
+  flex: 0 0 9px;
+  border-right: 1.5px solid var(--ink-2);
+  border-bottom: 1.5px solid var(--ink-2);
+  transform: rotate(45deg) translateY(-2px);
+  transition: transform var(--t-control) var(--ease);
+}
+
+:is(.onboarding, .app-frame .onboarding) .starter-pricing[open] .starter-pricing-caret {
+  transform: rotate(225deg) translateY(-2px);
+}
+
+:is(.onboarding, .app-frame .onboarding) .starter-pricing-body {
+  padding: 0 20px 20px;
+  border-top: 1px solid var(--line);
+}
+
+:is(.onboarding, .app-frame .onboarding) .starter-pricing-body .section-head {
+  padding-top: 20px;
+}
+
+:is(.onboarding, .app-frame .onboarding) .starter-pricing-body .starter-list {
+  margin-top: 16px;
+}
+
+:is(.onboarding, .app-frame .onboarding) .starter-pricing-body .starter-toggle {
+  min-height: 44px;
+  align-items: flex-start;
+}
+
 /* ------------------------------------------------------------- responsive */
 
 @media (max-width: 1440px) {
@@ -2769,6 +2851,35 @@ html[data-theme="light"] .app-frame .entity-mark {
   .app-frame .services-table .service-edit {
     width: 40px;
     height: 40px;
+  }
+
+  :is(.onboarding, .app-frame .onboarding) .starter-pricing {
+    margin-top: 20px;
+  }
+  :is(.onboarding, .app-frame .onboarding) .starter-pricing > summary {
+    min-height: 64px;
+    padding: 14px 16px;
+  }
+  :is(.onboarding, .app-frame .onboarding) .starter-pricing-body {
+    padding: 0 16px 16px;
+  }
+  :is(.onboarding, .app-frame .onboarding) .starter-pricing-body .starter {
+    display: block;
+    padding: 16px;
+  }
+  :is(.onboarding, .app-frame .onboarding) .starter-pricing-body .starter-price {
+    width: 100%;
+    box-sizing: border-box;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    padding-left: 0;
+    padding-top: 12px;
+  }
+  :is(.onboarding, .app-frame .onboarding) .starter-pricing-body .starter-price .field,
+  :is(.onboarding, .app-frame .onboarding) .starter-pricing-body .starter-price input {
+    min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
   }
 }
 

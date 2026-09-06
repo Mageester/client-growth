@@ -359,19 +359,39 @@ export function ProductUnderstandVisual() {
 
 const productFindCategories = [
   {
-    title: "Missing service page",
-    copy: "A recorded offering has no dedicated page.",
+    title: "Commercial gaps",
+    copy: "A service the client sells has no page of its own for the demand it attracts.",
     icon: "find",
   },
   {
-    title: "No service pages only when the read supports it",
-    copy: "The claim waits for an adequate public-site read.",
-    icon: "coverage",
-  },
-  {
-    title: "Broken conversion path",
+    title: "Conversion failures",
     copy: "A form, CTA, or journey does not complete.",
     icon: "path",
+  },
+  {
+    title: "Technical content issues",
+    copy: "Titles, headings, descriptions, links, or schema the public read shows are missing or broken.",
+    icon: "understand",
+  },
+  {
+    title: "Evidence review",
+    copy: "Source URLs and observed facts stay attached to the finding.",
+    icon: "review",
+  },
+  {
+    title: "Proposal drafting and sharing",
+    copy: "Turn a reviewed finding into an editable draft and expiring share link.",
+    icon: "act",
+  },
+  {
+    title: "Opt-in monitoring",
+    copy: "Revisit a chosen client and keep new, open, resolved, or inconclusive states visible.",
+    icon: "monitor",
+  },
+  {
+    title: "Evidence-gated checks",
+    copy: "A site with no service pages is claimed only when the read supports it; otherwise Orbit stays inconclusive.",
+    icon: "states",
   },
 ] as const;
 
@@ -381,11 +401,11 @@ export function ProductFindVisual() {
       <div className="marketing-product-visual-header marketing-product-visual-header--compact">
         <div>
           <strong>Signal desk</strong>
-          <span>Current detection categories</span>
+          <span>Evidence-backed capability families</span>
         </div>
         <span className="marketing-product-visual-header-status">Evidence gate</span>
       </div>
-      <ul className="marketing-product-find-list" aria-label="Current Orbit detection categories">
+      <ul className="marketing-product-find-list" aria-label="Evidence-backed Orbit capability families">
         {productFindCategories.map((category) => (
           <li key={category.title}>
             <span className="marketing-product-find-icon"><MarketingIcon name={category.icon} /></span>
@@ -399,7 +419,7 @@ export function ProductFindVisual() {
           </li>
         ))}
       </ul>
-      <p className="marketing-product-visual-footnote">Three focused rule families; more categories are direction, not a current claim.</p>
+      <p className="marketing-product-visual-footnote">Capability families stay evidence-gated; anything beyond current checks is direction, not a live claim.</p>
     </ProductVisualFrame>
   );
 }
@@ -441,7 +461,7 @@ export function ProductActVisual() {
         <section className="marketing-product-proposal" aria-labelledby="product-proposal-title">
           <div className="marketing-product-panel-heading">
             <span className="marketing-product-field-label">Editable proposal</span>
-            <strong id="product-proposal-title">Draft stays in Orbit</strong>
+            <strong id="product-proposal-title">Draft and share link</strong>
           </div>
           <label>
             Mapped service
@@ -455,10 +475,10 @@ export function ProductActVisual() {
             Next step
             <input readOnly value="Discovery call" aria-label="Proposal next step" />
           </label>
-          <p className="marketing-product-proposal-boundary">Nothing is sent.</p>
+          <p className="marketing-product-proposal-boundary">Review, then create an expiring share link. Nothing is sent automatically.</p>
         </section>
       </div>
-      <p className="marketing-product-visual-footnote">Drafts stay inside Axiom Orbit until you copy them out.</p>
+      <p className="marketing-product-visual-footnote">Review and save the draft, then deliberately create an expiring share link.</p>
     </ProductVisualFrame>
   );
 }

@@ -52,12 +52,12 @@ const steps = [
   {
     number: "02",
     title: "Find",
-    copy: "When a site shows work you could sell — a service with no page, a broken quote form — Orbit shows the evidence.",
+    copy: "Evidence-backed checks cover commercial gaps, conversion failures, and technical content issues — then Orbit shows the source evidence.",
   },
   {
     number: "03",
     title: "Prepare",
-    copy: "Review the case, draft the conversation, and take it to the client. Nothing is sent automatically.",
+    copy: "Review the case, draft the conversation, and deliberately create an expiring share link. Nothing is sent automatically.",
   },
 ] as const;
 
@@ -78,7 +78,7 @@ export default function Index() {
             </div>
             <div className="marketing-cta-row" data-reveal style={{ "--reveal-delay": "220ms" } as CSSProperties}>
               <Link className="marketing-button marketing-button-primary" to="/signup">
-                Request access
+                Request pilot access
               </Link>
               <Link className="marketing-button" to="/product">
                 Explore the product
@@ -147,7 +147,10 @@ export default function Index() {
               <div className="marketing-availability" aria-label="Current and future capabilities">
                 <div>
                   <span className="marketing-availability-label">Available now</span>
-                  <p>Site analysis, evidence, opportunities, proposal drafts, and opt-in weekly monitoring.</p>
+                  <p>
+                    Orbit runs evidence-backed checks across commercial gaps, conversion failures, technical content issues,
+                    evidence review, proposal drafting and sharing, and opt-in weekly monitoring.
+                  </p>
                 </div>
                 <div>
                   <span className="marketing-availability-label marketing-availability-label--direction">Direction</span>
@@ -179,10 +182,10 @@ export default function Index() {
           <div className="marketing-container marketing-pilot-card" data-reveal>
             <p className="marketing-section-label">THE NEXT REVIEW</p>
             <h2 id="pilot-title">Give every client account a next review.</h2>
-            <p>Start with the sites you already manage. Request access to the Axiom Orbit pilot.</p>
+            <p>Start with the sites you already manage. Request pilot access to Axiom Orbit.</p>
             <div className="marketing-cta-row marketing-cta-row--centered">
               <Link className="marketing-button marketing-button-primary" to="/signup">
-                Request access
+                Request pilot access
               </Link>
               <Link className="marketing-button marketing-button-quiet" to="/login">
                 Sign in

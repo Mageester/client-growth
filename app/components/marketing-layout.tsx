@@ -19,7 +19,7 @@ function NavigationLinks({ onNavigate }: { onNavigate?: () => void }) {
         </Link>
       ))}
       <Link className="marketing-button marketing-button-primary" to="/signup" onClick={onNavigate}>
-        Request access
+        Request pilot access
       </Link>
     </>
   );
@@ -102,7 +102,7 @@ export function MarketingHeader() {
             to="/signup"
             onClick={() => setMobileOpen(false)}
           >
-            Request access
+            Request pilot access
           </Link>
         </div>
       </nav>
@@ -124,7 +124,7 @@ export function MarketingFooter() {
           <Link to="/product">Product</Link>
           <Link to="/privacy">Privacy</Link>
           <Link to="/terms">Terms</Link>
-          <Link to="/signup">Request access</Link>
+          <Link to="/signup">Request pilot access</Link>
           <Link to="/login">Sign in</Link>
         </nav>
       </div>

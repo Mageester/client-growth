@@ -1,13 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { MemoryRouter } from "react-router";
+import { createMemoryRouter, MemoryRouter, RouterProvider } from "react-router";
 import { readFileSync } from "node:fs";
 
 import { AnalysisRunning, formatCurrencyRange, deferMenuClose } from "../app/components/ui";
 import { AppNavigation, ThemePicker, isProposalSharePath, loader as rootLoader } from "../app/root";
 import { homeRenderClock } from "../app/routes/changes";
 import { healthSectionDescription } from "../app/routes/opportunities._index";
+import OpportunityDetail from "../app/routes/opportunities.$id";
 import { __setSessionResolver } from "../app/lib/session.server";
 
 describe("menu activation", () => {
@@ -109,6 +110,30 @@ describe("mobile viewport safety", () => {
     expect(css).toMatch(/\.app-frame \.opportunities-page \.orbit-select-wrap\s*\{[\s\S]*width:\s*180px/);
   });
 
+  it("keeps finding identity readable when rows get narrow", () => {
+    const signalCss = readFileSync(new URL("../app/styles/signal-desk.css", import.meta.url), "utf8");
+    const orbitCss = readFileSync(new URL("../app/styles/orbit-approved.css", import.meta.url), "utf8");
+    const css = `${signalCss}\n${orbitCss}`;
+    const signalOverride = /\.app-frame \.signal-desk \.signal-row-title\s*\{([\s\S]*?)\}/.exec(css);
+    const laterOrbitRule = /\.app-frame \.signal-row-title\s*\{([\s\S]*?)\}/.exec(css);
+    const selectorSpecificity = (selector: string) => (selector.match(/[.#\[]/g) ?? []).length;
+
+    expect(signalOverride?.[1]).toMatch(/overflow:\s*visible/);
+    expect(signalOverride?.[1]).toMatch(/-webkit-line-clamp:\s*unset/);
+    expect(signalOverride?.[1]).toMatch(/white-space:\s*normal/);
+    expect(signalOverride?.[1]).toMatch(/overflow-wrap:\s*anywhere/);
+    expect(signalOverride?.[1]).toMatch(/text-overflow:\s*clip/);
+    expect(laterOrbitRule?.[1]).toMatch(/-webkit-line-clamp:\s*2/);
+    expect(css.indexOf(".app-frame .signal-desk .signal-row-title")).toBeLessThan(
+      css.lastIndexOf(".app-frame .signal-row-title"),
+    );
+    expect(selectorSpecificity(".app-frame .signal-desk .signal-row-title")).toBeGreaterThan(
+      selectorSpecificity(".app-frame .signal-row-title"),
+    );
+    expect(css).toMatch(/\.app-frame \.signal-desk \.signal-row-client-name\s*\{[\s\S]*white-space:\s*normal/);
+    expect(css).toMatch(/\.app-frame \.signal-desk \.signal-row-context > span\s*\{[\s\S]*overflow:\s*visible/);
+  });
+
   it("keeps public proposal pages fluid on a phone", () => {
     const css = readFileSync(new URL("../app/styles/app.css", import.meta.url), "utf8");
     expect(css).toMatch(
@@ -138,6 +163,104 @@ describe("opportunity inspector values", () => {
     expect(css).toMatch(/\.inspector-metrics\s+dd\s*\{[\s\S]*display:\s*block/);
     expect(css).toMatch(/\.inspector-metrics\s+dd\s*\{[\s\S]*overflow-wrap:\s*anywhere/);
     expect(css).toMatch(/\.inspector-metrics\s+dd\s*\{[\s\S]*white-space:\s*normal/);
+  });
+
+  it("puts a concise evidence summary before the primary proposal action", () => {
+    const detail = createElement(OpportunityDetail, {
+      loaderData: {
+        opportunity: {
+          id: "o1",
+          dedupeKey: "missing-service-page:heat-pumps",
+          clientId: "c1",
+          ruleId: "missing-service-page",
+          title: "Heat pump service page",
+          detected: "The service is offered but has no dedicated page.",
+          evidenceRefs: ["https://example.com/services"],
+          suppressedEvidenceRefs: [],
+          rationale: "A dedicated page gives high-intent demand somewhere useful to land.",
+          suggestedServiceId: "s1",
+          suggestedScope: ["Write the service page"],
+          priceMin: 900,
+          priceMax: 1800,
+          confidence: 0.75,
+          billableStatus: "billable",
+          status: "new",
+          updatedAt: "2026-09-05T12:00:00.000Z",
+        },
+        client: { id: "c1", name: "Cambridge Heating", domain: "example.com" },
+        service: {
+          id: "s1",
+          name: "Dedicated service page",
+          description: "A focused page for a specific service.",
+          priceMin: 900,
+          priceMax: 1800,
+          tags: ["landing-page"],
+          active: true,
+        },
+        lastRunAt: "2026-09-05T12:00:00.000Z",
+        evidence: { headline: "One page checked", inspectedCount: 1, primary: [], secondary: [] },
+      },
+    } as never);
+    const router = createMemoryRouter([{ path: "*", element: detail }], {
+      initialEntries: ["/opportunities/o1"],
+    });
+    const html = renderToStaticMarkup(
+      createElement(RouterProvider, { router }),
+    );
+
+    expect(html).toContain("Evidence summary");
+    expect(html).toContain("One page checked");
+    expect(html).toContain("Prepare client proposal");
+    expect(html.indexOf("Evidence summary")).toBeLessThan(html.indexOf("Prepare client proposal"));
+    expect(html).toContain("Disposition");
+  });
+
+  it("reviews an existing draft without submitting prepare-proposal", () => {
+    const detail = createElement(OpportunityDetail, {
+      loaderData: {
+        opportunity: {
+          id: "o1",
+          dedupeKey: "missing-service-page:heat-pumps",
+          clientId: "c1",
+          ruleId: "missing-service-page",
+          title: "Heat pump service page",
+          detected: "The service is offered but has no dedicated page.",
+          evidenceRefs: ["https://example.com/services"],
+          suppressedEvidenceRefs: [],
+          rationale: "A dedicated page gives high-intent demand somewhere useful to land.",
+          suggestedServiceId: "s1",
+          suggestedScope: ["Write the service page"],
+          priceMin: 900,
+          priceMax: 1800,
+          confidence: 0.75,
+          billableStatus: "billable",
+          status: "proposal_prepared",
+          proposalMd: "# Edited draft",
+          updatedAt: "2026-09-05T12:00:00.000Z",
+        },
+        client: { id: "c1", name: "Cambridge Heating", domain: "example.com" },
+        service: {
+          id: "s1",
+          name: "Dedicated service page",
+          description: "A focused page for a specific service.",
+          priceMin: 900,
+          priceMax: 1800,
+          tags: ["landing-page"],
+          active: true,
+        },
+        lastRunAt: "2026-09-05T12:00:00.000Z",
+        evidence: { headline: "One page checked", inspectedCount: 1, primary: [], secondary: [] },
+      },
+    } as never);
+    const router = createMemoryRouter([{ path: "*", element: detail }], {
+      initialEntries: ["/opportunities/o1"],
+    });
+    const html = renderToStaticMarkup(createElement(RouterProvider, { router }));
+
+    expect(html).toContain("Review proposal");
+    expect(html).toMatch(/href="[^"]*#proposal-draft"/);
+    expect(html).not.toContain('name="intent" value="prepare-proposal"');
+    expect(html).toContain("Edited draft");
   });
 });
 

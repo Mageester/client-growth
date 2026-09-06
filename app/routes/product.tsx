@@ -12,7 +12,7 @@ import {
 
 const productTitle = "Axiom Orbit Product — Grow the clients you’ve already won.";
 const productDescription =
-  "Axiom Orbit helps agencies monitor client sites, understand public-site evidence, find focused opportunities, and prepare the next conversation.";
+  "Axiom Orbit runs evidence-backed checks on client sites, helps agencies find focused opportunities, and prepares the next conversation.";
 const productCanonical = "https://orbit.getaxiom.ca/product";
 const socialImage = "https://orbit.getaxiom.ca/brand/axiom-orbit-social-1200x630.png";
 
@@ -110,7 +110,7 @@ export default function Product() {
               </p>
               <div className="marketing-product-hero-actions">
                 <Link className="marketing-button marketing-button-primary" to="/signup">
-                  Request access
+                  Request pilot access
                 </Link>
                 <a className="marketing-product-text-link" href="#monitor">
                   See how it works <span aria-hidden="true">→</span>
@@ -177,9 +177,9 @@ export default function Product() {
           number="03"
           label="Find"
           title="Find work you can actually sell."
-          copy="Orbit surfaces three evidence-backed gap types: a missing service page, a site with no service pages (only when the read supports it), and a broken conversion path. Each finding must map to a service you sell and stay billable after contract coverage."
-          availability="Available now · three detection categories"
-          note="Additional categories are product direction, not live functionality."
+          copy="Orbit runs evidence-backed checks across commercial gaps, conversion failures, technical content issues, and evidence review. Each finding must map to a service you sell and stay billable after contract coverage."
+          availability="Available now · evidence-backed checks across capability families"
+          note="Capability families expand only when the evidence supports them; future categories remain direction."
           visual={<ProductFindVisual />}
         />
 
@@ -188,9 +188,9 @@ export default function Product() {
           number="04"
           label="Act"
           title="Turn a signal into the next conversation."
-          copy="Review the case, inspect the source pages, see the mapped service and your typical price range, then prepare an editable proposal draft. Your team decides what to send."
+          copy="Review the case, inspect the source pages, see the mapped service and your typical price range, then prepare an editable proposal draft and deliberately create an expiring share link."
           availability="Available now · review + proposal draft"
-          note="Nothing is sent from this workflow."
+          note="Nothing is sent automatically; your team decides when to share the expiring link."
           visual={<ProductActVisual />}
           reverse
         />
@@ -211,10 +211,10 @@ export default function Product() {
           <div className="marketing-container marketing-product-final-cta-inner" data-reveal>
             <div>
               <h2 id="product-final-title">Ready to grow what you already have?</h2>
-              <p>Request access to the Axiom Orbit pilot.</p>
+              <p>Request pilot access to Axiom Orbit.</p>
             </div>
             <Link className="marketing-button marketing-button-primary" to="/signup">
-              Request access
+              Request pilot access
             </Link>
           </div>
         </section>

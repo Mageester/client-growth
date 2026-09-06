@@ -472,6 +472,85 @@ function LimitNotice({ limitation }: { limitation?: AnalysisLimit }) {
   );
 }
 
+type StarterService = (typeof STARTER_SERVICES)[number];
+
+function starterAccessibleName(currentName: string, defaultName: string): string {
+  return currentName.trim() || defaultName;
+}
+
+export function StarterIdentityControls({
+  service,
+  serviceName,
+  onNameChange,
+}: {
+  service: StarterService;
+  serviceName: string;
+  onNameChange: (name: string) => void;
+}) {
+  const accessibleServiceName = starterAccessibleName(serviceName, service.name);
+  return (
+    <label className="starter-toggle">
+      <input
+        type="checkbox"
+        name={service.field + "On"}
+        defaultChecked
+        aria-label={"Offer " + accessibleServiceName}
+      />
+      <span className="starter-copy">
+        <input
+          className="starter-name"
+          name={service.field + "Name"}
+          type="text"
+          value={serviceName}
+          onChange={(event) => onNameChange(event.target.value)}
+          aria-label={accessibleServiceName + " service name"}
+        />
+        <span className="starter-when">When {service.when}.</span>
+      </span>
+    </label>
+  );
+}
+
+export function StarterPriceControls({
+  service,
+  serviceName,
+}: {
+  service: (typeof STARTER_SERVICES)[number];
+  serviceName: string;
+}) {
+  const accessibleServiceName = starterAccessibleName(serviceName, service.name);
+  return (
+    <div className="starter-price">
+      <div className="field">
+        <label htmlFor={service.field + "Min"}>From</label>
+        <input
+          id={service.field + "Min"}
+          name={service.field + "Min"}
+          type="number"
+          min={0}
+          step={50}
+          inputMode="numeric"
+          aria-label={accessibleServiceName + " minimum price"}
+          defaultValue={service.min}
+        />
+      </div>
+      <div className="field">
+        <label htmlFor={service.field + "Max"}>Up to</label>
+        <input
+          id={service.field + "Max"}
+          name={service.field + "Max"}
+          type="number"
+          min={0}
+          step={50}
+          inputMode="numeric"
+          aria-label={accessibleServiceName + " maximum price"}
+          defaultValue={service.max}
+        />
+      </div>
+    </div>
+  );
+}
+
 function SetupStage({ hasWorkspace, error }: { hasWorkspace: boolean; error?: string }) {
   const navigation = useNavigation();
   // Busy through the redirect too, not just the POST: a submit that ends in a
@@ -480,6 +559,9 @@ function SetupStage({ hasWorkspace, error }: { hasWorkspace: boolean; error?: st
   // 20-second wait.
   const submitting = navigation.state !== "idle" && navigation.formMethod === "POST";
   const [domain, setDomain] = useState("");
+  const [starterNames, setStarterNames] = useState<Record<string, string>>(() =>
+    Object.fromEntries(STARTER_SERVICES.map((service) => [service.field, service.name])),
+  );
 
   return (
     <>
@@ -487,8 +569,8 @@ function SetupStage({ hasWorkspace, error }: { hasWorkspace: boolean; error?: st
       <p className="prose onboarding-lede">
         Axiom Orbit reads a client&rsquo;s website, compares it against what that business
         actually sells, and surfaces the work you could legitimately bill for. Tell it who the
-        client is and it will read the site &mdash; you confirm what it found before anything is
-        analyzed.
+        client is and it will read the site. The first action is a crawl-only read; analysis runs
+        after you confirm what it found.
       </p>
       <Steps current={0} />
 
@@ -521,70 +603,6 @@ function SetupStage({ hasWorkspace, error }: { hasWorkspace: boolean; error?: st
         <section className="section">
           <div className="section-head">
             <div>
-              <h2 className="title-section">What you charge to fix things</h2>
-              <p>
-                Axiom Orbit finds {STARTER_SERVICES.length} kinds of gap today. Set what you
-                would charge to fix each one &mdash; every finding is priced from these, so nothing
-                is surfaced that you could not deliver.
-              </p>
-            </div>
-          </div>
-          <ul className="starter-list">
-            {STARTER_SERVICES.map((service) => (
-              <li className="starter" key={service.field}>
-                <label className="starter-toggle">
-                  <input
-                    type="checkbox"
-                    name={service.field + "On"}
-                    defaultChecked
-                    aria-label={"Offer " + service.name}
-                  />
-                  <span className="starter-copy">
-                    <input
-                      className="starter-name"
-                      name={service.field + "Name"}
-                      type="text"
-                      defaultValue={service.name}
-                      aria-label={service.name + " service name"}
-                    />
-                    <span className="starter-when">When {service.when}.</span>
-                  </span>
-                </label>
-                <div className="starter-price">
-                  <div className="field">
-                    <label htmlFor={service.field + "Min"}>From</label>
-                    <input
-                      id={service.field + "Min"}
-                      name={service.field + "Min"}
-                      type="number"
-                      min={0}
-                      step={50}
-                      inputMode="numeric"
-                      defaultValue={service.min}
-                    />
-                  </div>
-                  <div className="field">
-                    <label htmlFor={service.field + "Max"}>Up to</label>
-                    <input
-                      id={service.field + "Max"}
-                      name={service.field + "Max"}
-                      type="number"
-                      min={0}
-                      step={50}
-                      inputMode="numeric"
-                      defaultValue={service.max}
-                    />
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
-          <p className="field-hint">You can rename these and add more services later.</p>
-        </section>
-
-        <section className="section">
-          <div className="section-head">
-            <div>
               <h2 className="title-section">Your first client</h2>
               <p>
                 One you already look after. Axiom Orbit reads this site as soon as you continue.
@@ -613,17 +631,60 @@ function SetupStage({ hasWorkspace, error }: { hasWorkspace: boolean; error?: st
               </div>
             </div>
           </div>
-          <div className="form-actions">
-            <button type="submit" className="btn btn-primary btn-lg" disabled={submitting}>
-              <Icon name="search" size={15} />
-              Read the site
-            </button>
-            <span className="faint form-actions-note">
-              A crawl only. No analysis is run, and nothing is added to the client until you
-              confirm it.
-            </span>
-          </div>
         </section>
+
+        <details className="starter-pricing">
+          <summary>
+            <span className="starter-pricing-copy">
+              <strong>Review starter pricing</strong>
+              <span>{STARTER_SERVICES.length} starter services with conservative price ranges</span>
+            </span>
+            <span className="starter-pricing-caret" aria-hidden="true" />
+          </summary>
+          <div className="starter-pricing-body">
+            <div className="section-head">
+              <div>
+                <h2 className="title-section">Starter services</h2>
+                <p>
+                  These conservative defaults are used to price early findings and can be reviewed
+                  before analysis if your agency needs to change a service name or range.
+                </p>
+              </div>
+            </div>
+            <ul className="starter-list">
+              {STARTER_SERVICES.map((service) => {
+                const currentName = starterNames[service.field] ?? service.name;
+                return (
+                  <li className="starter" key={service.field}>
+                    <StarterIdentityControls
+                      service={service}
+                      serviceName={currentName}
+                      onNameChange={(name) =>
+                        setStarterNames((previous) => ({
+                          ...previous,
+                          [service.field]: name,
+                        }))
+                      }
+                    />
+                    <StarterPriceControls service={service} serviceName={currentName} />
+                  </li>
+                );
+              })}
+            </ul>
+            <p className="field-hint">You can rename these and add more services later.</p>
+          </div>
+        </details>
+
+        <div className="form-actions">
+          <button type="submit" className="btn btn-primary btn-lg" disabled={submitting}>
+            <Icon name="search" size={15} />
+            Read the site
+          </button>
+          <span className="faint form-actions-note">
+            The first action is a crawl-only read. Nothing is added to the client yet &mdash;
+            analysis runs after you confirm what Orbit found.
+          </span>
+        </div>
       </Form>
     </>
   );

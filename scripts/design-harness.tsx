@@ -47,7 +47,7 @@ const opp = (o: Partial<Opportunity> & { id: string; title: string }): Opportuni
     clientId: "c1",
     ruleId: "missing-service-page",
     detected: "No page on the site covers this service.",
-    evidenceRefs: ["https://northwindheating.co.uk/services"],
+    evidenceRefs: [],
     rationale:
       "The business sells this service but nothing on the site describes it, so search traffic and enquiries for it land nowhere.",
     suggestedServiceId: "svc-landing",
@@ -129,6 +129,7 @@ const opportunities: Opportunity[] = [
   opp({
     id: "o1",
     title: "Water Heater Replacement",
+    evidenceRefs: ["https://cambridgeheating.ca/services"],
     confidence: 0.75,
     priceMin: 900,
     priceMax: 1800,
@@ -136,16 +137,19 @@ const opportunities: Opportunity[] = [
   opp({
     id: "o2",
     title: "Contact form fails silently on mobile",
+    evidenceRefs: ["https://haltonplumbing.com/contact"],
     clientId: "c2",
     suggestedServiceId: "svc-conversion",
     confidence: 0.71,
     priceMin: 600,
     priceMax: 1100,
     status: "proposal_prepared",
+    proposalMd: "# Repair the mobile contact journey\n\nFix and validate the contact form so mobile visitors can complete an enquiry.",
   }),
   opp({
     id: "o3",
     title: "EV charger installation is unlisted",
+    evidenceRefs: ["https://fenwickelectrical.co.uk/services/ev-chargers"],
     clientId: "c3",
     confidence: 0.55,
     priceMin: 900,

@@ -24,6 +24,7 @@ import {
   readStoredTheme,
   type ThemePreference,
 } from "./lib/theme";
+import { parseSignupPolicy } from "@/core/signupAccess";
 import { getWorkspaceForUser } from "@/db/workspaces";
 import { AxiomCredit, EmptyState, getInitials, Icon, Menu } from "./components/ui";
 import { ProductTour, useProductTour } from "./components/tour";
@@ -38,6 +39,10 @@ const EMPTY = {
   workspaceName: null as string | null,
   email: null as string | null,
   theme: "dark" as ThemePreference,
+  // The shared public topbar must not offer self-serve account creation while
+  // the product is invitation-only. Default closed: a page that cannot read the
+  // policy asks for access rather than promising an account.
+  publicSignup: false,
 };
 
 export function links() {
@@ -93,16 +98,28 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     rawTheme === "light" || rawTheme === "dark" || rawTheme === "system"
       ? rawTheme
       : "dark";
+  let publicSignup = false;
+  try {
+    publicSignup = parseSignupPolicy(context.cloudflare.env as never).mode === "open";
+  } catch {
+    publicSignup = false;
+  }
   try {
     const authed = await getSession(request, context);
-    if (!authed) return { ...EMPTY, theme };
+    if (!authed) return { ...EMPTY, theme, publicSignup };
     const ws = await getWorkspaceForUser(
       d1Db(context.cloudflare.env.DB as never),
       authed.userId,
     );
-    return { signedIn: true, workspaceName: ws?.name ?? null, email: authed.user.email, theme };
+    return {
+      signedIn: true,
+      workspaceName: ws?.name ?? null,
+      email: authed.user.email,
+      theme,
+      publicSignup,
+    };
   } catch {
-    return { ...EMPTY, theme };
+    return { ...EMPTY, theme, publicSignup };
   }
 }
 
@@ -287,6 +304,18 @@ function WorkspaceMenu({
   );
 }
 
+/**
+ * The shared public topbar's call to action.
+ *
+ * The topbar is rendered on every signed-out page, including /login and
+ * /signup. While the product is invitation-only it must not promise an account
+ * nobody can create, so the label follows the same signup policy the signup
+ * route enforces.
+ */
+export function publicSignupCtaLabel(publicSignup: boolean): string {
+  return publicSignup ? "Create account" : "Request pilot access";
+}
+
 export function Layout({ children }: { children: ReactNode }) {
   const data = useRouteLoaderData<typeof loader>("root");
   const location = useLocation();
@@ -294,6 +323,7 @@ export function Layout({ children }: { children: ReactNode }) {
   const { theme, chooseTheme } = useThemePreference(data?.theme ?? "system");
   const tour = useProductTour();
   const signedIn = data?.signedIn ?? false;
+  const publicSignup = data?.publicSignup ?? false;
   const workspaceName = data?.workspaceName ?? null;
   const isProposalShare = isProposalSharePath(location.pathname);
   const isMarketingRoute = MARKETING_ROUTES.has(location.pathname);
@@ -390,7 +420,7 @@ export function Layout({ children }: { children: ReactNode }) {
                     <div className="public-nav">
                       <Link to="/login">Log in</Link>
                       <Link className="btn btn-primary btn-sm" to="/signup">
-                        Create account
+                        {publicSignupCtaLabel(publicSignup)}
                       </Link>
                     </div>
                   )}

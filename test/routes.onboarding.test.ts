@@ -1,8 +1,13 @@
-import { readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { tmpdir } from "node:os";
 
 import Database from "better-sqlite3";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import * as repo from "@/db/repositories";
@@ -13,6 +18,29 @@ import { __setSessionResolver } from "../app/lib/session.server";
 import { d1LikeOver } from "./helpers/testAuth";
 
 import * as onboarding from "../app/routes/onboarding";
+
+function renderSetupMarkup() {
+  const router = createMemoryRouter(
+    [
+      {
+        path: "*",
+        element: createElement(onboarding.default, {
+          loaderData: {
+            stage: "setup",
+            hasWorkspace: false,
+            client: null,
+            readFailed: false,
+            crawl: null,
+            suggestions: [],
+          },
+          actionData: undefined,
+        } as never),
+      },
+    ],
+    { initialEntries: ["/onboarding"] },
+  );
+  return renderToStaticMarkup(createElement(RouterProvider, { router }));
+}
 
 /**
  * Onboarding is two stages, and these tests exist to keep it that way.
@@ -175,6 +203,161 @@ async function runSetup() {
 }
 
 describe("onboarding stage one: read the site, judge nothing", () => {
+  it("puts the client read first and collapses starter pricing until it is needed", () => {
+    const html = renderSetupMarkup();
+
+    expect(html).toContain("Review starter pricing");
+    expect(html).toContain("starter services with conservative price ranges");
+    expect(html).toContain("<details");
+    expect(html).not.toMatch(/<details[^>]*\bopen(?:=|>)/);
+    expect(html.indexOf("Your first client")).toBeLessThan(html.indexOf("Review starter pricing"));
+    expect(html.indexOf('name="clientName"')).toBeLessThan(html.indexOf("Review starter pricing"));
+    expect(html.indexOf('name="clientDomain"')).toBeLessThan(html.indexOf("Review starter pricing"));
+  });
+
+  it("explains the default pricing and the crawl-only confirmation gate", () => {
+    const html = renderSetupMarkup();
+
+    expect(html).toMatch(/defaults (?:are )?used to price early findings/i);
+    expect(html).toMatch(/reviewed before analysis/i);
+    expect(html).toMatch(/first action is a crawl-only read/i);
+    expect(html).toMatch(/analysis runs after you confirm/i);
+  });
+
+  it("keeps the bare onboarding starter card styled in the generated harness", () => {
+    const output = mkdtempSync(join(tmpdir(), "axiom-orbit-onboarding-harness-"));
+
+    try {
+      execFileSync(
+        process.execPath,
+        [join("node_modules", "tsx", "dist", "cli.mjs"), "scripts/design-harness.tsx", output],
+        { cwd: process.cwd(), stdio: "pipe" },
+      );
+
+      const html = readFileSync(join(output, "onboarding-setup.html"), "utf8");
+      const style = html.match(/<style>([\s\S]*?)<\/style>/)?.[1] ?? "";
+
+      expect(html).toContain('<main class="detail onboarding">');
+      expect(html).toContain('<details class="starter-pricing">');
+      expect(style).toMatch(
+        /:is\(\.onboarding, \.app-frame \.onboarding\) \.starter-pricing\s*\{/,
+      );
+      expect(style).toMatch(
+        /:is\(\.onboarding, \.app-frame \.onboarding\) \.starter-pricing-body \.starter-list\s*\{/,
+      );
+    } finally {
+      rmSync(output, { recursive: true, force: true });
+    }
+  });
+
+  it("names every starter price control and keeps it inside the closed setup form", () => {
+    const html = renderSetupMarkup();
+    const formStart = html.indexOf("<form");
+    const formEnd = html.indexOf("</form>");
+    const detailsStart = html.indexOf("<details");
+    const detailsEnd = html.indexOf("</details>");
+
+    expect(formStart).toBeGreaterThanOrEqual(0);
+    expect(formEnd).toBeGreaterThan(formStart);
+    expect(detailsStart).toBeGreaterThan(formStart);
+    expect(detailsEnd).toBeLessThan(formEnd);
+    expect(html.slice(detailsStart, detailsEnd)).not.toMatch(/<details[^>]*\bopen(?:=|>)/);
+
+    const details = html.slice(detailsStart, detailsEnd);
+    const starters = [
+      "Service Landing Page",
+      "Service Pages Build",
+      "Competitor Gap Page",
+      "Conversion Path Fix",
+      "Page Title Repair",
+      "Duplicate Title Repair",
+      "Thin Service Page",
+      "H1 Heading Repair",
+      "Internal Link Repair",
+      "Meta Description Repair",
+      "LocalBusiness or Service Schema",
+      "Image Alt Attribute Repair",
+    ];
+    for (const name of starters) {
+      expect(details).toContain(`aria-label="${name} minimum price"`);
+      expect(details).toContain(`aria-label="${name} maximum price"`);
+    }
+  });
+
+  it("updates rendered price-control names when a starter service is renamed", () => {
+    const StarterPriceControls = (
+      onboarding as {
+        StarterPriceControls?: (props: never) => unknown;
+      }
+    ).StarterPriceControls;
+    expect(typeof StarterPriceControls).toBe("function");
+    if (typeof StarterPriceControls !== "function") return;
+
+    const service = {
+      tag: "landing-page",
+      field: "landing",
+      name: "Service Landing Page",
+      min: 900,
+      max: 1800,
+      when: "a client sells something their website never gives its own page",
+    };
+    const renderControls = (serviceName: string) =>
+      renderToStaticMarkup(
+        createElement(StarterPriceControls as never, { service, serviceName } as never),
+      );
+
+    const initial = renderControls("Service Landing Page");
+    const renamed = renderControls("Heat Pump Installation");
+
+    expect(initial).toContain('aria-label="Service Landing Page minimum price"');
+    expect(initial).toContain('aria-label="Service Landing Page maximum price"');
+    expect(renamed).toContain('aria-label="Heat Pump Installation minimum price"');
+    expect(renamed).toContain('aria-label="Heat Pump Installation maximum price"');
+    expect(renamed).not.toContain('aria-label="Service Landing Page minimum price"');
+    expect(renamed).not.toContain('aria-label="Service Landing Page maximum price"');
+  });
+
+  it("falls back to the default service name for every label when the current name is blank", () => {
+    const StarterIdentityControls = (
+      onboarding as {
+        StarterIdentityControls?: (props: never) => unknown;
+      }
+    ).StarterIdentityControls;
+    expect(typeof StarterIdentityControls).toBe("function");
+    if (typeof StarterIdentityControls !== "function") return;
+
+    const service = {
+      tag: "landing-page",
+      field: "landing",
+      name: "Service Landing Page",
+      min: 900,
+      max: 1800,
+      when: "a client sells something their website never gives its own page",
+    };
+    for (const currentName of ["", "   "]) {
+      const html = renderToStaticMarkup(
+        createElement(
+          "div",
+          null,
+          createElement(StarterIdentityControls as never, {
+            service,
+            serviceName: currentName,
+            onNameChange: () => undefined,
+          } as never),
+          createElement(onboarding.StarterPriceControls as never, {
+            service,
+            serviceName: currentName,
+          } as never),
+        ),
+      );
+
+      expect(html).toContain('aria-label="Offer Service Landing Page"');
+      expect(html).toContain('aria-label="Service Landing Page service name"');
+      expect(html).toContain('aria-label="Service Landing Page minimum price"');
+      expect(html).toContain('aria-label="Service Landing Page maximum price"');
+    }
+  });
+
   it("creates the client with no offerings and hands stage two the crawl", async () => {
     vi.stubGlobal("fetch", siteFetch());
     const res = await runSetup();
