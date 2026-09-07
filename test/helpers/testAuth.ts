@@ -33,6 +33,22 @@ function sqlDbOver(raw: Database.Database): SqlDb {
       return Promise.resolve();
     },
     prepare: (sql: string) => stmt(sql, []),
+    async batch(statements: readonly { sql: string; params?: SqlValue[] }[]): Promise<RunResult[]> {
+      // Mirrors the production adapters: all-or-nothing per batch.
+      raw.exec("BEGIN");
+      try {
+        const results: RunResult[] = [];
+        for (const s of statements) {
+          const r = raw.prepare(s.sql).run(...((s.params ?? []) as never[]));
+          results.push({ rowsAffected: Number(r.changes ?? 0) });
+        }
+        raw.exec("COMMIT");
+        return results;
+      } catch (error) {
+        raw.exec("ROLLBACK");
+        throw error;
+      }
+    },
   };
 }
 

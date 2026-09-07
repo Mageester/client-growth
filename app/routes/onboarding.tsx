@@ -10,6 +10,7 @@ import {
   createWorkspaceForOwner,
   getWorkspaceForUser,
   newWorkspaceId,
+  renameWorkspace,
 } from "@/db/workspaces";
 import type { TenantScope } from "@/db/tenant";
 import { Icon } from "../components/ui";
@@ -216,6 +217,8 @@ export async function loader({ request, context }: Route.LoaderArgs) {
         return {
           stage: "confirm" as Stage,
           hasWorkspace: true,
+          needsAgencySetup: false,
+          workspaceName: "",
           client: {
             id: client.id,
             name: client.name,
@@ -241,12 +244,36 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       }
     }
 
-    if ((await repo.listClients(scope)).length > 0) throw redirect("/opportunities");
+    // Ordinary /onboarding visit for an existing workspace. The stage-two
+    // branch above must stay ahead of this guard: a fresh workspace holds its
+    // first client from the moment stage one finishes, and ?client=<id> is the
+    // only door back into the confirm stage.
+    const [clientCount, serviceCount] = await Promise.all([
+      repo.listClients(scope),
+      repo.listServices(scope),
+    ]);
+    if (clientCount.length > 0 || serviceCount.length > 0) throw redirect("/opportunities");
+
+    // Zero clients AND zero services: an unconfigured workspace — a fresh
+    // signup that has not finished onboarding, or one that was reset. The
+    // agency name is reviewable again, prefilled with the name it already has.
+    return {
+      stage: "setup" as Stage,
+      hasWorkspace: true,
+      needsAgencySetup: true,
+      workspaceName: ws.name,
+      client: null,
+      readFailed: false,
+      crawl: null,
+      suggestions: [] as SuggestedOffering[],
+    };
   }
 
   return {
     stage: "setup" as Stage,
-    hasWorkspace: Boolean(ws),
+    hasWorkspace: false,
+    needsAgencySetup: true,
+    workspaceName: "",
     client: null,
     readFailed: false,
     crawl: null,
@@ -343,7 +370,28 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
 
   let ws = await getWorkspaceForUser(db, authed.userId);
-  if (!ws) {
+  if (ws) {
+    // Server-side guard, independent of the loader redirect. Setup creation is
+    // only allowed for an EMPTY workspace (zero clients AND zero services) — a
+    // fresh signup that has not finished onboarding, or a reset workspace.
+    // Anything already configured must not gain a second client from a
+    // hand-crafted form post.
+    const workspaceScope: TenantScope = { db, workspaceId: ws.id };
+    const [existingClients, existingServices] = await Promise.all([
+      repo.listClients(workspaceScope),
+      repo.listServices(workspaceScope),
+    ]);
+    if (existingClients.length > 0 || existingServices.length > 0) {
+      throw redirect("/opportunities");
+    }
+    // Reset-state onboarding: rename the SAME workspace in place if the agency
+    // name changed. Never create a second workspace for this owner.
+    const requestedName = String(form.get("workspaceName") ?? "").trim();
+    if (requestedName && requestedName !== ws.name) {
+      await renameWorkspace(db, ws.id, requestedName);
+      ws = { ...ws, name: requestedName };
+    }
+  } else {
     ws = await createWorkspaceForOwner(db, {
       id: newWorkspaceId(),
       name: String(form.get("workspaceName") ?? "").trim() || "My Agency",
@@ -446,7 +494,12 @@ export default function Onboarding({ loaderData, actionData }: Route.ComponentPr
       {loaderData.stage === "confirm" && loaderData.client ? (
         <ConfirmStage loaderData={loaderData} error={limitation ? undefined : error} limitation={limitation} />
       ) : (
-        <SetupStage hasWorkspace={loaderData.hasWorkspace} error={limitation ? undefined : error} />
+        <SetupStage
+          hasWorkspace={loaderData.hasWorkspace}
+          needsAgencySetup={loaderData.needsAgencySetup}
+          workspaceName={loaderData.workspaceName}
+          error={limitation ? undefined : error}
+        />
       )}
     </main>
   );
@@ -551,7 +604,17 @@ export function StarterPriceControls({
   );
 }
 
-function SetupStage({ hasWorkspace, error }: { hasWorkspace: boolean; error?: string }) {
+function SetupStage({
+  hasWorkspace,
+  needsAgencySetup,
+  workspaceName,
+  error,
+}: {
+  hasWorkspace: boolean;
+  needsAgencySetup: boolean;
+  workspaceName: string;
+  error?: string;
+}) {
   const navigation = useNavigation();
   // Busy through the redirect too, not just the POST: a submit that ends in a
   // redirect passes through "loading" on the way, and treating that as idle
@@ -579,7 +642,7 @@ function SetupStage({ hasWorkspace, error }: { hasWorkspace: boolean; error?: st
       {submitting && <ReadingSite domain={normalizeDomain(domain)} stopHref="/opportunities" />}
 
       <Form method="post" hidden={submitting}>
-        {!hasWorkspace && (
+        {(needsAgencySetup) && (
           <section className="section">
             <div className="section-head">
               <div>
@@ -595,6 +658,7 @@ function SetupStage({ hasWorkspace, error }: { hasWorkspace: boolean; error?: st
                 type="text"
                 required
                 autoComplete="organization"
+                defaultValue={workspaceName}
               />
             </div>
           </section>

@@ -675,6 +675,8 @@ const screens: Record<string, { nav: string; node: ReactNode; bare?: boolean; st
       loaderData: {
         stage: "setup",
         hasWorkspace: false,
+        needsAgencySetup: true,
+        workspaceName: "",
         client: null,
         readFailed: false,
         crawl: null,
@@ -689,6 +691,8 @@ const screens: Record<string, { nav: string; node: ReactNode; bare?: boolean; st
       loaderData: {
         stage: "confirm",
         hasWorkspace: true,
+        needsAgencySetup: false,
+        workspaceName: "",
         client: onboardingClient,
         readFailed: false,
         crawl: { readablePages: 9, fetchedPages: 10 },
@@ -705,6 +709,8 @@ const screens: Record<string, { nav: string; node: ReactNode; bare?: boolean; st
       loaderData: {
         stage: "confirm",
         hasWorkspace: true,
+        needsAgencySetup: false,
+        workspaceName: "",
         client: onboardingClient,
         readFailed: true,
         crawl: { readablePages: 0, fetchedPages: 0 },

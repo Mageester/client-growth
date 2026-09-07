@@ -1,4 +1,10 @@
-import type { RunResult, SqlDb, SqlStatement, SqlValue } from "@/db/sql";
+import type {
+  RunResult,
+  SqlBatchStatement,
+  SqlDb,
+  SqlStatement,
+  SqlValue,
+} from "@/db/sql";
 
 /**
  * Cloudflare D1 implementation of SqlDb. The repositories never import this
@@ -15,6 +21,8 @@ interface D1PreparedStatementLike {
 interface D1DatabaseLike {
   prepare(query: string): D1PreparedStatementLike;
   exec(query: string): Promise<unknown>;
+  /** Cloudflare's transactional batch: all statements commit or none do. */
+  batch(statements: D1PreparedStatementLike[]): Promise<Array<{ meta?: { changes?: number; rows_written?: number } }>>;
 }
 
 function wrap(stmt: D1PreparedStatementLike): SqlStatement {
@@ -47,6 +55,19 @@ export function d1Db(binding: D1DatabaseLike): SqlDb {
     },
     prepare(sql: string): SqlStatement {
       return wrap(binding.prepare(sql));
+    },
+    async batch(statements: readonly SqlBatchStatement[]): Promise<RunResult[]> {
+      // Prepare and bind each statement, then hand the whole list to D1's
+      // batch primitive EXACTLY ONCE — its documented guarantee is
+      // all-or-nothing: if any statement fails, the whole batch is aborted.
+      const prepared = statements.map((statement) => {
+        const stmt = binding.prepare(statement.sql);
+        return statement.params?.length ? stmt.bind(...statement.params) : stmt;
+      });
+      const results = await binding.batch(prepared);
+      return results.map(
+        (r) => ({ rowsAffected: r.meta?.changes ?? r.meta?.rows_written ?? 0 }) as RunResult,
+      );
     },
   };
 }

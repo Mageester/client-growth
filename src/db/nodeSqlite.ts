@@ -1,6 +1,12 @@
 import { DatabaseSync } from "node:sqlite";
 
-import type { RunResult, SqlDb, SqlStatement, SqlValue } from "@/db/sql";
+import type {
+  RunResult,
+  SqlBatchStatement,
+  SqlDb,
+  SqlStatement,
+  SqlValue,
+} from "@/db/sql";
 
 /**
  * node:sqlite implementation of SqlDb for tests and local seeding. Not used at
@@ -42,6 +48,22 @@ export function nodeSqliteDb(location = ":memory:"): NodeSqliteDb {
     },
     prepare(sql: string): SqlStatement {
       return statement(db, sql, []);
+    },
+    async batch(statements: readonly SqlBatchStatement[]): Promise<RunResult[]> {
+      // Same all-or-nothing contract as the D1 adapter: execute every
+      // statement inside one transaction, rolling back on any failure.
+      db.exec("BEGIN");
+      try {
+        const results = statements.map((s) => {
+          const r = db.prepare(s.sql).run(...((s.params ?? []) as never[]));
+          return { rowsAffected: Number(r.changes ?? 0) } as RunResult;
+        });
+        db.exec("COMMIT");
+        return results;
+      } catch (error) {
+        db.exec("ROLLBACK");
+        throw error;
+      }
     },
     close(): void {
       db.close();

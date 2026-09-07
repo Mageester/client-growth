@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import type { SqlDb } from "@/db/sql";
+import type { SqlBatchStatement, SqlDb } from "@/db/sql";
 
 export const WorkspaceSchema = z.object({
   id: z.string().min(1),
@@ -85,6 +85,83 @@ export async function renameWorkspace(db: SqlDb, id: string, name: string): Prom
     .bind(trimmed, id)
     .run();
   return r.rowsAffected > 0;
+}
+
+export type ResetWorkspaceResult =
+  | { ok: true; workspaceId: string }
+  | { ok: false; error: string };
+
+/**
+ * Erase a workspace's PRODUCT state and restart it for onboarding, without
+ * touching its identity or its history.
+ *
+ * Preserved: the workspaces row (and its id), the owner's workspace_members
+ * row, every Better Auth row (user / session / account / verification /
+ * rateLimit), and the append-only analysis_limit_reservations ledger — so a
+ * reset can never buy a fresh analysis-limit budget.
+ *
+ * Removed: clients and everything hanging off them (coverage, evidence,
+ * opportunities, analysis runs, competitors — monitoring state lives on the
+ * client row), the service catalog, workspace branding, pending invitations,
+ * proposal share links, and any non-owner workspace members.
+ *
+ * Authorization is enforced HERE, at the write boundary: the acting user must
+ * be the workspace owner and must type the workspace's current name exactly.
+ * The UI is not trusted.
+ *
+ * Every destructive statement runs in ONE atomic db.batch: if any statement
+ * fails, the whole batch aborts and the workspace is left exactly as it was.
+ */
+export async function resetWorkspace(
+  db: SqlDb,
+  workspaceId: string,
+  actingUserId: string,
+  confirmationWorkspaceName: string,
+): Promise<ResetWorkspaceResult> {
+  const workspace = await db
+    .prepare("SELECT id, name, owner_user_id FROM workspaces WHERE id = ?")
+    .bind(workspaceId)
+    .first<{ id: string; name: string; owner_user_id: string }>();
+
+  if (!workspace) return { ok: false, error: "Workspace not found." };
+  if (workspace.owner_user_id !== actingUserId) {
+    return { ok: false, error: "Only the workspace owner can reset the workspace." };
+  }
+  if (confirmationWorkspaceName.trim() !== workspace.name) {
+    return { ok: false, error: "Confirmation did not match the workspace name." };
+  }
+
+  // Child-first where rows reference rows (clients own their coverage,
+  // evidence, opportunities, runs and competitors through composite foreign
+  // keys), but every statement is listed explicitly and scoped to THIS
+  // workspace id. analysis_limit_reservations is deliberately absent: it has
+  // no client foreign key and is the workspace's usage history.
+  const statements: SqlBatchStatement[] = [
+    { sql: "DELETE FROM proposal_shares WHERE workspace_id = ?", params: [workspaceId] },
+    { sql: "DELETE FROM workspace_invitations WHERE workspace_id = ?", params: [workspaceId] },
+    { sql: "DELETE FROM client_competitors WHERE workspace_id = ?", params: [workspaceId] },
+    { sql: "DELETE FROM analysis_runs WHERE workspace_id = ?", params: [workspaceId] },
+    { sql: "DELETE FROM opportunities WHERE workspace_id = ?", params: [workspaceId] },
+    { sql: "DELETE FROM evidence_bundles WHERE workspace_id = ?", params: [workspaceId] },
+    { sql: "DELETE FROM client_coverage WHERE workspace_id = ?", params: [workspaceId] },
+    { sql: "DELETE FROM clients WHERE workspace_id = ?", params: [workspaceId] },
+    { sql: "DELETE FROM services WHERE workspace_id = ?", params: [workspaceId] },
+    { sql: "DELETE FROM workspace_branding WHERE workspace_id = ?", params: [workspaceId] },
+    {
+      sql: "DELETE FROM workspace_members WHERE workspace_id = ? AND user_id <> ?",
+      params: [workspaceId, actingUserId],
+    },
+  ];
+
+  try {
+    await db.batch(statements);
+  } catch {
+    // The batch is atomic on every supported backend, so a rejection here
+    // means nothing was committed. Say so rather than implying a partial state.
+    return { ok: false, error: "Reset could not be completed. Nothing was changed." };
+  }
+
+  return { ok: true, workspaceId: workspace.id };
 }
 
 export function newWorkspaceId(): string {

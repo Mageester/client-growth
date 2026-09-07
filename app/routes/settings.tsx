@@ -1,4 +1,4 @@
-import { Form, useNavigation } from "react-router";
+import { Form, redirect, useNavigation } from "react-router";
 
 import * as monitoringRepo from "@/db/monitoring";
 import {
@@ -14,7 +14,7 @@ import {
   revokeWorkspaceInvitation,
   TeamInvitationError,
 } from "@/db/teamInvitations";
-import { renameWorkspace } from "@/db/workspaces";
+import { renameWorkspace, resetWorkspace } from "@/db/workspaces";
 import {
   createResendTeamInvitationSender,
   getResendConfig,
@@ -121,6 +121,18 @@ export async function action({ request, context }: Route.ActionArgs) {
       return { error: "That invitation is no longer pending." };
     }
     return { ok: true, invitationRevoked: true };
+  }
+
+  if (intent === "reset-workspace") {
+    // Fast gate for a clear message; resetWorkspace re-checks ownership at the
+    // write boundary, which is the authoritative authorization.
+    if (t.userId !== t.workspace.ownerUserId) {
+      return { error: "Only the workspace owner can reset the workspace." };
+    }
+    const confirmation = String(form.get("confirmWorkspaceName") ?? "");
+    const result = await resetWorkspace(t.db, t.workspace.id, t.userId, confirmation);
+    if (!result.ok) return { error: result.error };
+    throw redirect("/onboarding");
   }
 
   const name = String(form.get("workspaceName") ?? "").trim();
@@ -321,6 +333,46 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
           </div>
         </dl>
       </section>
+
+      {loaderData.isOwner && (
+        <section className="section" id="danger-zone">
+          <div className="section-head">
+            <div>
+              <h2 className="title-section">Danger zone</h2>
+              <p>
+                Erase clients, findings, services, monitoring state, proposals, team setup and
+                workspace configuration, then restart onboarding. Your sign-in account is kept.
+              </p>
+            </div>
+          </div>
+          <Form method="post">
+            <input type="hidden" name="intent" value="reset-workspace" />
+            <div className="field">
+              <label htmlFor="confirmWorkspaceName">
+                Type the workspace name to confirm
+              </label>
+              <input
+                id="confirmWorkspaceName"
+                name="confirmWorkspaceName"
+                type="text"
+                required
+                autoComplete="off"
+                aria-describedby="resetWorkspaceHelp"
+              />
+              <p id="resetWorkspaceHelp" className="field-help">
+                Resetting erases this workspace&rsquo;s clients, services, findings, monitoring
+                history, proposals and team, and restarts onboarding. Your account keeps the same
+                workspace identity, and analysis usage history is preserved.
+              </p>
+            </div>
+            <div className="form-actions">
+              <button type="submit" className="btn btn-danger" disabled={saving}>
+                Reset workspace
+              </button>
+            </div>
+          </Form>
+        </section>
+      )}
 
       <section className="section">
         <div className="section-head">
