@@ -3,6 +3,12 @@ import { useEffect, useState } from "react";
 import { Form, Link, redirect, useNavigation } from "react-router";
 
 import { ClientSchema, type Client } from "@/core/schema";
+import {
+  OfficialBusinessProfileExportSchema,
+  importOfficialBusinessProfile,
+  resolveCurrentExternalClaims,
+  type ExternalBusinessClaim,
+} from "@/core/externalBusinessEvidence";
 import { assessCatalogCoverage } from "@/core/rules/registry";
 import { assessAnalysisReadiness, type ReadinessState } from "@/core/analysisReadiness";
 import { assessServiceCoverage } from "@/core/absenceVerification";
@@ -92,7 +98,7 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
   const firstRunFailed = new URL(request.url).searchParams.get("firstRun") === "failed";
   const client = await repo.getClient(t.scope, params.id);
   if (!client) throw new Response("Client not found", { status: 404 });
-  const [services, coverage, opportunities, runs, monitoring, evidence, competitors] =
+  const [services, coverage, opportunities, runs, monitoring, evidence, competitors, externalClaims] =
     await Promise.all([
       repo.listServices(t.scope),
       repo.listCoverage(t.scope, client.id),
@@ -101,6 +107,7 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
       monitoringRepo.getMonitoring(t.scope, client.id),
       repo.getLatestEvidence(t.scope, client.id),
       listCompetitors(t.scope, client.id),
+      repo.listExternalBusinessClaims(t.scope, client.id),
     ]);
   const totals = totalsFor(opportunities);
   const latest = runs[0] ?? null;
@@ -151,6 +158,7 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
     readiness,
     suggestions,
     competitors,
+    externalClaims: resolveCurrentExternalClaims(externalClaims, new Date()),
     maxCompetitors: MAX_COMPETITORS_PER_CLIENT,
     /** Whether a crawl has ever stored evidence for this client. */
     hasEvidence: evidence !== null,
@@ -268,6 +276,41 @@ export async function action({ params, request, context }: Route.ActionArgs) {
         added.length === 0
           ? "Those services were already in this client's profile."
           : `Added ${added.length} ${added.length === 1 ? "service" : "services"} to ${existing.name}. Re-analyze to check them against the site.`,
+    };
+  }
+
+  if (intent === "import-external-profile") {
+    const rawExport = String(form.get("profileExport") ?? "").trim();
+    if (!rawExport) {
+      return { ok: false as const, error: "Paste the owner-authorized official profile export first." };
+    }
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(rawExport);
+    } catch {
+      return { ok: false as const, error: "That profile export is not valid JSON." };
+    }
+    const exportResult = OfficialBusinessProfileExportSchema.safeParse(parsed);
+    if (!exportResult.success) {
+      return {
+        ok: false as const,
+        error:
+          "Use the supported official profile export fields: provider, sourceRecordId, sourceUrl, authorization, sourceField, observedAt, retrievedAt and services.",
+      };
+    }
+    const imported = importOfficialBusinessProfile(
+      { workspaceId: t.scope.workspaceId, clientId: existing.id },
+      exportResult.data,
+      new Date(),
+    );
+    if (!imported.ok) return { ok: false as const, error: imported.error };
+    await repo.saveExternalBusinessClaims(t.scope, imported.claims);
+    const accepted = imported.claims.filter((claim) => claim.semanticState === "accepted").length;
+    return {
+      ok: true as const,
+      message:
+        `Stored ${accepted} current profile service ${accepted === 1 ? "claim" : "claims"}. ` +
+        "Re-analyze to compare them with the readable website. Nothing is surfaced from this source alone.",
     };
   }
 
@@ -427,6 +470,7 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
     // or an older payload must degrade rather than throw.
     competitors = [],
     maxCompetitors = MAX_COMPETITORS_PER_CLIENT,
+    externalClaims = [],
   } = loaderData;
   const navigation = useNavigation();
   const intent = navigation.formData?.get("intent");
@@ -702,6 +746,8 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
           </div>
         )}
       </section>
+
+      <ExternalProfileEvidence claims={externalClaims} busy={busy} />
 
       <section className="section">
         <div className="section-head">
@@ -1444,6 +1490,85 @@ function SuggestedServices({
         )}
       </div>
     </div>
+  );
+}
+
+function ExternalProfileEvidence({
+  claims,
+  busy,
+}: {
+  claims: ExternalBusinessClaim[];
+  busy: boolean;
+}) {
+  const stateLabel: Record<ExternalBusinessClaim["semanticState"], string> = {
+    accepted: "Current profile evidence",
+    ambiguous: "Needs confirmation",
+    rejected: "Not treated as a service",
+    stale: "Out of date",
+    conflicting: "Conflicting exports",
+  };
+  return (
+    <section className="section" aria-labelledby="external-profile-heading">
+      <div className="section-head">
+        <div>
+          <h2 className="title-section" id="external-profile-heading">
+            Official profile cross-check
+          </h2>
+          <p>
+            Optional advanced evidence for services the business says it offers outside its website.
+            Orbit uses only a current owner-authorized official profile export — never reviews,
+            social posts, ads or directory listings.
+          </p>
+        </div>
+      </div>
+      {claims.length > 0 && (
+        <ul className="tag-row tag-row-lg" aria-label="Imported official profile services">
+          {claims.map((claim) => (
+            <li key={claim.id} className="pill quiet">
+              {claim.normalizedLabel}
+              <span className="faint"> · {stateLabel[claim.semanticState]}</span>
+              <a
+                className="link"
+                href={claim.sourceUrl}
+                target="_blank"
+                rel="noreferrer"
+                aria-label={`Open source for ${claim.normalizedLabel}`}
+              >
+                source
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+      <details className="advanced-details">
+        <summary>Import an owner-authorized official profile export</summary>
+        <p className="field-hint">
+          Paste the normalized export supplied by the official profile connection. It must include
+          the stable profile ID, official HTTPS source URL, observed/retrieved times and service
+          labels. Importing evidence does not create a finding; the website still has to be read
+          and verify the missing page.
+        </p>
+        <Form method="post">
+          <input type="hidden" name="intent" value="import-external-profile" />
+          <div className="field">
+            <label htmlFor="profile-export">Profile export JSON</label>
+            <textarea
+              id="profile-export"
+              name="profileExport"
+              rows={10}
+              required
+              placeholder={'{"provider":"google-business-profile-export",...}'}
+              spellCheck={false}
+            />
+          </div>
+          <div className="form-actions">
+            <button type="submit" className="btn" disabled={busy}>
+              {busy ? "Saving…" : "Save profile evidence"}
+            </button>
+          </div>
+        </Form>
+      </details>
+    </section>
   );
 }
 

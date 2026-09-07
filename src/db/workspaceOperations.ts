@@ -23,6 +23,7 @@ export async function workspaceExport(t: TenantScope, now = new Date()) {
     "opportunities",
     "evidence_bundles",
     "analysis_runs",
+    "external_business_claims",
   ] as const;
 
   const [rows, workspace, brandingRows, members, shareRows] = await Promise.all([
@@ -109,6 +110,7 @@ export async function workspaceExport(t: TenantScope, now = new Date()) {
     opportunities: rows[3],
     evidence: rows[4],
     analysisRuns: rows[5],
+    externalBusinessClaims: rows[6],
   };
 }
 

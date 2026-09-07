@@ -481,6 +481,8 @@ export default function OpportunityDetail({ loaderData, actionData }: Route.Comp
                         ? "alert"
                         : item.kind === "nav"
                           ? "sliders"
+                          : item.kind === "external"
+                            ? "external"
                           : item.kind === "near-miss"
                             ? "search"
                             : "document"

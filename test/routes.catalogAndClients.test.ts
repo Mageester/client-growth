@@ -349,6 +349,60 @@ describe("editing a client", () => {
       context: ctx,
     });
 
+  it("stores only owner-authorized official profile provenance and does not analyze by itself", async () => {
+    const res = (await call(clientDetail.action as never, {
+      request: formReq({
+        intent: "import-external-profile",
+        profileExport: JSON.stringify({
+          provider: "google-business-profile-export",
+          sourceRecordId: "location-123",
+          sourceUrl: "https://business.google.com/locations/location-123",
+          authorization: "owner-authorized-export",
+          sourceField: "services",
+          observedAt: "2026-09-07T12:00:00.000Z",
+          retrievedAt: "2026-09-07T12:05:00.000Z",
+          sourceVersion: "v1",
+          services: ["Roofing", "Free Quotes"],
+        }),
+      }),
+      params: { id: "cli_a" },
+      context: ctx,
+    })) as { ok: boolean; message?: string };
+
+    expect(res.ok).toBe(true);
+    expect(res.message).toMatch(/profile service/i);
+    const claims = await repo.listExternalBusinessClaims(scope, "cli_a");
+    expect(claims).toHaveLength(2);
+    expect(new Set(claims.map((claim) => claim.semanticState))).toEqual(
+      new Set(["accepted", "rejected"]),
+    );
+    expect(await repo.getLatestAnalysisRun(scope, "cli_a")).toBeNull();
+  });
+
+  it("rejects a profile URL that is not the supported official source", async () => {
+    const res = (await call(clientDetail.action as never, {
+      request: formReq({
+        intent: "import-external-profile",
+        profileExport: JSON.stringify({
+          provider: "google-business-profile-export",
+          sourceRecordId: "location-123",
+          sourceUrl: "https://example.com/profile/location-123",
+          authorization: "owner-authorized-export",
+          sourceField: "services",
+          observedAt: "2026-09-07T12:00:00.000Z",
+          retrievedAt: "2026-09-07T12:05:00.000Z",
+          services: ["Roofing"],
+        }),
+      }),
+      params: { id: "cli_a" },
+      context: ctx,
+    })) as { ok: boolean; error?: string };
+
+    expect(res.ok).toBe(false);
+    expect(res.error).toMatch(/official business profile/i);
+    expect(await repo.listExternalBusinessClaims(scope, "cli_a")).toEqual([]);
+  });
+
   it("surfaces the stored crawl reason on the client page", async () => {
     await repo.saveEvidence(
       scope,

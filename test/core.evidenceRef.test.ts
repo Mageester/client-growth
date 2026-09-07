@@ -124,6 +124,16 @@ describe("evidence ref parsing", () => {
       "Competitor site: competitor.example",
     );
   });
+
+  it("describes an external profile source without counting it as a crawled page", () => {
+    const parsed = parseEvidenceRef("external:https://business.google.com/locations/123");
+    expect(parsed).toEqual({
+      kind: "external",
+      value: "https://business.google.com/locations/123",
+      url: "https://business.google.com/locations/123",
+    });
+    expect(describeEvidenceRef(parsed)).toMatch(/official business-profile source/i);
+  });
 });
 
 describe("evidence panel", () => {
@@ -140,6 +150,18 @@ describe("evidence panel", () => {
     // Two crawled pages. `element:`, `target:` and `status:` are the defect, and
     // the defect item already states them.
     expect(evidence.inspectedCount).toBe(2);
+  });
+
+  it("shows external provenance but keeps it out of the pages-checked total", () => {
+    const evidence = buildEvidenceCase(
+      conversionOpportunity([
+        "external:https://business.google.com/locations/123",
+        "page:https://meridiandental.test/",
+      ]),
+    );
+    expect(evidence.primary.some((item) => item.kind === "external")).toBe(true);
+    expect(evidence.inspectedCount).toBe(1);
+    expect(evidence.headline).toMatch(/across 1 page/);
   });
 
   it("states the defect once instead of restating the mechanism three times", () => {
@@ -164,6 +186,19 @@ describe("proposal draft", () => {
     }
     expect(draft).toContain("- https://meridiandental.test/");
     expect(draft).toContain("Server response: HTTP 404");
+  });
+
+  it("renders an external source in proposal language", () => {
+    const draft = generateProposalDraft({
+      opportunity: conversionOpportunity([
+        "external:https://business.google.com/locations/123",
+        "page:https://meridiandental.test/",
+      ]),
+      client: CLIENT,
+      service: SERVICE,
+    });
+    expect(draft).toContain("Official business-profile source: https://business.google.com/locations/123");
+    expect(draft).not.toContain("- external:");
   });
 
   it("does not list the same address twice under two labels", () => {

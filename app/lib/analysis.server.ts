@@ -184,6 +184,7 @@ export async function runAnalysis(
       evidenceProvider: evidenceProviderFor(client, t.workspaceId, deadline.signal),
       evaluator: createEvaluator(parsed),
       maxAiCalls: parsed.MAX_AI_CALLS_PER_RUN,
+      externalClaims: await repo.listExternalBusinessClaims(t, clientId),
       now: options.now,
     });
 

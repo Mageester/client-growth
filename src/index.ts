@@ -5,6 +5,15 @@ export { resolveBillability } from "@/core/billability";
 export { passesEvidenceThreshold, EVIDENCE_THRESHOLD } from "@/core/threshold";
 export { dedupeKey } from "@/core/dedupe";
 export {
+  importOfficialBusinessProfile,
+  resolveCurrentExternalClaims,
+  OfficialBusinessProfileExportSchema,
+  ExternalBusinessClaimSchema,
+  type ExternalBusinessClaim,
+  type OfficialBusinessProfileExport,
+} from "@/core/externalBusinessEvidence";
+export { buildExternalMismatchCandidates } from "@/core/businessSiteMismatch";
+export {
   assembleOpportunity,
   assembleCoveredOpportunity,
 } from "@/core/assembleOpportunity";

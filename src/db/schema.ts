@@ -1,7 +1,7 @@
 /**
  * Canonical **application** schema (tenant + workspace tables). Applied verbatim
  * by the node:sqlite adapter in tests and by the local seed. The migration files
- * (0001..0013) must converge on this exact shape — test/db.schema-parity.test.ts
+ * (0001..0023) must converge on this exact shape — test/db.schema-parity.test.ts
  * compares table columns AND foreign keys.
  *
  * The Better Auth tables (user / session / account / verification / rateLimit)
@@ -194,6 +194,30 @@ CREATE INDEX IF NOT EXISTS idx_analysis_runs_ws
   ON analysis_runs (workspace_id, client_id, finished_at DESC);
 CREATE INDEX IF NOT EXISTS idx_analysis_runs_trigger
   ON analysis_runs (workspace_id, trigger, finished_at DESC);
+
+CREATE TABLE IF NOT EXISTS external_business_claims (
+  id TEXT PRIMARY KEY,
+  workspace_id TEXT NOT NULL,
+  client_id TEXT NOT NULL,
+  provider TEXT NOT NULL,
+  source_record_id TEXT NOT NULL,
+  source_url TEXT NOT NULL,
+  authorization TEXT NOT NULL,
+  raw_service_label TEXT NOT NULL,
+  source_field TEXT NOT NULL,
+  observed_at TEXT NOT NULL,
+  retrieved_at TEXT NOT NULL,
+  source_hash TEXT NOT NULL,
+  source_version TEXT,
+  normalized_label TEXT NOT NULL,
+  semantic_state TEXT NOT NULL,
+  semantic_reason TEXT NOT NULL,
+  UNIQUE (workspace_id, client_id, provider, source_record_id, source_hash, normalized_label),
+  FOREIGN KEY (workspace_id, client_id) REFERENCES clients (workspace_id, id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_external_claims_current
+  ON external_business_claims (workspace_id, client_id, provider, source_record_id, retrieved_at DESC);
 
 /**
  * Accepted analysis starts. This is deliberately an append-only workspace

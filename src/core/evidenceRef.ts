@@ -26,6 +26,8 @@ export const EVIDENCE_REF_KINDS = [
   "considered",
   /** A navigation label that was checked. */
   "nav",
+  /** An owner-authorized external business-profile source. */
+  "external",
 ] as const;
 
 export type EvidenceRefKind = (typeof EVIDENCE_REF_KINDS)[number] | "unknown";
@@ -113,6 +115,8 @@ export function describeEvidenceRef(ref: ParsedEvidenceRef): string {
       return `${ref.value} (considered and ruled out)`;
     case "nav":
       return `Navigation entry: ${ref.value}`;
+    case "external":
+      return `Official business-profile source: ${ref.value}`;
     default:
       return ref.kind === "unknown" ? describeUnknownEvidenceRef(ref.value) : ref.value;
   }

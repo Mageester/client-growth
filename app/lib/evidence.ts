@@ -71,7 +71,7 @@ export interface EvidenceItem {
   url: string | null;
   /** Short statement of what this page contributed to the finding. */
   note: string;
-  kind: "inspected" | "near-miss" | "nav" | "defect" | "sitemap";
+  kind: "inspected" | "near-miss" | "nav" | "defect" | "sitemap" | "external";
 }
 
 export interface EvidenceCase {
@@ -178,6 +178,15 @@ export function buildEvidenceCase(opp: Opportunity): EvidenceCase {
   // and inflated the "pages checked" count with things that are not pages.
   const parsed = opp.evidenceRefs.map(parseEvidenceRef);
   for (const ref of parsed) {
+    if (ref.kind === "external" && ref.url) {
+      push(primary, {
+        title: "Official business profile",
+        url: ref.url,
+        note: "Owner-authorized external evidence used to identify this service.",
+        kind: "external",
+      });
+      continue;
+    }
     if (ref.kind === "nav" || isDefectRef(ref)) continue;
     if (!isPageRef(ref) || !ref.url) continue;
     push(primary.length < 4 ? primary : secondary, {
@@ -223,11 +232,12 @@ export function buildEvidenceCase(opp: Opportunity): EvidenceCase {
     });
   }
 
+  const inspectedCount = [...byUrl.values()].filter((item) => item.kind !== "external").length;
   return {
-    headline: headlineFor(opp, byUrl.size, verification),
+    headline: headlineFor(opp, inspectedCount, verification),
     primary: primary.slice(0, 4),
     secondary: [...primary.slice(4), ...secondary],
-    inspectedCount: byUrl.size,
+    inspectedCount,
   };
 }
 

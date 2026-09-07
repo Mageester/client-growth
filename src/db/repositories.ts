@@ -12,6 +12,10 @@ import {
 } from "@/core/schema";
 import { ANALYSIS_OUTCOMES, type AnalysisOutcome } from "@/core/analysisOutcome";
 import { parseOfferingLabels } from "@/core/offeringDrift";
+import {
+  ExternalBusinessClaimSchema,
+  type ExternalBusinessClaim,
+} from "@/core/externalBusinessEvidence";
 import { SCHEMA_SQL } from "@/db/schema";
 import type { SqlDb } from "@/db/sql";
 import { CrossWorkspaceError, existsInWorkspace, type TenantScope } from "@/db/tenant";
@@ -181,6 +185,114 @@ export async function upsertClient(t: TenantScope, client: Client): Promise<void
       t.workspaceId,
     )
     .run();
+}
+
+// ---------------------------------------------------------------------------
+// owner-authorized external business evidence
+// ---------------------------------------------------------------------------
+interface ExternalBusinessClaimRow {
+  id: string;
+  workspace_id: string;
+  client_id: string;
+  provider: string;
+  source_record_id: string;
+  source_url: string;
+  authorization: string;
+  raw_service_label: string;
+  source_field: string;
+  observed_at: string;
+  retrieved_at: string;
+  source_hash: string;
+  source_version: string | null;
+  normalized_label: string;
+  semantic_state: string;
+  semantic_reason: string;
+}
+
+function toExternalBusinessClaim(row: ExternalBusinessClaimRow): ExternalBusinessClaim {
+  return ExternalBusinessClaimSchema.parse({
+    id: row.id,
+    workspaceId: row.workspace_id,
+    clientId: row.client_id,
+    provider: row.provider,
+    sourceRecordId: row.source_record_id,
+    sourceUrl: row.source_url,
+    authorization: row.authorization,
+    rawServiceLabel: row.raw_service_label,
+    sourceField: row.source_field,
+    observedAt: row.observed_at,
+    retrievedAt: row.retrieved_at,
+    sourceHash: row.source_hash,
+    sourceVersion: row.source_version ?? undefined,
+    normalizedLabel: row.normalized_label,
+    semanticState: row.semantic_state,
+    semanticReason: row.semantic_reason,
+  });
+}
+
+/** Save provenance rows only; this never creates or updates an opportunity. */
+export async function saveExternalBusinessClaims(
+  t: TenantScope,
+  claims: ExternalBusinessClaim[],
+): Promise<void> {
+  for (const raw of claims) {
+    const claim = ExternalBusinessClaimSchema.parse(raw);
+    if (claim.workspaceId !== t.workspaceId) {
+      throw new CrossWorkspaceError(`external claim ${claim.id} belongs to another workspace`);
+    }
+    if (!(await existsInWorkspace(t, "clients", claim.clientId))) {
+      throw new CrossWorkspaceError(`external claim client ${claim.clientId} not in this workspace`);
+    }
+    const owner = await t.db
+      .prepare("SELECT workspace_id FROM external_business_claims WHERE id = ?")
+      .bind(claim.id)
+      .first<{ workspace_id: string }>();
+    if (owner && owner.workspace_id !== t.workspaceId) {
+      throw new CrossWorkspaceError(`external claim ${claim.id} belongs to another workspace`);
+    }
+    await t.db
+      .prepare(
+        `INSERT OR IGNORE INTO external_business_claims (
+           id, workspace_id, client_id, provider, source_record_id, source_url,
+           authorization, raw_service_label, source_field, observed_at, retrieved_at,
+           source_hash, source_version, normalized_label, semantic_state, semantic_reason
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .bind(
+        claim.id,
+        claim.workspaceId,
+        claim.clientId,
+        claim.provider,
+        claim.sourceRecordId,
+        claim.sourceUrl,
+        claim.authorization,
+        claim.rawServiceLabel,
+        claim.sourceField,
+        claim.observedAt,
+        claim.retrievedAt,
+        claim.sourceHash,
+        claim.sourceVersion ?? null,
+        claim.normalizedLabel,
+        claim.semanticState,
+        claim.semanticReason,
+      )
+      .run();
+  }
+}
+
+export async function listExternalBusinessClaims(
+  t: TenantScope,
+  clientId: string,
+): Promise<ExternalBusinessClaim[]> {
+  const rows = await t.db
+    .prepare(
+      `SELECT * FROM external_business_claims
+       WHERE client_id = ? AND workspace_id = ?
+       ORDER BY retrieved_at DESC, id ASC`,
+    )
+    .bind(clientId, t.workspaceId)
+    .all<ExternalBusinessClaimRow>();
+  return rows.map(toExternalBusinessClaim);
 }
 
 // ---------------------------------------------------------------------------

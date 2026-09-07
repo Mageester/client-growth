@@ -9,6 +9,8 @@ import type {
   Opportunity,
   Service,
 } from "@/core/schema";
+import type { ExternalBusinessClaim } from "@/core/externalBusinessEvidence";
+import { buildExternalMismatchCandidates } from "@/core/businessSiteMismatch";
 import { runRules } from "@/core/rules";
 import { assessCatalogCoverage, type CatalogCoverage } from "@/core/rules/registry";
 import { assessServiceCoverage, type CoverageAssessment } from "@/core/absenceVerification";
@@ -53,6 +55,8 @@ export interface AnalyzeClientInput {
   maxVerifyFetches?: number;
   /** Cap on status probes across broken-link rules for this run. Default 8. */
   maxProbes?: number;
+  /** Current owner-authorized external profile claims, if the client supplied one. */
+  externalClaims?: ExternalBusinessClaim[];
 }
 
 export interface AnalyzeClientStats {
@@ -204,13 +208,14 @@ export async function analyzeClient(
   //    never AI)
   const fetchPage = input.evidenceProvider.fetchPage?.bind(input.evidenceProvider);
   const probe = input.evidenceProvider.probe?.bind(input.evidenceProvider);
-  const candidates = await runRules({
+  const verifyBudget = { remaining: input.maxVerifyFetches ?? 12 };
+  const ruleCandidates = await runRules({
     client: input.client,
     catalog: input.catalog,
     evidence,
     coverage,
     fetchPage,
-    verifyBudget: { remaining: input.maxVerifyFetches ?? 12 },
+    verifyBudget,
     probe,
     probeBudget: { remaining: input.maxProbes ?? 8 },
     // Dismissed page-level rows were folded into canonical aggregate rows by
@@ -230,6 +235,27 @@ export async function analyzeClient(
       return byRule;
     }, {}),
   });
+  // External profile evidence is another deterministic input to the same
+  // candidate pipeline. It cannot rescue an unreadable/incomplete crawl and it
+  // cannot bypass absence verification, thresholds, billability, judgment or
+  // reconciliation. Reusing the existing rule id also keeps one opportunity
+  // identity when a client profile and an official profile name the same gap.
+  const externalCandidates = await buildExternalMismatchCandidates({
+    client: input.client,
+    catalog: input.catalog,
+    evidence,
+    coverage,
+    claims: input.externalClaims ?? [],
+    now,
+    fetchPage,
+    budget: verifyBudget,
+  });
+  const candidateByKey = new Map<string, Candidate>();
+  for (const candidate of [...ruleCandidates, ...externalCandidates]) {
+    const key = dedupeKey(input.client.id, candidate.ruleId, candidate.subject);
+    if (!candidateByKey.has(key)) candidateByKey.set(key, candidate);
+  }
+  const candidates = [...candidateByKey.values()];
   stats.candidates = candidates.length;
 
   // 2. evidence threshold
