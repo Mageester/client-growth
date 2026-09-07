@@ -2,6 +2,10 @@ import { useDeferredValue, useState, type ReactNode } from "react";
 import { Form, Link, useNavigation, useSearchParams } from "react-router";
 
 import type { Opportunity } from "@/core/schema";
+import {
+  groupOpportunitiesByFamily,
+  type OpportunityFamilyGroup,
+} from "@/core/opportunityGrouping";
 import { tierForRule } from "@/core/rules/registry";
 import { byEvidencedValue, computeWinRates, winRatesFromRanked } from "@/core/winRates";
 import { changeHeadline, type MonitoringOutcome } from "@/core/monitoring";
@@ -140,6 +144,40 @@ export function healthSectionDescription(count: number, filter: FeedFilter): str
   return `${count} ${pluralize(count, "check", "checks")} worth fixing — titles, headings, descriptions and links. Supporting work rather than the reason to call.`;
 }
 
+function OpportunityFamilySection({
+  family,
+  hrefFor,
+}: {
+  family: OpportunityFamilyGroup<SignalDeskEntry>;
+  hrefFor: (entry: SignalDeskEntry) => string;
+}) {
+  return (
+    <section className="signal-family">
+      <div className="feed-head-copy">
+        <h2>{family.family.label}</h2>
+        <div className="feed-head-meta">
+          <span>{family.family.description}</span>
+          <span className="dot-sep">·</span>
+          <span>
+            {family.entries.length} related {pluralize(family.entries.length, "finding", "findings")}
+          </span>
+          <span className="dot-sep">·</span>
+          <span>{family.client.name}</span>
+        </div>
+      </div>
+      <div className="signal-list-head" aria-hidden="true">
+        <span>Opportunity</span>
+        <span>Client</span>
+        <span>Value</span>
+        <span>Confidence</span>
+        <span>Age</span>
+        <span />
+      </div>
+      <OpportunityQueue entries={family.entries} hrefFor={hrefFor} />
+    </section>
+  );
+}
+
 export default function OpportunitiesIndex({ loaderData, actionData }: Route.ComponentProps) {
   const { groups, serviceName, monitoring, winRates } = loaderData;
   // Findings are ordered by what this agency actually sells, and commercial
@@ -208,6 +246,8 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
   const healthEntries = signalEntries.filter(
     (entry) => tierForRule(entry.opportunity.ruleId) === "health",
   );
+  const commercialFamilies = groupOpportunitiesByFamily(commercialEntries);
+  const healthFamilies = groupOpportunitiesByFamily(healthEntries);
   const totals = sumTotals(scoped.map((group) => group.totals));
   const portfolioTotals = sumTotals(groups.map((group) => group.totals));
   const needsAttention = groups.filter((group) => group.state === "attention").length;
@@ -407,20 +447,15 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
             <>
               {commercialEntries.length > 0 && (
                 <>
-                  <div className="signal-list-head" aria-hidden="true">
-                    <span>Opportunity</span>
-                    <span>Client</span>
-                    <span>Value</span>
-                    <span>Confidence</span>
-                    <span>Age</span>
-                    <span />
-                  </div>
-                  <OpportunityQueue
-                    entries={commercialEntries}
-                    hrefFor={(entry) =>
-                      `/opportunities/${encodeURIComponent(entry.opportunity.id)}`
-                    }
-                  />
+                  {commercialFamilies.map((family) => (
+                    <OpportunityFamilySection
+                      key={family.key}
+                      family={family}
+                      hrefFor={(entry) =>
+                        `/opportunities/${encodeURIComponent(entry.opportunity.id)}`
+                      }
+                    />
+                  ))}
                 </>
               )}
 
@@ -434,20 +469,15 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
                       </span>
                     </div>
                   </div>
-                  <div className="signal-list-head" aria-hidden="true">
-                    <span>Finding</span>
-                    <span>Client</span>
-                    <span>Value</span>
-                    <span>Confidence</span>
-                    <span>Age</span>
-                    <span />
-                  </div>
-                  <OpportunityQueue
-                    entries={healthEntries}
-                    hrefFor={(entry) =>
-                      `/opportunities/${encodeURIComponent(entry.opportunity.id)}`
-                    }
-                  />
+                  {healthFamilies.map((family) => (
+                    <OpportunityFamilySection
+                      key={family.key}
+                      family={family}
+                      hrefFor={(entry) =>
+                        `/opportunities/${encodeURIComponent(entry.opportunity.id)}`
+                      }
+                    />
+                  ))}
                 </section>
               )}
             </>
