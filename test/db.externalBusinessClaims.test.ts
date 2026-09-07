@@ -76,4 +76,64 @@ describe("external business claim persistence", () => {
       /cross-workspace/i,
     );
   });
+
+  it("revalidates official provenance at the repository boundary", async () => {
+    const imported = importOfficialBusinessProfile(
+      { workspaceId: "ws-a", clientId: "client-a" },
+      {
+        provider: "google-business-profile-export",
+        sourceRecordId: "location-a",
+        sourceUrl: "https://business.google.com/locations/location-a",
+        authorization: "owner-authorized-export",
+        sourceField: "services",
+        observedAt: "2026-09-07T12:00:00.000Z",
+        retrievedAt: "2026-09-07T12:05:00.000Z",
+        services: ["Drain Cleaning"],
+      },
+      new Date("2026-09-07T13:00:00.000Z"),
+    );
+    expect(imported.ok).toBe(true);
+    if (!imported.ok) return;
+
+    const forged = { ...imported.claims[0]!, sourceUrl: "https://example.com/profile" };
+    await expect(repo.saveExternalBusinessClaims(a, [forged])).rejects.toThrow(/official profile/i);
+  });
+
+  it("is idempotent for the same claim but rejects a generated-ID collision", async () => {
+    const first = importOfficialBusinessProfile(
+      { workspaceId: "ws-a", clientId: "client-a" },
+      {
+        provider: "google-business-profile-export",
+        sourceRecordId: "location-a",
+        sourceUrl: "https://business.google.com/locations/location-a",
+        authorization: "owner-authorized-export",
+        sourceField: "services",
+        observedAt: "2026-09-07T12:00:00.000Z",
+        retrievedAt: "2026-09-07T12:05:00.000Z",
+        services: ["Drain Cleaning"],
+      },
+      new Date("2026-09-07T13:00:00.000Z"),
+    );
+    const second = importOfficialBusinessProfile(
+      { workspaceId: "ws-a", clientId: "client-a" },
+      {
+        provider: "google-business-profile-export",
+        sourceRecordId: "location-a",
+        sourceUrl: "https://business.google.com/locations/location-a",
+        authorization: "owner-authorized-export",
+        sourceField: "services",
+        observedAt: "2026-09-07T12:00:00.000Z",
+        retrievedAt: "2026-09-07T12:05:00.000Z",
+        services: ["Boiler Repair"],
+      },
+      new Date("2026-09-07T13:00:00.000Z"),
+    );
+    expect(first.ok && second.ok).toBe(true);
+    if (!first.ok || !second.ok) return;
+
+    await repo.saveExternalBusinessClaims(a, first.claims);
+    await repo.saveExternalBusinessClaims(a, first.claims);
+    const collision = { ...second.claims[0]!, id: first.claims[0]!.id };
+    await expect(repo.saveExternalBusinessClaims(a, [collision])).rejects.toThrow(/collision/i);
+  });
 });

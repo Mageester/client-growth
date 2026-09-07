@@ -14,6 +14,7 @@ import { ANALYSIS_OUTCOMES, type AnalysisOutcome } from "@/core/analysisOutcome"
 import { parseOfferingLabels } from "@/core/offeringDrift";
 import {
   ExternalBusinessClaimSchema,
+  validateExternalBusinessClaimProvenance,
   type ExternalBusinessClaim,
 } from "@/core/externalBusinessEvidence";
 import { SCHEMA_SQL } from "@/db/schema";
@@ -237,22 +238,28 @@ export async function saveExternalBusinessClaims(
 ): Promise<void> {
   for (const raw of claims) {
     const claim = ExternalBusinessClaimSchema.parse(raw);
+    validateExternalBusinessClaimProvenance(claim);
     if (claim.workspaceId !== t.workspaceId) {
       throw new CrossWorkspaceError(`external claim ${claim.id} belongs to another workspace`);
     }
     if (!(await existsInWorkspace(t, "clients", claim.clientId))) {
       throw new CrossWorkspaceError(`external claim client ${claim.clientId} not in this workspace`);
     }
-    const owner = await t.db
-      .prepare("SELECT workspace_id FROM external_business_claims WHERE id = ?")
+    const existing = await t.db
+      .prepare("SELECT * FROM external_business_claims WHERE id = ?")
       .bind(claim.id)
-      .first<{ workspace_id: string }>();
-    if (owner && owner.workspace_id !== t.workspaceId) {
+      .first<ExternalBusinessClaimRow>();
+    if (existing && existing.workspace_id !== t.workspaceId) {
       throw new CrossWorkspaceError(`external claim ${claim.id} belongs to another workspace`);
+    }
+    if (existing) {
+      const persisted = toExternalBusinessClaim(existing);
+      if (JSON.stringify(persisted) === JSON.stringify(claim)) continue;
+      throw new Error(`external claim ID collision for ${claim.id}`);
     }
     await t.db
       .prepare(
-        `INSERT OR IGNORE INTO external_business_claims (
+        `INSERT INTO external_business_claims (
            id, workspace_id, client_id, provider, source_record_id, source_url,
            authorization, raw_service_label, source_field, observed_at, retrieved_at,
            source_hash, source_version, normalized_label, semantic_state, semantic_reason
