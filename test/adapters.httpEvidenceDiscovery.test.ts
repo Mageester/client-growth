@@ -83,6 +83,46 @@ describe("apex and www are one website", () => {
     expect(evidence.site.pages.some((entry) => entry.url.includes("example.com/"))).toBe(true);
   });
 
+  it("treats a client-rendered HTML shell as unreadable evidence", async () => {
+    const shell = `<!doctype html><html><head><title>Jesse's Plumbing</title></head>
+      <body><div id="root"></div><script type="module" src="/assets/app.js"></script></body></html>`;
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.endsWith("/robots.txt") || url.endsWith("/sitemap.xml")) {
+        return new Response("", { status: 404, headers: { "content-type": "text/plain" } });
+      }
+      return new Response(shell, {
+        status: 200,
+        headers: { "content-type": "text/html; charset=utf-8" },
+      });
+    }) as unknown as typeof fetch;
+
+    const evidence = await new HttpEvidenceProvider({
+      fetchImpl,
+      maxPages: 1,
+      maxRequests: 3,
+    }).getEvidence(client("example.com"));
+
+    expect(evidence.site.pages).toEqual([
+      expect.objectContaining({
+        url: "https://example.com/",
+        status: 200,
+        wordCount: 0,
+      }),
+    ]);
+    expect(evidence.site.links).toEqual([]);
+    expect(evidence.networkEvents).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "js-shell",
+          stage: "page",
+          outcome: "inconclusive",
+          status: 200,
+        }),
+      ]),
+    );
+  });
+
   it("follows a redirect from the apex host to its www sibling", async () => {
     const { fetchImpl } = siteFetch({
       "https://example.com/": page("Home", ["/services/drain-cleaning"]),

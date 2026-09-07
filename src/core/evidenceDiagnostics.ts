@@ -14,6 +14,9 @@ function inferCode(reason: string): EvidenceFailureCode | "unknown" {
   if (text.includes("robots")) return "robots";
   if (text.includes("content type")) return "content-type";
   if (text.includes("content-length") || text.includes("body exceeds")) return "response-size";
+  if (text.includes("javascript") || text.includes("client-rendered") || text.includes("js shell")) {
+    return "js-shell";
+  }
   if (text.includes("redirect")) return "redirect";
   if (text.includes("budget")) return "request-budget";
   if (text.includes("http ")) return "http-status";
@@ -99,6 +102,13 @@ function copyFor(
           "Orbit received a response but could not read its body completely. Nothing was concluded from that incomplete page.",
         retryable: true,
       };
+    case "js-shell":
+      return {
+        title: "The site needs JavaScript to show its pages",
+        detail:
+          "Orbit received the site's page shell, but the service content was not present in the HTML it could safely read. Nothing was concluded from that incomplete read. The site needs server-rendered page content or a supported rendering connection before Orbit can analyze it.",
+        retryable: false,
+      };
     case "aborted":
       return {
         title: "The site read was stopped before it finished",
@@ -123,7 +133,12 @@ function copyFor(
  * the page gets a stable explanation that does not expose internal policy text.
  */
 export function summarizeEvidenceFailure(evidence: EvidenceBundle): EvidenceFailureSummary {
-  const first = evidence.networkEvents[0];
+  // A shell often arrives alongside a malformed or HTML sitemap response. The
+  // shell is the actionable reason the page could not be read; do not let the
+  // supporting sitemap noise hide it from the agency.
+  const first =
+    evidence.networkEvents.find((event) => event.code === "js-shell") ??
+    evidence.networkEvents[0];
   const code = first?.code ?? (first ? inferCode(first.reason) : "unknown");
   const stage = first?.stage ?? "unknown";
   return { code, stage, ...copyFor(code, stage) };

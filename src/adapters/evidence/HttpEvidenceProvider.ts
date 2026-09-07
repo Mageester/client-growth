@@ -332,8 +332,34 @@ function readablePageCount(evidence: EvidenceBundle): number {
 
 function shouldTryAlternateOrigin(evidence: EvidenceBundle): boolean {
   return evidence.networkEvents.some((event) =>
-    event.code === "timeout" || event.code === "network" || event.code === "aborted",
+    event.code === "timeout" ||
+    event.code === "network" ||
+    event.code === "aborted" ||
+    event.code === "js-shell",
   );
+}
+
+/**
+ * A client-rendered shell is a successful HTTP response that contains a mount
+ * point and JavaScript bundle, but no server-rendered content the evidence
+ * parser can inspect. Treating its title/meta text as a readable page turns a
+ * real browser-visible site into a false "we looked" result, so it stays
+ * inconclusive unless a supported renderer is added later.
+ */
+function looksLikeClientRenderedShell(
+  html: string,
+  parsed: ReturnType<typeof parseHtml>,
+): boolean {
+  if (parsed.page.h1s.length > 0 || parsed.page.headings.length > 0 || parsed.links.length > 0) {
+    return false;
+  }
+  if (parsed.page.wordCount > 12) return false;
+
+  const hasMountPoint = /<(?:div|main|body)\b[^>]*(?:id\s*=\s*["'](?:root|app|__next|svelte)["']|data-reactroot\b)/i.test(
+    html,
+  );
+  const hasClientScript = /<script\b[^>]*(?:type\s*=\s*["']module["']|src\s*=)/i.test(html);
+  return hasMountPoint && hasClientScript;
 }
 
 export class HttpEvidenceProvider implements EvidenceProvider {
@@ -902,6 +928,21 @@ export class HttpEvidenceProvider implements EvidenceProvider {
       }
 
       const parsed = parseHtml(body.text, finalUrl);
+      if (looksLikeClientRenderedShell(body.text, parsed)) {
+        this.recordNetworkEvent(
+          finalUrl,
+          "inconclusive",
+          "page appears to be a client-rendered JavaScript shell; readable page content was not present in the response",
+          {
+            code: "js-shell",
+            stage: "page",
+            status: response.status,
+            redirects: fetched.redirects,
+          },
+        );
+        if (!duplicate) pages.push(emptyPage(finalUrl, response.status));
+        continue;
+      }
       if (!duplicate) pages.push({ ...parsed.page, status: response.status });
       if (nav.length === 0 && parsed.nav.length > 0) nav = parsed.nav;
 

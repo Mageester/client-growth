@@ -138,6 +138,7 @@ export const EvidenceFailureCodeSchema = z.enum([
   "response-body",
   "http-status",
   "aborted",
+  "js-shell",
 ]);
 export type EvidenceFailureCode = z.infer<typeof EvidenceFailureCodeSchema>;
 
