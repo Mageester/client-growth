@@ -28,7 +28,9 @@ export async function portfolioChanges(t: TenantScope, now = new Date()) {
     t.db.prepare(`SELECT o.id,o.title,o.status,c.name AS clientName,o.client_id AS clientId
       FROM opportunities o JOIN clients c ON c.id = o.client_id AND c.workspace_id = o.workspace_id
       WHERE o.workspace_id = ? AND o.updated_at >= ? AND o.updated_at <= ?
-        AND o.status IN ('new','proposal_prepared','resolved')
+        -- Open funnel states plus resolved: an accepted or pitched finding
+        -- whose row was touched is exactly as much "a change" as a new one.
+        AND o.status IN ('new','accepted','proposal_prepared','pitched','resolved')
       ORDER BY o.updated_at DESC,o.id LIMIT 100`).bind(t.workspaceId,since,until)
       .all<{id:string;title:string;status:string;clientName:string;clientId:string}>(),
   ]);

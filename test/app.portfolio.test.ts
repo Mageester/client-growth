@@ -66,7 +66,9 @@ describe("open predicate", () => {
       priceMax: 1800,
     });
     expect(statusBadge(expired, now)).toEqual({ label: "Open", tone: "accent" });
-    expect(nextAction(expired, now)).toMatch(/review the evidence/i);
+    // An expired snooze returns to the queue as new: the funnel's first
+    // question is whether it is worth pursuing.
+    expect(nextAction(expired, now)).toMatch(/worth pursuing/i);
   });
 
   it("remains safe to use as an Array filter predicate", () => {
@@ -169,8 +171,12 @@ describe("status vocabulary", () => {
 
 describe("next action", () => {
   it("tells an agency what to do for every state", () => {
-    expect(nextAction(opp())).toMatch(/prepare a proposal/i);
+    // NEW: the funnel's first decision — worth pursuing, or not.
+    expect(nextAction(opp())).toMatch(/worth pursuing/i);
+    expect(nextAction(opp({ status: "accepted" }))).toMatch(/prepare a proposal|mark it pitched/i);
+    expect(nextAction(opp({ status: "pitched" }))).toMatch(/record the outcome/i);
     expect(nextAction(opp({ status: "proposal_prepared" }))).toMatch(/send the draft/i);
+    expect(nextAction(opp({ status: "lost" }))).toMatch(/not closed/i);
     expect(nextAction(opp({ status: "dismissed" }))).toMatch(/reopen/i);
     expect(nextAction(opp({ status: "snoozed" }))).toMatch(/snooze ends/i);
     expect(nextAction(opp({ status: "superseded" }))).toMatch(/canonical site-level finding/i);

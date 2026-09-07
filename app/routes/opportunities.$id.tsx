@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Form, Link, redirect, useNavigation } from "react-router";
 
 import * as repo from "@/db/repositories";
+import { applyFunnelTransition } from "@/db/opportunityFunnel";
 import {
   countActiveProposalShares,
   createProposalShare,
@@ -13,6 +14,7 @@ import { rationaleForOpportunity } from "@/core/rules/deterministicEvaluation";
 import { jobsToPayback, parseJobValue, paybackSentence } from "@/core/clientValue";
 import { buildEvidenceCase } from "../lib/evidence";
 import { isOpen, isSnoozeExpired, statusBadge } from "../lib/portfolio";
+import { salesStageOf } from "@/db/opportunityFunnel";
 import {
   Fact,
   Icon,
@@ -70,9 +72,19 @@ export async function action({ params, request, context }: Route.ActionArgs) {
   if (!opp) throw new Response("Opportunity not found", { status: 404 });
 
   switch (intent) {
-    case "dismiss":
-      await repo.setOpportunityStatus(t.scope, opp.id, "dismissed");
+    case "accept": {
+      // "Worth pursuing" — the funnel's explicit acceptance decision.
+      const ok = await applyFunnelTransition(t.scope, opp.id, { kind: "accept" });
+      if (!ok) return { error: "This finding cannot be accepted from its current state." };
       break;
+    }
+    case "dismiss": {
+      // Internal rejection: the agency declines to sell. Deliberately NOT a
+      // client loss — it must never feed a close rate.
+      const ok = await applyFunnelTransition(t.scope, opp.id, { kind: "dismiss" });
+      if (!ok) return { error: "This finding cannot be dismissed from its current state." };
+      break;
+    }
     case "sold": {
       // The one outcome that teaches the product anything. Everything else it
       // records is a judgement about a finding; this is what happened to it.
@@ -81,20 +93,45 @@ export async function action({ params, request, context }: Route.ActionArgs) {
       if (!parsed.ok) {
         return { error: "Enter what you charged as a number, or leave it blank." };
       }
-      await repo.recordOpportunitySale(t.scope, opp.id, { amount: parsed.value });
+      const ok = await applyFunnelTransition(t.scope, opp.id, {
+        kind: "sold",
+        soldAmount: parsed.value,
+      });
+      if (!ok) return { error: "This outcome cannot be recorded from the finding's current state." };
       break;
     }
-    case "reopen":
+    case "lost": {
+      // The client saw the pitch and declined — a client decision, distinct
+      // from an internal dismissal.
+      const ok = await applyFunnelTransition(t.scope, opp.id, { kind: "lost" });
+      if (!ok) return { error: "This outcome cannot be recorded from the finding's current state." };
+      break;
+    }
+    case "pitch": {
+      // The single client-presented milestone, however it happened.
+      const ok = await applyFunnelTransition(t.scope, opp.id, { kind: "pitch" });
+      if (!ok) return { error: "This finding cannot be marked pitched from its current state." };
+      break;
+    }
+    case "reopen": {
       if (opp.billableStatus === "already_covered") {
         return {
           error:
             "This work is covered by the client's contract, so it cannot be reopened as billable. Remove the coverage on the client page first.",
         };
       }
-      await repo.setOpportunityStatus(t.scope, opp.id, "new");
+      const ok = await applyFunnelTransition(t.scope, opp.id, { kind: "reopen" });
+      if (!ok) {
+        return {
+          error:
+            "A client-decided outcome (sold or lost) is kept as history and cannot be reopened.",
+        };
+      }
       break;
-    case "cover":
-      await repo.setOpportunityStatus(t.scope, opp.id, "already_covered");
+    }
+    case "cover": {
+      const ok = await applyFunnelTransition(t.scope, opp.id, { kind: "cover" });
+      if (!ok) return { error: "This finding cannot be marked covered from its current state." };
       await repo.setCoverage(
         t.scope,
         opp.clientId,
@@ -102,6 +139,7 @@ export async function action({ params, request, context }: Route.ActionArgs) {
         "Marked covered from opportunity review",
       );
       break;
+    }
     case "snooze": {
       const raw = Number(form.get("days"));
       if (!Number.isFinite(raw) || raw < 1 || raw > 365) {
@@ -109,7 +147,8 @@ export async function action({ params, request, context }: Route.ActionArgs) {
       }
       const days = Math.floor(raw);
       const until = new Date(Date.now() + days * 86_400_000).toISOString();
-      await repo.setOpportunityStatus(t.scope, opp.id, "snoozed", until);
+      const ok = await applyFunnelTransition(t.scope, opp.id, { kind: "snooze", snoozeUntil: until });
+      if (!ok) return { error: "This finding cannot be snoozed from its current state." };
       break;
     }
     case "prepare-proposal": {
@@ -128,7 +167,18 @@ export async function action({ params, request, context }: Route.ActionArgs) {
       ]);
       if (!client || !service) throw new Response("Client or service missing", { status: 409 });
       const draft = generateProposalDraft({ opportunity: opp, client, service });
-      await repo.setOpportunityProposal(t.scope, opp.id, draft);
+      // First proposal implies acceptance and stamps both milestones; editing
+      // an existing draft never resets proposalPreparedAt.
+      const ok = await applyFunnelTransition(t.scope, opp.id, {
+        kind: "prepare-proposal",
+        proposalMd: draft,
+      });
+      if (!ok) {
+        return {
+          error:
+            "This finding is closed. Reopen it before preparing a proposal so the client's status stays truthful.",
+        };
+      }
       break;
     }
     case "save-proposal": {
@@ -204,6 +254,7 @@ export default function OpportunityDetail({ loaderData, actionData }: Route.Comp
   const badge = statusBadge(opp, now);
   const live = isOpen(opp, now);
   const proposalAction = proposalActionLabel(opp);
+  const stage = salesStageOf(opp);
   const [showAllEvidence, setShowAllEvidence] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -211,6 +262,38 @@ export default function OpportunityDetail({ loaderData, actionData }: Route.Comp
     ? [...evidence.primary, ...evidence.secondary]
     : evidence.primary;
   const hiddenEvidence = evidence.secondary.length;
+
+  // Compact funnel progress: Found -> Accepted -> Proposal -> Pitched ->
+  // Sold/Not-closed. Proposal is optional; rows that never entered the funnel
+  // (snoozed, covered, resolved) show no stepper at all.
+  let funnelStepper: React.ReactNode = null;
+  if (stage) {
+    const steps: Array<{ key: string; label: string }> = [
+      { key: "found", label: "Found" },
+      { key: "accepted", label: "Accepted" },
+      { key: "proposal", label: "Proposal" },
+      { key: "pitched", label: "Pitched" },
+      { key: "outcome", label: stage === "sold" ? "Sold" : stage === "lost" ? "Not closed" : "Outcome" },
+    ];
+    const order = ["found", "accepted", "proposal", "pitched"];
+    const terminal = stage === "sold" || stage === "lost";
+    funnelStepper = (
+      <p className="funnel-stepper faint" aria-label="Sales progress">
+        {steps.map((step, index) => {
+          const reached = terminal || order.indexOf(stage) >= index;
+          const isOutcome = index === steps.length - 1 && terminal;
+          return (
+            <span key={step.key}>
+              {index > 0 && <span className="funnel-sep">→</span>}
+              <span className={reached ? "funnel-step is-done" : "funnel-step"}>
+                {isOutcome ? (stage === "sold" ? "Sold" : "Not closed") : step.label}
+              </span>
+            </span>
+          );
+        })}
+      </p>
+    );
+  }
 
   async function copyDraft() {
     if (!opp.proposalMd) return;
@@ -445,22 +528,41 @@ export default function OpportunityDetail({ loaderData, actionData }: Route.Comp
             <p>Nothing is sent automatically. Share a saved draft with an expiring link when it is ready.</p>
           </div>
         </div>
+        {funnelStepper}
+
         <div className="actionbar">
-          {!live && (
-            opp.billableStatus === "billable" && (
+          {/* Reopen is offered for the agency's own non-terminal states:
+              dismissed (internal decision, reconsiderable), snoozed, and
+              resolved. Sold and lost are client-decided history — no reopen. */}
+          {!live &&
+            opp.billableStatus === "billable" &&
+            opp.status !== "sold" &&
+            opp.status !== "lost" && (
               <Form method="post" className="inline">
                 <input type="hidden" name="intent" value="reopen" />
                 <button type="submit" className="btn btn-primary" disabled={busy}>
                   {pending === "reopen" ? "Reopening…" : "Reopen"}
                 </button>
               </Form>
-            )
-          )}
+            )}
 
-          {live && (
+          {live && stage === "found" && (
             <div className="disposition-controls" aria-labelledby="disposition-label">
-              <span className="disposition-label" id="disposition-label">Disposition</span>
+              <span className="disposition-label" id="disposition-label">Worth pursuing?</span>
               <div className="disposition-actions">
+                {/* Primary: the funnel's first decision. */}
+                <Form method="post" className="inline">
+                  <input type="hidden" name="intent" value="accept" />
+                  <button type="submit" className="btn btn-primary" disabled={busy}>
+                    {pending === "accept" ? "Accepting…" : "Worth pursuing"}
+                  </button>
+                </Form>
+                <Form method="post" className="inline">
+                  <input type="hidden" name="intent" value="prepare-proposal" />
+                  <button type="submit" className="btn" disabled={busy}>
+                    {pending === "prepare-proposal" ? "Preparing…" : "Prepare proposal"}
+                  </button>
+                </Form>
                 <Form method="post" className="inline">
                   <input type="hidden" name="intent" value="cover" />
                   <button type="submit" className="btn" disabled={busy}>
@@ -480,6 +582,60 @@ export default function OpportunityDetail({ loaderData, actionData }: Route.Comp
                     Snooze
                   </button>
                 </Form>
+                {/* Internal rejection: never a client loss, never in a close rate. */}
+                <Form method="post" className="inline">
+                  <input type="hidden" name="intent" value="dismiss" />
+                  <button type="submit" className="btn btn-danger" disabled={busy}>
+                    Dismiss
+                  </button>
+                </Form>
+              </div>
+            </div>
+          )}
+
+          {live && (stage === "accepted" || stage === "proposal") && (
+            <div className="disposition-controls" aria-labelledby="disposition-label">
+              <span className="disposition-label" id="disposition-label">Next step</span>
+              <div className="disposition-actions">
+                {!opp.proposalMd && (
+                  <Form method="post" className="inline">
+                    <input type="hidden" name="intent" value="prepare-proposal" />
+                    <button type="submit" className="btn btn-primary" disabled={busy}>
+                      {pending === "prepare-proposal" ? "Preparing…" : "Prepare proposal"}
+                    </button>
+                  </Form>
+                )}
+                {opp.proposalMd && proposalAction === "Review proposal" && (
+                  <a className="btn btn-primary" href="#proposal-draft">
+                    Review proposal
+                  </a>
+                )}
+                <Form method="post" className="inline">
+                  <input type="hidden" name="intent" value="pitch" />
+                  <button type="submit" className="btn" disabled={busy}>
+                    {pending === "pitch" ? "Marking…" : "Mark pitched"}
+                  </button>
+                </Form>
+                <Form method="post" className="inline">
+                  <input type="hidden" name="intent" value="cover" />
+                  <button type="submit" className="btn" disabled={busy}>
+                    Already covered
+                  </button>
+                </Form>
+                <Form method="post" className="inline">
+                  <input type="hidden" name="intent" value="dismiss" />
+                  <button type="submit" className="btn btn-danger" disabled={busy}>
+                    Dismiss
+                  </button>
+                </Form>
+              </div>
+            </div>
+          )}
+
+          {live && stage === "pitched" && (
+            <div className="disposition-controls" aria-labelledby="disposition-label">
+              <span className="disposition-label" id="disposition-label">Client outcome</span>
+              <div className="disposition-actions">
                 <Form method="post" className="row-tight">
                   <input type="hidden" name="intent" value="sold" />
                   <label className="sr-only" htmlFor="sold-amount">
@@ -493,21 +649,26 @@ export default function OpportunityDetail({ loaderData, actionData }: Route.Comp
                     placeholder="Amount (optional)"
                     size={14}
                   />
-                  {/* Deliberately not the primary button. The default action on an
-                      open finding is still to prepare a proposal; recording the
-                      outcome is what you come back and do afterwards. */}
-                  <button type="submit" className="btn" disabled={busy}>
+                  <button type="submit" className="btn btn-primary" disabled={busy}>
                     {pending === "sold" ? "Recording…" : "Mark sold"}
                   </button>
                 </Form>
                 <Form method="post" className="inline">
-                  <input type="hidden" name="intent" value="dismiss" />
+                  <input type="hidden" name="intent" value="lost" />
                   <button type="submit" className="btn btn-danger" disabled={busy}>
-                    Dismiss
+                    {pending === "lost" ? "Recording…" : "Mark lost"}
                   </button>
                 </Form>
               </div>
             </div>
+          )}
+
+          {(stage === "sold" || stage === "lost") && (
+            <p className="action-note">
+              {stage === "sold"
+                ? "Recorded as sold" + (opp.soldAt ? " " + formatDate(opp.soldAt) : ".")
+                : "Presented to the client but not closed. This is a client decision — different from an internal dismissal."}
+            </p>
           )}
 
           {opp.status === "already_covered" && (

@@ -43,11 +43,11 @@ describe("measuring what an agency actually sells", () => {
     expect(rates.totalSold).toBe(0);
   });
 
-  it("counts sold against decided, ignoring findings still in the queue", () => {
+  it("counts sold against decided client outcomes, ignoring pending work", () => {
     const rates = computeWinRates([
       opp({ ruleId: "missing-service-page", status: "sold", soldAmount: 1800 }),
       opp({ ruleId: "missing-service-page", status: "sold", soldAmount: 1200 }),
-      opp({ ruleId: "missing-service-page", status: "dismissed" }),
+      opp({ ruleId: "missing-service-page", status: "lost" }),
       opp({ ruleId: "missing-service-page", status: "new" }),
       opp({ ruleId: "missing-service-page", status: "snoozed" }),
     ]);
@@ -58,6 +58,23 @@ describe("measuring what an agency actually sells", () => {
     expect(entry.rate).toBeCloseTo(2 / 3);
     expect(entry.averageSale).toBe(1500);
     expect(rates.totalSoldValue).toBe(3000);
+  });
+
+  it("never counts an internal dismissal as a client loss", () => {
+    const rates = computeWinRates([
+      opp({ ruleId: "missing-service-page", status: "sold", soldAmount: 900 }),
+      opp({ ruleId: "missing-service-page", status: "dismissed" }),
+      opp({ ruleId: "missing-service-page", status: "dismissed" }),
+      opp({ ruleId: "missing-service-page", status: "accepted" }),
+      opp({ ruleId: "missing-service-page", status: "pitched" }),
+    ]);
+    const entry = rates.byRule.get("missing-service-page")!;
+    // Close rate = sold / (sold + lost). The agency declining internally is
+    // the agency's judgement, not the client's answer, and an accepted or
+    // pitched finding the client has not answered is still pending.
+    expect(entry.decided).toBe(1);
+    expect(entry.sold).toBe(1);
+    expect(entry.rate).toBe(1);
   });
 
   it("averages only over sales that recorded an amount", () => {
@@ -85,8 +102,8 @@ describe("measuring what an agency actually sells", () => {
       // A freak run on an alt-text finding, and a poor one on real work.
       opp({ ruleId: "missing-image-alt", status: "sold", soldAmount: 200 }),
       opp({ ruleId: "missing-service-page", status: "sold", soldAmount: 1800 }),
-      opp({ ruleId: "missing-service-page", status: "dismissed" }),
-      opp({ ruleId: "missing-service-page", status: "dismissed" }),
+      opp({ ruleId: "missing-service-page", status: "lost" }),
+      opp({ ruleId: "missing-service-page", status: "lost" }),
     ];
     const rates = computeWinRates(history);
     expect(rates.byRule.get("missing-image-alt")!.rate).toBe(1);
@@ -104,8 +121,8 @@ describe("measuring what an agency actually sells", () => {
     const rates = computeWinRates([
       opp({ ruleId: "broken-conversion-path", status: "sold" }),
       opp({ ruleId: "broken-conversion-path", status: "sold" }),
-      opp({ ruleId: "missing-service-page", status: "dismissed" }),
-      opp({ ruleId: "missing-service-page", status: "dismissed" }),
+      opp({ ruleId: "missing-service-page", status: "lost" }),
+      opp({ ruleId: "missing-service-page", status: "lost" }),
     ]);
 
     const queue = [
@@ -120,7 +137,7 @@ describe("measuring what an agency actually sells", () => {
   it("does not bury a rule that has simply never been tried", () => {
     const rates = computeWinRates([
       opp({ ruleId: "missing-service-page", status: "sold" }),
-      opp({ ruleId: "missing-service-page", status: "dismissed" }),
+      opp({ ruleId: "missing-service-page", status: "lost" }),
     ]);
     // no-service-pages has no history; it inherits its tier's observed rate
     // rather than sorting as though the agency had rejected it.

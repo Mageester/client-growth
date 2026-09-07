@@ -385,10 +385,19 @@ describe("editing a client", () => {
     })) as { ok: boolean };
 
     expect(res.ok).toBe(true);
-    for (const id of ["opp_open", "opp_expired", "opp_active_snooze", "opp_dismissed"]) {
+    // Open work (including an expired snooze) follows the contract: covered.
+    for (const id of ["opp_open", "opp_expired", "opp_active_snooze"]) {
       const saved = await repo.getOpportunity(scope, id);
       expect(saved?.status).toBe("already_covered");
       expect(saved?.billableStatus).toBe("already_covered");
     }
+    // A dismissal is the agency's own recorded decision. An unrelated
+    // coverage toggle must not rewrite it — coverage wins only over work
+    // that is still open. (This row was persisted as dismissed directly, so
+    // it carries no dismissedAt; the domain-level milestone is pinned in
+    // db.opportunityFunnel.test.ts.)
+    const dismissed = await repo.getOpportunity(scope, "opp_dismissed");
+    expect(dismissed?.status).toBe("dismissed");
+    expect(dismissed?.billableStatus).toBe("billable");
   });
 });

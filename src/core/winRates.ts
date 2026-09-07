@@ -19,13 +19,19 @@ import { tierForRule, type RuleTier } from "@/core/rules/registry";
  * two outcomes says "2 of 2", never "100%".
  */
 
-/** Outcomes that count as a decided sales attempt. Everything else is pending. */
-const DECIDED = new Set<Opportunity["status"]>(["sold", "dismissed"]);
+/**
+ * Outcomes that count as a decided sales attempt: the CLIENT's answers. A
+ * dismissal is the agency declining internally — often with no client
+ * conversation ever happening — so it is not a client loss and must never sit
+ * in a close-rate denominator. See core/salesFunnel.ts for the full funnel
+ * semantics this module shares.
+ */
+const DECIDED = new Set<Opportunity["status"]>(["sold", "lost"]);
 
 export interface RuleWinRate {
   ruleId: RuleId;
   tier: RuleTier;
-  /** Findings the agency has made a sell/decline decision on. */
+  /** Findings the client decided: sold or lost. */
   decided: number;
   sold: number;
   /** Total of every recorded sale amount for this rule. */
@@ -33,8 +39,8 @@ export interface RuleWinRate {
   /** Sales that recorded an amount; soldValue is an average over these only. */
   valuedSales: number;
   /**
-   * sold / decided, or null when nothing has been decided yet. Null is not
-   * zero: "never sold" and "never tried" must not look the same.
+   * sold / (sold + lost), or null when the client has decided nothing yet.
+   * Null is not zero: "never sold" and "never tried" must not look the same.
    */
   rate: number | null;
   averageSale: number | null;

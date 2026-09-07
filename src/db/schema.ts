@@ -144,6 +144,14 @@ CREATE TABLE IF NOT EXISTS opportunities (
   -- What the agency charged when they marked this work sold. See 0018.
   sold_amount REAL,
   sold_at TEXT,
+  -- Durable sales-funnel milestones: the FIRST time each stage was reached.
+  -- Nullable by design; legacy rows have them NULL and nothing may invent a
+  -- value from updated_at or status. See 0022 and core/salesFunnel.ts.
+  accepted_at TEXT,
+  proposal_prepared_at TEXT,
+  pitched_at TEXT,
+  lost_at TEXT,
+  dismissed_at TEXT,
   verification TEXT,
   conversion_defect TEXT,
   updated_at TEXT NOT NULL,

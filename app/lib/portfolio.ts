@@ -17,7 +17,11 @@ export function isOpen(opp: Opportunity, now: Date | number = new Date()): boole
   const clock = now instanceof Date ? now : new Date();
   return (
     opp.billableStatus === "billable" &&
-    (opp.status === "new" || opp.status === "proposal_prepared" || isSnoozeExpired(opp, clock))
+    (opp.status === "new" ||
+      opp.status === "accepted" ||
+      opp.status === "proposal_prepared" ||
+      opp.status === "pitched" ||
+      isSnoozeExpired(opp, clock))
   );
 }
 
@@ -125,11 +129,16 @@ export function statusBadge(opp: Opportunity, now = new Date()): StatusBadge {
   // doing it themselves. Collapsing them would erase the only outcome the
   // product measures.
   if (opp.status === "sold") return { label: "Sold", tone: "pos" };
+  // A client loss is NOT an internal dismissal: different words on every
+  // surface, or the agency's own rejections and the client's answers blur.
+  if (opp.status === "lost") return { label: "Not closed", tone: "warn" };
   if (opp.status === "resolved") return { label: "Fixed by the client", tone: "pos" };
   if (opp.status === "superseded") return { label: "Superseded", tone: "quiet" };
   if (opp.status === "dismissed") return { label: "Dismissed", tone: "quiet" };
   if (opp.status === "snoozed") return { label: "Snoozed", tone: "quiet" };
+  if (opp.status === "pitched") return { label: "Pitched — awaiting outcome", tone: "accent" };
   if (opp.status === "proposal_prepared") return { label: "Proposal ready", tone: "pos" };
+  if (opp.status === "accepted") return { label: "Accepted — in progress", tone: "accent" };
   return { label: "Open", tone: "accent" };
 }
 
@@ -142,10 +151,15 @@ export function nextAction(opp: Opportunity, now = new Date()): string {
     if (opp.status === "superseded") {
       return "Superseded by the canonical site-level finding";
     }
+    if (opp.status === "lost") {
+      return "Presented to the client but not closed";
+    }
     if (opp.status === "dismissed") return "Reopen if this becomes relevant again";
     if (opp.status === "snoozed") return "Returns to the feed when the snooze ends";
     return "Already covered by this client's contract";
   }
+  if (opp.status === "pitched") return "Record the outcome once the client decides";
   if (opp.status === "proposal_prepared") return "Send the draft to the client";
-  return "Review the evidence, then prepare a proposal";
+  if (opp.status === "accepted") return "Prepare a proposal, or mark it pitched";
+  return "Worth pursuing? Accept it, or dismiss";
 }

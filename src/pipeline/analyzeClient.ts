@@ -117,7 +117,11 @@ function isSuppressed(opp: Opportunity, now: Date): boolean {
   // into their queue as an upsell, and the re-analysis would overwrite the sale
   // record with a fresh "new" row, destroying the only measurement of what this
   // agency actually converts.
-  if (opp.status === "sold") return true;
+  //
+  // `lost` is equally terminal: the client saw the pitch and declined. And
+  // `dismissed` is the agency's own recorded rejection. None of these may be
+  // re-litigated by a crawler.
+  if (opp.status === "sold" || opp.status === "lost") return true;
   if (opp.status === "dismissed" || opp.status === "already_covered") return true;
   if (opp.status === "snoozed") {
     return !opp.snoozeUntil || opp.snoozeUntil > now.toISOString();
@@ -125,10 +129,43 @@ function isSuppressed(opp: Opportunity, now: Date): boolean {
   return false;
 }
 
+/**
+ * Carry the prior row's commercial state onto a freshly assembled finding.
+ *
+ * A re-detection must never un-write a sales decision: an accepted finding
+ * stays accepted, a pitched one stays pitched, a proposal keeps its text — and
+ * every funnel milestone survives untouched. A resolved prior is different:
+ * its milestones belong to a CLOSED sales cycle, so a genuinely reappeared
+ * finding starts fresh rather than inheriting history that never happened to
+ * this cycle. Terminal rows (sold/lost/dismissed) never reach here — they are
+ * suppressed before evaluation.
+ */
 function reconcile(prior: Opportunity | undefined, fresh: Opportunity): Opportunity {
   if (!prior) return fresh;
+  if (prior.status === "resolved" || prior.status === "superseded") {
+    return { ...fresh, id: prior.id };
+  }
   if (prior.status === "proposal_prepared") {
-    return { ...fresh, id: prior.id, status: "proposal_prepared", proposalMd: prior.proposalMd };
+    return {
+      ...fresh,
+      id: prior.id,
+      status: "proposal_prepared",
+      proposalMd: prior.proposalMd,
+      acceptedAt: prior.acceptedAt,
+      proposalPreparedAt: prior.proposalPreparedAt,
+    };
+  }
+  if (prior.status === "accepted") {
+    return { ...fresh, id: prior.id, status: "accepted", acceptedAt: prior.acceptedAt };
+  }
+  if (prior.status === "pitched") {
+    return {
+      ...fresh,
+      id: prior.id,
+      status: "pitched",
+      acceptedAt: prior.acceptedAt,
+      pitchedAt: prior.pitchedAt,
+    };
   }
   return { ...fresh, id: prior.id };
 }
@@ -214,8 +251,19 @@ export async function analyzeClient(
     const billableStatus = resolveBillability(candidate.suggestedServiceId, input.coverage);
 
     // 4a. Contract coverage is authoritative over a prior state. This keeps a
-    // direct coverage change and the next re-analysis in agreement.
+    // direct coverage change and the next re-analysis in agreement. But a
+    // terminal commercial outcome is history, not a coverage state: marking the
+    // mapped service covered must not rewrite a recorded sale, a client loss or
+    // a dismissal into an "already covered" finding.
     if (billableStatus === "already_covered") {
+      if (
+        prior &&
+        (prior.status === "sold" || prior.status === "lost" || prior.status === "dismissed")
+      ) {
+        suppressed.push(prior);
+        stats.suppressedByPriorDecision++;
+        continue;
+      }
       const service = input.catalog.find((s) => s.id === candidate.suggestedServiceId);
       if (service) {
         suppressed.push(
@@ -413,9 +461,19 @@ function reconcileResolved(input: {
   );
 
   const resolved: Opportunity[] = [];
+  // Eligible: the still-open funnel states only. Terminal commercial outcomes
+  // (sold/lost/dismissed) and covered work are never auto-resolved — the
+  // reconciliation closes findings the client fixed, and it must never
+  // re-classify commercial history in doing so.
+  const OPEN_RECONCILABLE: ReadonlySet<Opportunity["status"]> = new Set([
+    "new",
+    "accepted",
+    "proposal_prepared",
+    "pitched",
+  ]);
   for (const opp of input.existing) {
     if (opp.billableStatus !== "billable") continue;
-    if (opp.status !== "new" && opp.status !== "proposal_prepared") continue;
+    if (!OPEN_RECONCILABLE.has(opp.status)) continue;
     // A candidate may be absent solely because its legacy page evidence was
     // intentionally suppressed. That is not proof the client fixed it.
     if (isTechnicalRuleId(opp.ruleId) && opp.suppressedEvidenceRefs.length > 0) continue;

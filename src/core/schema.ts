@@ -370,7 +370,13 @@ export type BillabilityStatus = z.infer<typeof BillabilityStatusSchema>;
 
 export const OpportunityStatusSchema = z.enum([
   "new",
+  /** Agency explicitly decided this is worth pursuing. See core/salesFunnel.ts. */
+  "accepted",
   "proposal_prepared",
+  /** The client was actually presented with the opportunity (call, meeting, proposal...). */
+  "pitched",
+  /** Presented to the client but it did not close. A CLIENT decision — never conflated with dismissed. */
+  "lost",
   "dismissed",
   "already_covered",
   "snoozed",
@@ -431,6 +437,16 @@ export const OpportunitySchema = z.object({
    */
   soldAmount: z.number().nonnegative().optional(),
   soldAt: z.string().optional(),
+  /**
+   * Durable funnel milestones: the FIRST time each stage was reached. Optional
+   * because legacy rows recorded none, and unknown is never read as happened
+   * or backfilled from guesses. See core/salesFunnel.ts and migration 0022.
+   */
+  acceptedAt: z.string().optional(),
+  proposalPreparedAt: z.string().optional(),
+  pitchedAt: z.string().optional(),
+  lostAt: z.string().optional(),
+  dismissedAt: z.string().optional(),
   snoozeUntil: z.string().optional(),
   proposalMd: z.string().optional(),
   updatedAt: z.string().min(1),

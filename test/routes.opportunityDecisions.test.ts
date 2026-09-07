@@ -341,3 +341,119 @@ describe("opportunity queue presentation", () => {
     expect(html).not.toContain("recency");
   });
 });
+
+// ---------------------------------------------------------------------------
+// sales funnel routes: accept / pitched / lost and terminal integrity
+// ---------------------------------------------------------------------------
+
+describe("sales funnel routes", () => {
+  it("accept marks a NEW finding accepted and stamps acceptedAt", async () => {
+    await repo.saveAnalysis(scope, [opp()]);
+    const res = (await act("accept")) as Response;
+    expect(res.status).toBe(302);
+    const saved = await repo.getOpportunity(scope, "opp_1");
+    expect(saved?.status).toBe("accepted");
+    expect(saved?.acceptedAt).toBeTruthy();
+  });
+
+  it("pitch stamps acceptedAt and pitchedAt together when never accepted", async () => {
+    await repo.saveAnalysis(scope, [opp()]);
+    const res = (await act("pitch")) as Response;
+    expect(res.status).toBe(302);
+    const saved = await repo.getOpportunity(scope, "opp_1");
+    expect(saved?.status).toBe("pitched");
+    expect(saved?.acceptedAt).toBeTruthy();
+    expect(saved?.pitchedAt).toBeTruthy();
+  });
+
+  it("lost records lostAt and pitchedAt (the client saw it), distinct from dismissed", async () => {
+    await repo.saveAnalysis(scope, [opp({ status: "pitched", pitchedAt: "2026-09-01T00:00:00.000Z" })]);
+    const res = (await act("lost")) as Response;
+    expect(res.status).toBe(302);
+    const saved = await repo.getOpportunity(scope, "opp_1");
+    expect(saved?.status).toBe("lost");
+    expect(saved?.lostAt).toBeTruthy();
+    expect(saved?.pitchedAt).toBe("2026-09-01T00:00:00.000Z");
+  });
+
+  it("sold through the funnel route preserves accepted and pitched milestones", async () => {
+    await repo.saveAnalysis(
+      scope,
+      [opp({ status: "pitched", acceptedAt: "2026-09-01T00:00:00.000Z", pitchedAt: "2026-09-02T00:00:00.000Z" })],
+    );
+    const res = (await act("sold", { soldAmount: "1800" })) as Response;
+    expect(res.status).toBe(302);
+    const saved = await repo.getOpportunity(scope, "opp_1");
+    expect(saved?.status).toBe("sold");
+    expect(saved?.soldAmount).toBe(1800);
+    expect(saved?.acceptedAt).toBe("2026-09-01T00:00:00.000Z");
+    expect(saved?.pitchedAt).toBe("2026-09-02T00:00:00.000Z");
+  });
+
+  it("proposal creation implies acceptance and stamps proposalPreparedAt once", async () => {
+    await repo.saveAnalysis(scope, [opp()]);
+    await act("prepare-proposal");
+    const first = await repo.getOpportunity(scope, "opp_1");
+    expect(first?.status).toBe("proposal_prepared");
+    expect(first?.acceptedAt).toBeTruthy();
+    expect(first?.proposalPreparedAt).toBeTruthy();
+
+    // Editing the draft later must not reset the milestone.
+    await act("save-proposal", { proposalMd: "# rewritten" });
+    const second = await repo.getOpportunity(scope, "opp_1");
+    expect(second?.proposalMd).toBe("# rewritten");
+    expect(second?.proposalPreparedAt).toBe(first?.proposalPreparedAt);
+    expect(second?.acceptedAt).toBe(first?.acceptedAt);
+  });
+
+  it("terminal outcomes cannot be reopened", async () => {
+    await repo.saveAnalysis(scope, [opp({ status: "sold", soldAt: "2026-09-01T00:00:00.000Z", soldAmount: 900 })]);
+    const res = (await act("reopen")) as { error?: string };
+    expect(res.error).toBeTruthy();
+    const saved = await repo.getOpportunity(scope, "opp_1");
+    expect(saved?.status).toBe("sold");
+    expect(saved?.soldAmount).toBe(900);
+  });
+
+  it("dismissed stays an internal rejection with dismissedAt and no lostAt", async () => {
+    await repo.saveAnalysis(scope, [opp()]);
+    await act("dismiss");
+    const saved = await repo.getOpportunity(scope, "opp_1");
+    expect(saved?.status).toBe("dismissed");
+    expect(saved?.dismissedAt).toBeTruthy();
+    expect(saved?.lostAt).toBeUndefined();
+    expect(saved?.pitchedAt).toBeUndefined();
+  });
+
+  it("lost from dismissed is refused (an internal rejection never grew a client conversation)", async () => {
+    await repo.saveAnalysis(scope, [opp({ status: "dismissed" })]);
+    const res = (await act("lost")) as { error?: string };
+    expect(res.error).toBeTruthy();
+    const saved = await repo.getOpportunity(scope, "opp_1");
+    expect(saved?.status).toBe("dismissed");
+    expect(saved?.lostAt).toBeUndefined();
+  });
+
+  it("detail page renders lost differently from dismissed", async () => {
+    await repo.saveAnalysis(scope, [opp({ status: "lost", pitchedAt: "2026-09-01T00:00:00.000Z", lostAt: "2026-09-03T00:00:00.000Z" })]);
+    const lostLoader = await call(oppDetail.loader as never, {
+      request: new Request("http://localhost/opportunities/opp_1"),
+      params: { id: "opp_1" },
+      context: ctx,
+    });
+    const lostHtml = renderToStaticMarkup(
+      createElement(
+        RouterProvider,
+        {
+          router: createMemoryRouter(
+            [{ path: "*", element: createElement(oppDetail.default, { loaderData: lostLoader } as never) }],
+            { initialEntries: ["/opportunities/opp_1"] },
+          ),
+        },
+      ),
+    );
+    expect(lostHtml).toContain("Not closed");
+    expect(lostHtml).not.toContain("Dismissed");
+    expect(lostHtml).toContain("client decision");
+  });
+});

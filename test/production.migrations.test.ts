@@ -30,6 +30,7 @@ const EXPECTED_MIGRATIONS = [
   "0019_client_job_value.sql",
   "0020_competitors.sql",
   "0021_offering_drift.sql",
+  "0022_sales_funnel.sql",
 ] as const;
 
 const DEMO_IDENTIFIERS = [

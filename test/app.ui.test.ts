@@ -212,7 +212,10 @@ describe("opportunity inspector values", () => {
     expect(html).toContain("One page checked");
     expect(html).toContain("Prepare client proposal");
     expect(html.indexOf("Evidence summary")).toBeLessThan(html.indexOf("Prepare client proposal"));
-    expect(html).toContain("Disposition");
+    // The Decide section leads with the funnel's first question for a NEW
+    // finding: is it worth pursuing.
+    expect(html).toContain("Worth pursuing?");
+    expect(html).toContain('name="intent" value="accept"');
   });
 
   it("reviews an existing draft without submitting prepare-proposal", () => {

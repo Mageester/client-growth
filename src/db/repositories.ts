@@ -236,7 +236,10 @@ export async function setCoverage(
        SET billable_status = 'already_covered', status = 'already_covered',
            snooze_until = NULL, updated_at = ?
        WHERE workspace_id = ? AND client_id = ? AND suggested_service_id = ?
-         AND status <> 'superseded'`,
+         -- Coverage is authoritative over open work only. Terminal commercial
+         -- outcomes (sold/lost/dismissed) are history; resolved is the client's
+         -- fix; superseded is bookkeeping. None may be rewritten here.
+         AND status NOT IN ('sold', 'lost', 'dismissed', 'resolved', 'superseded')`,
     )
     .bind(nowIso(), t.workspaceId, clientId, serviceId)
     .run();
@@ -318,6 +321,11 @@ interface OpportunityRow {
   proposal_md: string | null;
   sold_amount: number | null;
   sold_at: string | null;
+  accepted_at: string | null;
+  proposal_prepared_at: string | null;
+  pitched_at: string | null;
+  lost_at: string | null;
+  dismissed_at: string | null;
   verification: string | null;
   conversion_defect: string | null;
   updated_at: string;
@@ -347,6 +355,11 @@ function toOpportunity(row: OpportunityRow): Opportunity {
     proposalMd: row.proposal_md ?? undefined,
     soldAmount: row.sold_amount ?? undefined,
     soldAt: row.sold_at ?? undefined,
+    acceptedAt: row.accepted_at ?? undefined,
+    proposalPreparedAt: row.proposal_prepared_at ?? undefined,
+    pitchedAt: row.pitched_at ?? undefined,
+    lostAt: row.lost_at ?? undefined,
+    dismissedAt: row.dismissed_at ?? undefined,
     updatedAt: row.updated_at,
   });
 }
@@ -405,8 +418,9 @@ async function upsertOpportunity(t: TenantScope, opp: Opportunity): Promise<void
          id, workspace_id, dedupe_key, client_id, rule_id, title, detected, evidence_refs, suppressed_evidence_refs, rationale,
          suggested_service_id, suggested_scope, price_min, price_max, confidence,
          billable_status, status, snooze_until, proposal_md, verification,
-         conversion_defect, updated_at
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         conversion_defect, sold_amount, sold_at,
+         accepted_at, proposal_prepared_at, pitched_at, lost_at, dismissed_at, updated_at
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(client_id, dedupe_key) DO UPDATE SET
          title = excluded.title, detected = excluded.detected,
          evidence_refs = excluded.evidence_refs,
@@ -418,7 +432,14 @@ async function upsertOpportunity(t: TenantScope, opp: Opportunity): Promise<void
          confidence = excluded.confidence, billable_status = excluded.billable_status,
          status = excluded.status, snooze_until = excluded.snooze_until,
          proposal_md = excluded.proposal_md, verification = excluded.verification,
-         conversion_defect = excluded.conversion_defect, updated_at = excluded.updated_at
+         conversion_defect = excluded.conversion_defect,
+         sold_amount = excluded.sold_amount, sold_at = excluded.sold_at,
+         accepted_at = excluded.accepted_at,
+         proposal_prepared_at = excluded.proposal_prepared_at,
+         pitched_at = excluded.pitched_at,
+         lost_at = excluded.lost_at,
+         dismissed_at = excluded.dismissed_at,
+         updated_at = excluded.updated_at
        WHERE opportunities.workspace_id = ? AND opportunities.status <> 'superseded'`,
     )
     .bind(
@@ -443,6 +464,13 @@ async function upsertOpportunity(t: TenantScope, opp: Opportunity): Promise<void
       o.proposalMd ?? null,
       o.verification ? JSON.stringify(o.verification) : null,
       o.conversionDefect ? JSON.stringify(o.conversionDefect) : null,
+      o.soldAmount ?? null,
+      o.soldAt ?? null,
+      o.acceptedAt ?? null,
+      o.proposalPreparedAt ?? null,
+      o.pitchedAt ?? null,
+      o.lostAt ?? null,
+      o.dismissedAt ?? null,
       o.updatedAt,
       t.workspaceId,
     )
@@ -538,7 +566,13 @@ export async function setOpportunityProposal(
   const now = nowIso();
   const r = await t.db
     .prepare(
-      `UPDATE opportunities SET proposal_md = ?, status = 'proposal_prepared', updated_at = ?
+      `UPDATE opportunities SET proposal_md = ?, status = 'proposal_prepared',
+         -- First proposal implies acceptance; both milestones are first-time
+         -- stamps that an edit or re-review must never reset. Mirrors
+         -- applyFunnelTransition's prepare-proposal action.
+         accepted_at = COALESCE(accepted_at, ?),
+         proposal_prepared_at = COALESCE(proposal_prepared_at, ?),
+         updated_at = ?
        WHERE id = ? AND workspace_id = ?
          AND billable_status = 'billable'
          AND status <> 'superseded'
@@ -547,7 +581,7 @@ export async function setOpportunityProposal(
            OR (status = 'snoozed' AND snooze_until IS NOT NULL AND snooze_until <= ?)
          )`,
     )
-    .bind(proposalMd, now, id, t.workspaceId, now)
+    .bind(proposalMd, now, now, now, id, t.workspaceId, now)
     .run();
   return r.rowsAffected > 0;
 }

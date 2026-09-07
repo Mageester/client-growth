@@ -20,7 +20,10 @@ function confidenceLabel(value: number): string {
 }
 
 export function proposalActionLabel(opportunity: Opportunity): string {
+  if (opportunity.status === "sold") return "Sold — outcome recorded";
+  if (opportunity.status === "lost") return "Not closed — outcome recorded";
   if (opportunity.proposalMd) return "Review proposal";
+  if (opportunity.status === "pitched") return "Record the outcome";
   if (isOpen(opportunity)) return "Prepare client proposal";
   return "Review finding";
 }
