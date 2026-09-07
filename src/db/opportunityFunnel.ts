@@ -163,6 +163,7 @@ export async function applyFunnelTransition(
     sold_at: string | null;
     snooze_until: string | null;
     proposal_md?: string;
+    clearProposalMd?: boolean;
     billable_status?: string;
   } = {
     status: current.status,
@@ -238,24 +239,29 @@ export async function applyFunnelTransition(
       next.billable_status = "already_covered";
       next.snooze_until = null;
       break;
-    case "reopen":
+    case "reopen": {
+      const wasResolved = current.status === "resolved";
       next.status = "new";
       next.snooze_until = null;
-      // A reopened finding starts a FRESH sales cycle: the old milestones
-      // belonged to the previous one (a resolved finding's acceptance, a
-      // dismissed row's internal rejection date) and carrying them in would
-      // fabricate funnel history that never happened to this cycle. The draft
-      // text is the agency's own work and is kept.
+      // Stale funnel milestones are cleared either way: the row is back at the
+      // funnel's first question, and milestones belonging to the previous pass
+      // must not read as this one's history.
       next.accepted_at = null;
       next.proposal_prepared_at = null;
       next.pitched_at = null;
       next.lost_at = null;
       next.dismissed_at = null;
+      // A resolved row is a CLOSED cycle: its draft belonged to work the client
+      // already fixed, so the reopened cycle starts clean. A dismissed or
+      // snoozed row is the SAME sales opportunity reconsidered — the agency's
+      // draft may legitimately be reused.
+      next.clearProposalMd = wasResolved;
       // Fail-safe inherited from the previous reopen path: nothing that can be
       // reopened carries a recorded sale, and none may survive a reopen.
       next.sold_amount = null;
       next.sold_at = null;
       break;
+    }
   }
 
   const r = await t.db
@@ -271,7 +277,7 @@ export async function applyFunnelTransition(
          sold_at = ?,
          snooze_until = ?,
          billable_status = COALESCE(?, billable_status),
-         proposal_md = COALESCE(?, proposal_md),
+         proposal_md = CASE WHEN ? = 1 THEN NULL ELSE COALESCE(?, proposal_md) END,
          updated_at = ?
        WHERE id = ? AND workspace_id = ? AND status = ? AND status <> 'superseded'`,
     )
@@ -286,6 +292,7 @@ export async function applyFunnelTransition(
       next.sold_at,
       next.snooze_until,
       next.billable_status ?? null,
+      next.clearProposalMd ? 1 : 0,
       next.proposal_md ?? null,
       now,
       id,

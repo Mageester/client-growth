@@ -188,4 +188,29 @@ describe("reappeared resolved finding", () => {
     expect(revived!.acceptedAt).toBeUndefined();
     expect(second.newlyFound.map((o) => o.dedupeKey)).toContain(original.dedupeKey);
   });
+
+  it("starts a fresh cycle without inheriting an old proposal draft", async () => {
+    const first = await analyze();
+    const original = first.opportunities[0] as Opportunity;
+    // A proposal was prepared in the previous cycle; the client then fixed the
+    // finding themselves and re-analysis resolved the row.
+    const resolvedRow: Opportunity = {
+      ...original,
+      status: "resolved",
+      proposalPreparedAt: PITCHED_AT,
+      proposalMd: "# The old cycle's draft",
+      updatedAt: "2026-09-03T00:00:00.000Z",
+    };
+
+    // The site genuinely shows the gap again: a NEW actionable cycle.
+    const second = await analyze([resolvedRow]);
+    const revived = second.opportunities.find((o) => o.dedupeKey === original.dedupeKey);
+
+    expect(revived).toBeDefined();
+    expect(revived!.status).toBe("new");
+    // The old draft belonged to work that no longer existed; the fresh cycle
+    // must not present it as this cycle's proposal.
+    expect(revived!.proposalMd).toBeUndefined();
+    expect(revived!.proposalPreparedAt).toBeUndefined();
+  });
 });

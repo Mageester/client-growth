@@ -352,23 +352,69 @@ describe("applyFunnelTransition", () => {
     expect(row.acceptedAt).toBeUndefined();
   });
 
-  it("reopen returns a manually resolved finding to new and clears stale milestones", async () => {
+  it("reopen of a resolved finding clears proposalMd and every stale milestone", async () => {
     await save(
       opp({
         status: "resolved",
         acceptedAt: "2026-08-01T00:00:00.000Z",
         proposalPreparedAt: "2026-08-02T00:00:00.000Z",
-        proposalMd: "# old cycle draft kept",
+        pitchedAt: "2026-08-03T00:00:00.000Z",
+        proposalMd: "# draft from the fixed cycle",
+        snoozeUntil: "2026-10-01T00:00:00.000Z",
       }),
     );
 
     expect(await act({ kind: "reopen" })).toBe(true);
     const row = await stored();
     expect(row.status).toBe("new");
+    // A resolved row is a closed cycle: the reopened cycle starts clean.
     expect(row.acceptedAt).toBeUndefined();
     expect(row.proposalPreparedAt).toBeUndefined();
-    // The draft text itself is the agency's work and survives.
-    expect(row.proposalMd).toBe("# old cycle draft kept");
+    expect(row.pitchedAt).toBeUndefined();
+    expect(row.lostAt).toBeUndefined();
+    expect(row.dismissedAt).toBeUndefined();
+    expect(row.proposalMd).toBeUndefined();
+    expect(row.snoozeUntil).toBeUndefined();
+    // Stable identity is preserved.
+    expect(row.id).toBe("opp_1");
+    expect(row.dedupeKey).toBe("k1");
+  });
+
+  it("reopen of a dismissed finding keeps the draft but starts at new", async () => {
+    await save(
+      opp({
+        status: "dismissed",
+        dismissedAt: "2026-08-01T00:00:00.000Z",
+        proposalMd: "# draft worth reconsidering",
+      }),
+    );
+
+    expect(await act({ kind: "reopen" })).toBe(true);
+    const row = await stored();
+    expect(row.status).toBe("new");
+    // Same sales opportunity reconsidered: the draft may be reused.
+    expect(row.proposalMd).toBe("# draft worth reconsidering");
+    // But the stale milestones do not read as this cycle's history.
+    expect(row.dismissedAt).toBeUndefined();
+    expect(row.acceptedAt).toBeUndefined();
+  });
+
+  it("reopen of a snoozed finding keeps the draft", async () => {
+    await save(
+      opp({
+        status: "snoozed",
+        snoozeUntil: "2026-10-01T00:00:00.000Z",
+        acceptedAt: "2026-08-01T00:00:00.000Z",
+        proposalMd: "# draft waiting out the snooze",
+      }),
+    );
+
+    expect(await act({ kind: "reopen" })).toBe(true);
+    const row = await stored();
+    expect(row.status).toBe("new");
+    expect(row.proposalMd).toBe("# draft waiting out the snooze");
+    expect(row.snoozeUntil).toBeUndefined();
+    expect(row.acceptedAt).toBeUndefined();
   });
 
   it("sold and lost can never be reopened", async () => {
