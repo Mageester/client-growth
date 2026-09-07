@@ -333,6 +333,31 @@ describe("what the corpus caught", () => {
     expect(found).toContain("Infant Program");
   });
 
+  it("does not offer short builder blog namespaces as services", () => {
+    // Pitton Plumbing uses /b/ for editorial posts. The slug contains real
+    // service words, but the namespace still means the page is advice, not a
+    // customer-purchased service.
+    const evidence = bundle({
+      pages: [
+        { url: "https://x.example/" },
+        {
+          url: "https://x.example/b/3-environmentally-friendly-plumbing-upgrades",
+          h1s: ["3 Environmentally Friendly Plumbing Upgrades Worth Reading"],
+        },
+        { url: "https://x.example/services/drain-cleaning", h1s: ["Drain Cleaning"] },
+      ],
+      sitemapUrls: [
+        "https://x.example/b/5-preventative-plumbing-tips",
+        "https://x.example/services/drain-cleaning",
+      ],
+    });
+
+    const found = labels(evidence);
+    expect(found).not.toContain("3 Environmentally Friendly Plumbing Upgrades Worth Reading");
+    expect(found).not.toContain("5 Preventative Plumbing Tips");
+    expect(found).toContain("Drain Cleaning");
+  });
+
   it("does not offer an individual job write-up as a service", () => {
     // thelawnsalon.ca keeps real services under /all-projects and photographs
     // of finished jobs under /project-gallery. Ten of the second were being

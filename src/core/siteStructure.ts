@@ -281,6 +281,10 @@ const EDITORIAL_ANCESTOR_SEGMENTS: ReadonlySet<string> = new Set([
   "resources", "resource", "insights", "guides", "guide", "stories",
   "case-studies", "case-study", "project-gallery", "gallery", "galleries",
   "portfolio", "projects", "testimonials", "reviews", "events",
+  // Some site builders expose their blog as a deliberately short `/b/`
+  // namespace. It is still editorial content even when the slug contains a
+  // service word such as "plumbing" or "drain".
+  "b",
 ]);
 
 /**
