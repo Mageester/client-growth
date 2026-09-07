@@ -197,11 +197,18 @@ describe("Workspace A cannot reach Workspace B data via the routes", () => {
     asA();
     const home = (await call(changes.loader as never, { request: req(), context: ctx })) as {
       portfolio: { clients: number };
-      actionCenter: { queue: Array<{ client: { id: string } }> };
+      actionCenter: {
+        primary: Array<{ client: { id: string } }>;
+        attention: Array<{ client: { id: string } }>;
+      };
     };
 
     expect(home.portfolio.clients).toBe(1);
-    expect(home.actionCenter.queue.every((item) => item.client.id === "cli_a")).toBe(true);
+    expect(
+      [...home.actionCenter.primary, ...home.actionCenter.attention].every(
+        (item) => item.client.id === "cli_a",
+      ),
+    ).toBe(true);
     expect(JSON.stringify(home.actionCenter)).not.toContain("cli_b");
   });
 

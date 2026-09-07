@@ -64,21 +64,26 @@ function center(
   clients: Client[],
   rows: Opportunity[],
   runs: Array<[string, AnalysisRun]> = [],
+  now = "2026-09-07T00:00:00.000Z",
 ) {
-  return buildActionCenter({
-    clients,
-    opportunitiesByClient: new Map(
-      clients.map((c) => [c.id, rows.filter((row) => row.clientId === c.id)]),
-    ),
-    latestRunsByClient: new Map(runs),
-  });
+  return buildActionCenter(
+    {
+      clients,
+      opportunitiesByClient: new Map(
+        clients.map((c) => [c.id, rows.filter((row) => row.clientId === c.id)]),
+      ),
+      latestRunsByClient: new Map(runs),
+    },
+    new Date(now),
+  );
 }
 
 describe("agency action center", () => {
   it("returns a quiet empty workspace without manufacturing work", () => {
     const result = center([], []);
 
-    expect(result.queue).toEqual([]);
+    expect(result.primary).toEqual([]);
+    expect(result.attention).toEqual([]);
     expect(result.pipeline).toMatchObject({
       newCount: 0,
       soldCount: 0,
@@ -91,7 +96,8 @@ describe("agency action center", () => {
   it("does not turn a successfully checked zero-finding client into an action", () => {
     const result = center([client("clean")], [], [["clean", run({ clientId: "clean" })]]);
 
-    expect(result.queue).toEqual([]);
+    expect(result.primary).toEqual([]);
+    expect(result.attention).toEqual([]);
     expect(result.pipeline.openCount).toBe(0);
   });
 
@@ -110,27 +116,108 @@ describe("agency action center", () => {
       ],
     );
 
-    expect(result.queue.map((item) => item.kind)).toEqual(["commercial", "site-health"]);
-    expect(result.queue[0]?.client.name).toBe("commercial");
+    expect(result.primary.map((item) => item.kind)).toEqual(["commercial", "site-health"]);
+    expect(result.primary[0]?.client.name).toBe("commercial");
   });
 
-  it("keeps accepted, proposal-ready, and pitched work actionable", () => {
+  it("keeps progressed site-health work below commercial work without hiding it", () => {
     const result = center(
-      [client("accepted"), client("proposal"), client("pitched")],
+      [client("health"), client("commercial")],
       [
-        opportunity({ clientId: "accepted", status: "accepted" }),
-        opportunity({ clientId: "proposal", status: "proposal_prepared" }),
-        opportunity({ clientId: "pitched", status: "pitched" }),
+        opportunity({
+          id: "health-accepted",
+          clientId: "health",
+          ruleId: "missing-meta-description",
+          title: "Meta description repair",
+          status: "accepted",
+        }),
+        opportunity({ id: "commercial-new", clientId: "commercial", priceMax: 900 }),
       ],
     );
 
-    expect(result.queue.map((item) => item.client.id)).toEqual(["pitched", "proposal", "accepted"]);
-    expect(result.queue[0]?.action).toMatch(/record the outcome/i);
-    expect(result.queue[1]?.action).toMatch(/send the draft/i);
-    expect(result.queue[2]?.action).toMatch(/prepare a proposal/i);
+    expect(result.primary.map((item) => item.client.id)).toEqual(["commercial", "health"]);
+    expect(result.primary[1]?.stage).toBe("accepted");
+  });
+
+  it("puts proposal-ready and accepted revenue work ahead of an analysis retry", () => {
+    const result = center(
+      [client("accepted"), client("proposal"), client("retry")],
+      [
+        opportunity({ clientId: "accepted", status: "accepted" }),
+        opportunity({ clientId: "proposal", status: "proposal_prepared" }),
+      ],
+      [[
+        "retry",
+        run({ clientId: "retry", outcome: "inconclusive", summary: "The site timed out." }),
+      ]],
+    );
+
+    expect(result.primary.map((item) => item.client.id)).toEqual(["proposal", "accepted"]);
+    expect(result.attention.map((item) => item.client.id)).toEqual(["retry"]);
+    expect(result.primary[0]?.action).toMatch(/send the draft/i);
+    expect(result.primary[1]?.action).toMatch(/prepare a proposal/i);
     expect(result.pipeline.newCount).toBe(0);
-    expect(result.pipeline.acceptedCount).toBe(3);
+    expect(result.pipeline.acceptedCount).toBe(2);
+  });
+
+  it("places a sufficiently old unresolved pitch after current revenue actions", () => {
+    const result = center(
+      [client("accepted"), client("pitched")],
+      [
+        opportunity({ clientId: "accepted", status: "accepted" }),
+        opportunity({
+          clientId: "pitched",
+          status: "pitched",
+          pitchedAt: "2026-09-03T00:00:00.000Z",
+        }),
+      ],
+    );
+
+    expect(result.primary.map((item) => item.client.id)).toEqual(["accepted", "pitched"]);
+    expect(result.primary[1]?.stage).toBe("pitched");
+    expect(result.primary[1]?.action).toMatch(/follow up with client/i);
     expect(result.pipeline.pitchedCount).toBe(1);
+  });
+
+  it("does not present a freshly pitched opportunity as follow-up due", () => {
+    const result = center(
+      [client("fresh")],
+      [
+        opportunity({
+          clientId: "fresh",
+          status: "pitched",
+          pitchedAt: "2026-09-06T00:00:00.000Z",
+        }),
+      ],
+    );
+
+    expect(result.primary).toEqual([]);
+    expect(result.attention).toEqual([]);
+  });
+
+  it("does not present sold or lost pitched work as follow-up due", () => {
+    const result = center(
+      [client("closed")],
+      [
+        opportunity({
+          id: "sold-pitched",
+          clientId: "closed",
+          status: "sold",
+          pitchedAt: "2026-08-20T00:00:00.000Z",
+          soldAmount: 1200,
+        }),
+        opportunity({
+          id: "lost-pitched",
+          clientId: "closed",
+          status: "lost",
+          pitchedAt: "2026-08-20T00:00:00.000Z",
+        }),
+      ],
+      [["closed", run({ clientId: "closed" })]],
+    );
+
+    expect(result.primary).toEqual([]);
+    expect(result.attention).toEqual([]);
   });
 
   it("uses the most advanced stage when one family has mixed open rows", () => {
@@ -142,8 +229,8 @@ describe("agency action center", () => {
       ],
     );
 
-    expect(result.queue[0]?.stage).toBe("accepted");
-    expect(result.queue[0]?.action).toMatch(/prepare a proposal/i);
+    expect(result.primary[0]?.stage).toBe("accepted");
+    expect(result.primary[0]?.action).toMatch(/prepare a proposal/i);
   });
 
   it("does not turn sold, lost, or dismissed rows into new action items", () => {
@@ -157,7 +244,8 @@ describe("agency action center", () => {
       [["outcomes", run({ clientId: "outcomes" })]],
     );
 
-    expect(result.queue).toHaveLength(0);
+    expect(result.primary).toHaveLength(0);
+    expect(result.attention).toHaveLength(0);
     expect(result.pipeline.soldCount).toBe(1);
     expect(result.pipeline.lostCount).toBe(1);
     expect(result.pipeline.closeRate).toBe(0.5);
@@ -174,19 +262,21 @@ describe("agency action center", () => {
       ]],
     );
 
-    expect(result.queue).toHaveLength(1);
-    expect(result.queue[0]).toMatchObject({ kind: "analysis", client: { id: "artfully" } });
-    expect(result.queue[0]?.title).toMatch(/analysis/i);
-    expect(result.queue[0]?.action).toMatch(/retry/i);
+    expect(result.primary).toHaveLength(0);
+    expect(result.attention).toHaveLength(1);
+    expect(result.attention[0]).toMatchObject({ kind: "analysis", client: { id: "artfully" } });
+    expect(result.attention[0]?.title).toMatch(/analysis/i);
+    expect(result.attention[0]?.action).toMatch(/retry/i);
     expect(result.pipeline.openCount).toBe(0);
   });
 
   it("keeps a never-analyzed client useful without inventing an opportunity", () => {
     const result = center([client("new-client", "New Client")], []);
 
-    expect(result.queue).toHaveLength(1);
-    expect(result.queue[0]).toMatchObject({ kind: "analysis", client: { id: "new-client" } });
-    expect(result.queue[0]?.action).toMatch(/first analysis/i);
+    expect(result.primary).toHaveLength(0);
+    expect(result.attention).toHaveLength(1);
+    expect(result.attention[0]).toMatchObject({ kind: "analysis", client: { id: "new-client" } });
+    expect(result.attention[0]?.action).toMatch(/first analysis/i);
     expect(result.pipeline.openCount).toBe(0);
   });
 
@@ -199,10 +289,10 @@ describe("agency action center", () => {
       ],
     );
 
-    expect(result.queue).toHaveLength(1);
-    expect(result.queue[0]?.count).toBe(2);
-    expect(result.queue[0]?.opportunityIds).toEqual(["service-2", "service-1"]);
-    expect(result.queue[0]?.priceMax).toBe(3600);
+    expect(result.primary).toHaveLength(1);
+    expect(result.primary[0]?.count).toBe(2);
+    expect(result.primary[0]?.opportunityIds).toEqual(["service-2", "service-1"]);
+    expect(result.primary[0]?.priceMax).toBe(3600);
   });
 
   it("returns a null close rate until a client has decided", () => {

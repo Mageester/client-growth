@@ -50,6 +50,11 @@ export interface PipelineSummary {
 }
 
 export interface ActionCenter {
+  /** Revenue and explicitly progressed work that belongs in the primary queue. */
+  primary: ActionQueueItem[];
+  /** Operational blockers and setup work that should not outrank revenue actions. */
+  attention: ActionQueueItem[];
+  /** Backwards-compatible combined projection for non-UI consumers. */
   queue: ActionQueueItem[];
   pipeline: PipelineSummary;
 }
@@ -93,23 +98,40 @@ export interface RecentActivityInput {
 type ActionStage = "pitched" | "proposal_prepared" | "accepted" | "new";
 
 const ACTION_STAGE_ORDER: Record<ActionStage, number> = {
-  pitched: 0,
-  proposal_prepared: 1,
-  accepted: 2,
-  new: 3,
+  proposal_prepared: 0,
+  accepted: 1,
+  new: 2,
+  pitched: 3,
 };
 
-function actionStage(opportunities: readonly Opportunity[]): ActionStage {
-  if (opportunities.some((opp) => opp.status === "pitched")) return "pitched";
+const FOLLOW_UP_AFTER_MS = 3 * 24 * 60 * 60 * 1000;
+
+function followUpDue(opp: Opportunity, now: Date): boolean {
+  if (opp.status !== "pitched" || !opp.pitchedAt) return false;
+  const pitchedAt = Date.parse(opp.pitchedAt);
+  return Number.isFinite(pitchedAt) && pitchedAt <= now.getTime() - FOLLOW_UP_AFTER_MS;
+}
+
+function actionStage(opportunities: readonly Opportunity[], now: Date): ActionStage | null {
   if (opportunities.some((opp) => opp.status === "proposal_prepared")) {
     return "proposal_prepared";
   }
   if (opportunities.some((opp) => opp.status === "accepted")) return "accepted";
-  return "new";
+  if (opportunities.some((opp) => opp.status !== "pitched")) return "new";
+  if (opportunities.some((opp) => followUpDue(opp, now))) return "pitched";
+  return null;
 }
 
-function opportunityForStage(opportunities: readonly Opportunity[], stage: ActionStage): Opportunity {
-  return opportunities.find((opp) => opp.status === stage) ?? opportunities[0]!;
+function opportunityForStage(
+  opportunities: readonly Opportunity[],
+  stage: ActionStage,
+  now: Date,
+): Opportunity {
+  return (
+    opportunities.find(
+      (opp) => opp.status === stage && (stage !== "pitched" || followUpDue(opp, now)),
+    ) ?? opportunities[0]!
+  );
 }
 
 function familyTitle(kind: ActionKind, family: OpportunityFamilyKey, count: number): string {
@@ -127,7 +149,7 @@ function familyDetail(
   if (kind === "site-health") {
     return `${count} related ${count === 1 ? "website fix" : "website fixes"} supporting the client work.`;
   }
-  if (stage === "pitched") return "Pitched work awaiting the client's decision.";
+  if (stage === "pitched") return "Follow-up is due on pitched work.";
   if (stage === "proposal_prepared") return "A proposal is ready to send to the client.";
   if (stage === "accepted") return "Accepted work ready for a proposal.";
   if (opportunities.length === 1) return "A new commercial opportunity is ready for review.";
@@ -146,13 +168,15 @@ function opportunityItem(
   client: Client,
   family: OpportunityFamilyKey,
   opportunities: readonly Opportunity[],
-): ActionQueueItem {
+  now: Date,
+): ActionQueueItem | null {
   const ordered = [...opportunities].sort(byPotentialValue);
   const kind: ActionKind = ordered.some((opp) => tierForRule(opp.ruleId) === "commercial")
     ? "commercial"
     : "site-health";
-  const stage = actionStage(ordered);
-  const totals = totalsFor(ordered);
+  const stage = actionStage(ordered, now);
+  if (!stage) return null;
+  const totals = totalsFor(ordered, now);
   const count = ordered.length;
 
   return {
@@ -163,7 +187,12 @@ function opportunityItem(
     stage,
     title: familyTitle(kind, family, count),
     detail: familyDetail(kind, stage, count, ordered),
-    action: kind === "site-health" ? "Review" : nextAction(opportunityForStage(ordered, stage)),
+    action:
+      kind === "site-health"
+        ? "Review"
+        : stage === "pitched"
+          ? "Follow up with client"
+          : nextAction(opportunityForStage(ordered, stage, now)),
     href: opportunityHref(client.id),
     count,
     priceMin: totals.priceMin,
@@ -199,10 +228,11 @@ function analysisItem(
 }
 
 function itemPriority(item: ActionQueueItem): number {
-  if (item.kind === "analysis") return item.analysisState === "inconclusive" ? 0 : 40;
-  if (item.kind === "site-health") return 30;
-
-  return 10 + ACTION_STAGE_ORDER[item.stage ?? "new"];
+  const stage = ACTION_STAGE_ORDER[item.stage ?? "new"];
+  // Commercial work is the reason to contact a client. Site health may enter
+  // the primary queue once it has progressed, but it stays below commercial
+  // work unless the agency has already moved it through the funnel.
+  return item.kind === "site-health" ? 20 + stage : stage;
 }
 
 function compareItems(a: ActionQueueItem, b: ActionQueueItem): number {
@@ -315,36 +345,60 @@ export function buildRecentActivity(input: RecentActivityInput): RecentActivityI
  * This is a presentation projection only: it never creates, merges, or
  * changes opportunity records, statuses, prices, or funnel milestones.
  */
-export function buildActionCenter(input: ActionCenterInput): ActionCenter {
-  const queue: ActionQueueItem[] = [];
+export function buildActionCenter(
+  input: ActionCenterInput,
+  now: Date | number = new Date(),
+): ActionCenter {
+  return buildActionCenterAt(input, now);
+}
+
+/** Clock-injected form used by deterministic tests and callers with a render snapshot. */
+export function buildActionCenterAt(
+  input: ActionCenterInput,
+  now: Date | number,
+): ActionCenter {
+  const clock = now instanceof Date ? now : new Date(now);
+  const primary: ActionQueueItem[] = [];
+  const attention: ActionQueueItem[] = [];
 
   for (const client of input.clients) {
     const opportunities = [...(input.opportunitiesByClient.get(client.id) ?? [])];
-    const open = opportunities.filter(isOpen);
+    const open = opportunities.filter((opp) => isOpen(opp, clock));
     const groups = groupOpportunitiesByFamily(
       open.map((opportunity) => ({ opportunity, client })),
     );
 
     for (const group of groups) {
-      queue.push(
-        opportunityItem(
-          client,
-          group.family.key,
-          group.entries.map((entry) => entry.opportunity),
-        ),
+      const item = opportunityItem(
+        client,
+        group.family.key,
+        group.entries.map((entry) => entry.opportunity),
+        clock,
       );
+      if (item) primary.push(item);
     }
 
     const latest = input.latestRunsByClient.get(client.id);
     if (latest?.outcome === "inconclusive") {
-      queue.push(analysisItem(client, "inconclusive", latest));
+      attention.push(analysisItem(client, "inconclusive", latest));
     } else if (!latest && open.length === 0) {
-      queue.push(analysisItem(client, "never", latest));
+      attention.push(analysisItem(client, "never", latest));
     }
   }
 
+  primary.sort(compareItems);
+  attention.sort(
+    (a, b) =>
+      (a.analysisState === "inconclusive" ? 0 : 1) -
+        (b.analysisState === "inconclusive" ? 0 : 1) ||
+      a.client.name.localeCompare(b.client.name) ||
+      a.id.localeCompare(b.id),
+  );
+
   return {
-    queue: queue.sort(compareItems),
+    primary,
+    attention,
+    queue: [...primary, ...attention],
     pipeline: pipelineSummary(flatten(input)),
   };
 }

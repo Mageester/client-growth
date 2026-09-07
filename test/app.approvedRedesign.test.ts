@@ -108,6 +108,24 @@ describe("approved page anatomy", () => {
           firstName: "Orbit",
           portfolio: { clients: 1, open: 1, priceMin: 900, priceMax: 1800 },
           actionCenter: {
+            primary: [
+              {
+                id: "opportunities:c1:service-visibility",
+                kind: "commercial",
+                client: { id: "c1", name: "Cambridge Heating", domain: "example.com" },
+                family: "service-visibility",
+                stage: "new",
+                title: "Service expansion opportunity",
+                detail: "A new commercial opportunity is ready for review.",
+                action: "Worth pursuing? Accept it, or dismiss",
+                href: "/opportunities?client=c1",
+                count: 1,
+                priceMin: 900,
+                priceMax: 1800,
+                opportunityIds: ["o1"],
+              },
+            ],
+            attention: [],
             queue: [
               {
                 id: "opportunities:c1:service-visibility",
@@ -189,6 +207,25 @@ describe("approved page anatomy", () => {
           firstName: "Orbit",
           portfolio: { clients: 1, open: 0, priceMin: 0, priceMax: 0 },
           actionCenter: {
+            primary: [],
+            attention: [
+              {
+                id: "analysis:c1",
+                kind: "analysis",
+                analysisState: "inconclusive",
+                client: { id: "c1", name: "Artfully You", domain: "artfullyyou.ca" },
+                family: null,
+                stage: null,
+                title: "Analysis needs another look",
+                detail: "The origin timed out before an HTTP response.",
+                action: "Retry analysis",
+                href: "/clients/c1",
+                count: 0,
+                priceMin: 0,
+                priceMax: 0,
+                opportunityIds: [],
+              },
+            ],
             queue: [
               {
                 id: "analysis:c1",
@@ -234,6 +271,45 @@ describe("approved page anatomy", () => {
     expect(html).toContain("Retry analysis");
     expect(html).toContain("The origin timed out before an HTTP response.");
     expect(html).not.toContain("Service expansion opportunity");
+  });
+
+  it("collapses both Action Center sections when there is no due work", () => {
+    const html = render(
+      createElement(Changes, {
+        loaderData: {
+          firstName: "Orbit",
+          portfolio: { clients: 1, open: 0, priceMin: 0, priceMax: 0 },
+          actionCenter: {
+            primary: [],
+            attention: [],
+            queue: [],
+            pipeline: {
+              newCount: 0,
+              acceptedCount: 0,
+              pitchedCount: 1,
+              soldCount: 0,
+              lostCount: 0,
+              closeRate: null,
+              soldRevenue: 0,
+              openCount: 0,
+              openPriceMin: 0,
+              openPriceMax: 0,
+            },
+          },
+          since: "2026-08-29T12:00:00.000Z",
+          until: "2026-09-05T12:00:00.000Z",
+          summary: { checks: 1, clientsChecked: 1, newFindings: 0, resolvedFindings: 0, inconclusive: 0 },
+          runs: [],
+          activity: [],
+          findings: [],
+        },
+      } as never),
+      "/changes",
+    );
+
+    expect(html).not.toContain("Clients worth contacting");
+    expect(html).not.toContain("Needs attention");
+    expect(html).toContain("No client action is due right now");
   });
 
   it("gives Clients the approved scannable columns", () => {

@@ -915,6 +915,12 @@ html[data-theme="light"] .app-frame .entity-mark {
   margin-top: 10px;
 }
 
+.app-frame .home-attention-center {
+  margin-top: 64px;
+  padding-top: 40px;
+  border-top: 1px solid var(--line);
+}
+
 .app-frame .home-action-head,
 .app-frame .home-pipeline-head {
   display: flex;

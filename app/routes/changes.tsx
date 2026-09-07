@@ -2,7 +2,7 @@ import { Link } from "react-router";
 
 import { portfolioChanges } from "@/db/portfolioChanges";
 import * as repo from "@/db/repositories";
-import { buildActionCenter, buildRecentActivity } from "../lib/actionCenter";
+import { buildActionCenter, buildRecentActivity, type ActionQueueItem } from "../lib/actionCenter";
 import { sumTotals, totalsFor } from "../lib/portfolio";
 import {
   formatCompactRange,
@@ -57,10 +57,50 @@ function greeting(now = new Date()): string {
   return "Good evening";
 }
 
+function ActionCard({ item }: { item: ActionQueueItem }) {
+  const isAnalysis = item.kind === "analysis";
+  const isInconclusive = item.analysisState === "inconclusive";
+
+  return (
+    <li>
+      <Link className={`action-card action-card-${item.kind}`} to={item.href}>
+        <ClientMark name={item.client.name} seed={item.client.domain} size="lg" />
+        <span className="action-card-copy">
+          <b>{item.client.name}</b>
+          <span>{item.title}</span>
+          <small>{item.detail}</small>
+        </span>
+        <span className="action-card-value">
+          <b>
+            {isAnalysis
+              ? isInconclusive
+                ? "Attention"
+                : "Ready"
+              : formatCurrencyRange(item.priceMin, item.priceMax)}
+          </b>
+          <span>
+            {isAnalysis ? (isInconclusive ? "Needs a retry" : "Start here") : "Potential value"}
+          </span>
+        </span>
+        <span className="action-card-meta">
+          {item.count > 0 && (
+            <span>
+              {item.count} related {pluralize(item.count, "finding", "findings")}
+            </span>
+          )}
+          <span>{item.action}</span>
+        </span>
+        <Icon name="chevron-right" size={18} className="attention-chevron" />
+      </Link>
+    </li>
+  );
+}
+
 export default function Changes({ loaderData: data }: Route.ComponentProps) {
   const renderNow = homeRenderClock(data.until);
   const firstName = data.firstName ?? "there";
-  const queue = data.actionCenter.queue;
+  const primary = data.actionCenter.primary;
+  const attention = data.actionCenter.attention;
   const pipeline = data.actionCenter.pipeline;
   const activity = data.activity;
   const portfolio = data.portfolio ?? {
@@ -80,89 +120,69 @@ export default function Changes({ loaderData: data }: Route.ComponentProps) {
             {greeting(new Date(renderNow))}, {firstName}.
           </h1>
           <p className="page-statement">
-            {queue.length > 0
-              ? `${queue.length} ${pluralize(queue.length, "next action", "next actions")} across your clients.`
+            {primary.length > 0
+              ? `${primary.length} ${pluralize(primary.length, "next action", "next actions")} across your clients.`
+              : attention.length > 0
+                ? `${attention.length} ${pluralize(attention.length, "client needs", "clients need")} attention.`
               : portfolio.clients > 0
-                ? "Your portfolio is quiet today."
+                ? "No client action is due right now."
                 : "Start with a client and Orbit will find the next conversation."}
           </p>
         </div>
         <PageContextMeta dateTime={data.until} />
       </header>
 
-      <section className="home-action-center" aria-labelledby="action-center-heading">
-        <div className="section-head home-action-head">
-          <div>
-            <span className="eyebrow">Next up</span>
-            <h2 id="action-center-heading" className="title-section">
-              Clients worth contacting
-            </h2>
+      {primary.length > 0 && (
+        <section className="home-action-center" aria-labelledby="action-center-heading">
+          <div className="section-head home-action-head">
+            <div>
+              <span className="eyebrow">Next up</span>
+              <h2 id="action-center-heading" className="title-section">
+                Clients worth contacting
+              </h2>
+            </div>
+            <Link to="/opportunities">View all opportunities</Link>
           </div>
-          <Link to="/opportunities">View all opportunities</Link>
-        </div>
-        {queue.length === 0 ? (
-          portfolio.clients === 0 ? (
-            <div className="home-clear home-clear-start">
-              <Icon name="users" size={22} />
-              <div>
-                <b>Start with a client</b>
-                <p>Add a name and website. Orbit will read the site and bring back the next conversation.</p>
-                <Link className="btn btn-sm" to="/clients">
-                  Add client
-                </Link>
-              </div>
-            </div>
-          ) : (
-            <div className="home-clear">
-              <Icon name="check" size={22} />
-              <div>
-                <b>No client work to review</b>
-                <p>Recent analysis has not surfaced an open conversation.</p>
-              </div>
-            </div>
-          )
-        ) : (
           <ul className="home-action-list">
-            {queue.slice(0, 6).map((item) => (
-              <li key={item.id}>
-                <Link className={`action-card action-card-${item.kind}`} to={item.href}>
-                  <ClientMark name={item.client.name} seed={item.client.domain} size="lg" />
-                  <span className="action-card-copy">
-                    <b>{item.client.name}</b>
-                    <span>{item.title}</span>
-                    <small>{item.detail}</small>
-                  </span>
-                  <span className="action-card-value">
-                    <b>
-                      {item.kind === "analysis"
-                        ? item.analysisState === "inconclusive"
-                          ? "Attention"
-                          : "Ready"
-                        : formatCurrencyRange(item.priceMin, item.priceMax)}
-                    </b>
-                    <span>
-                      {item.kind === "analysis"
-                        ? item.analysisState === "inconclusive"
-                          ? "Needs a retry"
-                          : "Start here"
-                        : "Potential value"}
-                    </span>
-                  </span>
-                  <span className="action-card-meta">
-                    {item.count > 0 && (
-                      <span>
-                        {item.count} related {pluralize(item.count, "finding", "findings")}
-                      </span>
-                    )}
-                    <span>{item.action}</span>
-                  </span>
-                  <Icon name="chevron-right" size={18} className="attention-chevron" />
-                </Link>
-              </li>
-            ))}
+            {primary.slice(0, 6).map((item) => <ActionCard key={item.id} item={item} />)}
           </ul>
-        )}
-      </section>
+        </section>
+      )}
+
+      {attention.length > 0 && (
+        <section className="home-attention-center" aria-labelledby="needs-attention-heading">
+          <div className="section-head home-action-head">
+            <div>
+              <span className="eyebrow">Needs attention</span>
+              <h2 id="needs-attention-heading" className="title-section">
+                Needs attention
+              </h2>
+            </div>
+          </div>
+          <ul className="home-action-list">
+            {attention.slice(0, 6).map((item) => <ActionCard key={item.id} item={item} />)}
+          </ul>
+        </section>
+      )}
+
+      {primary.length === 0 && attention.length === 0 && (
+        <div className="home-clear home-clear-start">
+          <Icon name={portfolio.clients === 0 ? "users" : "check"} size={22} />
+          <div>
+            <b>{portfolio.clients === 0 ? "Start with a client" : "No client action is due right now"}</b>
+            <p>
+              {portfolio.clients === 0
+                ? "Add a name and website. Orbit will read the site and bring back the next conversation."
+                : "New opportunities and due follow-ups will appear here when there is something to discuss."}
+            </p>
+            {portfolio.clients === 0 && (
+              <Link className="btn btn-sm" to="/clients">
+                Add client
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
 
       <section className="home-pipeline" aria-labelledby="pipeline-heading">
         <div className="section-head home-pipeline-head">
