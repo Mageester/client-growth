@@ -303,7 +303,10 @@ export async function analyzeClient(
     // reason that has nothing to do with it.
     const deterministic = deterministicEvaluationFor(candidate);
 
-    if (!deterministic && stats.aiCalls >= maxAiCalls) break;
+    // Exhausted budget: skip only the candidates that would cost a call.
+    // Later free, fully-evidenced findings still get processed — the cap
+    // bounds AI spend, it does not cancel the rest of the run.
+    if (!deterministic && stats.aiCalls >= maxAiCalls) continue;
 
     stats.evaluated++;
 

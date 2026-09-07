@@ -44,6 +44,47 @@ const SERVICE: Service = ServiceSchema.parse({
   active: true,
 });
 
+/** Catalog covering both the AI-judged and deterministic rule tags. */
+const CATALOG: Service[] = [
+  SERVICE,
+  ServiceSchema.parse({
+    id: "svc-landing-page",
+    name: "Service landing page",
+    description: "",
+    priceMin: 900,
+    priceMax: 1800,
+    tags: ["landing-page"],
+    active: true,
+  }),
+  ServiceSchema.parse({
+    id: "svc-missing-title",
+    name: "Title repair",
+    description: "",
+    priceMin: 100,
+    priceMax: 300,
+    tags: ["missing-title"],
+    active: true,
+  }),
+  ServiceSchema.parse({
+    id: "svc-missing-h1",
+    name: "H1 repair",
+    description: "",
+    priceMin: 100,
+    priceMax: 300,
+    tags: ["missing-h1"],
+    active: true,
+  }),
+  ServiceSchema.parse({
+    id: "svc-missing-image-alt",
+    name: "Image alt audit",
+    description: "",
+    priceMin: 100,
+    priceMax: 300,
+    tags: ["missing-image-alt"],
+    active: true,
+  }),
+];
+
 const candidate = (over: Partial<Candidate> = {}): Candidate =>
   CandidateSchema.parse({
     ruleId: "no-service-pages",
@@ -99,7 +140,7 @@ const client = ClientSchema.parse({
   id: "c-northwind",
   name: "Northwind",
   domain: "northwind.example",
-  offerings: ["Boiler installation", "Emergency repair"],
+  offerings: ["Boiler installation", "Emergency repair", "Heat pump installation"],
   notes: "",
 });
 
@@ -188,6 +229,76 @@ describe("the pipeline with a self-judging finding", () => {
 
     expect(result.opportunities).toHaveLength(1);
     expect(evaluate).not.toHaveBeenCalled();
+  });
+
+  it("deterministic findings later in the run survive an exhausted AI budget", async () => {
+    // Mixed site: one AI-judged finding (missing service page, first in rule
+    // registration order) and free self-judging technical findings (last).
+    // The cap must bound spend, not silently cancel every later candidate:
+    // exhausting the budget on the FIRST pending finding must still surface
+    // the deterministic ones sitting behind it.
+    const page = (path: string, title: string, words: number) => ({
+      url: "https://northwind.example" + path,
+      status: 200,
+      title,
+      h1s: title ? [title] : [],
+      headings: [],
+      textExcerpt: "",
+      wordCount: words,
+      forms: [],
+    });
+    const pages = [
+      // Two real service pages make the site analyzable; the one service the
+      // client sells that has NO page or nav label verifies as absent
+      // (AI-judged, first in rule registration order).
+      page("/", "Northwind HVAC", 400),
+      page("/furnace-installation", "Furnace installation", 450),
+      page("/boiler-installation", "Boiler installation", 450),
+      // Untitled/unheaded page -> free deterministic findings.
+      page("/about", "", 200),
+    ];
+    const nav = ["Home", "Furnace installation", "Boiler installation", "About us"];
+    const provider: EvidenceProvider = {
+      getEvidence: () =>
+        Promise.resolve(
+          EvidenceBundleSchema.parse({
+            clientId: client.id,
+            source: "http",
+            capturedAt: "2026-09-04T00:00:00.000Z",
+            site: { pages, nav, links: [], sitemapUrls: [], crawlExhaustive: true },
+            networkEvents: [],
+          }),
+        ),
+    };
+
+    const result = await analyzeClient({
+      client,
+      catalog: CATALOG,
+      coverage: [],
+      existing: [],
+      evidenceProvider: provider,
+      evaluator: {
+        evaluate: () =>
+          Promise.resolve({
+            verdict: "surface",
+            confidence: 0.9,
+            rationale: "A genuine dedicated service page gap.",
+            suggestedScope: ["Build the page"],
+            subjectType: "distinct_service",
+            commerciallyActionable: true,
+          }),
+      } as unknown as OpportunityEvaluator,
+      maxAiCalls: 0,
+    });
+
+    const rules = new Set(result.opportunities.map((o) => o.ruleId));
+    // The free, fully-evidenced technical findings behind the budget boundary
+    // must survive.
+    expect(rules.has("missing-title")).toBe(true);
+    expect(rules.has("missing-h1")).toBe(true);
+    expect(result.stats.aiCalls).toBe(0);
+    // The AI finding was the thing the cap refused — it must be absent.
+    expect(rules.has("missing-service-page")).toBe(false);
   });
 
   it("still fails closed if the deterministic judgment ever stops surfacing", async () => {
