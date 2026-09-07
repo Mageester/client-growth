@@ -5,11 +5,16 @@ export { resolveBillability } from "@/core/billability";
 export { passesEvidenceThreshold, EVIDENCE_THRESHOLD } from "@/core/threshold";
 export { dedupeKey } from "@/core/dedupe";
 export {
+  confirmExternalBusinessProfileClaims,
+  importGoogleBusinessProfileServiceList,
   importOfficialBusinessProfile,
   resolveCurrentExternalClaims,
+  validateExternalBusinessClaimProvenance,
+  GoogleBusinessProfileServiceListSchema,
   OfficialBusinessProfileExportSchema,
   ExternalBusinessClaimSchema,
   type ExternalBusinessClaim,
+  type GoogleBusinessProfileServiceList,
   type OfficialBusinessProfileExport,
 } from "@/core/externalBusinessEvidence";
 export { buildExternalMismatchCandidates } from "@/core/businessSiteMismatch";

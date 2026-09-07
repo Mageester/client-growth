@@ -2,7 +2,10 @@ import { describe, expect, it, vi } from "vitest";
 
 import { FixtureEvidenceProvider } from "@/adapters/evidence/FixtureEvidenceProvider";
 import { MockEvaluator } from "@/adapters/evaluator/MockEvaluator";
-import { importOfficialBusinessProfile } from "@/core/externalBusinessEvidence";
+import {
+  importGoogleBusinessProfileServiceList,
+  importOfficialBusinessProfile,
+} from "@/core/externalBusinessEvidence";
 import {
   ClientSchema,
   EvidenceBundleSchema,
@@ -92,6 +95,26 @@ function claims(labels: string[]) {
   return imported.claims;
 }
 
+function googleServiceListClaims(labels: string[]) {
+  const imported = importGoogleBusinessProfileServiceList(
+    { workspaceId: "ws-a", clientId: client.id },
+    {
+      name: "accounts/123/locations/456/serviceList",
+      serviceItems: labels.map((displayName) => ({
+        isOffered: true,
+        freeFormServiceItem: {
+          categoryId: "plumbing",
+          label: { displayName, languageCode: "en" },
+        },
+      })),
+    },
+    new Date("2026-09-07T13:00:00.000Z"),
+    { ownerAuthorized: true },
+  );
+  if (!imported.ok) throw new Error(imported.error);
+  return imported.claims;
+}
+
 function run(
   externalClaims = claims(["Water Heater Replacement"]),
   evaluator: OpportunityEvaluator = new MockEvaluator(),
@@ -124,6 +147,19 @@ describe("external business-profile mismatch pipeline", () => {
     expect(result.opportunities[0]?.title).toMatch(/Water Heater Replacement/i);
     expect(result.opportunities[0]?.evidenceRefs).toContain(
       "external:https://business.google.com/locations/location-123",
+    );
+    expect(evaluate).toHaveBeenCalledTimes(1);
+  });
+
+  it("feeds the official ServiceList adapter into the same evaluator and opportunity path", async () => {
+    const mock = new MockEvaluator();
+    const evaluate = vi.fn(mock.evaluate.bind(mock));
+    const result = await run(googleServiceListClaims(["Water Heater Installation"]), { evaluate });
+
+    expect(result.opportunities).toHaveLength(1);
+    expect(result.opportunities[0]?.ruleId).toBe("missing-service-page");
+    expect(result.opportunities[0]?.evidenceRefs).toContain(
+      "external:https://mybusiness.googleapis.com/v4/accounts/123/locations/456/serviceList",
     );
     expect(evaluate).toHaveBeenCalledTimes(1);
   });

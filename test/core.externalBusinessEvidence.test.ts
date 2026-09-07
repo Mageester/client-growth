@@ -6,7 +6,9 @@ import {
   type OfficialBusinessProfileExport,
 } from "@/core/externalBusinessEvidence";
 
-const baseExport = (overrides: Partial<OfficialBusinessProfileExport> = {}) => ({
+const baseExport = (
+  overrides: Partial<OfficialBusinessProfileExport> = {},
+): OfficialBusinessProfileExport => ({
   provider: "google-business-profile-export" as const,
   sourceRecordId: "location-123",
   sourceUrl: "https://business.google.com/locations/location-123",
@@ -74,6 +76,15 @@ describe("official external business evidence", () => {
     if (badHost.ok) return;
     expect(badHost.error).toMatch(/official business profile/i);
 
+    const mismatchedRecord = importOfficialBusinessProfile(
+      scope,
+      baseExport({ sourceUrl: "https://business.google.com/locations/another-location" }),
+      now,
+    );
+    expect(mismatchedRecord.ok).toBe(false);
+    if (mismatchedRecord.ok) return;
+    expect(mismatchedRecord.error).toMatch(/official business profile/i);
+
     const badTime = importOfficialBusinessProfile(
       scope,
       baseExport({
@@ -85,6 +96,21 @@ describe("official external business evidence", () => {
     expect(badTime.ok).toBe(false);
     if (badTime.ok) return;
     expect(badTime.error).toMatch(/observed/i);
+  });
+
+  it("rejects availability language as a purchased service", () => {
+    const result = importOfficialBusinessProfile(
+      scope,
+      baseExport({ services: ["24/7 Service", "Drain Cleaning"] }),
+      now,
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.claims.map((claim) => [claim.rawServiceLabel, claim.semanticState])).toEqual([
+      ["24/7 Service", "rejected"],
+      ["Drain Cleaning", "accepted"],
+    ]);
   });
 
   it("marks stale snapshots and same-time hash disagreements ineligible", () => {

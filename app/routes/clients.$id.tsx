@@ -4,6 +4,8 @@ import { Form, Link, redirect, useNavigation } from "react-router";
 
 import { ClientSchema, type Client } from "@/core/schema";
 import {
+  confirmExternalBusinessProfileClaims,
+  importGoogleBusinessProfileServiceList,
   OfficialBusinessProfileExportSchema,
   importOfficialBusinessProfile,
   resolveCurrentExternalClaims,
@@ -87,6 +89,20 @@ type AnalysisReadinessView = {
   total: number;
 };
 
+type BusinessProfilePreview = {
+  profileJson: string;
+  items: Array<{
+    id: string;
+    rawServiceLabel: string;
+    normalizedLabel: string;
+    semanticState: ExternalBusinessClaim["semanticState"];
+    semanticReason: string;
+  }>;
+  rejectedLabels: string[];
+};
+
+const MAX_BUSINESS_PROFILE_UPLOAD_BYTES = 256_000;
+
 export function meta({ data }: Route.MetaArgs) {
   return [{ title: data ? data.client.name + " · Axiom Orbit" : "Client" }];
 }
@@ -165,6 +181,25 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
     crawlFailure,
     state: clientState({ outcome: latest?.outcome ?? null, openCount: totals.open }),
   };
+}
+
+async function readBusinessProfileUpload(form: FormData): Promise<
+  | { ok: true; profileJson: string }
+  | { ok: false; error: string }
+> {
+  const file = form.get("profileFile");
+  if (!file || typeof file === "string" || typeof file.text !== "function") {
+    return { ok: false, error: "Choose the official business-profile response file first." };
+  }
+  if (typeof file.size === "number" && file.size > MAX_BUSINESS_PROFILE_UPLOAD_BYTES) {
+    return { ok: false, error: "That profile response is too large to import safely." };
+  }
+  const profileJson = (await file.text()).trim();
+  if (!profileJson) return { ok: false, error: "The selected profile response is empty." };
+  if (new TextEncoder().encode(profileJson).byteLength > MAX_BUSINESS_PROFILE_UPLOAD_BYTES) {
+    return { ok: false, error: "That profile response is too large to import safely." };
+  }
+  return { ok: true, profileJson };
 }
 
 export async function action({ params, request, context }: Route.ActionArgs) {
@@ -279,6 +314,86 @@ export async function action({ params, request, context }: Route.ActionArgs) {
     };
   }
 
+  if (intent === "preview-business-profile") {
+    if (form.get("ownerAuthorized") !== "on") {
+      return {
+        ok: false as const,
+        error: "Confirm that you are authorized to use this business profile first.",
+      };
+    }
+    const upload = await readBusinessProfileUpload(form);
+    if (!upload.ok) return upload;
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(upload.profileJson);
+    } catch {
+      return { ok: false as const, error: "That profile response is not valid JSON." };
+    }
+    const imported = importGoogleBusinessProfileServiceList(
+      { workspaceId: t.scope.workspaceId, clientId: existing.id },
+      parsed,
+      new Date(),
+      { ownerAuthorized: true },
+    );
+    if (!imported.ok) return imported;
+    const businessProfilePreview: BusinessProfilePreview = {
+      profileJson: upload.profileJson,
+      items: imported.claims.map((claim) => ({
+        id: claim.id,
+        rawServiceLabel: claim.rawServiceLabel,
+        normalizedLabel: claim.normalizedLabel,
+        semanticState: claim.semanticState,
+        semanticReason: claim.semanticReason,
+      })),
+      rejectedLabels: imported.rejectedLabels,
+    };
+    return { ok: true as const, businessProfilePreview };
+  }
+
+  if (intent === "confirm-business-profile") {
+    if (form.get("ownerAuthorized") !== "on") {
+      return {
+        ok: false as const,
+        error: "Confirm that you are authorized to use this business profile first.",
+      };
+    }
+    const profileJson = String(form.get("profileJson") ?? "").trim();
+    if (!profileJson) return { ok: false as const, error: "Review the profile response before saving it." };
+    if (new TextEncoder().encode(profileJson).byteLength > MAX_BUSINESS_PROFILE_UPLOAD_BYTES) {
+      return { ok: false as const, error: "That profile response is too large to import safely." };
+    }
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(profileJson);
+    } catch {
+      return { ok: false as const, error: "That profile response is not valid JSON." };
+    }
+    const imported = importGoogleBusinessProfileServiceList(
+      { workspaceId: t.scope.workspaceId, clientId: existing.id },
+      parsed,
+      new Date(),
+      { ownerAuthorized: true },
+    );
+    if (!imported.ok) return imported;
+    const confirmedIds = new Set(form.getAll("confirmClaim").map(String));
+    const claims = confirmExternalBusinessProfileClaims(imported.claims, confirmedIds);
+    await repo.saveExternalBusinessClaims(t.scope, claims);
+    const accepted = claims.filter((claim) => claim.semanticState === "accepted").length;
+    const uncertain = claims.filter((claim) => claim.semanticState === "ambiguous").length;
+    return {
+      ok: true as const,
+      message:
+        `Imported ${accepted} confirmed profile ${accepted === 1 ? "service" : "services"}. ` +
+        (uncertain > 0
+          ? `${uncertain} uncertain ${uncertain === 1 ? "label remains" : "labels remain"} excluded until confirmed. `
+          : "") +
+        "Re-analyze to compare the official profile with the readable website.",
+    };
+  }
+
+  // Internal compatibility path for existing normalized fixtures. The normal
+  // client page never renders this contract; user-facing imports use the
+  // official ServiceList upload and review flow above.
   if (intent === "import-external-profile") {
     const rawExport = String(form.get("profileExport") ?? "").trim();
     if (!rawExport) {
@@ -483,6 +598,10 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
   const [editOfferings, setEditOfferings] = useState(() => client.offerings.join("\n"));
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteSubmitted, setDeleteSubmitted] = useState(false);
+  const businessProfilePreview =
+    actionData && "businessProfilePreview" in actionData
+      ? (actionData.businessProfilePreview as BusinessProfilePreview)
+      : undefined;
 
   // Refresh the editor from persisted data after a save/revalidation, while
   // keeping in-progress typing intact if another form happens to revalidate.
@@ -747,7 +866,11 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
         )}
       </section>
 
-      <ExternalProfileEvidence claims={externalClaims} busy={busy} />
+      <ExternalProfileEvidence
+        claims={externalClaims}
+        busy={busy}
+        preview={businessProfilePreview}
+      />
 
       <section className="section">
         <div className="section-head">
@@ -1496,9 +1619,11 @@ function SuggestedServices({
 function ExternalProfileEvidence({
   claims,
   busy,
+  preview,
 }: {
   claims: ExternalBusinessClaim[];
   busy: boolean;
+  preview?: BusinessProfilePreview;
 }) {
   const stateLabel: Record<ExternalBusinessClaim["semanticState"], string> = {
     accepted: "Current profile evidence",
@@ -1512,12 +1637,12 @@ function ExternalProfileEvidence({
       <div className="section-head">
         <div>
           <h2 className="title-section" id="external-profile-heading">
-            Official profile cross-check
+            Business profile evidence
           </h2>
           <p>
-            Optional advanced evidence for services the business says it offers outside its website.
-            Orbit uses only a current owner-authorized official profile export — never reviews,
-            social posts, ads or directory listings.
+            Import a current service list from an official, owner-authorized business profile. Orbit
+            keeps the source details for you and never uses reviews, social posts, ads or directory
+            listings.
           </p>
         </div>
       </div>
@@ -1540,30 +1665,108 @@ function ExternalProfileEvidence({
           ))}
         </ul>
       )}
-      <details className="advanced-details">
-        <summary>Import an owner-authorized official profile export</summary>
+      <details className="advanced-details" open={Boolean(preview)}>
+        <summary>Import business profile</summary>
         <p className="field-hint">
-          Paste the normalized export supplied by the official profile connection. It must include
-          the stable profile ID, official HTTPS source URL, observed/retrieved times and service
-          labels. Importing evidence does not create a finding; the website still has to be read
-          and verify the missing page.
+          Upload the official Google Business Profile service-list response from an authorized
+          connection. Orbit reads the service names, identifies anything uncertain, and leaves the
+          website coverage check as the final gate. Importing evidence does not create a finding by
+          itself.
         </p>
-        <Form method="post">
-          <input type="hidden" name="intent" value="import-external-profile" />
-          <div className="field">
-            <label htmlFor="profile-export">Profile export JSON</label>
-            <textarea
-              id="profile-export"
-              name="profileExport"
-              rows={10}
-              required
-              placeholder={'{"provider":"google-business-profile-export",...}'}
-              spellCheck={false}
-            />
+        {preview && (
+          <div className="notice" role="region" aria-labelledby="profile-review-heading">
+            <div className="section-head">
+              <div>
+                <h3 className="title-section" id="profile-review-heading">
+                  Review what Orbit found
+                </h3>
+                <p>
+                  Confirm only the labels marked as uncertain. Clear evidence is already included;
+                  rejected labels will not be treated as services.
+                </p>
+              </div>
+            </div>
+            <Form method="post">
+              <input type="hidden" name="intent" value="confirm-business-profile" />
+              <input type="hidden" name="profileJson" value={preview.profileJson} />
+              <ul className="suggestion-list confirm-list" aria-label="Profile service review">
+                {preview.items.map((item) => {
+                  const ambiguous = item.semanticState === "ambiguous";
+                  const rejected = item.semanticState === "rejected";
+                  return (
+                    <li key={item.id}>
+                      {ambiguous ? (
+                        <label className="confirm-toggle">
+                          <input
+                            type="checkbox"
+                            name="confirmClaim"
+                            value={item.normalizedLabel}
+                          />
+                          <span className="confirm-copy">
+                            <span className="suggestion-head">
+                              <span className="suggestion-label">{item.normalizedLabel}</span>
+                              <span className="pill warn">Needs confirmation</span>
+                            </span>
+                            <span className="field-hint">{item.semanticReason}</span>
+                          </span>
+                        </label>
+                      ) : (
+                        <div className="confirm-toggle">
+                          <Icon name={rejected ? "alert" : "check"} size={15} />
+                          <span className="confirm-copy">
+                            <span className="suggestion-head">
+                              <span className="suggestion-label">{item.normalizedLabel}</span>
+                              <span className="pill faint">
+                                {rejected ? "Not treated as a service" : "Ready"}
+                              </span>
+                            </span>
+                            {rejected && <span className="field-hint">{item.semanticReason}</span>}
+                          </span>
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+              <label className="confirm-toggle">
+                <input type="checkbox" name="ownerAuthorized" required />
+                <span className="confirm-copy">
+                  I confirm this profile data came from a business account I am authorized to use.
+                </span>
+              </label>
+              <div className="form-actions">
+                <button type="submit" className="btn btn-primary" disabled={busy}>
+                  {busy ? "Importing…" : "Import confirmed services"}
+                </button>
+              </div>
+            </Form>
           </div>
+        )}
+        <Form method="post" encType="multipart/form-data">
+          <input type="hidden" name="intent" value="preview-business-profile" />
+          <div className="field">
+            <label htmlFor="profile-file">Official profile data</label>
+            <input
+              id="profile-file"
+              name="profileFile"
+              type="file"
+              accept=".json,application/json"
+              required
+            />
+            <p className="field-hint">
+              Upload the official ServiceList response from your authorized profile connection. No
+              Orbit fields or manual service normalization are needed.
+            </p>
+          </div>
+          <label className="confirm-toggle">
+            <input type="checkbox" name="ownerAuthorized" required />
+            <span className="confirm-copy">
+              I have permission from the business to use this profile data.
+            </span>
+          </label>
           <div className="form-actions">
             <button type="submit" className="btn" disabled={busy}>
-              {busy ? "Saving…" : "Save profile evidence"}
+              {busy ? "Reading profile…" : "Review profile"}
             </button>
           </div>
         </Form>

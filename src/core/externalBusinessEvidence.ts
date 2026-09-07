@@ -4,14 +4,22 @@ import { classifyCommercialLanguage } from "@/core/commercialLanguage";
 import { significantTokens, titleCase } from "@/core/text";
 
 /**
- * The first external-source adapter is deliberately narrow. It accepts an
- * owner-authorized export from an official business profile, not a URL scraped
- * from a directory, a review, a social post, or an advert.
+ * External-source adapters are deliberately narrow. The legacy normalized
+ * payload remains available to internal callers, while the user-facing path
+ * accepts Google's documented ServiceList API response. Neither path accepts
+ * a URL scraped from a directory, a review, a social post, or an advert.
  */
 export const EXTERNAL_PROFILE_PROVIDER = "google-business-profile-export" as const;
+export const GOOGLE_BUSINESS_PROFILE_API_PROVIDER = "google-business-profile-api" as const;
 export const EXTERNAL_PROFILE_AUTHORIZATION = "owner-authorized-export" as const;
+export const GOOGLE_BUSINESS_PROFILE_API_AUTHORIZATION = "owner-authorized-api-response" as const;
 export const EXTERNAL_PROFILE_SOURCE_FIELD = "services" as const;
+export const GOOGLE_BUSINESS_PROFILE_API_SOURCE_FIELD = "serviceItems" as const;
 export const EXTERNAL_CLAIM_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+
+const GOOGLE_BUSINESS_PROFILE_SERVICE_LIST_PATH =
+  /^accounts\/[^/]+\/locations\/[^/]+\/serviceList$/;
+const GOOGLE_BUSINESS_PROFILE_API_HOST = "mybusiness.googleapis.com";
 
 export const ExternalSemanticStateSchema = z.enum([
   "accepted",
@@ -26,12 +34,15 @@ export const ExternalBusinessClaimSchema = z.object({
   id: z.string().min(1),
   workspaceId: z.string().min(1),
   clientId: z.string().min(1),
-  provider: z.literal(EXTERNAL_PROFILE_PROVIDER),
+  provider: z.enum([EXTERNAL_PROFILE_PROVIDER, GOOGLE_BUSINESS_PROFILE_API_PROVIDER]),
   sourceRecordId: z.string().min(1),
   sourceUrl: z.string().url(),
-  authorization: z.literal(EXTERNAL_PROFILE_AUTHORIZATION),
+  authorization: z.enum([
+    EXTERNAL_PROFILE_AUTHORIZATION,
+    GOOGLE_BUSINESS_PROFILE_API_AUTHORIZATION,
+  ]),
   rawServiceLabel: z.string().min(1),
-  sourceField: z.literal(EXTERNAL_PROFILE_SOURCE_FIELD),
+  sourceField: z.enum([EXTERNAL_PROFILE_SOURCE_FIELD, GOOGLE_BUSINESS_PROFILE_API_SOURCE_FIELD]),
   observedAt: z.string().min(1),
   retrievedAt: z.string().min(1),
   sourceHash: z.string().min(1),
@@ -42,12 +53,50 @@ export const ExternalBusinessClaimSchema = z.object({
 });
 export type ExternalBusinessClaim = z.infer<typeof ExternalBusinessClaimSchema>;
 
+const GoogleStructuredServiceItemSchema = z.object({
+  serviceTypeId: z.string().min(1),
+  description: z.string().optional(),
+});
+
+const GoogleFreeFormServiceItemSchema = z.object({
+  categoryId: z.string().min(1),
+  label: z.object({
+    displayName: z.string().min(1),
+    description: z.string().optional(),
+    languageCode: z.string().optional(),
+  }),
+});
+
+const GoogleServiceItemSchema = z
+  .object({
+    isOffered: z.boolean().optional(),
+    structuredServiceItem: GoogleStructuredServiceItemSchema.optional(),
+    freeFormServiceItem: GoogleFreeFormServiceItemSchema.optional(),
+  })
+  .superRefine((item, ctx) => {
+    if (Boolean(item.structuredServiceItem) === Boolean(item.freeFormServiceItem)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "A service item must contain exactly one official service representation.",
+      });
+    }
+  });
+
+/** Google's documented `ServiceList` API response shape. */
+export const GoogleBusinessProfileServiceListSchema = z.object({
+  name: z.string().regex(GOOGLE_BUSINESS_PROFILE_SERVICE_LIST_PATH),
+  serviceItems: z.array(GoogleServiceItemSchema).min(1).max(100),
+});
+export type GoogleBusinessProfileServiceList = z.infer<
+  typeof GoogleBusinessProfileServiceListSchema
+>;
+
 export const OfficialBusinessProfileExportSchema = z.object({
   provider: z.literal(EXTERNAL_PROFILE_PROVIDER),
   sourceRecordId: z.string().min(1),
   sourceUrl: z.string().url(),
   authorization: z.literal(EXTERNAL_PROFILE_AUTHORIZATION),
-  sourceField: z.string().min(1),
+  sourceField: z.literal(EXTERNAL_PROFILE_SOURCE_FIELD),
   observedAt: z.string().min(1),
   retrievedAt: z.string().min(1),
   sourceVersion: z.string().min(1).optional(),
@@ -80,18 +129,31 @@ const BROAD_LABELS = new Set([
   "solutions",
   "support",
 ]);
+const BROAD_LABEL_SUFFIX = /(?:\b|^)(?:services?|solutions?|support|products?)$/i;
 
 function parseTime(value: string): number | null {
   const time = Date.parse(value);
   return Number.isFinite(time) ? time : null;
 }
 
-function officialProfileUrl(value: string): boolean {
+function officialProfileUrl(
+  provider: ExternalBusinessClaim["provider"],
+  sourceRecordId: string,
+  value: string,
+): boolean {
   try {
     const url = new URL(value);
+    if (url.protocol !== "https:" || url.search || url.hash) return false;
+    if (provider === GOOGLE_BUSINESS_PROFILE_API_PROVIDER) {
+      return (
+        url.hostname === GOOGLE_BUSINESS_PROFILE_API_HOST &&
+        url.pathname === `/v4/${sourceRecordId}` &&
+        GOOGLE_BUSINESS_PROFILE_SERVICE_LIST_PATH.test(sourceRecordId)
+      );
+    }
     return (
-      url.protocol === "https:" &&
-      (url.hostname === "business.google.com" || url.hostname === "www.business.google.com")
+      (url.hostname === "business.google.com" || url.hostname === "www.business.google.com") &&
+      url.pathname === `/locations/${sourceRecordId}`
     );
   } catch {
     return false;
@@ -130,7 +192,11 @@ function decideLabel(raw: string): LabelDecision | null {
   }
 
   const significant = significantTokens(cleaned);
-  if (significant.length === 0 || BROAD_LABELS.has(cleaned.toLowerCase())) {
+  if (
+    significant.length === 0 ||
+    BROAD_LABELS.has(cleaned.toLowerCase()) ||
+    BROAD_LABEL_SUFFIX.test(cleaned)
+  ) {
     return {
       normalizedLabel: titleCase(cleaned),
       semanticState: "ambiguous",
@@ -145,36 +211,83 @@ function decideLabel(raw: string): LabelDecision | null {
   };
 }
 
-/**
- * Validate and normalize one owner-authorized official-profile export.
- *
- * This function never turns a label into an opportunity. It only preserves the
- * source, normalizes equivalent labels, and records deterministic semantic
- * states. `accepted` still has to pass website coverage, deterministic absence
- * verification, the evidence threshold, and the existing evaluator gate.
- */
-export function importOfficialBusinessProfile(
+interface NormalizedExternalProfileInput {
+  provider: ExternalBusinessClaim["provider"];
+  sourceRecordId: string;
+  sourceUrl: string;
+  authorization: ExternalBusinessClaim["authorization"];
+  sourceField: ExternalBusinessClaim["sourceField"];
+  observedAt: string;
+  retrievedAt: string;
+  sourceVersion?: string;
+  services: string[];
+}
+
+function expectedProvenance(provider: ExternalBusinessClaim["provider"]): {
+  authorization: ExternalBusinessClaim["authorization"];
+  sourceField: ExternalBusinessClaim["sourceField"];
+} {
+  return provider === GOOGLE_BUSINESS_PROFILE_API_PROVIDER
+    ? {
+        authorization: GOOGLE_BUSINESS_PROFILE_API_AUTHORIZATION,
+        sourceField: GOOGLE_BUSINESS_PROFILE_API_SOURCE_FIELD,
+      }
+    : {
+        authorization: EXTERNAL_PROFILE_AUTHORIZATION,
+        sourceField: EXTERNAL_PROFILE_SOURCE_FIELD,
+      };
+}
+
+/** Defense-in-depth validation for every persistence boundary. */
+export function validateExternalBusinessClaimProvenance(
+  claim: ExternalBusinessClaim,
+  now = new Date(),
+): void {
+  const expected = expectedProvenance(claim.provider);
+  if (claim.authorization !== expected.authorization || claim.sourceField !== expected.sourceField) {
+    throw new Error("External business claim provenance does not match its provider.");
+  }
+  if (!officialProfileUrl(claim.provider, claim.sourceRecordId, claim.sourceUrl)) {
+    throw new Error("External business claim source is not an allowed official profile endpoint.");
+  }
+  if (claim.provider === GOOGLE_BUSINESS_PROFILE_API_PROVIDER && claim.sourceVersion !== "v4") {
+    throw new Error("Google Business Profile API claims must identify the v4 ServiceList response.");
+  }
+  if (!/^fnv1a:[0-9a-f]{8}$/.test(claim.sourceHash)) {
+    throw new Error("External business claim source hash is invalid.");
+  }
+  const observedAt = parseTime(claim.observedAt);
+  const retrievedAt = parseTime(claim.retrievedAt);
+  if (observedAt === null || retrievedAt === null || observedAt > retrievedAt) {
+    throw new Error("External business claim timestamps are invalid.");
+  }
+  if (retrievedAt > now.getTime() + 5 * 60 * 1000) {
+    throw new Error("External business claim retrieval time cannot be in the future.");
+  }
+}
+
+function importExternalBusinessProfileClaims(
   scope: ImportScope,
-  input: OfficialBusinessProfileExport,
+  input: NormalizedExternalProfileInput,
   now: Date,
 ): OfficialBusinessProfileImportResult {
-  if (input.provider !== EXTERNAL_PROFILE_PROVIDER) {
-    return { ok: false, error: "Orbit only accepts the supported official business-profile export." };
-  }
-  if (input.authorization !== EXTERNAL_PROFILE_AUTHORIZATION) {
-    return { ok: false, error: "This source must be explicitly owner-authorized." };
-  }
-  if (input.sourceField !== EXTERNAL_PROFILE_SOURCE_FIELD) {
-    return { ok: false, error: "The supported export must contain official service data." };
-  }
-  if (!officialProfileUrl(input.sourceUrl)) {
-    return { ok: false, error: "Use the HTTPS URL of the official business profile, not a directory or review page." };
-  }
-
   const sourceRecordId = input.sourceRecordId.trim();
   if (!sourceRecordId) return { ok: false, error: "The official profile needs a stable location ID." };
+  const expected = expectedProvenance(input.provider);
+  if (input.authorization !== expected.authorization) {
+    return { ok: false, error: "This source must be explicitly owner-authorized." };
+  }
+  if (input.sourceField !== expected.sourceField) {
+    return { ok: false, error: "The supported source must contain official service data." };
+  }
+  if (!officialProfileUrl(input.provider, sourceRecordId, input.sourceUrl)) {
+    return {
+      ok: false,
+      error: "Use the HTTPS URL of the official business profile API, not a directory or review page.",
+    };
+  }
   if (!Array.isArray(input.services) || input.services.length === 0 || input.services.length > 100) {
-    return { ok: false, error: "The official export must contain between 1 and 100 service labels." };
+    return { ok: false, error: "The official source must contain between 1 and 100 service labels." };
   }
 
   const observedAt = parseTime(input.observedAt);
@@ -216,15 +329,15 @@ export function importOfficialBusinessProfile(
     seen.add(key);
     claims.push(
       ExternalBusinessClaimSchema.parse({
-        id: externalClaimId(scope, sourceRecordId, sourceHash, key),
+        id: externalClaimId(scope, input.provider, sourceRecordId, sourceHash, key),
         workspaceId: scope.workspaceId,
         clientId: scope.clientId,
-        provider: EXTERNAL_PROFILE_PROVIDER,
+        provider: input.provider,
         sourceRecordId,
         sourceUrl: input.sourceUrl,
-        authorization: EXTERNAL_PROFILE_AUTHORIZATION,
+        authorization: input.authorization,
         rawServiceLabel: cleanLabel(raw),
-        sourceField: EXTERNAL_PROFILE_SOURCE_FIELD,
+        sourceField: input.sourceField,
         observedAt: input.observedAt,
         retrievedAt: input.retrievedAt,
         sourceHash,
@@ -234,12 +347,108 @@ export function importOfficialBusinessProfile(
         semanticReason: decision.semanticReason,
       }),
     );
+    validateExternalBusinessClaimProvenance(claims[claims.length - 1]!, now);
   }
 
   if (claims.length === 0) {
     return { ok: false, error: "The export contained no usable service labels." };
   }
   return { ok: true, claims, rejectedLabels };
+}
+
+/**
+ * Validate and normalize the legacy internal owner-authorized payload.
+ *
+ * This remains available to internal callers only. The normal UI uses the
+ * documented Google ServiceList adapter below.
+ */
+export function importOfficialBusinessProfile(
+  scope: ImportScope,
+  input: OfficialBusinessProfileExport,
+  now: Date,
+): OfficialBusinessProfileImportResult {
+  return importExternalBusinessProfileClaims(scope, input, now);
+}
+
+function googleServiceItemLabel(
+  item: GoogleBusinessProfileServiceList["serviceItems"][number],
+): string | null {
+  if (item.structuredServiceItem) {
+    return (
+      item.structuredServiceItem.description?.trim() ||
+      item.structuredServiceItem.serviceTypeId.replace(/[_-]+/g, " ")
+    );
+  }
+  return item.freeFormServiceItem?.label.displayName.trim() || null;
+}
+
+/**
+ * Parse the documented Google Business Profile `ServiceList` response. The
+ * adapter owns all Orbit provenance fields; users only upload the official
+ * response and review the resulting labels.
+ */
+export function importGoogleBusinessProfileServiceList(
+  scope: ImportScope,
+  input: unknown,
+  now: Date,
+  options: { ownerAuthorized: boolean },
+): OfficialBusinessProfileImportResult {
+  if (!options.ownerAuthorized) {
+    return { ok: false, error: "This profile response requires owner authorization." };
+  }
+  const parsed = GoogleBusinessProfileServiceListSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: "Upload the official Google Business Profile service list response.",
+    };
+  }
+
+  const sourceRecordId = parsed.data.name;
+  const services = parsed.data.serviceItems
+    .filter((item) => item.isOffered !== false)
+    .map(googleServiceItemLabel)
+    .filter((label): label is string => Boolean(label));
+
+  if (services.length === 0) {
+    return { ok: false, error: "The official profile did not contain any currently offered services." };
+  }
+
+  const observedAt = now.toISOString();
+  return importExternalBusinessProfileClaims(
+    scope,
+    {
+      provider: GOOGLE_BUSINESS_PROFILE_API_PROVIDER,
+      sourceRecordId,
+      sourceUrl: `https://${GOOGLE_BUSINESS_PROFILE_API_HOST}/v4/${sourceRecordId}`,
+      authorization: GOOGLE_BUSINESS_PROFILE_API_AUTHORIZATION,
+      sourceField: GOOGLE_BUSINESS_PROFILE_API_SOURCE_FIELD,
+      observedAt,
+      retrievedAt: observedAt,
+      sourceVersion: "v4",
+      services,
+    },
+    now,
+  );
+}
+
+/** Apply only explicit user confirmations to ambiguous profile labels. */
+export function confirmExternalBusinessProfileClaims(
+  claims: ExternalBusinessClaim[],
+  confirmedClaimKeys: ReadonlySet<string>,
+): ExternalBusinessClaim[] {
+  return claims.map((claim) =>
+    claim.semanticState === "ambiguous" &&
+    (confirmedClaimKeys.has(claim.id) ||
+      confirmedClaimKeys.has(claim.normalizedLabel) ||
+      confirmedClaimKeys.has(labelKey(claim.normalizedLabel)))
+      ? {
+          ...claim,
+          semanticState: "accepted",
+          semanticReason: "Confirmed by the agency during profile review.",
+        }
+      : claim,
+  );
 }
 
 /**
@@ -294,12 +503,13 @@ export function resolveCurrentExternalClaims(
 
 function externalClaimId(
   scope: ImportScope,
+  provider: ExternalBusinessClaim["provider"],
   sourceRecordId: string,
   sourceHash: string,
   labelKeyValue: string,
 ): string {
   return `external-${fnv1a(
-    `${scope.workspaceId}:${scope.clientId}:${EXTERNAL_PROFILE_PROVIDER}:${sourceRecordId}:${sourceHash}:${labelKeyValue}`,
+    `${scope.workspaceId}:${scope.clientId}:${provider}:${sourceRecordId}:${sourceHash}:${labelKeyValue}`,
   )}`;
 }
 

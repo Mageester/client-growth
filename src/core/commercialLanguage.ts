@@ -52,6 +52,7 @@ const NON_SERVICE_PATTERNS: Array<{ kind: CommercialLanguageKind; test: RegExp }
     kind: "generic claim",
     test: /\b(affordable|cheap)\b|\bcompetitive\s+(prices?|pricing|rates?)\b|\bbest\s+prices?\b/,
   },
+  { kind: "generic claim", test: /\b24\s*\/\s*7\s+(?:service|support|availability)\b/ },
   { kind: "generic claim", test: /\b(friendly|reliable|professional|trusted)\s+(service|team|staff)\b/ },
   { kind: "generic claim", test: /\bcustomer\s+(satisfaction|service)\b|\b5[\s-]star\b/ },
 ];

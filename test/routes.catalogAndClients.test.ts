@@ -403,6 +403,72 @@ describe("editing a client", () => {
     expect(await repo.listExternalBusinessClaims(scope, "cli_a")).toEqual([]);
   });
 
+  it("previews an official ServiceList upload, then saves only after normal-user review", async () => {
+    const profileJson = JSON.stringify({
+      name: "accounts/123/locations/456/serviceList",
+      serviceItems: [
+        {
+          isOffered: true,
+          structuredServiceItem: { serviceTypeId: "water_heater_installation" },
+        },
+        {
+          isOffered: true,
+          freeFormServiceItem: {
+            categoryId: "plumbing",
+            label: { displayName: "Water Solutions", languageCode: "en" },
+          },
+        },
+      ],
+    });
+    const previewBody = new FormData();
+    previewBody.set("intent", "preview-business-profile");
+    previewBody.set("ownerAuthorized", "on");
+    previewBody.set("profileFile", new File([profileJson], "google-service-list.json", {
+      type: "application/json",
+    }));
+
+    const preview = (await call(clientDetail.action as never, {
+      request: new Request("http://localhost/", { method: "POST", body: previewBody }),
+      params: { id: "cli_a" },
+      context: ctx,
+    })) as {
+      ok: boolean;
+      businessProfilePreview?: {
+        profileJson: string;
+        items: Array<{ id: string; normalizedLabel: string; semanticState: string }>;
+      };
+    };
+
+    expect(preview.ok).toBe(true);
+    expect(preview.businessProfilePreview?.items.map((item) => item.normalizedLabel)).toEqual([
+      "Water Heater Installation",
+      "Water Solutions",
+    ]);
+    expect(await repo.listExternalBusinessClaims(scope, "cli_a")).toEqual([]);
+
+    const ambiguous = preview.businessProfilePreview!.items.find(
+      (item) => item.semanticState === "ambiguous",
+    )!;
+    const confirmBody = new FormData();
+    confirmBody.set("intent", "confirm-business-profile");
+    confirmBody.set("ownerAuthorized", "on");
+    confirmBody.set("profileJson", preview.businessProfilePreview!.profileJson);
+    confirmBody.set("confirmClaim", ambiguous.normalizedLabel);
+
+    const confirmed = (await call(clientDetail.action as never, {
+      request: new Request("http://localhost/", { method: "POST", body: confirmBody }),
+      params: { id: "cli_a" },
+      context: ctx,
+    })) as { ok: boolean; message?: string };
+
+    expect(confirmed.ok).toBe(true);
+    expect(confirmed.message).toMatch(/profile service/i);
+    expect((await repo.listExternalBusinessClaims(scope, "cli_a")).map((claim) => claim.semanticState)).toEqual([
+      "accepted",
+      "accepted",
+    ]);
+  });
+
   it("surfaces the stored crawl reason on the client page", async () => {
     await repo.saveEvidence(
       scope,
