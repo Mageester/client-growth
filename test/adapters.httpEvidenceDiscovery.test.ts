@@ -274,6 +274,48 @@ describe("frontier priority and budgets", () => {
     );
   });
 
+  it("keeps sitemap URLs on the canonical host when the sitemap redirects there", async () => {
+    // Real corpus case (lifescapecolorado.com): crawl origin www, but the
+    // site's /sitemap.xml 301s to the apex host and the index's children are
+    // apex URLs. The redirect policy treats apex and www as one site — the
+    // sitemap reader must not be stricter than the crawl it feeds, or the
+    // whole sitemap layer is silently lost and absence verification starts
+    // claiming pages are missing when it just was never shown them.
+    const { fetchImpl } = siteFetch({
+      "https://www.example.com/": page("Home", ["/services/drain-cleaning"]),
+      "https://www.example.com/services/drain-cleaning": page("Drain Cleaning"),
+      "https://www.example.com/sitemap.xml": {
+        status: 301,
+        headers: { location: "https://example.com/sitemap.xml" },
+      },
+      "https://example.com/sitemap.xml": {
+        headers: { "content-type": "application/xml" },
+        body: `<?xml version="1.0"?><sitemapindex>
+          <sitemap><loc>https://example.com/page-sitemap.xml</loc></sitemap>
+        </sitemapindex>`,
+      },
+      "https://example.com/page-sitemap.xml": {
+        headers: { "content-type": "application/xml" },
+        body: `<?xml version="1.0"?><urlset>
+          <url><loc>https://example.com/services/outdoor-lighting</loc></url>
+        </urlset>`,
+      },
+      "https://example.com/services/outdoor-lighting": page("Outdoor Lighting"),
+    });
+
+    const evidence = await new HttpEvidenceProvider({ fetchImpl }).getEvidence(
+      client("www.example.com"),
+    );
+
+    expect(evidence.site.sitemapUrls).toContain(
+      "https://example.com/services/outdoor-lighting",
+    );
+    // And the crawl uses what the sitemap gave it.
+    expect(urlsOf(evidence.site.pages)).toContain(
+      "https://example.com/services/outdoor-lighting",
+    );
+  });
+
   it("still honours the page cap", async () => {
     const links = Array.from({ length: 40 }, (_, i) => `/services/s${i}`);
     const routes: Record<string, Route> = { "https://example.com/": page("Home", links) };

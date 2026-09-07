@@ -1104,9 +1104,14 @@ export class HttpEvidenceProvider implements EvidenceProvider {
       return { locs, isIndex: /<sitemapindex[\s>]/i.test(body.text) };
     };
 
+    // Apex and www are one website everywhere else in the crawl (isSameSite);
+    // this filter must not be stricter than the crawl it feeds. A sitemap that
+    // canonicalizes to the other host variant is real and common — filtering
+    // its children out here silently deletes the whole sitemap layer and turns
+    // incomplete discovery into confident absence claims downstream.
     const sameOriginUrl = (url: string): string | null => {
       const parsed = normalizeAndValidateUrl(url);
-      if (!parsed.ok || parsed.url.origin !== origin) return null;
+      if (!parsed.ok || !isSameSite(parsed.url, origin)) return null;
       return parsed.url.toString();
     };
 
