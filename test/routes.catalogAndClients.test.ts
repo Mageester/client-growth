@@ -3,12 +3,12 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import Database from "better-sqlite3";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import * as repo from "@/db/repositories";
 import { createWorkspaceForOwner } from "@/db/workspaces";
 import { SCHEMA_SQL } from "@/db/schema";
-import { ClientSchema, OpportunitySchema, ServiceSchema } from "@/core/schema";
+import { ClientSchema, EvidenceBundleSchema, OpportunitySchema, ServiceSchema } from "@/core/schema";
 import { suggestServiceTags } from "@/core/serviceTagSuggestions";
 import { __setSessionResolver } from "../app/lib/session.server";
 import { d1LikeOver } from "./helpers/testAuth";
@@ -106,7 +106,7 @@ describe("service catalog", () => {
     expect(service!.active).toBe(true);
   });
 
-  it("keeps text suggestions advisory until a person submits an explicit match", async () => {
+  it("applies deterministic text mapping for new services while keeping edits explicit", async () => {
     const proposal = suggestServiceTags({
       name: "Page title repair",
       description: "Fix missing HTML title tags.",
@@ -120,7 +120,7 @@ describe("service catalog", () => {
       description: "Fix missing HTML title tags.",
     });
     const [service] = await repo.listServices(scope);
-    expect(service!.tags).toEqual([]);
+    expect(service!.tags).toEqual(["missing-title"]);
 
     await saveService({
       id: service!.id,
@@ -131,6 +131,21 @@ describe("service catalog", () => {
       matches: ["missing-title"],
     });
     expect((await repo.getService(scope, service!.id))!.tags).toEqual(["missing-title"]);
+  });
+
+  it("maps a plain-language service phrase conservatively and leaves broad copy unmapped", () => {
+    expect(
+      suggestServiceTags({
+        name: "Website service page design",
+        description: "Design and build a focused page for each service line.",
+      }).map((suggestion) => suggestion.tag),
+    ).toEqual(["service-pages-build"]);
+    expect(
+      suggestServiceTags({
+        name: "Website design and marketing",
+        description: "A broad package for growing an online presence.",
+      }),
+    ).toEqual([]);
   });
 
   it("rejects an invalid price range without writing anything", async () => {
@@ -243,6 +258,36 @@ describe("adding a client", () => {
   const add = (fields: Record<string, string>) =>
     call(clientsIndex.action as never, { request: formReq(fields), context: ctx });
 
+  it("reads a new site before asking the agency to confirm offerings", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.endsWith("/robots.txt") || url.endsWith("/sitemap.xml")) {
+          return new Response("", { status: 404 });
+        }
+        return new Response(
+          "<!doctype html><html><head><title>Acme</title></head><body><h1>Acme</h1><p>" +
+            "Roofing and siding for local homes. ".repeat(20) +
+            "</p></body></html>",
+          { status: 200, headers: { "content-type": "text/html" } },
+        );
+      }),
+    );
+
+    const res = (await add({ name: "Acme", domain: "acme.example" })) as Response;
+
+    expect(res.status).toBe(302);
+    const clientId = new URL(res.headers.get("location")!, "http://localhost").searchParams.get(
+      "client",
+    )!;
+    expect(res.headers.get("location")).toBe("/onboarding?client=" + clientId);
+    const client = await repo.getClient(scope, clientId);
+    expect(client!.offerings).toEqual([]);
+    expect((await repo.getLatestEvidence(scope, clientId))?.site.pages.length).toBeGreaterThan(0);
+    expect(await repo.getLatestAnalysisRun(scope, clientId)).toBeNull();
+  });
+
   it("normalizes a pasted URL down to a hostname", async () => {
     const res = (await add({
       name: "Acme",
@@ -303,6 +348,36 @@ describe("editing a client", () => {
       params: { id: "cli_a" },
       context: ctx,
     });
+
+  it("surfaces the stored crawl reason on the client page", async () => {
+    await repo.saveEvidence(
+      scope,
+      EvidenceBundleSchema.parse({
+        clientId: "cli_a",
+        source: "http",
+        capturedAt: "2099-01-01T00:00:00.000Z",
+        site: { pages: [], nav: [], links: [], sitemapUrls: [] },
+        networkEvents: [
+          {
+            url: "https://acme.example/",
+            outcome: "inconclusive",
+            reason: "request timeout",
+            code: "timeout",
+            stage: "page",
+          },
+        ],
+      }),
+    );
+
+    const data = (await clientDetail.loader({
+      request: new Request("http://localhost/clients/cli_a"),
+      params: { id: "cli_a" },
+      context: ctx,
+    } as never)) as { crawlFailure: { title: string; detail: string } | null };
+
+    expect(data.crawlFailure?.title).toBe("The site did not respond to Orbit's request");
+    expect(data.crawlFailure?.detail).toMatch(/incomplete read/i);
+  });
 
   it("saves valid changes", async () => {
     const res = (await edit({

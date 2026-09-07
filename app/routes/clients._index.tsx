@@ -1,5 +1,5 @@
 import { useDeferredValue, useEffect, useRef, useState } from "react";
-import { Form, Link, useNavigation } from "react-router";
+import { Form, Link, redirect, useNavigation } from "react-router";
 
 import { ClientSchema } from "@/core/schema";
 import * as repo from "@/db/repositories";
@@ -20,8 +20,8 @@ import {
   pluralize,
 } from "../components/ui";
 import { ClientMark } from "../components/entity-mark";
-import { OfferingGuidance } from "../components/offering-guidance";
 import { requireTenant } from "../lib/session.server";
+import { AnalysisAbortedError, collectEvidenceOnly } from "../lib/analysis.server";
 import { normalizeDomain, validateClientInput } from "../lib/validation";
 import type { Route } from "./+types/clients._index";
 
@@ -92,6 +92,23 @@ export async function action({ request, context }: Route.ActionArgs) {
     notes: String(form.get("notes") ?? "").trim(),
   });
   await repo.upsertClient(t.scope, client);
+
+  // The primary add form intentionally omits offerings. Read the site first
+  // and let the existing confirmation stage turn crawl evidence into a short,
+  // reviewable service list. Posts from imports/older callers that explicitly
+  // include offerings keep their original direct-save behavior.
+  if (!form.has("offerings")) {
+    try {
+      await collectEvidenceOnly(t.scope, client.id, request.signal);
+      return redirect("/onboarding?client=" + client.id);
+    } catch (error) {
+      if (error instanceof AnalysisAbortedError) {
+        return { ok: false as const, error: error.message };
+      }
+      return redirect("/onboarding?client=" + client.id + "&read=failed");
+    }
+  }
+
   return { ok: true as const, id: client.id, name: client.name };
 }
 
@@ -102,7 +119,6 @@ export default function ClientsIndex({ loaderData, actionData }: Route.Component
   const navigation = useNavigation();
   const busy = navigation.state !== "idle";
   const [addOpen, setAddOpen] = useState(false);
-  const [newOfferings, setNewOfferings] = useState("");
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query.trim().toLowerCase());
   const handled = useRef<string | null>(null);
@@ -111,7 +127,6 @@ export default function ClientsIndex({ loaderData, actionData }: Route.Component
     if (actionData?.ok && actionData.id !== handled.current) {
       handled.current = actionData.id;
       setAddOpen(false);
-      setNewOfferings("");
     }
   }, [actionData]);
 
@@ -232,7 +247,7 @@ export default function ClientsIndex({ loaderData, actionData }: Route.Component
         open={addOpen}
         onClose={() => setAddOpen(false)}
         title="Add a client"
-        description="The website, and what this business sells. Both feed every analysis."
+        description="Give Orbit the name and website. It will read the site first, then ask you to confirm what the business sells."
       >
         <Link className="panel-import-link" to="/clients/import">
           Import multiple clients instead
@@ -255,24 +270,6 @@ export default function ClientsIndex({ loaderData, actionData }: Route.Component
               inputMode="url"
             />
             <div className="field-hint">Just the domain — https:// is optional.</div>
-          </div>
-          <div className="field">
-            <label htmlFor="new-client-offerings">What customers hire this business for</label>
-            <textarea
-              id="new-client-offerings"
-              name="offerings"
-              rows={6}
-              value={newOfferings}
-              onChange={(event) => setNewOfferings(event.target.value)}
-              placeholder={"heat pump installation\nair conditioning repair\nduct cleaning"}
-            />
-            <div className="field-hint">
-              One per line: things customers actually hire or pay them for. Not claims about the
-              business — no "free quotes", "fully insured", "family owned" or "financing available".
-              This is what the site gets checked against and what findings get priced from, so it
-              matters more than anything else on this form.
-            </div>
-            <OfferingGuidance raw={newOfferings} />
           </div>
           <div className="field">
             <label htmlFor="new-client-notes">Notes</label>

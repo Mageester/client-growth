@@ -102,10 +102,12 @@ export async function action({ request, context }: Route.ActionArgs) {
       .getAll("matches")
       .map(String)
       .filter((tag): tag is MatchTag => MATCHES.some((match) => match.tag === tag));
+    const automatic = suggestServiceTags(input).map((suggestion) => suggestion.tag as MatchTag);
+    const manual = form.get("mappingMode") === "manual" || form.has("matches");
     // Tags this form does not own (imported or legacy) are the user's data, not
     // ours to drop just because this screen has no checkbox for them.
     const preserved = (existing?.tags ?? []).filter((tag) => !(tag in MATCH_LABEL));
-    const tags = [...new Set([...chosen, ...preserved])];
+    const tags = [...new Set([...(existing || manual ? chosen : automatic), ...preserved])];
 
     await repo.upsertService(
       t.scope,
@@ -200,9 +202,9 @@ export default function ServicesIndex({ loaderData, actionData }: Route.Componen
           <Icon name="alert" size={15} />
           <span>
             {unmatched.length} active {pluralize(unmatched.length, "service is", "services are")} not
-            connected to any kind of website gap, so {unmatched.length === 1 ? "it" : "they"} will
-            never be matched to a finding. Open{" "}
-            {unmatched.length === 1 ? unmatched[0]!.name : "each one"} to set what it answers.
+            connected to a specific website opportunity yet, so {unmatched.length === 1 ? "it" : "they"}
+            will not price findings. Open {unmatched.length === 1 ? unmatched[0]!.name : "each one"}
+            and use the advanced mapping only if Orbit missed what the service is for.
           </span>
         </div>
       )}
@@ -211,9 +213,9 @@ export default function ServicesIndex({ loaderData, actionData }: Route.Componen
         <div className="notice" role="status" key={entry.label}>
           <Icon name="alert" size={15} />
           <span>
-            {entry.claimants.length} active services are offered for {entry.label}. Only{" "}
-            <b>{entry.claimants[0]!.name}</b> will be matched and priced — deactivate the others or
-            change what they are offered for.
+            {entry.claimants.length} active services are mapped to the same type of website
+            opportunity. Only <b>{entry.claimants[0]!.name}</b> will be matched and priced —
+            deactivate the others or adjust their advanced mapping.
           </span>
         </div>
       ))}
@@ -316,11 +318,11 @@ function ServiceRow({
         )}
         <div className="tag-row">
           {matches.length > 0 ? (
-            matches.map((tag) => (
-              <span className="pill quiet" key={tag}>
-                <Icon name="target" size={10} />
-                Offered for {MATCH_LABEL[tag]!.toLowerCase()}
-              </span>
+          matches.map((tag) => (
+            <span className="pill quiet" key={tag}>
+              <Icon name="target" size={10} />
+              Orbit can use this for related website work
+            </span>
             ))
           ) : (
             <span className="pill warn">Not matched to any finding</span>
@@ -380,6 +382,7 @@ function ServiceForm({
   return (
     <Form method="post">
       <input type="hidden" name="intent" value="save" />
+      <input type="hidden" name="mappingMode" value={manualMatches ? "manual" : "automatic"} />
       {service && <input type="hidden" name="id" value={service.id} />}
       <div className="field">
         <label htmlFor={prefix + "-name"}>Service name</label>
@@ -439,13 +442,11 @@ function ServiceForm({
           <Icon name="target" size={15} />
           <div>
             <strong>Suggested mapping</strong>
-            <span>
-              {suggestions.map((suggestion) => suggestion.label).join(" · ")}
-            </span>
+            <span>Orbit will use this service for related website opportunities.</span>
             <p className="faint">
               {service && matchesOf(service).length > 0
-                ? "Your saved matches stay selected. These text matches are suggestions only; open the override to change them."
-                : "Review these text matches before saving. Open the override if you want to change them."}
+                ? "Your saved mapping stays selected. Open the advanced override only if Orbit misunderstood the service."
+                : "This is inferred from your wording. Open the advanced override only if Orbit misunderstood the service."}
             </p>
           </div>
         </div>
@@ -454,15 +455,15 @@ function ServiceForm({
           <Icon name="alert" size={15} />
           <span>
             {suggestions.length > 0
-              ? "No service mapping is selected. Review the override before saving; without a match, this service will not be priced into findings."
-              : "No clear website gap matches this service name or description. Review the override before saving; without a match, this service will not be priced into findings."}
+              ? "Orbit could not connect this service to a specific website opportunity. It will stay in your catalog, but will not price findings until you use the advanced override."
+              : "Orbit could not connect this wording to a specific website opportunity. It will stay in your catalog, but will not price findings until you use the advanced override."}
           </span>
         </div>
       )}
       <details className="field service-tag-overrides">
-        <summary>{service ? "Change the matches" : "Override the proposed matches"}</summary>
+        <summary>Advanced: adjust how Orbit uses this service</summary>
         <fieldset className="fieldset">
-          <legend>Offer this when a site shows</legend>
+          <legend>Only change this if Orbit misunderstood the service</legend>
           {MATCHES.map((match) => (
             <label className="choice" key={match.tag}>
               <input
