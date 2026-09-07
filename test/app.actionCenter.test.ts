@@ -280,19 +280,24 @@ describe("agency action center", () => {
     expect(result.pipeline.openCount).toBe(0);
   });
 
-  it("groups related family rows while retaining every underlying opportunity", () => {
+  it("groups related service rows into a sellable project while retaining every underlying opportunity", () => {
     const result = center(
       [client("tri-city", "Tri City Plumbing")],
       [
-        opportunity({ id: "service-1", clientId: "tri-city", title: "Drain page" }),
-        opportunity({ id: "service-2", clientId: "tri-city", title: "Boiler page" }),
+        opportunity({ id: "service-1", clientId: "tri-city", title: "Water Heater Repair — dedicated service page" }),
+        opportunity({ id: "service-2", clientId: "tri-city", title: "Water Heater Replacement — dedicated service page" }),
+        opportunity({ id: "service-3", clientId: "tri-city", title: "Tankless Water Heater — dedicated service page" }),
       ],
     );
 
     expect(result.primary).toHaveLength(1);
-    expect(result.primary[0]?.count).toBe(2);
-    expect(result.primary[0]?.opportunityIds).toEqual(["service-2", "service-1"]);
-    expect(result.primary[0]?.priceMax).toBe(3600);
+    expect(result.primary[0]?.title).toBe("Water Heater Service Expansion");
+    expect(result.primary[0]?.count).toBe(3);
+    expect(new Set(result.primary[0]?.opportunityIds)).toEqual(
+      new Set(["service-1", "service-2", "service-3"]),
+    );
+    expect(result.primary[0]?.priceMax).toBe(5400);
+    expect(result.primary[0]?.valueLabel).toBe("Underlying opportunity value");
   });
 
   it("returns a null close rate until a client has decided", () => {

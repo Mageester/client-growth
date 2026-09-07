@@ -340,6 +340,49 @@ describe("opportunity queue presentation", () => {
     expect(html).toContain("confidence");
     expect(html).not.toContain("recency");
   });
+
+  it("presents related service findings as a project without inventing a package price", () => {
+    const rows = [
+      opp({ id: "water_repair", title: "Water Heater Repair — dedicated service page" }),
+      opp({ id: "water_replace", title: "Water Heater Replacement — dedicated service page" }),
+      opp({ id: "tankless", title: "Tankless Water Heater — dedicated service page" }),
+    ];
+    const page = createElement(oppIndex.default, {
+      loaderData: {
+        groups: [
+          {
+            client: { id: "cli_a", name: "Tri City Plumbing", domain: "cli-a.example" },
+            opportunities: rows,
+            totals: { open: 3, closed: 0, priceMin: 2700, priceMax: 5400 },
+            run: null,
+            monitoring: { cadence: "off", nextDueAt: null },
+            state: "attention",
+          },
+        ],
+        serviceName: { svc_a: "Service Landing Page" },
+        winRates: [],
+        monitoring: {
+          monitored: 0,
+          due: 0,
+          checks: 0,
+          unhealthy: 0,
+          newFindings: 0,
+          resolvedFindings: 0,
+        },
+      },
+      actionData: undefined,
+    } as never);
+    const router = createMemoryRouter([{ path: "*", element: page }], {
+      initialEntries: ["/opportunities"],
+    });
+    const html = renderToStaticMarkup(createElement(RouterProvider, { router }));
+
+    expect(html).toContain("Water Heater Service Expansion");
+    expect(html).toContain("Underlying opportunity value");
+    expect(html).toContain("$2,700 – $5,400");
+    expect(html).toContain("Package price");
+    expect(html).toContain("Not set");
+  });
 });
 
 // ---------------------------------------------------------------------------

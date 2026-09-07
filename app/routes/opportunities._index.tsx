@@ -3,9 +3,10 @@ import { Form, Link, useNavigation, useSearchParams } from "react-router";
 
 import type { Opportunity } from "@/core/schema";
 import {
-  groupOpportunitiesByFamily,
-  type OpportunityFamilyGroup,
-} from "@/core/opportunityGrouping";
+  buildProjectViews,
+  formatProjectStatusSummary,
+  type ProjectView,
+} from "@/core/projectPackaging";
 import { tierForRule } from "@/core/rules/registry";
 import { byEvidencedValue, computeWinRates, winRatesFromRanked } from "@/core/winRates";
 import { changeHeadline, type MonitoringOutcome } from "@/core/monitoring";
@@ -31,6 +32,7 @@ import {
   PageContextMeta,
   StateDot,
   formatCompactRange,
+  formatCurrencyRange,
   formatDue,
   formatRelative,
   pluralize,
@@ -144,36 +146,59 @@ export function healthSectionDescription(count: number, filter: FeedFilter): str
   return `${count} ${pluralize(count, "check", "checks")} worth fixing — titles, headings, descriptions and links. Supporting work rather than the reason to call.`;
 }
 
-function OpportunityFamilySection({
-  family,
+function ProjectSection({
+  project,
   hrefFor,
 }: {
-  family: OpportunityFamilyGroup<SignalDeskEntry>;
+  project: ProjectView<SignalDeskEntry>;
   hrefFor: (entry: SignalDeskEntry) => string;
 }) {
   return (
-    <section className="signal-family">
-      <div className="feed-head-copy">
-        <h2>{family.family.label}</h2>
-        <div className="feed-head-meta">
-          <span>{family.family.description}</span>
-          <span className="dot-sep">·</span>
-          <span>
-            {family.entries.length} related {pluralize(family.entries.length, "finding", "findings")}
-          </span>
-          <span className="dot-sep">·</span>
-          <span>{family.client.name}</span>
+    <section className="signal-project">
+      <div className="project-head">
+        <div className="project-head-copy">
+          <span className="eyebrow">Project</span>
+          <h2>{project.title}</h2>
+          <div className="feed-head-meta">
+            <span>
+              {project.entries.length} related {pluralize(project.entries.length, "finding", "findings")}
+            </span>
+            <span className="dot-sep">·</span>
+            <span>{project.client.name}</span>
+          </div>
+          <p className="project-summary">{project.summary}</p>
         </div>
+        <dl className="project-facts">
+          <div>
+            <dt>Underlying opportunity value</dt>
+            <dd>{formatCurrencyRange(project.underlyingPriceMin, project.underlyingPriceMax)}</dd>
+          </div>
+          <div>
+            <dt>Package price</dt>
+            <dd>Not set</dd>
+          </div>
+          <div>
+            <dt>Work in motion</dt>
+            <dd>{formatProjectStatusSummary(project.statusSummary) || "Open"}</dd>
+          </div>
+        </dl>
       </div>
-      <div className="signal-list-head" aria-hidden="true">
-        <span>Opportunity</span>
-        <span>Client</span>
-        <span>Value</span>
-        <span>Confidence</span>
-        <span>Age</span>
-        <span />
-      </div>
-      <OpportunityQueue entries={family.entries} hrefFor={hrefFor} />
+      <details className="project-findings" open={project.entries.length <= 3}>
+        <summary>
+          Included findings · {project.entries.length} {pluralize(project.entries.length, "opportunity", "opportunities")}
+        </summary>
+        <div className="project-findings-body">
+          <div className="signal-list-head" aria-hidden="true">
+            <span>Opportunity</span>
+            <span>Client</span>
+            <span>Value</span>
+            <span>Confidence</span>
+            <span>Age</span>
+            <span />
+          </div>
+          <OpportunityQueue entries={project.entries} hrefFor={hrefFor} />
+        </div>
+      </details>
     </section>
   );
 }
@@ -246,8 +271,8 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
   const healthEntries = signalEntries.filter(
     (entry) => tierForRule(entry.opportunity.ruleId) === "health",
   );
-  const commercialFamilies = groupOpportunitiesByFamily(commercialEntries);
-  const healthFamilies = groupOpportunitiesByFamily(healthEntries);
+  const commercialProjects = buildProjectViews(commercialEntries);
+  const healthProjects = buildProjectViews(healthEntries);
   const totals = sumTotals(scoped.map((group) => group.totals));
   const portfolioTotals = sumTotals(groups.map((group) => group.totals));
   const needsAttention = groups.filter((group) => group.state === "attention").length;
@@ -447,10 +472,10 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
             <>
               {commercialEntries.length > 0 && (
                 <>
-                  {commercialFamilies.map((family) => (
-                    <OpportunityFamilySection
-                      key={family.key}
-                      family={family}
+                  {commercialProjects.map((project) => (
+                    <ProjectSection
+                      key={project.displayKey}
+                      project={project}
                       hrefFor={(entry) =>
                         `/opportunities/${encodeURIComponent(entry.opportunity.id)}`
                       }
@@ -469,10 +494,10 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
                       </span>
                     </div>
                   </div>
-                  {healthFamilies.map((family) => (
-                    <OpportunityFamilySection
-                      key={family.key}
-                      family={family}
+                  {healthProjects.map((project) => (
+                    <ProjectSection
+                      key={project.displayKey}
+                      project={project}
                       hrefFor={(entry) =>
                         `/opportunities/${encodeURIComponent(entry.opportunity.id)}`
                       }

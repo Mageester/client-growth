@@ -22,13 +22,19 @@ export function meta() {
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const tenant = await requireTenant(request, context);
-  const [changes, clients, runsByClient, opportunitiesByClient] = await Promise.all([
+  const [changes, clients, runsByClient, opportunitiesByClient, services] = await Promise.all([
     portfolioChanges(tenant.scope),
     repo.listClients(tenant.scope),
     repo.latestAnalysisRunByClient(tenant.scope),
     repo.listOpportunitiesByClient(tenant.scope),
+    repo.listServices(tenant.scope),
   ]);
-  const actionCenter = buildActionCenter({ clients, opportunitiesByClient, latestRunsByClient: runsByClient });
+  const actionCenter = buildActionCenter({
+    clients,
+    opportunitiesByClient,
+    latestRunsByClient: runsByClient,
+    serviceNameById: new Map(services.map((service) => [service.id, service.name])),
+  });
   const totals = sumTotals(
     clients.map((client) => totalsFor(opportunitiesByClient.get(client.id) ?? [])),
   );
@@ -79,7 +85,11 @@ function ActionCard({ item }: { item: ActionQueueItem }) {
               : formatCurrencyRange(item.priceMin, item.priceMax)}
           </b>
           <span>
-            {isAnalysis ? (isInconclusive ? "Needs a retry" : "Start here") : "Potential value"}
+            {isAnalysis
+              ? isInconclusive
+                ? "Needs a retry"
+                : "Start here"
+              : item.valueLabel ?? "Potential value"}
           </span>
         </span>
         <span className="action-card-meta">

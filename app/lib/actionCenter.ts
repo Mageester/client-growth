@@ -3,15 +3,18 @@ import type { Client, Opportunity } from "@/core/schema";
 import { acceptedOrLater, closeRate, pitchedOrLater } from "@/core/salesFunnel";
 import { tierForRule } from "@/core/rules/registry";
 import {
-  groupOpportunitiesByFamily,
-  type OpportunityFamilyKey,
-} from "@/core/opportunityGrouping";
+  buildProjectViews,
+  type ProjectEntry,
+  type ProjectView,
+} from "@/core/projectPackaging";
+import type { OpportunityFamilyKey } from "@/core/opportunityGrouping";
 import { byPotentialValue, isOpen, nextAction, sumTotals, totalsFor } from "./portfolio";
 
 export interface ActionCenterInput {
   clients: readonly Client[];
   opportunitiesByClient: ReadonlyMap<string, readonly Opportunity[]>;
   latestRunsByClient: ReadonlyMap<string, AnalysisRun>;
+  serviceNameById?: ReadonlyMap<string, string>;
 }
 
 export type ActionKind = "commercial" | "site-health" | "analysis";
@@ -31,6 +34,7 @@ export interface ActionQueueItem {
   count: number;
   priceMin: number;
   priceMax: number;
+  valueLabel?: string;
   /** Display-only references. The underlying opportunity rows are unchanged. */
   opportunityIds: string[];
 }
@@ -134,26 +138,21 @@ function opportunityForStage(
   );
 }
 
-function familyTitle(kind: ActionKind, family: OpportunityFamilyKey, count: number): string {
-  if (kind === "site-health") return count > 1 ? "Site health improvements" : "Site health improvement";
-  if (family === "conversion") return count > 1 ? "Conversion improvements" : "Conversion improvement";
-  return count > 1 ? "Service expansion opportunity" : "Service expansion opportunity";
-}
-
 function familyDetail(
   kind: ActionKind,
   stage: ActionStage,
-  count: number,
+  project: ProjectView<ProjectEntry>,
   opportunities: readonly Opportunity[],
 ): string {
   if (kind === "site-health") {
+    const count = project.entries.length;
     return `${count} related ${count === 1 ? "website fix" : "website fixes"} supporting the client work.`;
   }
   if (stage === "pitched") return "Follow-up is due on pitched work.";
   if (stage === "proposal_prepared") return "A proposal is ready to send to the client.";
   if (stage === "accepted") return "Accepted work ready for a proposal.";
   if (opportunities.length === 1) return "A new commercial opportunity is ready for review.";
-  return `${count} related commercial findings from the same service-visibility work.`;
+  return project.summary;
 }
 
 function opportunityHref(clientId: string): string {
@@ -166,27 +165,26 @@ function clientHref(clientId: string): string {
 
 function opportunityItem(
   client: Client,
-  family: OpportunityFamilyKey,
-  opportunities: readonly Opportunity[],
+  project: ProjectView<ProjectEntry>,
   now: Date,
 ): ActionQueueItem | null {
+  const opportunities = project.entries.map((entry) => entry.opportunity);
   const ordered = [...opportunities].sort(byPotentialValue);
   const kind: ActionKind = ordered.some((opp) => tierForRule(opp.ruleId) === "commercial")
     ? "commercial"
     : "site-health";
   const stage = actionStage(ordered, now);
   if (!stage) return null;
-  const totals = totalsFor(ordered, now);
   const count = ordered.length;
 
   return {
-    id: `opportunities:${client.id}:${family}`,
+    id: project.displayKey,
     kind,
     client: { id: client.id, name: client.name, domain: client.domain },
-    family,
+    family: project.family.key,
     stage,
-    title: familyTitle(kind, family, count),
-    detail: familyDetail(kind, stage, count, ordered),
+    title: project.title,
+    detail: familyDetail(kind, stage, project, ordered),
     action:
       kind === "site-health"
         ? "Review"
@@ -195,8 +193,9 @@ function opportunityItem(
           : nextAction(opportunityForStage(ordered, stage, now)),
     href: opportunityHref(client.id),
     count,
-    priceMin: totals.priceMin,
-    priceMax: totals.priceMax,
+    priceMin: project.underlyingPriceMin,
+    priceMax: project.underlyingPriceMax,
+    valueLabel: "Underlying opportunity value",
     opportunityIds: ordered.map((opp) => opp.id),
   };
 }
@@ -364,17 +363,14 @@ export function buildActionCenterAt(
   for (const client of input.clients) {
     const opportunities = [...(input.opportunitiesByClient.get(client.id) ?? [])];
     const open = opportunities.filter((opp) => isOpen(opp, clock));
-    const groups = groupOpportunitiesByFamily(
-      open.map((opportunity) => ({ opportunity, client })),
-    );
+    const projectEntries: ProjectEntry[] = open.map((opportunity) => ({
+      opportunity,
+      client,
+      serviceName: input.serviceNameById?.get(opportunity.suggestedServiceId),
+    }));
 
-    for (const group of groups) {
-      const item = opportunityItem(
-        client,
-        group.family.key,
-        group.entries.map((entry) => entry.opportunity),
-        clock,
-      );
+    for (const project of buildProjectViews(projectEntries)) {
+      const item = opportunityItem(client, project, clock);
       if (item) primary.push(item);
     }
 
