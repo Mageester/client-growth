@@ -908,6 +908,221 @@ html[data-theme="light"] .app-frame .entity-mark {
   font-size: 18px;
 }
 
+/* The Action Center is intentionally a derived view over the existing
+ * opportunity rows. Its cards preserve the editorial calm of Home while
+ * making the next agency action visible without exposing rule vocabulary. */
+.app-frame .home-action-center {
+  margin-top: 10px;
+}
+
+.app-frame .home-action-head,
+.app-frame .home-pipeline-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 12px;
+}
+
+.app-frame .home-action-head .eyebrow,
+.app-frame .home-pipeline-head .eyebrow {
+  margin-bottom: 18px;
+}
+
+.app-frame .home-action-head .title-section,
+.app-frame .home-pipeline-head .title-section {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 450;
+}
+
+.app-frame .home-action-head > a,
+.app-frame .home-pipeline-head > a {
+  color: var(--ink-3);
+  font-size: 16px;
+  text-decoration: none;
+  transition: color var(--t-hover) ease;
+}
+
+.app-frame .home-action-head > a:hover,
+.app-frame .home-pipeline-head > a:hover {
+  color: var(--ink);
+}
+
+.app-frame .home-action-list,
+.app-frame .home-action-list > li {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.app-frame .action-card {
+  position: relative;
+  min-height: 142px;
+  margin: 0 -20px;
+  padding: 27px 20px 18px;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) minmax(170px, auto) 24px;
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 0 42px;
+  border-radius: var(--r-lg);
+  color: var(--ink);
+  text-decoration: none;
+  transition: background-color var(--t-hover) ease;
+}
+
+.app-frame .action-card:hover { background: var(--hover); }
+
+.app-frame .action-card::after {
+  content: "";
+  position: absolute;
+  right: 20px;
+  bottom: 0;
+  left: 126px;
+  height: 1px;
+  background: var(--line);
+}
+
+.app-frame .home-action-list > li:last-child .action-card::after { display: none; }
+
+.app-frame .action-card > .entity-mark,
+.app-frame .action-card-copy,
+.app-frame .action-card-value,
+.app-frame .action-card > .attention-chevron {
+  grid-row: 1;
+}
+
+.app-frame .action-card-copy,
+.app-frame .action-card-value {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-frame .action-card-copy b {
+  color: var(--ink);
+  font-size: 21px;
+  font-weight: 450;
+  line-height: 1.2;
+}
+
+.app-frame .action-card-copy > span {
+  margin-top: 5px;
+  color: var(--ink-2);
+  font-size: 19px;
+  line-height: 1.25;
+}
+
+.app-frame .action-card-copy small {
+  margin-top: 7px;
+  color: var(--ink-3);
+  font-size: 15px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.app-frame .action-card-value {
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.app-frame .action-card-value b {
+  color: var(--ink);
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.app-frame .action-card-value span {
+  color: var(--ink-2);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.app-frame .action-card-meta {
+  grid-column: 2 / -1;
+  grid-row: 2;
+  min-width: 0;
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.app-frame .action-card-meta span {
+  max-width: 100%;
+  padding: 7px 11px;
+  border-radius: var(--r-xs);
+  color: var(--ink-2);
+  background: rgba(200, 220, 255, 0.06);
+  font-size: 14px;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.app-frame .action-card-meta span:last-child {
+  color: var(--accent-strong);
+  background: var(--accent-wash);
+}
+
+.app-frame .action-card-analysis .action-card-value b { color: var(--warn); }
+
+.app-frame .home-clear-start { align-items: flex-start; }
+.app-frame .home-clear-start > svg { color: var(--accent-strong); margin-top: 4px; }
+.app-frame .home-clear-start .btn { margin-top: 18px; }
+
+/* A compact, text-first readout of the existing funnel. There is deliberately
+ * no chart or composite score here: the numbers are the persisted stages. */
+.app-frame .home-pipeline {
+  margin-top: 76px;
+  padding-top: 40px;
+  border-top: 1px solid var(--line);
+}
+
+.app-frame .home-pipeline-head > p {
+  margin: 0;
+  color: var(--ink-4);
+  font-size: 15px;
+}
+
+.app-frame .pipeline-grid {
+  margin: 0;
+  padding: 26px 0 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: 1px solid var(--line);
+}
+
+.app-frame .pipeline-grid > div {
+  min-height: 72px;
+  padding: 0 24px;
+  border-right: 1px solid var(--line);
+}
+
+.app-frame .pipeline-grid > div:nth-child(4n + 1) { padding-left: 0; }
+.app-frame .pipeline-grid > div:nth-child(4n) { border-right: 0; }
+.app-frame .pipeline-grid > div:nth-child(n + 5) { margin-top: 26px; padding-top: 26px; border-top: 1px solid var(--line); }
+
+.app-frame .pipeline-grid dt {
+  color: var(--ink-3);
+  font-size: 15px;
+  line-height: 1.1;
+}
+
+.app-frame .pipeline-grid dd {
+  margin: 12px 0 0;
+  color: var(--ink);
+  font-size: 25px;
+  font-weight: 400;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 .app-frame .home-view-all {
   display: inline-block;
   margin: 24px 0 0 111px;
@@ -2500,6 +2715,11 @@ html[data-theme="light"] .app-frame .entity-mark {
     grid-template-columns: 56px minmax(0, 1fr) minmax(140px, auto) 24px;
     gap: 0 28px;
   }
+  .app-frame .action-card {
+    min-height: 126px;
+    grid-template-columns: 56px minmax(0, 1fr) minmax(140px, auto) 24px;
+    gap: 0 28px;
+  }
   .app-frame .attention-row::after {
     left: 104px;
   }
@@ -2507,6 +2727,9 @@ html[data-theme="light"] .app-frame .entity-mark {
   .app-frame .attention-copy > span { font-size: 18px; }
   .app-frame .attention-value b { font-size: 19px; }
   .app-frame .attention-value span { font-size: 16px; }
+  .app-frame .action-card-copy b { font-size: 20px; }
+  .app-frame .action-card-copy > span { font-size: 18px; }
+  .app-frame .action-card-value b { font-size: 19px; }
   .app-frame .mark-lg { width: 56px; height: 56px; flex: 0 0 56px; font-size: 18px; }
   .app-frame .portfolio-summary > div { padding: 0 22px; gap: 22px; }
   .app-frame .portfolio-summary blockquote { padding-left: 34px; font-size: 17px; }
@@ -2598,6 +2821,34 @@ html[data-theme="light"] .app-frame .entity-mark {
     grid-template-rows: auto auto auto;
     gap: 0 18px;
   }
+  .app-frame .action-card {
+    min-height: 0;
+    padding: 22px 20px 24px;
+    grid-template-columns: 52px minmax(0, 1fr) 20px;
+    grid-template-rows: auto auto auto;
+    gap: 0 18px;
+  }
+  .app-frame .action-card > .entity-mark { grid-area: 1 / 1; }
+  .app-frame .action-card-copy { grid-area: 1 / 2; }
+  .app-frame .action-card > .attention-chevron { grid-area: 1 / 3; align-self: center; }
+  .app-frame .action-card-value {
+    grid-area: 2 / 2 / 3 / 4;
+    flex-direction: row;
+    align-items: baseline;
+    gap: 8px;
+    margin-top: 13px;
+  }
+  .app-frame .action-card-meta {
+    grid-area: 3 / 2 / 4 / 4;
+    margin-top: 13px;
+  }
+  .app-frame .action-card::after { left: 20px; right: 20px; }
+  .app-frame .action-card-copy b { font-size: 18px; }
+  .app-frame .action-card-copy > span { margin-top: 7px; font-size: 16px; }
+  .app-frame .action-card-copy small { margin-top: 10px; font-size: 14px; }
+  .app-frame .action-card-value b { font-size: 17px; }
+  .app-frame .action-card-value span { font-size: 14px; }
+  .app-frame .action-card-meta span { padding: 6px 10px; font-size: 13px; }
   .app-frame .attention-row > .entity-mark { grid-area: 1 / 1; }
   .app-frame .attention-copy { grid-area: 1 / 2; }
   .app-frame .attention-chevron { grid-area: 1 / 3; align-self: center; }
@@ -2630,6 +2881,22 @@ html[data-theme="light"] .app-frame .entity-mark {
   .app-frame .attention-value b { font-size: 17px; }
   .app-frame .attention-value span { font-size: 14px; }
   .app-frame .home-view-all { margin-left: 0; }
+  .app-frame .home-action-head,
+  .app-frame .home-pipeline-head { align-items: flex-start; flex-direction: column; gap: 12px; }
+  .app-frame .home-action-head .eyebrow,
+  .app-frame .home-pipeline-head .eyebrow { margin-bottom: 16px; }
+  .app-frame .home-pipeline { margin-top: 58px; }
+  .app-frame .pipeline-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; }
+  .app-frame .pipeline-grid > div,
+  .app-frame .pipeline-grid > div:nth-child(4n + 1),
+  .app-frame .pipeline-grid > div:nth-child(4n) {
+    padding: 0 16px;
+    border-right: 1px solid var(--line);
+  }
+  .app-frame .pipeline-grid > div:nth-child(2n + 1) { padding-left: 0; }
+  .app-frame .pipeline-grid > div:nth-child(2n) { border-right: 0; }
+  .app-frame .pipeline-grid > div:nth-child(n + 3) { margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--line); }
+  .app-frame .pipeline-grid dd { font-size: 22px; }
   .app-frame .portfolio-summary { grid-template-columns: 1fr; padding-top: 30px; }
   .app-frame .portfolio-summary > div { padding: 22px 0; border-right: 0; border-bottom: 1px solid var(--line); }
   .app-frame .portfolio-summary blockquote { margin-top: 26px; }

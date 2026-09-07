@@ -2,7 +2,8 @@ import { Link } from "react-router";
 
 import { portfolioChanges } from "@/db/portfolioChanges";
 import * as repo from "@/db/repositories";
-import { byPotentialValue, isOpen, sumTotals, totalsFor } from "../lib/portfolio";
+import { buildActionCenter, buildRecentActivity } from "../lib/actionCenter";
+import { sumTotals, totalsFor } from "../lib/portfolio";
 import {
   formatCompactRange,
   formatCurrencyRange,
@@ -21,26 +22,13 @@ export function meta() {
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const tenant = await requireTenant(request, context);
-  const [changes, clients, services, opportunitiesByClient] = await Promise.all([
+  const [changes, clients, runsByClient, opportunitiesByClient] = await Promise.all([
     portfolioChanges(tenant.scope),
     repo.listClients(tenant.scope),
-    repo.listServices(tenant.scope),
+    repo.latestAnalysisRunByClient(tenant.scope),
     repo.listOpportunitiesByClient(tenant.scope),
   ]);
-  const serviceNames = new Map(services.map((service) => [service.id, service.name]));
-  const attention = clients
-    .flatMap((client) =>
-      (opportunitiesByClient.get(client.id) ?? [])
-        .filter(isOpen)
-        .map((opportunity) => ({
-          client,
-          opportunity,
-          serviceName:
-            serviceNames.get(opportunity.suggestedServiceId) ?? opportunity.suggestedServiceId,
-        })),
-    )
-    .sort((a, b) => byPotentialValue(a.opportunity, b.opportunity))
-    .slice(0, 3);
+  const actionCenter = buildActionCenter({ clients, opportunitiesByClient, latestRunsByClient: runsByClient });
   const totals = sumTotals(
     clients.map((client) => totalsFor(opportunitiesByClient.get(client.id) ?? [])),
   );
@@ -48,8 +36,12 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   return {
     ...changes,
     firstName: tenant.user.name.trim().split(/\s+/)[0] || "there",
-    attention,
-    portfolio: { clients: clients.length, ...totals },
+    actionCenter,
+    activity: buildRecentActivity({ ...changes, since: changes.since }),
+    portfolio: {
+      clients: clients.length,
+      ...totals,
+    },
   };
 }
 
@@ -67,9 +59,10 @@ function greeting(now = new Date()): string {
 
 export default function Changes({ loaderData: data }: Route.ComponentProps) {
   const renderNow = homeRenderClock(data.until);
-  const summary = data.summary;
   const firstName = data.firstName ?? "there";
-  const attention = data.attention ?? [];
+  const queue = data.actionCenter.queue;
+  const pipeline = data.actionCenter.pipeline;
+  const activity = data.activity;
   const portfolio = data.portfolio ?? {
     clients: 0,
     open: 0,
@@ -87,48 +80,83 @@ export default function Changes({ loaderData: data }: Route.ComponentProps) {
             {greeting(new Date(renderNow))}, {firstName}.
           </h1>
           <p className="page-statement">
-            {attention.length > 0
-              ? `${attention.length} ${pluralize(attention.length, "thing deserves", "things deserve")} attention.`
-              : "Your portfolio is quiet today."}
+            {queue.length > 0
+              ? `${queue.length} ${pluralize(queue.length, "next action", "next actions")} across your clients.`
+              : portfolio.clients > 0
+                ? "Your portfolio is quiet today."
+                : "Start with a client and Orbit will find the next conversation."}
           </p>
         </div>
         <PageContextMeta dateTime={data.until} />
       </header>
 
-      <section className="home-attention" aria-labelledby="attention-heading">
-        <h2 id="attention-heading" className="sr-only">
-          What deserves your attention
-        </h2>
-        {attention.length === 0 ? (
-          <div className="home-clear">
-            <Icon name="check" size={22} />
-            <div>
-              <b>Nothing urgent right now</b>
-              <p>Recent checks have not surfaced open work that needs a conversation.</p>
-            </div>
+      <section className="home-action-center" aria-labelledby="action-center-heading">
+        <div className="section-head home-action-head">
+          <div>
+            <span className="eyebrow">Next up</span>
+            <h2 id="action-center-heading" className="title-section">
+              Clients worth contacting
+            </h2>
           </div>
+          <Link to="/opportunities">View all opportunities</Link>
+        </div>
+        {queue.length === 0 ? (
+          portfolio.clients === 0 ? (
+            <div className="home-clear home-clear-start">
+              <Icon name="users" size={22} />
+              <div>
+                <b>Start with a client</b>
+                <p>Add a name and website. Orbit will read the site and bring back the next conversation.</p>
+                <Link className="btn btn-sm" to="/clients">
+                  Add client
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div className="home-clear">
+              <Icon name="check" size={22} />
+              <div>
+                <b>No client work to review</b>
+                <p>Recent analysis has not surfaced an open conversation.</p>
+              </div>
+            </div>
+          )
         ) : (
-          <ul>
-            {attention.map(({ opportunity, client, serviceName }) => (
-              <li key={opportunity.id}>
-                <Link
-                  className="attention-row"
-                  to={`/opportunities/${encodeURIComponent(opportunity.id)}`}
-                >
-                  <ClientMark name={client.name} seed={client.domain} size="lg" />
-                  <span className="attention-copy">
-                    <b>{client.name}</b>
-                    <span>{opportunity.title}</span>
+          <ul className="home-action-list">
+            {queue.slice(0, 6).map((item) => (
+              <li key={item.id}>
+                <Link className={`action-card action-card-${item.kind}`} to={item.href}>
+                  <ClientMark name={item.client.name} seed={item.client.domain} size="lg" />
+                  <span className="action-card-copy">
+                    <b>{item.client.name}</b>
+                    <span>{item.title}</span>
+                    <small>{item.detail}</small>
                   </span>
-                  <span className="attention-value">
-                    <b>{formatCurrencyRange(opportunity.priceMin, opportunity.priceMax)}</b>
-                    <span>Potential revenue</span>
+                  <span className="action-card-value">
+                    <b>
+                      {item.kind === "analysis"
+                        ? item.analysisState === "inconclusive"
+                          ? "Attention"
+                          : "Ready"
+                        : formatCurrencyRange(item.priceMin, item.priceMax)}
+                    </b>
+                    <span>
+                      {item.kind === "analysis"
+                        ? item.analysisState === "inconclusive"
+                          ? "Needs a retry"
+                          : "Start here"
+                        : "Potential value"}
+                    </span>
+                  </span>
+                  <span className="action-card-meta">
+                    {item.count > 0 && (
+                      <span>
+                        {item.count} related {pluralize(item.count, "finding", "findings")}
+                      </span>
+                    )}
+                    <span>{item.action}</span>
                   </span>
                   <Icon name="chevron-right" size={18} className="attention-chevron" />
-                  <small className="attention-tags">
-                    <span>{serviceName}</span>
-                    <span>{Math.round(opportunity.confidence * 100)}% confidence</span>
-                  </small>
                 </Link>
               </li>
             ))}
@@ -136,74 +164,62 @@ export default function Changes({ loaderData: data }: Route.ComponentProps) {
         )}
       </section>
 
-      <section className="portfolio-summary" aria-label="Portfolio summary">
-        <div>
-          <Icon name="users" size={24} />
-          <p>
-            <b>{portfolio.clients}</b>
-            <span>Clients</span>
-            <small>{summary.clientsChecked} checked this week</small>
-          </p>
+      <section className="home-pipeline" aria-labelledby="pipeline-heading">
+        <div className="section-head home-pipeline-head">
+          <div>
+            <span className="eyebrow">Pipeline</span>
+            <h2 id="pipeline-heading" className="title-section">
+              Work in motion
+            </h2>
+          </div>
+          <p>Dismissed work is not counted as a client loss.</p>
         </div>
-        <div>
-          <Icon name="target" size={24} />
-          <p>
-            <b>{portfolio.open}</b>
-            <span>Open opportunities</span>
-            <small>{summary.newFindings} new this week</small>
-          </p>
-        </div>
-        <div>
-          <Icon name="signal" size={24} />
-          <p>
-            <b>
-              {portfolio.open > 0
-                ? formatCompactRange(portfolio.priceMin, portfolio.priceMax)
-                : "—"}
-            </b>
-            <span>Potential revenue</span>
-            <small>
-              Across {portfolio.open} {pluralize(portfolio.open, "opportunity", "opportunities")}
-            </small>
-          </p>
-        </div>
-        <blockquote>
-          “Find the revenue that’s already there.”<cite>Axiom Orbit</cite>
-        </blockquote>
+        <dl className="pipeline-grid">
+          <div><dt>New</dt><dd>{pipeline.newCount}</dd></div>
+          <div><dt>Accepted</dt><dd>{pipeline.acceptedCount}</dd></div>
+          <div><dt>Pitched</dt><dd>{pipeline.pitchedCount}</dd></div>
+          <div><dt>Sold</dt><dd>{pipeline.soldCount}</dd></div>
+          <div><dt>Lost</dt><dd>{pipeline.lostCount}</dd></div>
+          <div><dt>Close rate</dt><dd>{pipeline.closeRate === null ? "—" : `${Math.round(pipeline.closeRate * 100)}%`}</dd></div>
+          <div>
+            <dt>Sold revenue</dt>
+            <dd>
+              {pipeline.soldCount === 0 || pipeline.soldRevenue === null
+                ? "—"
+                : formatCurrencyRange(pipeline.soldRevenue, pipeline.soldRevenue)}
+            </dd>
+          </div>
+          <div>
+            <dt>Open potential</dt>
+            <dd>{pipeline.openCount > 0 ? formatCompactRange(pipeline.openPriceMin, pipeline.openPriceMax) : "—"}</dd>
+          </div>
+        </dl>
       </section>
 
       <section className="home-weekly" aria-labelledby="weekly-heading">
         <div className="section-head">
           <div>
-            <span className="eyebrow">This week</span>
+            <span className="eyebrow">Recent activity</span>
             <h2 id="weekly-heading" className="title-section">
-              Portfolio changes
+              What changed
             </h2>
           </div>
-          <Link to="/operations">Check health</Link>
+          <Link to="/operations">Review site health</Link>
         </div>
-        {data.runs.length === 0 ? (
+        {activity.length === 0 ? (
           <p className="prose faint">
-            No checks completed in the last seven days. This does not mean every site is clean.
+            No recent analysis to show. This does not mean every site is clean.
           </p>
         ) : (
           <ul className="weekly-list">
-            {data.runs.slice(0, 5).map((run) => (
-              <li key={run.id}>
+            {activity.slice(0, 6).map((item) => (
+              <li key={item.id}>
                 <div className="weekly-row">
-                  <Link to={`/clients/${encodeURIComponent(run.clientId)}`}>{run.clientName}</Link>
-                  <time dateTime={run.finishedAt}>{formatRelative(run.finishedAt, renderNow)}</time>
+                  <Link to={item.href}>{item.clientName}</Link>
+                  <time dateTime={item.at}>{formatRelative(item.at, renderNow)}</time>
                 </div>
-                <p>
-                  {run.outcome === "inconclusive"
-                    ? "Could not fully assess"
-                    : `${run.newCount} new · ${run.resolvedCount} confirmed fixed`}
-                </p>
-                {(run.offeringDrift?.length ?? 0) > 0 && (
-                  <p className="weekly-drift">
-                    <strong>New on site:</strong> {run.offeringDrift.join(", ")}
-                  </p>
-                )}
+                <p>{item.label}</p>
+                <p className="weekly-drift">{item.detail}</p>
               </li>
             ))}
           </ul>

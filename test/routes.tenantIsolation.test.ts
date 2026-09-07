@@ -19,6 +19,7 @@ import * as oppDetail from "../app/routes/opportunities.$id";
 import * as oppIndex from "../app/routes/opportunities._index";
 import * as servicesIndex from "../app/routes/services._index";
 import * as settings from "../app/routes/settings";
+import * as changes from "../app/routes/changes";
 
 const migrationsDir = join(dirname(fileURLToPath(import.meta.url)), "..", "migrations");
 
@@ -192,6 +193,18 @@ describe("Workspace A cannot reach Workspace B data via the routes", () => {
     expect(c.clients.map((x) => x.id)).toEqual(["cli_a"]);
   });
 
+  it("GET /changes builds the action center only from A's portfolio", async () => {
+    asA();
+    const home = (await call(changes.loader as never, { request: req(), context: ctx })) as {
+      portfolio: { clients: number };
+      actionCenter: { queue: Array<{ client: { id: string } }> };
+    };
+
+    expect(home.portfolio.clients).toBe(1);
+    expect(home.actionCenter.queue.every((item) => item.client.id === "cli_a")).toBe(true);
+    expect(JSON.stringify(home.actionCenter)).not.toContain("cli_b");
+  });
+
   it("POST /services toggle-active on B's service -> no-op, B unchanged", async () => {
     asA();
     await call(servicesIndex.action as never, {
@@ -210,6 +223,7 @@ describe("unauthenticated access to protected routes", () => {
     ["/clients/:id", clientDetail.loader as never],
     ["/services", servicesIndex.loader as never],
     ["/settings", settings.loader as never],
+    ["/changes", changes.loader as never],
   ];
 
   it("every protected loader redirects to /login when there is no session", async () => {

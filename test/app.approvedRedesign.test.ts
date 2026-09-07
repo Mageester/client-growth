@@ -105,15 +105,39 @@ describe("approved page anatomy", () => {
     const html = render(
       createElement(Changes, {
         loaderData: {
-          workspaceName: "Axiom Orbit",
-          attention: [
-            {
-              opportunity,
-              client: { id: "c1", name: "Cambridge Heating", domain: "example.com" },
-              serviceName: "Dedicated service page",
-            },
-          ],
+          firstName: "Orbit",
           portfolio: { clients: 1, open: 1, priceMin: 900, priceMax: 1800 },
+          actionCenter: {
+            queue: [
+              {
+                id: "opportunities:c1:service-visibility",
+                kind: "commercial",
+                client: { id: "c1", name: "Cambridge Heating", domain: "example.com" },
+                family: "service-visibility",
+                stage: "new",
+                title: "Service expansion opportunity",
+                detail: "A new commercial opportunity is ready for review.",
+                action: "Worth pursuing? Accept it, or dismiss",
+                href: "/opportunities?client=c1",
+                count: 1,
+                priceMin: 900,
+                priceMax: 1800,
+                opportunityIds: ["o1"],
+              },
+            ],
+            pipeline: {
+              newCount: 1,
+              acceptedCount: 0,
+              pitchedCount: 0,
+              soldCount: 0,
+              lostCount: 0,
+              closeRate: null,
+              soldRevenue: 0,
+              openCount: 1,
+              openPriceMin: 900,
+              openPriceMax: 1800,
+            },
+          },
           since: "2026-08-29T12:00:00.000Z",
           until: "2026-09-05T12:00:00.000Z",
           summary: { checks: 1, clientsChecked: 1, newFindings: 1, resolvedFindings: 0, inconclusive: 0 },
@@ -131,17 +155,85 @@ describe("approved page anatomy", () => {
               offeringDrift: ["Heat Pump Servicing"],
             },
           ],
+          activity: [
+            {
+              id: "run:1",
+              clientId: "c1",
+              clientName: "Cambridge Heating",
+              label: "Analysis completed",
+              detail: "1 new opportunity surfaced. New on site: Heat Pump Servicing",
+              at: "2026-09-05T12:00:00.000Z",
+              href: "/clients/c1",
+            },
+          ],
           findings: [],
         },
       } as never),
       "/changes",
     );
 
-    expect(html).toContain("What deserves your attention");
+    expect(html).toContain("Clients worth contacting");
     expect(html).toContain("Cambridge Heating");
     expect(html).toContain("$900 – $1,800");
+    expect(html).toContain("Service expansion opportunity");
+    expect(html).toContain("Pipeline");
+    expect(html).toContain("Close rate");
     expect(html).toContain("New on site");
     expect(html).toContain("Heat Pump Servicing");
+  });
+
+  it("keeps an inconclusive client as a retry action rather than a fake opportunity", () => {
+    const html = render(
+      createElement(Changes, {
+        loaderData: {
+          firstName: "Orbit",
+          portfolio: { clients: 1, open: 0, priceMin: 0, priceMax: 0 },
+          actionCenter: {
+            queue: [
+              {
+                id: "analysis:c1",
+                kind: "analysis",
+                analysisState: "inconclusive",
+                client: { id: "c1", name: "Artfully You", domain: "artfullyyou.ca" },
+                family: null,
+                stage: null,
+                title: "Analysis needs another look",
+                detail: "The origin timed out before an HTTP response.",
+                action: "Retry analysis",
+                href: "/clients/c1",
+                count: 0,
+                priceMin: 0,
+                priceMax: 0,
+                opportunityIds: [],
+              },
+            ],
+            pipeline: {
+              newCount: 0,
+              acceptedCount: 0,
+              pitchedCount: 0,
+              soldCount: 0,
+              lostCount: 0,
+              closeRate: null,
+              soldRevenue: 0,
+              openCount: 0,
+              openPriceMin: 0,
+              openPriceMax: 0,
+            },
+          },
+          since: "2026-08-29T12:00:00.000Z",
+          until: "2026-09-05T12:00:00.000Z",
+          summary: { checks: 1, clientsChecked: 1, newFindings: 0, resolvedFindings: 0, inconclusive: 1 },
+          runs: [],
+          activity: [],
+          findings: [],
+        },
+      } as never),
+      "/changes",
+    );
+
+    expect(html).toContain("Retry analysis");
+    expect(html).toContain("The origin timed out before an HTTP response.");
+    expect(html).not.toContain("Service expansion opportunity");
   });
 
   it("gives Clients the approved scannable columns", () => {

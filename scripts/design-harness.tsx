@@ -19,6 +19,7 @@ import type { Client, Opportunity, Service } from "../src/core/schema";
 import { OpportunitySignalRow, OpportunityInspector } from "../app/components/signal-desk";
 import type { SignalDeskEntry } from "../app/components/signal-desk";
 import { buildEvidenceCase } from "../app/lib/evidence";
+import { buildActionCenter } from "../app/lib/actionCenter";
 import { clientState, totalsFor } from "../app/lib/portfolio";
 import ClientsIndex from "../app/routes/clients._index";
 import ClientsImport from "../app/routes/clients.import";
@@ -183,6 +184,16 @@ const enrichedClients = clients.map((client) => {
     runSummary: run.summary,
     state: clientState({ outcome: run.outcome as never, openCount: totals.open }),
   };
+});
+
+const homeActionCenter = buildActionCenter({
+  clients,
+  opportunitiesByClient: new Map(
+    clients.map((client) => [client.id, opportunities.filter((opportunity) => opportunity.clientId === client.id)]),
+  ),
+  latestRunsByClient: new Map(
+    clients.map((client) => [client.id, runByClient[client.id] as never]),
+  ) as never,
 });
 
 // --- page shell -------------------------------------------------------------
@@ -654,16 +665,16 @@ const screens: Record<string, { nav: string; node: ReactNode; bare?: boolean; st
     node: h(Changes, { loaderData: {
       since:"2026-08-29T12:00:00.000Z", until:"2026-09-05T12:00:00.000Z",
       firstName:"Aidan",
-      attention:entries.map((entry) => ({
-        client:entry.client,
-        opportunity:entry.opportunity,
-        serviceName:entry.serviceName,
-      })),
+      actionCenter:homeActionCenter,
       portfolio:{clients:clients.length,open:3,closed:0,priceMin:2700,priceMax:5300},
       summary:{checks:3,clientsChecked:2,newFindings:2,resolvedFindings:1,inconclusive:1},
       runs:[
         {id:3,clientId:"c2",clientName:"Halton Plumbing",finishedAt:"2026-09-04T10:00:00.000Z",outcome:"inconclusive",summary:"This site could not be read well enough to assess.",trigger:"scheduled",newCount:0,resolvedCount:0},
         {id:2,clientId:"c1",clientName:"Northwind Heating",finishedAt:"2026-09-03T10:00:00.000Z",outcome:"findings",summary:"2 evidence-backed opportunities found.",trigger:"scheduled",newCount:2,resolvedCount:1,offeringDrift:["Heat Pump Servicing"]},
+      ],
+      activity:[
+        {id:"run:3",clientId:"c2",clientName:"Halton Plumbing",label:"Analysis needs attention",detail:"This site could not be read well enough to assess.",at:"2026-09-04T10:00:00.000Z",href:"/clients/c2"},
+        {id:"run:2",clientId:"c1",clientName:"Northwind Heating",label:"Analysis completed",detail:"2 new opportunities surfaced. New on site: Heat Pump Servicing",at:"2026-09-03T10:00:00.000Z",href:"/clients/c1"},
       ],
       findings:[{id:"o1",clientId:"c1",clientName:"Northwind Heating",title:"Broken appointment link",status:"resolved"}],
     }} as never),

@@ -147,7 +147,7 @@ describe("mobile viewport safety", () => {
     expect(homeRenderClock(until)).toBe(Date.parse(until));
     expect(changes).toContain("const renderNow = homeRenderClock(data.until);");
     expect(changes).toContain("greeting(new Date(renderNow))");
-    expect(changes).toContain("formatRelative(run.finishedAt, renderNow)");
+    expect(changes).toContain("formatRelative(item.at, renderNow)");
   });
 
   it("labels the all-findings view as history instead of open work", () => {
