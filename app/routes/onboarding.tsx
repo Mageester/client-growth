@@ -6,6 +6,7 @@ import { ClientSchema, ServiceSchema, type RuleId } from "@/core/schema";
 import { RULE_SERVICE_LINKS } from "@/core/rules/registry";
 import { TECHNICAL_STARTER_PRICE_BANDS } from "@/core/rules/technical";
 import { suggestOfferings, type SuggestedOffering } from "@/core/offeringSuggestions";
+import { summarizeEvidenceFailure } from "@/core/evidenceDiagnostics";
 import {
   createWorkspaceForOwner,
   getWorkspaceForUser,
@@ -214,6 +215,11 @@ export async function loader({ request, context }: Route.LoaderArgs) {
           throw redirect("/opportunities?client=" + client.id);
         }
         const evidence = await repo.getLatestEvidence(scope, client.id);
+        const readablePages = evidence
+          ? evidence.site.pages.filter(
+              (page) => page.status >= 200 && page.status < 300 && page.wordCount > 0,
+            ).length
+          : 0;
         return {
           stage: "confirm" as Stage,
           hasWorkspace: true,
@@ -231,12 +237,14 @@ export async function loader({ request, context }: Route.LoaderArgs) {
           // "we read it and found nothing".
           crawl: evidence
             ? {
-                readablePages: evidence.site.pages.filter(
-                  (page) => page.status >= 200 && page.status < 300 && page.wordCount > 0,
-                ).length,
+                readablePages,
                 fetchedPages: evidence.site.pages.length,
               }
             : null,
+          crawlFailure:
+            evidence && readablePages === 0 && evidence.networkEvents.length > 0
+              ? summarizeEvidenceFailure(evidence)
+              : null,
           suggestions: evidence
             ? suggestOfferings({ evidence, existingOfferings: client.offerings, max: 10 })
             : ([] as SuggestedOffering[]),
@@ -780,7 +788,7 @@ function ConfirmStage({
   // 20-second wait.
   const submitting = navigation.state !== "idle" && navigation.formMethod === "POST";
   const client = loaderData.client;
-  const { crawl, suggestions, readFailed } = loaderData;
+  const { crawl, crawlFailure, suggestions, readFailed } = loaderData;
 
   const [checked, setChecked] = useState<Record<string, boolean>>(() =>
     Object.fromEntries([
@@ -860,11 +868,18 @@ function ConfirmStage({
         <div className="notice" role="status">
           <Icon name="alert" size={15} />
           <div>
-            <p>
-              This happens with sites that build their pages in the browser, and with sites that
-              block automated readers. You can try again, or type what this business sells yourself
-              &mdash; the analysis works the same either way.
-            </p>
+            {crawlFailure ? (
+              <>
+                <p><strong>{crawlFailure.title}</strong></p>
+                <p>{crawlFailure.detail}</p>
+              </>
+            ) : (
+              <p>
+                Orbit could not read a usable page from this site. You can try again, or type what
+                this business sells yourself &mdash; the analysis remains inconclusive until there
+                is readable evidence.
+              </p>
+            )}
             <Form method="post" className="suggested-actions">
               <input type="hidden" name="intent" value="reread" />
               <input type="hidden" name="clientId" value={client.id} />

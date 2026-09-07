@@ -90,6 +90,42 @@ const landingPage = ServiceSchema.parse({
 });
 
 describe("HttpEvidenceProvider network policy", () => {
+  it("records timeout diagnostics for every initial crawl stage", async () => {
+    const fetchImpl = vi.fn(async () => new Promise<Response>(() => undefined)) as unknown as typeof fetch;
+    const provider = new HttpEvidenceProvider({
+      fetchImpl,
+      requestTimeoutMs: 1,
+      maxPages: 1,
+      maxRequests: 3,
+    });
+
+    const evidence = await provider.getEvidence(client("timeout.example"));
+
+    expect(evidence.site.pages).toHaveLength(0);
+    expect(evidence.networkEvents).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "timeout",
+          stage: "robots",
+          outcome: "inconclusive",
+          reason: "request timeout",
+        }),
+        expect.objectContaining({
+          code: "timeout",
+          stage: "sitemap",
+          outcome: "inconclusive",
+          reason: "request timeout",
+        }),
+        expect.objectContaining({
+          code: "timeout",
+          stage: "page",
+          outcome: "inconclusive",
+          reason: "request timeout",
+        }),
+      ]),
+    );
+  });
+
   it.each([
     "http://localhost",
     "http://localhost.",

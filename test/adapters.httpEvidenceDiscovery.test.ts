@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { HttpEvidenceProvider } from "@/adapters/evidence/HttpEvidenceProvider";
 import { ClientSchema, type Client } from "@/core/schema";
@@ -52,6 +52,37 @@ const client = (domain: string, offerings: string[] = []): Client =>
 const urlsOf = (pages: Array<{ url: string }>) => pages.map((p) => p.url);
 
 describe("apex and www are one website", () => {
+  it("tries the allowed www sibling when the named apex returns no readable pages", async () => {
+    const requested: string[] = [];
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      requested.push(url);
+      if (url.startsWith("https://example.com/")) {
+        throw new Error("origin timeout");
+      }
+      if (url.endsWith("/robots.txt") || url.endsWith("/sitemap.xml")) {
+        return new Response("", { status: 404 });
+      }
+      return new Response(page("Recovered homepage").body, {
+        status: 200,
+        headers: { "content-type": "text/html" },
+      });
+    }) as unknown as typeof fetch;
+
+    const evidence = await new HttpEvidenceProvider({
+      fetchImpl,
+      requestTimeoutMs: 1,
+      maxPages: 1,
+    }).getEvidence(client("example.com"));
+
+    expect(evidence.site.pages.map((entry) => entry.url)).toEqual([
+      "https://www.example.com/",
+    ]);
+    expect(evidence.site.pages[0]?.wordCount).toBeGreaterThan(0);
+    expect(requested).toContain("https://www.example.com/");
+    expect(evidence.site.pages.some((entry) => entry.url.includes("example.com/"))).toBe(true);
+  });
+
   it("follows a redirect from the apex host to its www sibling", async () => {
     const { fetchImpl } = siteFetch({
       "https://example.com/": page("Home", ["/services/drain-cleaning"]),

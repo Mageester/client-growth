@@ -1,5 +1,6 @@
 import type { EvidenceBundle } from "@/core/schema";
 import type { CatalogCoverage } from "@/core/rules/registry";
+import { summarizeEvidenceFailure } from "@/core/evidenceDiagnostics";
 
 /**
  * The truthful result of one analysis run.
@@ -106,6 +107,9 @@ export function classifyAnalysis(input: OutcomeInput): AnalysisOutcomeResult {
 
   if (reach.readablePages === 0) {
     const blocked = reach.blockedEvents > 0;
+    const diagnostic = input.evidence.networkEvents.length > 0
+      ? summarizeEvidenceFailure(input.evidence)
+      : null;
     return {
       outcome: "inconclusive",
       summary: blocked
@@ -113,6 +117,8 @@ export function classifyAnalysis(input: OutcomeInput): AnalysisOutcomeResult {
         : "No readable pages were returned, so nothing was assessed.",
       limitation: blocked
         ? "Requests to this domain were refused by the network policy — the address did not resolve to a public host, used an unsupported scheme, or redirected somewhere unsafe."
+        : diagnostic && diagnostic.code !== "unknown"
+          ? diagnostic.detail
         : reach.fetchedPages > 0
           ? "The site responded, but no page returned readable HTML content."
           : "No page on this domain could be fetched.",

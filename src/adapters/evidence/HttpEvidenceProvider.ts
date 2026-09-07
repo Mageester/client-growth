@@ -7,8 +7,10 @@ import {
   EvidenceBundleSchema,
   type Client,
   type EvidenceBundle,
+  type EvidenceFailureCode,
   type EvidenceLink,
   type EvidenceNetworkEvent,
+  type EvidenceNetworkStage,
   type EvidencePage,
 } from "@/core/schema";
 import { parseHtml } from "@/adapters/evidence/parseHtml";
@@ -25,6 +27,7 @@ import {
   normalizeAndValidateUrl,
   normalizeOrigin,
   redactUrl,
+  canonicalSiteHost,
   type UrlPolicyFailure,
 } from "@/adapters/evidence/urlPolicy";
 import {
@@ -71,6 +74,9 @@ const DEFAULT_REQUEST_TIMEOUT_MS = 8_000;
 const DEFAULT_MAX_REDIRECTS = 5;
 const DEFAULT_MAX_REQUESTS = 40;
 const MAX_SITEMAP_INDEX_CHILDREN = 2;
+const FALLBACK_REQUEST_TIMEOUT_MS = 4_000;
+const FALLBACK_MAX_REQUESTS = 6;
+const FALLBACK_MAX_PAGES = 3;
 /**
  * Readable pages a crawl must reach before an empty frontier counts as "we saw
  * the whole site". Home plus two others: enough that the crawler demonstrably
@@ -130,6 +136,8 @@ export interface HttpEvidenceProviderOptions {
   now?: () => Date;
   /** Aborts the crawl when the owning request or analysis deadline ends. */
   signal?: AbortSignal;
+  /** Internal guard preventing an alternate-origin retry from recursing. */
+  allowAlternateOriginFallback?: boolean;
 }
 
 interface SafeResponse {
@@ -144,6 +152,9 @@ interface RequestFailure {
   outcome: "blocked" | "inconclusive";
   url: string;
   reason: string;
+  code: EvidenceFailureCode;
+  stage: EvidenceNetworkStage;
+  status?: number;
   redirects: number;
 }
 
@@ -151,7 +162,7 @@ type SafeRequestResult = SafeResponse | RequestFailure;
 
 type BodyReadResult =
   | { ok: true; text: string }
-  | { ok: false; outcome: "inconclusive"; reason: string };
+  | { ok: false; outcome: "inconclusive"; reason: string; code: EvidenceFailureCode };
 
 function nonNegativeInt(value: number | undefined, fallback: number): number {
   return value !== undefined && Number.isFinite(value) && value >= 0
@@ -218,46 +229,111 @@ function policyFailure(
   input: string | URL,
   result: UrlPolicyFailure,
   redirects = 0,
+  stage: EvidenceNetworkStage = "page",
 ): RequestFailure {
   return {
     kind: "failure",
     outcome: "blocked",
     url: redactUrl(input),
     reason: result.reason,
+    code: "policy",
+    stage,
     redirects,
   };
 }
 
-function originFailure(input: string | URL, redirects: number): RequestFailure {
+function originFailure(
+  input: string | URL,
+  redirects: number,
+  stage: EvidenceNetworkStage = "page",
+): RequestFailure {
   return {
     kind: "failure",
     outcome: "blocked",
     url: redactUrl(input),
     reason: "redirect leaves the allowed same-site boundary",
+    code: "redirect",
+    stage,
     redirects,
   };
 }
 
-function requestBudgetFailure(input: string | URL, redirects: number): RequestFailure {
+function requestBudgetFailure(
+  input: string | URL,
+  redirects: number,
+  stage: EvidenceNetworkStage = "page",
+): RequestFailure {
   return {
     kind: "failure",
     outcome: "inconclusive",
     url: redactUrl(input),
     reason: "request budget exhausted",
+    code: "request-budget",
+    stage,
     redirects,
   };
 }
 
-function pageFetchFailure(url: string | URL, failure: RequestFailure | {
-  outcome: "blocked" | "inconclusive";
-  reason: string;
-}): PageFetchFailure {
+function pageFetchFailure(
+  url: string | URL,
+  failure: RequestFailure | {
+    outcome: "blocked" | "inconclusive";
+    reason: string;
+    code?: EvidenceFailureCode;
+  },
+): PageFetchFailure {
   return {
     kind: "network-failure",
     requestedUrl: redactUrl(url),
     outcome: failure.outcome,
     reason: failure.reason,
+    code: failure.code,
   };
+}
+
+function inferFailureCode(reason: string): EvidenceFailureCode {
+  const text = reason.toLowerCase();
+  if (text.includes("timeout")) return "timeout";
+  if (text.includes("robots")) return "robots";
+  if (text.includes("content type")) return "content-type";
+  if (text.includes("content-length") || text.includes("body exceeds")) return "response-size";
+  if (text.includes("redirect")) return "redirect";
+  if (text.includes("budget")) return "request-budget";
+  if (text.includes("http ")) return "http-status";
+  if (text.includes("policy") || text.includes("destination") || text.includes("scheme")) {
+    return "policy";
+  }
+  if (text.includes("aborted")) return "aborted";
+  return "network";
+}
+
+function alternateOrigin(origin: string): string | null {
+  try {
+    const url = new URL(origin);
+    if (url.hostname.includes(":")) return null;
+    const host = canonicalSiteHost(url.hostname);
+    const alternateHost = url.hostname.toLowerCase().startsWith("www.") ? host : `www.${host}`;
+    if (alternateHost === url.hostname.toLowerCase()) return null;
+    url.hostname = alternateHost;
+    url.pathname = "/";
+    url.search = "";
+    url.hash = "";
+    return url.origin;
+  } catch {
+    return null;
+  }
+}
+
+function readablePageCount(evidence: EvidenceBundle): number {
+  return evidence.site.pages.filter(
+    (page) => page.status >= 200 && page.status < 300 && page.wordCount > 0,
+  ).length;
+}
+
+function shouldTryAlternateOrigin(evidence: EvidenceBundle): boolean {
+  return evidence.networkEvents.some((event) =>
+    event.code === "timeout" || event.code === "network" || event.code === "aborted",
+  );
 }
 
 export class HttpEvidenceProvider implements EvidenceProvider {
@@ -340,14 +416,33 @@ export class HttpEvidenceProvider implements EvidenceProvider {
     url: string | URL,
     outcome: "blocked" | "inconclusive",
     reason: string,
+    metadata: {
+      code?: EvidenceFailureCode;
+      stage?: EvidenceNetworkStage;
+      status?: number;
+      redirects?: number;
+    } = {},
   ): void {
-    const event: EvidenceNetworkEvent = { url: redactUrl(url), outcome, reason };
+    const event: EvidenceNetworkEvent = {
+      url: redactUrl(url),
+      outcome,
+      reason,
+      code: metadata.code ?? inferFailureCode(reason),
+      stage: metadata.stage ?? "page",
+      ...(metadata.status === undefined ? {} : { status: metadata.status }),
+      ...(metadata.redirects === undefined ? {} : { redirects: metadata.redirects }),
+    };
     this.networkEvents.push(event);
     if (this.lastEvidence) this.lastEvidence.networkEvents.push(event);
   }
 
   private recordFailure(failure: RequestFailure): void {
-    this.recordNetworkEvent(failure.url, failure.outcome, failure.reason);
+    this.recordNetworkEvent(failure.url, failure.outcome, failure.reason, {
+      code: failure.code,
+      stage: failure.stage,
+      status: failure.status,
+      redirects: failure.redirects,
+    });
   }
 
   private throwIfAborted(): void {
@@ -362,14 +457,15 @@ export class HttpEvidenceProvider implements EvidenceProvider {
     input: string | URL,
     init: RequestInit,
     allowedOrigin?: string,
+    stage: EvidenceNetworkStage = "page",
   ): Promise<SafeRequestResult> {
     this.ensureRun();
     this.throwIfAborted();
 
     const initial = normalizeAndValidateUrl(input);
-    if (!initial.ok) return policyFailure(input, initial);
+    if (!initial.ok) return policyFailure(input, initial, 0, stage);
     if (allowedOrigin && !isSameSite(initial.url, allowedOrigin)) {
-      return originFailure(initial.url, 0);
+      return originFailure(initial.url, 0, stage);
     }
 
     const fetchImpl = this.resolveFetch();
@@ -380,11 +476,13 @@ export class HttpEvidenceProvider implements EvidenceProvider {
     for (;;) {
       this.throwIfAborted();
       if (allowedOrigin && current !== initialUrl && !isSameSite(current, allowedOrigin)) {
-        return originFailure(current, redirects);
+        return originFailure(current, redirects, stage);
       }
 
       const budgetFailure = this.consumeRequest(current, redirects);
-      if (budgetFailure) return budgetFailure;
+      if (budgetFailure) {
+        return { ...budgetFailure, stage };
+      }
 
       const controller = new AbortController();
       let timedOut = false;
@@ -436,6 +534,8 @@ export class HttpEvidenceProvider implements EvidenceProvider {
             outcome: "inconclusive",
             url: redactUrl(current),
             reason: "request timeout",
+            code: "timeout",
+            stage,
             redirects,
           };
         }
@@ -446,6 +546,8 @@ export class HttpEvidenceProvider implements EvidenceProvider {
           outcome: "inconclusive",
           url: redactUrl(current),
           reason: timedOut ? "request timeout" : "network request failed",
+          code: timedOut ? "timeout" : "network",
+          stage,
           redirects,
         };
       } finally {
@@ -461,11 +563,11 @@ export class HttpEvidenceProvider implements EvidenceProvider {
         const observed = normalizeAndValidateUrl(responseUrl);
         if (!observed.ok) {
           await cancelResponseBody(response);
-          return policyFailure(responseUrl, observed, redirects);
+          return policyFailure(responseUrl, observed, redirects, stage);
         }
         if (allowedOrigin && !isSameSite(observed.url, allowedOrigin)) {
           await cancelResponseBody(response);
-          return originFailure(observed.url, redirects);
+          return originFailure(observed.url, redirects, stage);
         }
         if (observed.url.toString() !== current) {
           await cancelResponseBody(response);
@@ -474,6 +576,8 @@ export class HttpEvidenceProvider implements EvidenceProvider {
             outcome: "inconclusive",
             url: redactUrl(observed.url),
             reason: "fetch reported a redirect without a manually validated Location",
+            code: "redirect",
+            stage,
             redirects,
           };
         }
@@ -490,6 +594,8 @@ export class HttpEvidenceProvider implements EvidenceProvider {
           outcome: "inconclusive",
           url: redactUrl(current),
           reason: `redirect limit of ${this.maxRedirects()} hops exhausted`,
+          code: "redirect",
+          stage,
           redirects,
         };
       }
@@ -502,6 +608,8 @@ export class HttpEvidenceProvider implements EvidenceProvider {
           outcome: "inconclusive",
           url: redactUrl(current),
           reason: "redirect response has no valid Location header",
+          code: "redirect",
+          stage,
           redirects,
         };
       }
@@ -509,11 +617,11 @@ export class HttpEvidenceProvider implements EvidenceProvider {
       const next = normalizeAndValidateUrl(location, current);
       if (!next.ok) {
         await cancelResponseBody(response);
-        return policyFailure(location, next, redirects);
+        return policyFailure(location, next, redirects, stage);
       }
       if (allowedOrigin && !isSameSite(next.url, allowedOrigin)) {
         await cancelResponseBody(response);
-        return originFailure(next.url, redirects + 1);
+        return originFailure(next.url, redirects + 1, stage);
       }
 
       await cancelResponseBody(response);
@@ -531,6 +639,7 @@ export class HttpEvidenceProvider implements EvidenceProvider {
         ok: false,
         outcome: "inconclusive",
         reason: `response Content-Length exceeds ${maxBytes} bytes`,
+        code: "response-size",
       };
     }
 
@@ -545,6 +654,7 @@ export class HttpEvidenceProvider implements EvidenceProvider {
         ok: false,
         outcome: "inconclusive",
         reason: "response body could not be read",
+        code: "response-body",
       };
     }
     const cancelReader = (reason: string): void => {
@@ -601,6 +711,7 @@ export class HttpEvidenceProvider implements EvidenceProvider {
             ok: false,
             outcome: "inconclusive",
             reason: `response body exceeds ${maxBytes} bytes`,
+            code: "response-size",
           };
         }
         chunks.push(decoder.decode(value, { stream: true }));
@@ -614,6 +725,7 @@ export class HttpEvidenceProvider implements EvidenceProvider {
         ok: false,
         outcome: "inconclusive",
         reason: timedOut ? "response body timeout" : "response body could not be read",
+        code: timedOut ? "timeout" : "response-body",
       };
     } finally {
       if (bodyTimer !== undefined) clearTimeout(bodyTimer);
@@ -632,7 +744,10 @@ export class HttpEvidenceProvider implements EvidenceProvider {
     const capturedAt = (this.options.now?.() ?? new Date()).toISOString();
     const originResult = normalizeOrigin(client.domain);
     if (!originResult.ok) {
-      this.recordNetworkEvent(client.domain, "blocked", originResult.reason);
+      this.recordNetworkEvent(client.domain, "blocked", originResult.reason, {
+        code: "policy",
+        stage: "page",
+      });
       const blocked = EvidenceBundleSchema.parse({
         clientId: client.id,
         source: "http",
@@ -728,12 +843,15 @@ export class HttpEvidenceProvider implements EvidenceProvider {
       // an empty or missing page — the whole point is that "asked not to look"
       // and "looked and found nothing" must not collapse into the same silence.
       if (!this.robotsAllows(url)) {
-        this.recordNetworkEvent(url, "blocked", "disallowed by the site's robots.txt");
+        this.recordNetworkEvent(url, "blocked", "disallowed by the site's robots.txt", {
+          code: "robots",
+          stage: "page",
+        });
         continue;
       }
       pageRequests++;
 
-      const fetched = await this.safeRequest(url, { headers: fetchHeaders }, origin);
+      const fetched = await this.safeRequest(url, { headers: fetchHeaders }, origin, "page");
       if (fetched.kind === "failure") {
         this.recordFailure(fetched);
         continue;
@@ -749,6 +867,12 @@ export class HttpEvidenceProvider implements EvidenceProvider {
 
       if (!response.ok) {
         await cancelResponseBody(response);
+        this.recordNetworkEvent(finalUrl, "inconclusive", `page returned HTTP ${response.status}`, {
+          code: "http-status",
+          stage: "page",
+          status: response.status,
+          redirects: fetched.redirects,
+        });
         if (!duplicate) pages.push(emptyPage(finalUrl, response.status));
         continue;
       }
@@ -760,6 +884,7 @@ export class HttpEvidenceProvider implements EvidenceProvider {
           finalUrl,
           "inconclusive",
           `response content type is not crawlable HTML/XHTML: ${contentType || "missing"}`,
+          { code: "content-type", stage: "page", status: response.status },
         );
         if (!duplicate) pages.push(emptyPage(finalUrl, response.status));
         continue;
@@ -767,7 +892,11 @@ export class HttpEvidenceProvider implements EvidenceProvider {
 
       const body = await this.readBoundedText(response);
       if (!body.ok) {
-        this.recordNetworkEvent(finalUrl, body.outcome, body.reason);
+        this.recordNetworkEvent(finalUrl, body.outcome, body.reason, {
+          code: body.code,
+          stage: "page",
+          status: response.status,
+        });
         if (!duplicate) pages.push(emptyPage(finalUrl, response.status));
         continue;
       }
@@ -832,6 +961,41 @@ export class HttpEvidenceProvider implements EvidenceProvider {
       site: { pages, nav, links: [...linksByKey.values()], sitemapUrls, crawlExhaustive },
       networkEvents: this.networkEvents,
     });
+
+    // A public site may answer on only one of the two host spellings. If the
+    // named origin produced no readable page, try the existing one-step
+    // same-site sibling with a smaller bounded budget. This is recovery, not a
+    // broader crawl: only the alternate provider's own responses can become
+    // evidence, and an unsuccessful retry remains inconclusive.
+    if (
+      readablePages === 0 &&
+      this.options.allowAlternateOriginFallback !== false &&
+      shouldTryAlternateOrigin(bundle)
+    ) {
+      const alternate = alternateOrigin(origin);
+      if (alternate && alternate !== origin) {
+        const fallback = new HttpEvidenceProvider({
+          ...this.options,
+          allowAlternateOriginFallback: false,
+          requestTimeoutMs: Math.min(this.requestTimeoutMs(), FALLBACK_REQUEST_TIMEOUT_MS),
+          maxRequests: Math.min(this.maxRequests(), FALLBACK_MAX_REQUESTS),
+          maxPages: Math.min(this.maxPages(), FALLBACK_MAX_PAGES),
+        });
+        const alternateEvidence = await fallback.getEvidence({ ...client, domain: alternate });
+        if (readablePageCount(alternateEvidence) > 0) {
+          this.lastEvidence = alternateEvidence;
+          return alternateEvidence;
+        }
+
+        const combined = EvidenceBundleSchema.parse({
+          ...bundle,
+          networkEvents: [...bundle.networkEvents, ...alternateEvidence.networkEvents],
+        });
+        this.lastEvidence = combined;
+        return combined;
+      }
+    }
+
     this.lastEvidence = bundle;
     return bundle;
   }
@@ -842,7 +1006,7 @@ export class HttpEvidenceProvider implements EvidenceProvider {
     this.throwIfAborted();
     const initial = normalizeAndValidateUrl(url);
     if (!initial.ok) {
-      const failure = policyFailure(url, initial);
+      const failure = policyFailure(url, initial, 0, "targeted-page");
       this.recordFailure(failure);
       return pageFetchFailure(url, failure);
     }
@@ -855,8 +1019,12 @@ export class HttpEvidenceProvider implements EvidenceProvider {
       const failure = {
         outcome: "blocked" as const,
         reason: "disallowed by the site's robots.txt",
+        code: "robots" as const,
       };
-      this.recordNetworkEvent(initial.url.toString(), failure.outcome, failure.reason);
+      this.recordNetworkEvent(initial.url.toString(), failure.outcome, failure.reason, {
+        code: failure.code,
+        stage: "targeted-page",
+      });
       return pageFetchFailure(url, failure);
     }
 
@@ -869,6 +1037,7 @@ export class HttpEvidenceProvider implements EvidenceProvider {
         },
       },
       initial.url.origin,
+      "targeted-page",
     );
     if (fetched.kind === "failure") {
       this.recordFailure(fetched);
@@ -881,8 +1050,17 @@ export class HttpEvidenceProvider implements EvidenceProvider {
       if (response.status === 404 || response.status === 410) return null;
 
       const reason = `targeted page returned HTTP ${response.status}`;
-      this.recordNetworkEvent(finalUrl, "inconclusive", reason);
-      return pageFetchFailure(finalUrl, { outcome: "inconclusive", reason });
+      this.recordNetworkEvent(finalUrl, "inconclusive", reason, {
+        code: "http-status",
+        stage: "targeted-page",
+        status: response.status,
+        redirects: fetched.redirects,
+      });
+      return pageFetchFailure(finalUrl, {
+        outcome: "inconclusive",
+        reason,
+        code: "http-status",
+      });
     }
     const contentType = (response.headers.get("content-type") ?? "").toLowerCase();
     if (!isHtmlContentType(contentType)) {
@@ -891,16 +1069,22 @@ export class HttpEvidenceProvider implements EvidenceProvider {
         finalUrl,
         "inconclusive",
         `response content type is not crawlable HTML/XHTML: ${contentType || "missing"}`,
+        { code: "content-type", stage: "targeted-page", status: response.status },
       );
       return pageFetchFailure(finalUrl, {
         outcome: "inconclusive",
         reason: `response content type is not crawlable HTML/XHTML: ${contentType || "missing"}`,
+        code: "content-type",
       });
     }
 
     const body = await this.readBoundedText(response);
     if (!body.ok) {
-      this.recordNetworkEvent(finalUrl, body.outcome, body.reason);
+      this.recordNetworkEvent(finalUrl, body.outcome, body.reason, {
+        code: body.code,
+        stage: "targeted-page",
+        status: response.status,
+      });
       return pageFetchFailure(finalUrl, body);
     }
     return { ...parseHtml(body.text, finalUrl).page, status: response.status };
@@ -916,7 +1100,7 @@ export class HttpEvidenceProvider implements EvidenceProvider {
     this.throwIfAborted();
     const initial = normalizeAndValidateUrl(url);
     if (!initial.ok) {
-      const failure = policyFailure(url, initial);
+      const failure = policyFailure(url, initial, 0, "probe");
       this.recordFailure(failure);
       return {
         requestedUrl: redactUrl(url),
@@ -934,7 +1118,10 @@ export class HttpEvidenceProvider implements EvidenceProvider {
     // works perfectly well for everyone allowed to follow it.
     if (!this.robotsAllows(initial.url)) {
       const reason = "disallowed by the site's robots.txt";
-      this.recordNetworkEvent(initial.url.toString(), "blocked", reason);
+      this.recordNetworkEvent(initial.url.toString(), "blocked", reason, {
+        code: "robots",
+        stage: "probe",
+      });
       return {
         requestedUrl: initial.url.toString(),
         status: 0,
@@ -948,7 +1135,7 @@ export class HttpEvidenceProvider implements EvidenceProvider {
 
     const headers = { "user-agent": this.userAgent() };
     const request = async (method: "HEAD" | "GET"): Promise<SafeRequestResult> =>
-      this.safeRequest(initial.url, { method, headers }, initial.url.origin);
+      this.safeRequest(initial.url, { method, headers }, initial.url.origin, "probe");
 
     const head = await request("HEAD");
     if (head.kind === "failure") {
@@ -1035,8 +1222,16 @@ export class HttpEvidenceProvider implements EvidenceProvider {
       `${origin}/robots.txt`,
       { headers: { "user-agent": this.userAgent(), accept: "text/plain" } },
       origin,
+      "robots",
     );
-    if (fetched.kind === "failure") return ALLOW_ALL;
+    if (fetched.kind === "failure") {
+      // A blocked robots request is already represented by the later page
+      // boundary when the site sends a redirect into an unsafe destination.
+      // Keep transport/response failures here because they explain a zero
+      // page crawl, without duplicating policy events for the same attempt.
+      if (fetched.outcome === "inconclusive") this.recordFailure(fetched);
+      return ALLOW_ALL;
+    }
 
     const { response } = fetched;
     if (!response.ok) {
@@ -1045,7 +1240,13 @@ export class HttpEvidenceProvider implements EvidenceProvider {
     }
 
     const body = await this.readBoundedText(response);
-    if (!body.ok) return ALLOW_ALL;
+    if (!body.ok) {
+      this.recordNetworkEvent(`${origin}/robots.txt`, body.outcome, body.reason, {
+        code: body.code,
+        stage: "robots",
+      });
+      return ALLOW_ALL;
+    }
     return policyFor(body.text, this.userAgent());
   }
 
@@ -1066,6 +1267,7 @@ export class HttpEvidenceProvider implements EvidenceProvider {
           },
         },
         origin,
+        "sitemap",
       );
       if (fetched.kind === "failure") {
         this.recordFailure(fetched);
@@ -1085,13 +1287,18 @@ export class HttpEvidenceProvider implements EvidenceProvider {
           finalUrl,
           "inconclusive",
           `response content type is not crawlable XML/text: ${contentType || "missing"}`,
+          { code: "content-type", stage: "sitemap", status: response.status },
         );
         return null;
       }
 
       const body = await this.readBoundedText(response);
       if (!body.ok) {
-        this.recordNetworkEvent(finalUrl, body.outcome, body.reason);
+        this.recordNetworkEvent(finalUrl, body.outcome, body.reason, {
+          code: body.code,
+          stage: "sitemap",
+          status: response.status,
+        });
         return null;
       }
 

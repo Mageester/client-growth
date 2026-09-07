@@ -14,6 +14,7 @@ import * as repo from "@/db/repositories";
 import { reserveAnalysisStart } from "@/db/analysisLimits";
 import { getWorkspaceForUser } from "@/db/workspaces";
 import { SCHEMA_SQL } from "@/db/schema";
+import { EvidenceBundleSchema } from "@/core/schema";
 import { __setSessionResolver } from "../app/lib/session.server";
 import { d1LikeOver } from "./helpers/testAuth";
 
@@ -401,6 +402,44 @@ describe("onboarding stage one: read the site, judge nothing", () => {
     expect(evidence!.site.pages).toHaveLength(0);
     expect(clients[0]!.offerings).toEqual([]);
     expect(await repo.getLatestAnalysisRun(t, clients[0]!.id)).toBeNull();
+  });
+
+  it("carries a transport timeout reason into the confirmation stage", async () => {
+    vi.stubGlobal("fetch", siteFetch());
+    const res = await runSetup();
+    const clientId = new URL(res.headers.get("location")!, "http://localhost").searchParams.get(
+      "client",
+    )!;
+    const t = await workspaceScope();
+    const current = await repo.getLatestEvidence(t, clientId);
+    expect(current).not.toBeNull();
+
+    await repo.saveEvidence(
+      t,
+      EvidenceBundleSchema.parse({
+        ...current,
+        capturedAt: "2099-01-01T00:00:01.000Z",
+        site: { ...current!.site, pages: [] },
+        networkEvents: [
+          {
+            url: "https://artfullyyou.ca/",
+            outcome: "inconclusive",
+            reason: "request timeout",
+            code: "timeout",
+            stage: "page",
+          },
+        ],
+      }),
+    );
+
+    const data = (await call(onboarding.loader as never, {
+      request: new Request("http://localhost/onboarding?client=" + clientId),
+      context: ctx,
+    })) as { crawlFailure?: { title: string; detail: string; retryable: boolean } };
+
+    expect(data.crawlFailure?.title).toBe("The site did not respond to Orbit's request");
+    expect(data.crawlFailure?.detail).toMatch(/incomplete read/i);
+    expect(data.crawlFailure?.retryable).toBe(true);
   });
 
   it("requires at least one service, since findings are priced from the catalog", async () => {

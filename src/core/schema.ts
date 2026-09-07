@@ -125,12 +125,46 @@ export const EvidenceLinkSchema = z.object({
 });
 export type EvidenceLink = z.infer<typeof EvidenceLinkSchema>;
 
+/** Stable categories for transport and evidence-boundary diagnostics. */
+export const EvidenceFailureCodeSchema = z.enum([
+  "policy",
+  "robots",
+  "timeout",
+  "network",
+  "redirect",
+  "request-budget",
+  "content-type",
+  "response-size",
+  "response-body",
+  "http-status",
+  "aborted",
+]);
+export type EvidenceFailureCode = z.infer<typeof EvidenceFailureCodeSchema>;
+
+/** Which part of the crawl observed the limitation. */
+export const EvidenceNetworkStageSchema = z.enum([
+  "robots",
+  "sitemap",
+  "page",
+  "targeted-page",
+  "probe",
+]);
+export type EvidenceNetworkStage = z.infer<typeof EvidenceNetworkStageSchema>;
+
 /** A network-policy failure preserved with an HTTP evidence run. */
 export const EvidenceNetworkEventSchema = z.object({
   /** Redacted/canonical URL when it was parseable. */
   url: z.string().min(1),
   outcome: z.enum(["blocked", "inconclusive"]),
   reason: z.string().min(1),
+  /** Optional on old bundles; every new provider event supplies it. */
+  code: EvidenceFailureCodeSchema.optional(),
+  /** Optional on old bundles; every new provider event supplies it. */
+  stage: EvidenceNetworkStageSchema.optional(),
+  /** HTTP status when a response was received but was not usable. */
+  status: z.number().int().optional(),
+  /** Validated redirect hops observed before the failure. */
+  redirects: z.number().int().nonnegative().optional(),
 });
 export type EvidenceNetworkEvent = z.infer<typeof EvidenceNetworkEventSchema>;
 

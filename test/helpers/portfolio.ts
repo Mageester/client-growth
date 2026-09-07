@@ -102,7 +102,8 @@ export function portfolioFetch(clients: FixtureClient[]): typeof fetch {
   const byHost = new Map(clients.map((c) => [c.domain, c]));
   return vi.fn(async (input: RequestInfo | URL) => {
     const url = new URL(String(input));
-    const kind = byHost.get(url.hostname)?.site;
+    const kind =
+      byHost.get(url.hostname)?.site ?? byHost.get(url.hostname.replace(/^www\./i, ""))?.site;
     if (kind === "unreachable") throw new TypeError("fetch failed");
     if (url.pathname.endsWith("/sitemap.xml")) return new Response("", { status: 404 });
     if (url.pathname.includes("/services")) {

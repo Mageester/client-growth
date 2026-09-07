@@ -7,6 +7,11 @@ import { assessCatalogCoverage } from "@/core/rules/registry";
 import { assessAnalysisReadiness, type ReadinessState } from "@/core/analysisReadiness";
 import { assessServiceCoverage } from "@/core/absenceVerification";
 import { suggestOfferings, type SuggestedOffering } from "@/core/offeringSuggestions";
+import {
+  summarizeEvidenceFailure,
+  type EvidenceFailureSummary,
+} from "@/core/evidenceDiagnostics";
+import { groupOpportunitiesByFamily } from "@/core/opportunityGrouping";
 import { deleteClient } from "@/db/deleteClient";
 import { isAnalysisLimitExceeded } from "@/db/analysisLimits";
 import {
@@ -106,6 +111,15 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
   const suggestions = evidence
     ? suggestOfferings({ evidence, existingOfferings: client.offerings, max: 8 })
     : [];
+  const readablePages = evidence
+    ? evidence.site.pages.filter(
+        (page) => page.status >= 200 && page.status < 300 && page.wordCount > 0,
+      ).length
+    : 0;
+  const crawlFailure: EvidenceFailureSummary | null =
+    evidence && readablePages === 0 && evidence.networkEvents.length > 0
+      ? summarizeEvidenceFailure(evidence)
+      : null;
 
   // Readiness is per rule, and it is worked out from what the LAST crawl
   // actually managed rather than from the client's offering count alone. That
@@ -119,9 +133,7 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
       ? {
           analyzable: crawlCoverage?.analyzable ?? false,
           limitation: crawlCoverage?.limitation ?? null,
-          readablePages: evidence.site.pages.filter(
-            (page) => page.status >= 200 && page.status < 300 && page.wordCount > 0,
-          ).length,
+          readablePages,
           suggestedOfferings: suggestions.length,
         }
       : undefined,
@@ -142,6 +154,7 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
     maxCompetitors: MAX_COMPETITORS_PER_CLIENT,
     /** Whether a crawl has ever stored evidence for this client. */
     hasEvidence: evidence !== null,
+    crawlFailure,
     state: clientState({ outcome: latest?.outcome ?? null, openCount: totals.open }),
   };
 }
@@ -203,9 +216,14 @@ export async function action({ params, request, context }: Route.ActionArgs) {
     try {
       const { readablePages } = await collectEvidenceOnly(t.scope, existing.id, request.signal);
       if (readablePages === 0) {
+        const evidence = await repo.getLatestEvidence(t.scope, existing.id);
+        const failure = evidence ? summarizeEvidenceFailure(evidence) : null;
         return {
           ok: false as const,
-          error: "No page on this site could be read, so there is nothing to suggest from.",
+          error:
+            failure && failure.code !== "unknown"
+              ? failure.detail
+              : "No page on this site could be read, so there is nothing to suggest from.",
         };
       }
       return {
@@ -213,7 +231,7 @@ export async function action({ params, request, context }: Route.ActionArgs) {
         message: `Read ${readablePages} ${readablePages === 1 ? "page" : "pages"}. Anything found is below, for you to confirm.`,
       };
     } catch {
-      return { ok: false as const, error: "The site could not be read. Check the domain." };
+      return { ok: false as const, error: "The site could not be read. Nothing was concluded from the incomplete read." };
     }
   }
 
@@ -440,6 +458,9 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
   const latest = runs[0] ?? null;
   const open = opportunities.filter(isOpen).sort(byPotentialValue);
   const closed = opportunities.filter((opp) => !isOpen(opp)).sort(byPotentialValue);
+  const opportunityFamilies = groupOpportunitiesByFamily(
+    [...open, ...closed].map((opportunity) => ({ opportunity, client })),
+  );
   const activeServices = services.filter((service) => service.active);
 
   return (
@@ -536,6 +557,7 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
       <ReadSiteForOfferings
         client={client}
         hasEvidence={loaderData.hasEvidence}
+        crawlFailure={loaderData.crawlFailure}
         suggestionCount={suggestions.length}
         busy={busy}
       />
@@ -629,40 +651,55 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
                 "The site was read and no unmet billable work was found.")}
           </EmptyState>
         ) : (
-          <ul className="records">
-            {[...open, ...closed].map((opp) => {
-              const badge = statusBadge(opp);
-              const live = isOpen(opp);
-              return (
-                <li key={opp.id}>
-                  <Link
-                    className={"record" + (live ? "" : " is-quiet")}
-                    to={"/opportunities/" + opp.id}
-                  >
-                    <span className="record-main">
-                      <span className="record-name">{opp.title}</span>
-                      <span className="record-meta">
-                        <span className={"pill " + badge.tone}>{badge.label}</span>
-                        <span className="dot-sep">·</span>
-                        <span>{opp.detected}</span>
-                      </span>
-                    </span>
-                    <span className="record-end">
-                      <span className="record-stat wide">
-                        <b className="num">{formatCurrencyRange(opp.priceMin, opp.priceMax)}</b>
-                        <span>potential value</span>
-                      </span>
-                      <span className="record-stat">
-                        <b className="num">{Math.round(opp.confidence * 100)}%</b>
-                        <span>confident</span>
-                      </span>
-                      <Icon name="chevron-right" size={15} className="record-chevron" />
-                    </span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+          <div className="opportunity-families">
+            {opportunityFamilies.map((family) => (
+              <section className="opportunity-family" key={family.key}>
+                <div className="section-head">
+                  <div>
+                    <h3 className="title-section">{family.family.label}</h3>
+                    <p>
+                      {family.family.description} {family.entries.length} related{" "}
+                      {family.entries.length === 1 ? "finding" : "findings"}.
+                    </p>
+                  </div>
+                </div>
+                <ul className="records">
+                  {family.entries.map(({ opportunity: opp }) => {
+                    const badge = statusBadge(opp);
+                    const live = isOpen(opp);
+                    return (
+                      <li key={opp.id}>
+                        <Link
+                          className={"record" + (live ? "" : " is-quiet")}
+                          to={"/opportunities/" + opp.id}
+                        >
+                          <span className="record-main">
+                            <span className="record-name">{opp.title}</span>
+                            <span className="record-meta">
+                              <span className={"pill " + badge.tone}>{badge.label}</span>
+                              <span className="dot-sep">·</span>
+                              <span>{opp.detected}</span>
+                            </span>
+                          </span>
+                          <span className="record-end">
+                            <span className="record-stat wide">
+                              <b className="num">{formatCurrencyRange(opp.priceMin, opp.priceMax)}</b>
+                              <span>potential value</span>
+                            </span>
+                            <span className="record-stat">
+                              <b className="num">{Math.round(opp.confidence * 100)}%</b>
+                              <span>confident</span>
+                            </span>
+                            <Icon name="chevron-right" size={15} className="record-chevron" />
+                          </span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            ))}
+          </div>
         )}
       </section>
 
@@ -1262,11 +1299,13 @@ function Readiness({
 function ReadSiteForOfferings({
   client,
   hasEvidence,
+  crawlFailure,
   suggestionCount,
   busy,
 }: {
   client: Client;
   hasEvidence: boolean;
+  crawlFailure: EvidenceFailureSummary | null;
   suggestionCount: number;
   busy: boolean;
 }) {
@@ -1275,24 +1314,35 @@ function ReadSiteForOfferings({
   if (suggestionCount > 0) return null;
   if (client.offerings.length >= 2) return null;
 
+  const canRetry = !hasEvidence || crawlFailure !== null;
+
   return (
     <div className="notice suggested-services" role="status">
       <Icon name="search" size={16} />
       <div>
         <p>
-          {client.offerings.length === 0
-            ? `Nothing is recorded for ${client.name} yet, so there is nothing to check the site against.`
-            : `Only one service is recorded for ${client.name}, which is rarely enough to confirm a crawl reached the site's services.`}{" "}
-          {hasEvidence
-            ? "The last crawl of this site found nothing to add."
-            : "Axiom Orbit can read the site and propose what this business sells."}
+          {crawlFailure ? (
+            <>
+              <strong>{crawlFailure.title}</strong>{" "}
+              {crawlFailure.detail}
+            </>
+          ) : (
+            <>
+              {client.offerings.length === 0
+                ? `Nothing is recorded for ${client.name} yet, so there is nothing to check the site against.`
+                : `Only one service is recorded for ${client.name}, which is rarely enough to confirm a crawl reached the site's services.`}{" "}
+              {hasEvidence
+                ? "The last crawl of this site found nothing to add."
+                : "Axiom Orbit can read the site and propose what this business sells."}
+            </>
+          )}
         </p>
-        {!hasEvidence && (
+        {canRetry && (
           <Form method="post" className="suggested-actions">
             <input type="hidden" name="intent" value="suggest-from-site" />
             <button className="btn btn-primary" type="submit" disabled={busy}>
               <Icon name="search" size={15} />
-              Read the site
+              {hasEvidence ? "Try reading it again" : "Read the site"}
             </button>
             <span className="suggested-note">
               Nothing is saved until you confirm it. No analysis is run.

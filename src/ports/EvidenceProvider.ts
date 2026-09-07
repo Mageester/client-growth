@@ -1,4 +1,9 @@
-import type { Client, EvidenceBundle, EvidencePage } from "@/core/schema";
+import type {
+  Client,
+  EvidenceBundle,
+  EvidenceFailureCode,
+  EvidencePage,
+} from "@/core/schema";
 
 /** A page fetch failed for a network-policy or transport reason. */
 export interface PageFetchFailure {
@@ -6,6 +11,8 @@ export interface PageFetchFailure {
   requestedUrl: string;
   outcome: "blocked" | "inconclusive";
   reason: string;
+  /** Stable category when the provider can identify the failure. */
+  code?: EvidenceFailureCode;
 }
 
 export type PageFetchResult = EvidencePage | PageFetchFailure | null;
