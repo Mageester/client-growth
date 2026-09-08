@@ -87,7 +87,56 @@ describe("per-rule readiness", () => {
     expect(ruleOf(readiness, "broken-conversion-path").state).toBe("site_coverage_limited");
   });
 
-  it("points at setup when the site was read but the profile is what is missing", () => {
+  it("keeps an unreadable crawl as the blocker even when no offerings are recorded", () => {
+    const readiness = assessAnalysisReadiness({
+      catalog: fullCatalog,
+      offerings: 0,
+      lastCrawl: {
+        analyzable: false,
+        readablePages: 0,
+        suggestedOfferings: 0,
+        limitation: "coverage-limited",
+      },
+    });
+
+    const missingPage = ruleOf(readiness, "missing-service-page");
+    expect(missingPage.state).toBe("site_coverage_limited");
+    expect(missingPage.actionable).toBe(false);
+    expect(missingPage.reason).toMatch(/could not read any page|crawler/i);
+  });
+
+  it("does not turn readable but insufficient coverage into an offering-count action", () => {
+    const readiness = assessAnalysisReadiness({
+      catalog: fullCatalog,
+      offerings: 5,
+      lastCrawl: {
+        analyzable: false,
+        readablePages: 4,
+        suggestedOfferings: 3,
+        limitation: "coverage-limited",
+      },
+    });
+
+    const missingPage = ruleOf(readiness, "missing-service-page");
+    expect(missingPage.state).toBe("site_coverage_limited");
+    expect(missingPage.actionable).toBe(false);
+    expect(missingPage.reason).toMatch(/website evidence|did not reach/i);
+  });
+
+  it("keeps a readable, sufficiently covered site distinct from an unreadable site", () => {
+    const readiness = assessAnalysisReadiness({
+      catalog: fullCatalog,
+      offerings: 0,
+      lastCrawl: { analyzable: true, readablePages: 6, suggestedOfferings: 0 },
+    });
+
+    const missingPage = ruleOf(readiness, "missing-service-page");
+    expect(missingPage.state).toBe("needs_client_setup");
+    expect(missingPage.actionable).toBe(true);
+    expect(missingPage.reason).toMatch(/no offerings recorded/i);
+  });
+
+  it("keeps partial website coverage authoritative even when the profile is thin", () => {
     const readiness = assessAnalysisReadiness({
       catalog: fullCatalog,
       offerings: 1,
@@ -95,12 +144,12 @@ describe("per-rule readiness", () => {
     });
 
     const missingPage = ruleOf(readiness, "missing-service-page");
-    expect(missingPage.state).toBe("needs_client_setup");
-    expect(missingPage.actionable).toBe(true);
-    expect(missingPage.reason).toMatch(/5 more/);
+    expect(missingPage.state).toBe("site_coverage_limited");
+    expect(missingPage.actionable).toBe(false);
+    expect(missingPage.reason).toMatch(/website evidence|did not reach/i);
   });
 
-  it("offers the suggestion path when coverage failed and the site has services to confirm", () => {
+  it("keeps coverage authoritative even when the incomplete read found service-shaped suggestions", () => {
     const readiness = assessAnalysisReadiness({
       catalog: fullCatalog,
       offerings: 3,
@@ -109,8 +158,8 @@ describe("per-rule readiness", () => {
 
     const missingPage = ruleOf(readiness, "missing-service-page");
     expect(missingPage.state).toBe("site_coverage_limited");
-    expect(missingPage.actionable).toBe(true);
-    expect(missingPage.reason).toMatch(/4 services/);
+    expect(missingPage.actionable).toBe(false);
+    expect(missingPage.reason).toMatch(/website evidence|did not reach/i);
   });
 
   it("reports no client and no crawl as a setup problem, not a crawler one", () => {

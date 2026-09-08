@@ -8,6 +8,8 @@ export type OfferingGuidanceProps = {
   offerings?: string[];
   /** Saved detail pages can rely on their existing quality card for this copy. */
   showWarnings?: boolean;
+  /** The site read is insufficient; entries are context, not evidence. */
+  coverageBlocked?: boolean;
 };
 
 const EXAMPLES = ["heat pump installation", "air conditioning repair", "duct cleaning"];
@@ -17,7 +19,12 @@ const EXAMPLES = ["heat pump installation", "air conditioning repair", "duct cle
  * prevents a save: a partial setup is useful for the rules that it can support,
  * while the service-page limitation is stated before an analysis starts.
  */
-export function OfferingGuidance({ raw, offerings, showWarnings = true }: OfferingGuidanceProps) {
+export function OfferingGuidance({
+  raw,
+  offerings,
+  showWarnings = true,
+  coverageBlocked = false,
+}: OfferingGuidanceProps) {
   const entries = (offerings ?? parseOfferings(raw ?? ""))
     .map((entry) => entry.trim())
     .filter(Boolean);
@@ -34,7 +41,9 @@ export function OfferingGuidance({ raw, offerings, showWarnings = true }: Offeri
         <div className="notice offering-count-notice" role="status">
           <Icon name="alert" size={14} />
           <span>
-            {entries.length === 0
+            {coverageBlocked
+              ? "These services can be saved as client context, but Orbit still needs enough readable website evidence before it can check for missing service pages."
+              : entries.length === 0
               ? "No offerings are listed yet. This setup can still be saved, but analysis cannot claim a missing service page until at least two concrete offerings are confirmed."
               : "One offering is listed. This setup can still be saved, but analysis cannot claim a missing service page until at least two concrete offerings are confirmed."}
           </span>

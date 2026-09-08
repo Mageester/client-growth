@@ -580,6 +580,60 @@ const clientDetailScreen = h(ClientDetail, {
   },
 } as never);
 
+const blockedClient: Client = {
+  id: "c10",
+  name: "Velvet Nails and Beauty Lounge",
+  domain: "velvetnailsandbeautylounge.ca",
+  offerings: ["Gel manicures", "Nail extensions"],
+  notes: "",
+};
+
+const blockedClientDetailScreen = h(ClientDetail, {
+  loaderData: {
+    client: blockedClient,
+    services,
+    coveredIds: [],
+    opportunities: [],
+    totals: { open: 0, closed: 0, priceMin: 0, priceMax: 0 },
+    runs: [],
+    monitoring: {
+      cadence: "off",
+      nextDueAt: null,
+      lastAttemptAt: null,
+      lastSuccessAt: null,
+      lastOutcome: null,
+    },
+    firstRunFailed: false,
+    readiness: assessAnalysisReadiness({
+      catalog: services,
+      offerings: blockedClient.offerings.length,
+      lastCrawl: {
+        analyzable: false,
+        readablePages: 0,
+        suggestedOfferings: 0,
+        limitation: "coverage-limited",
+      },
+    }),
+    suggestions: [],
+    competitors: [],
+    maxCompetitors: 3,
+    hasEvidence: true,
+    websiteCoverage: {
+      analyzable: false,
+      reason: "The site's crawler instructions limited the read.",
+      limitation: "coverage-limited",
+    },
+    crawlFailure: {
+      code: "robots",
+      stage: "robots",
+      title: "The site's crawler instructions limited the read",
+      detail: "Robots.txt prevented Orbit from reaching the pages needed to check services.",
+      retryable: false,
+    },
+    state: "never",
+  },
+} as never);
+
 /**
  * Onboarding, both stages.
  *
@@ -708,6 +762,11 @@ const screens: Record<string, { nav: string; node: ReactNode; bare?: boolean; st
         readFailed: false,
         crawl: { readablePages: 9, fetchedPages: 10 },
         suggestions: onboardingSuggestions,
+        coverage: {
+          analyzable: true,
+          reason: "Service coverage confirmed.",
+          limitation: null,
+        },
       },
     } as never),
   },
@@ -726,10 +785,16 @@ const screens: Record<string, { nav: string; node: ReactNode; bare?: boolean; st
         readFailed: true,
         crawl: { readablePages: 0, fetchedPages: 0 },
         suggestions: [],
+        coverage: {
+          analyzable: false,
+          reason: "The site could not be read.",
+          limitation: "coverage-limited",
+        },
       },
     } as never),
   },
   "client-thin": { nav: "Clients", node: clientDetailScreen },
+  "client-blocked": { nav: "Clients", node: blockedClientDetailScreen },
   tour: { nav: "Opportunities", node: tourScreen },
   opportunities: { nav: "Opportunities", node: opportunitiesScreen },
   clients: {

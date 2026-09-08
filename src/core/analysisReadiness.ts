@@ -85,15 +85,6 @@ function missingServicePageReadiness(input: ReadinessInput): {
   reason: string;
   actionable: boolean;
 } {
-  if (input.offerings === 0) {
-    return {
-      state: "needs_client_setup",
-      reason:
-        "This client has no offerings recorded, so there is nothing to check the site against.",
-      actionable: true,
-    };
-  }
-
   const crawl = input.lastCrawl;
 
   // Order matters here, and getting it wrong is the exact mistake this module
@@ -101,12 +92,39 @@ function missingServicePageReadiness(input: ReadinessInput): {
   // adding offerings, so the crawler limit is reported FIRST — otherwise a
   // client with one offering behind a 403 is told to go and do work that will
   // change nothing.
-  if (crawl && crawl.readablePages === 0) {
+  if (crawl && !crawl.analyzable) {
+    if (crawl.readablePages === 0) {
+      return {
+        state: "site_coverage_limited",
+        reason:
+          "The last run could not read any page on this site, so there is nothing for a missing-page check to work from. This is a limit of the crawler, not of the client's setup.",
+        actionable: false,
+      };
+    }
+
+    if (crawl.limitation === "site-too-thin") {
+      return {
+        state: "site_coverage_limited",
+        reason:
+          "This site has no pages describing what the business sells — the last run followed every link on it. A missing service page cannot be claimed against a site that describes no services, and adding offerings will not change that.",
+        actionable: false,
+      };
+    }
+
     return {
       state: "site_coverage_limited",
       reason:
-        "The last run could not read any page on this site, so there is nothing for a missing-page check to work from. This is a limit of the crawler, not of the client's setup.",
+        "The last run read part of this site but did not reach enough of its service structure to check for missing pages. This needs website evidence, not more entries in the client profile.",
       actionable: false,
+    };
+  }
+
+  if (input.offerings === 0) {
+    return {
+      state: "needs_client_setup",
+      reason:
+        "This client has no offerings recorded, so there is nothing to check the site against.",
+      actionable: true,
     };
   }
 
@@ -117,32 +135,8 @@ function missingServicePageReadiness(input: ReadinessInput): {
     return {
       state: "needs_client_setup",
       reason:
-        crawl && crawl.suggestedOfferings > 0
-          ? `Only one offering is recorded, and the last crawl found ${crawl.suggestedOfferings} more on the site that are not in this client's profile.`
-          : "Only one offering is recorded. Axiom Orbit will not claim a service page is missing unless the crawl can confirm it reached the site's service section, which usually needs two or more.",
+        "Only one offering is recorded. Axiom Orbit will not claim a service page is missing unless the crawl can confirm it reached the site's service section, which usually needs two or more.",
       actionable: true,
-    };
-  }
-
-  if (crawl && !crawl.analyzable) {
-    // The site itself has no service pages. Nobody can fix that: not the
-    // agency by editing offerings, not us by crawling harder. Say so, and
-    // offer no action, because every action offered here would be wasted work.
-    if (crawl.limitation === "site-too-thin") {
-      return {
-        state: "site_coverage_limited",
-        reason:
-          "This site has no pages describing what the business sells — the last run followed every link on it. A missing service page cannot be claimed against a site that describes no services, and adding offerings will not change that.",
-        actionable: false,
-      };
-    }
-    return {
-      state: "site_coverage_limited",
-      reason:
-        crawl.suggestedOfferings > 0
-          ? `The last run did not reach this site's service pages. It did find ${crawl.suggestedOfferings} service${crawl.suggestedOfferings === 1 ? "" : "s"} on the site that are not in this client's profile — confirming those would give the next run more to match against.`
-          : "The last run did not reach this site's service pages, so a missing page cannot be claimed. This is a limit of what the crawler could read, not of the client's setup.",
-      actionable: crawl.suggestedOfferings > 0,
     };
   }
 
@@ -182,17 +176,6 @@ function noServicePagesReadiness(input: ReadinessInput): {
   reason: string;
   actionable: boolean;
 } {
-  // The finding names what the site should have been describing, so without a
-  // recorded offering it could be stated but not written.
-  if (input.offerings === 0) {
-    return {
-      state: "needs_client_setup",
-      reason:
-        "This client has no offerings recorded, so there is nothing to say the site should be describing.",
-      actionable: true,
-    };
-  }
-
   // The claim is "we read every page and none of them sells anything", which a
   // site that returned nothing readable cannot support.
   if (input.lastCrawl && input.lastCrawl.readablePages === 0) {
@@ -201,6 +184,26 @@ function noServicePagesReadiness(input: ReadinessInput): {
       reason:
         "The last run could not read any page on this site, so it cannot be said that the site describes no services.",
       actionable: false,
+    };
+  }
+
+  if (input.lastCrawl?.limitation === "coverage-limited") {
+    return {
+      state: "site_coverage_limited",
+      reason:
+        "The last run did not read enough of this site to say that it describes no services.",
+      actionable: false,
+    };
+  }
+
+  // The finding names what the site should have been describing, so without a
+  // recorded offering it could be stated but not written.
+  if (input.offerings === 0) {
+    return {
+      state: "needs_client_setup",
+      reason:
+        "This client has no offerings recorded, so there is nothing to say the site should be describing.",
+      actionable: true,
     };
   }
 

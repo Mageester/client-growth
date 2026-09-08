@@ -6,6 +6,7 @@ import { ClientSchema, ServiceSchema, type RuleId } from "@/core/schema";
 import { RULE_SERVICE_LINKS } from "@/core/rules/registry";
 import { TECHNICAL_STARTER_PRICE_BANDS } from "@/core/rules/technical";
 import { suggestOfferings, type SuggestedOffering } from "@/core/offeringSuggestions";
+import { assessServiceCoverage } from "@/core/absenceVerification";
 import { summarizeEvidenceFailure } from "@/core/evidenceDiagnostics";
 import {
   createWorkspaceForOwner,
@@ -220,6 +221,20 @@ export async function loader({ request, context }: Route.LoaderArgs) {
               (page) => page.status >= 200 && page.status < 300 && page.wordCount > 0,
             ).length
           : 0;
+        const suggestions = evidence
+          ? suggestOfferings({ evidence, existingOfferings: client.offerings, max: 10 })
+          : ([] as SuggestedOffering[]);
+        const coverage = evidence
+          ? assessServiceCoverage({
+              client: {
+                offerings: dedupeOfferings([
+                  ...client.offerings,
+                  ...suggestions.map((suggestion) => suggestion.label),
+                ]),
+              },
+              evidence,
+            })
+          : null;
         return {
           stage: "confirm" as Stage,
           hasWorkspace: true,
@@ -245,9 +260,8 @@ export async function loader({ request, context }: Route.LoaderArgs) {
             evidence && readablePages === 0 && evidence.networkEvents.length > 0
               ? summarizeEvidenceFailure(evidence)
               : null,
-          suggestions: evidence
-            ? suggestOfferings({ evidence, existingOfferings: client.offerings, max: 10 })
-            : ([] as SuggestedOffering[]),
+          suggestions,
+          coverage,
         };
       }
     }
@@ -274,6 +288,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       readFailed: false,
       crawl: null,
       suggestions: [] as SuggestedOffering[],
+      coverage: null,
     };
   }
 
@@ -286,6 +301,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     readFailed: false,
     crawl: null,
     suggestions: [] as SuggestedOffering[],
+    coverage: null,
   };
 }
 
@@ -296,7 +312,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   const form = await request.formData();
   const intent = String(form.get("intent") ?? "setup");
 
-  if (intent === "analyze" || intent === "reread") {
+  if (intent === "analyze" || intent === "save" || intent === "reread") {
     const ws = await getWorkspaceForUser(db, authed.userId);
     if (!ws) throw redirect("/onboarding");
     const scope: TenantScope = { db, workspaceId: ws.id };
@@ -328,7 +344,27 @@ export async function action({ request, context }: Route.ActionArgs) {
     });
     if (problem) return { error: problem };
 
-    await repo.upsertClient(scope, ClientSchema.parse({ ...client, offerings }));
+    const savedClient = ClientSchema.parse({ ...client, offerings });
+    await repo.upsertClient(scope, savedClient);
+
+    if (intent === "save") return redirect("/clients/" + client.id);
+
+    // A stale or hand-crafted confirmation post must not turn manual context
+    // into website evidence. If the stored crawl is known to be insufficient,
+    // save the profile but refuse to run the service-gap analysis.
+    const latestEvidence = await repo.getLatestEvidence(scope, client.id);
+    if (latestEvidence) {
+      const coverage = assessServiceCoverage({
+        client: savedClient,
+        evidence: latestEvidence,
+      });
+      if (!coverage.analyzable) {
+        return {
+          error:
+            "Orbit cannot check this site for missing service pages until enough of the website can be read. The client context was saved; try reading it again first.",
+        };
+      }
+    }
 
     // The first analysis is the point of onboarding, so its result must not be
     // swallowed. A failed run still leaves a usable workspace — the client page
@@ -788,7 +824,7 @@ function ConfirmStage({
   // 20-second wait.
   const submitting = navigation.state !== "idle" && navigation.formMethod === "POST";
   const client = loaderData.client;
-  const { crawl, crawlFailure, suggestions, readFailed } = loaderData;
+  const { crawl, crawlFailure, suggestions, readFailed, coverage } = loaderData;
 
   const [checked, setChecked] = useState<Record<string, boolean>>(() =>
     Object.fromEntries([
@@ -825,12 +861,31 @@ function ConfirmStage({
   ]);
   const warnings = offeringWarnings(confirmed);
   const unreadable = readFailed || !crawl || crawl.readablePages === 0;
+  const coverageBlocked = !coverage?.analyzable;
+  const analysisAvailable = !unreadable && !coverageBlocked;
 
   return (
     <>
-      <h1 className="title-lg onboarding-title">What {client.name} sells</h1>
+      <h1 className="title-lg onboarding-title">
+        {analysisAvailable ? `What ${client.name} sells` : `We couldn't read ${client.name} yet`}
+      </h1>
       <p className="prose onboarding-lede">
-        {crawl && crawl.readablePages > 0 ? (
+        {!analysisAvailable && unreadable ? (
+          crawl && crawl.fetchedPages > 0 ? (
+            <>
+              {crawl.fetchedPages} {crawl.fetchedPages === 1 ? "page was" : "pages were"} fetched from{" "}
+              {client.domain}, but none of them could be read as text.
+            </>
+          ) : (
+            // Nothing came back at all. Said plainly, because "we read it and
+            // found nothing" is a different claim and this screen cannot make it.
+            <>No page of {client.domain} could be reached, so there is nothing to suggest from.</>
+          )
+        ) : !analysisAvailable && coverage?.limitation === "site-too-thin" ? (
+          <>Orbit read the whole site, but it does not expose service pages to check yet.</>
+        ) : !analysisAvailable ? (
+          <>This website currently prevents Orbit from reading enough pages to check how its services are represented.</>
+        ) : crawl && crawl.readablePages > 0 ? (
           <>
             Axiom Orbit read{" "}
             <strong>
@@ -848,15 +903,8 @@ function ConfirmStage({
               <> but nothing on it read clearly as work customers hire them for.</>
             )}
           </>
-        ) : !crawl || crawl.fetchedPages === 0 ? (
-          // Nothing came back at all. Said plainly, because "we read it and
-          // found nothing" is a different claim and this screen cannot make it.
-          <>No page of {client.domain} could be reached, so there is nothing to suggest from.</>
         ) : (
-          <>
-            {crawl.fetchedPages} {crawl.fetchedPages === 1 ? "page was" : "pages were"} fetched from{" "}
-            {client.domain}, but none of them could be read as text.
-          </>
+          <>No usable crawl evidence is available for this client yet.</>
         )}
       </p>
       <Steps current={1} />
@@ -864,7 +912,7 @@ function ConfirmStage({
       <ErrorNotice error={error} />
       <LimitNotice limitation={limitation} />
 
-      {unreadable && (
+      {!analysisAvailable && (
         <div className="notice" role="status">
           <Icon name="alert" size={15} />
           <div>
@@ -875,9 +923,11 @@ function ConfirmStage({
               </>
             ) : (
               <p>
-                Orbit could not read a usable page from this site. You can try again, or type what
-                this business sells yourself &mdash; the analysis remains inconclusive until there
-                is readable evidence.
+                {coverage?.limitation === "site-too-thin"
+                  ? "Orbit read the whole site but found no service pages. Adding offerings will save client context, but it will not create website evidence."
+                  : coverageBlocked && !unreadable
+                    ? "Orbit read part of this site, but not enough of its service structure to check for missing pages. Adding offerings will save client context, not replace that evidence."
+                    : "Orbit could not read a usable page from this site. You can save what you know about the client, but analysis remains unavailable until there is sufficient readable evidence."}
               </p>
             )}
             <Form method="post" className="suggested-actions">
@@ -893,7 +943,7 @@ function ConfirmStage({
       )}
 
       <Form method="post">
-        <input type="hidden" name="intent" value="analyze" />
+        <input type="hidden" name="intent" value={analysisAvailable ? "analyze" : "save"} />
         <input type="hidden" name="clientId" value={client.id} />
 
         {client.offerings.length > 0 && (
@@ -902,8 +952,9 @@ function ConfirmStage({
               <div>
                 <h2 className="title-section">Already confirmed</h2>
                 <p>
-                  These offerings were saved from your previous confirmation. Keep them checked
-                  to include them in the next analysis, or clear one to remove it.
+                  {coverageBlocked
+                    ? "These offerings are saved as client context. They do not make the website evidence sufficient for analysis."
+                    : "These offerings were saved from your previous confirmation. Keep them checked to include them in the next analysis, or clear one to remove it."}
                 </p>
               </div>
             </div>
@@ -937,11 +988,13 @@ function ConfirmStage({
           <section className="section">
             <div className="section-head">
               <div>
-                <h2 className="title-section">Found on the site</h2>
+                <h2 className="title-section">
+                  {coverageBlocked ? "Possible offerings from the partial read" : "Found on the site"}
+                </h2>
                 <p>
-                  Each one shows where it came from. Nothing here is saved until you continue, and
-                  anything you keep is checked against the site like a service &mdash; a missing
-                  page for one would be priced like a service.
+                  {coverageBlocked
+                    ? "These are useful client context from the pages Orbit could read. Saving one does not make the website evidence sufficient or unlock a missing-service check."
+                    : "Each one shows where it came from. Nothing here is saved until you continue, and anything you keep is checked against the site like a service — a missing page for one would be priced like a service."}
                 </p>
               </div>
             </div>
@@ -985,11 +1038,16 @@ function ConfirmStage({
           <div className="section-head">
             <div>
               <h2 className="title-section">
-                {suggestions.length > 0 ? "Anything it missed" : "What customers hire them for"}
+                {coverageBlocked
+                  ? "Know what they offer?"
+                  : suggestions.length > 0
+                    ? "Anything it missed"
+                    : "What customers hire them for"}
               </h2>
               <p>
-                One per line: things customers actually pay them for, in the words those customers
-                would use.
+                {coverageBlocked
+                  ? "You can add their services now so the client profile is ready when the website can be analyzed. These entries are client context, not website evidence."
+                  : "One per line: things customers actually pay them for, in the words those customers would use."}
               </p>
             </div>
           </div>
@@ -1008,7 +1066,11 @@ function ConfirmStage({
               insured&rdquo; or &ldquo;family owned&rdquo;. Every line here can become a priced page
               recommendation, so a claim in this box becomes a pitch for a page about a claim.
             </div>
-            <OfferingGuidance offerings={confirmed} showWarnings={false} />
+            <OfferingGuidance
+              offerings={confirmed}
+              showWarnings={false}
+              coverageBlocked={coverageBlocked}
+            />
           </div>
 
           {warnings.length > 0 && (
@@ -1026,17 +1088,19 @@ function ConfirmStage({
           {submitting ? (
             <div className="runcard running readingcard" role="status" aria-live="polite">
               <span className="runcard-mark">
-                <Icon name="refresh" size={15} className="spin" />
-              </span>
-              <div className="runcard-body">
-                <p className="runcard-title">
-                  Checking {confirmed.length} {confirmed.length === 1 ? "service" : "services"}{" "}
-                  against {client.domain}
-                </p>
-                <p className="runcard-summary">
-                  Re-reading the site, then judging each one against what the site actually shows.
-                  Anything Axiom Orbit will not stand behind is not surfaced.
-                </p>
+                  <Icon name={analysisAvailable ? "refresh" : "check"} size={15} className="spin" />
+                </span>
+                <div className="runcard-body">
+                  <p className="runcard-title">
+                    {analysisAvailable
+                      ? `Checking ${confirmed.length} ${confirmed.length === 1 ? "service" : "services"} against ${client.domain}`
+                      : "Saving client context"}
+                  </p>
+                  <p className="runcard-summary">
+                    {analysisAvailable
+                      ? "Re-reading the site, then judging each one against what the site actually shows. Anything Axiom Orbit will not stand behind is not surfaced."
+                      : "Your entries will be available when the website can be read sufficiently for analysis."}
+                  </p>
                 <span className="runbar" aria-hidden="true">
                   <span />
                 </span>
@@ -1048,11 +1112,13 @@ function ConfirmStage({
           ) : (
             <div className="form-actions">
               <button type="submit" className="btn btn-primary btn-lg">
-                <Icon name="refresh" size={15} />
-                Analyze {client.name}
+                <Icon name={analysisAvailable ? "refresh" : "check"} size={15} />
+                {analysisAvailable ? `Analyze ${client.name}` : "Save client"}
               </button>
               <span className="faint form-actions-note" aria-live="polite">
-                {confirmed.length >= MIN_OFFERINGS_FOR_A_FINDING
+                {!analysisAvailable
+                  ? "Orbit can save this client, but it cannot check the site for missing service pages until enough of the website can be read."
+                  : confirmed.length >= MIN_OFFERINGS_FOR_A_FINDING
                   ? confirmed.length +
                     " confirmed. Each one is checked against the site."
                   : "Axiom Orbit needs at least " +
