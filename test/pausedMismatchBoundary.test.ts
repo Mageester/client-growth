@@ -12,6 +12,8 @@ import { createWorkspaceForOwner } from "@/db/workspaces";
 import type { RunResult, SqlDb, SqlStatement, SqlValue } from "@/db/sql";
 import { runAnalysis } from "../app/lib/analysis.server";
 import * as clientDetail from "../app/routes/clients.$id";
+import * as actionCenter from "../app/routes/changes";
+import * as reportBuilder from "../app/routes/clients.$id.report";
 import { __setSessionResolver } from "../app/lib/session.server";
 
 const migrationsDir = join(dirname(fileURLToPath(import.meta.url)), "..", "migrations");
@@ -315,6 +317,31 @@ describe("paused external mismatch boundary", () => {
       ),
     ).toBe(false);
     expect(statements.some((sql) => /external_business_claims/i.test(sql))).toBe(false);
+  });
+
+  it("keeps Action Center and report setup available without the paused table", async () => {
+    const routeStatements: string[] = [];
+    const context = {
+      cloudflare: {
+        env: { ...env, DB: recordingD1Database(raw, routeStatements) },
+      },
+    };
+
+    const home = await actionCenter.loader({
+      request: new Request("http://localhost/changes"),
+      context,
+    } as never);
+    expect(home.portfolio.clients).toBe(1);
+    expect(home.actionCenter.attention[0]?.client.id).toBe("cli-a");
+
+    const builder = await reportBuilder.loader({
+      request: new Request("http://localhost/clients/cli-a/report"),
+      params: { id: "cli-a" },
+      context,
+    } as never);
+    expect(builder.client.id).toBe("cli-a");
+    expect(builder.candidates.canGenerate).toBe(false);
+    expect(routeStatements.some((sql) => /external_business_claims/i.test(sql))).toBe(false);
   });
 
   it("rejects paused business-profile writes before reaching the missing table", async () => {

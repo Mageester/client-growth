@@ -31,8 +31,7 @@ const EXPECTED_MIGRATIONS = [
   "0020_competitors.sql",
   "0021_offering_drift.sql",
   "0022_sales_funnel.sql",
-  "0023_external_business_claims.sql",
-  "0024_client_reports.sql",
+  "0023_client_reports.sql",
 ] as const;
 
 const DEMO_IDENTIFIERS = [
@@ -133,9 +132,19 @@ describe("production migration baseline", () => {
       await db.exec(readFileSync(join(migrationsDir, "0020_competitors.sql"), "utf8"));
       await db.exec(readFileSync(join(migrationsDir, "0021_offering_drift.sql"), "utf8"));
       await db.exec(readFileSync(join(migrationsDir, "0022_sales_funnel.sql"), "utf8"));
-      await db.exec(readFileSync(join(migrationsDir, "0023_external_business_claims.sql"), "utf8"));
+      await db.exec(readFileSync(join(migrationsDir, "0023_client_reports.sql"), "utf8"));
 
       expect(await db.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
+
+      const activeTables = await db
+        .prepare(
+          "SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('external_business_claims', 'client_report_snapshots', 'client_report_shares') ORDER BY name",
+        )
+        .all<{ name: string }>();
+      expect(activeTables.map((row) => row.name)).toEqual([
+        "client_report_shares",
+        "client_report_snapshots",
+      ]);
 
       // The whole point of the canary rollout: deploying monitoring does not
       // enable it for a single existing client.
@@ -162,5 +171,14 @@ describe("production migration baseline", () => {
     } finally {
       db.close();
     }
+  });
+
+  it("keeps the paused mismatch migration out of the active production chain", () => {
+    const migrations = readdirSync(migrationsDir)
+      .filter((file) => file.endsWith(".sql"))
+      .sort();
+
+    expect(migrations.slice(-2)).toEqual(["0022_sales_funnel.sql", "0023_client_reports.sql"]);
+    expect(migrations).not.toContain("0023_external_business_claims.sql");
   });
 });

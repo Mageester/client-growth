@@ -1,8 +1,8 @@
--- Additive client-facing report snapshots and expiring share links.
+-- 0023: additive client-facing report snapshots and expiring share links.
 --
--- This migration is intentionally numbered after 0023. It must not be
--- deployed or applied while the intentionally pending 0023 mismatch
--- migration remains unapplied in production.
+-- This is the next production migration after 0022_sales_funnel.sql. The
+-- paused Business-to-site mismatch schema is intentionally outside the active
+-- migrations directory and must be regenerated when that feature is approved.
 
 CREATE TABLE IF NOT EXISTS client_report_snapshots (
   id TEXT PRIMARY KEY,

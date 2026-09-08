@@ -9,6 +9,11 @@ import { applySchema } from "@/db/repositories";
 
 const migrationsDir = join(dirname(fileURLToPath(import.meta.url)), "..", "migrations");
 
+// SCHEMA_SQL is the complete all-feature fixture used by repository tests. The
+// external business-profile table belongs to the paused mismatch feature and
+// is intentionally not part of the active production migration chain.
+const PAUSED_TABLES = new Set(["external_business_claims"]);
+
 /** Better Auth owns these — generated from the pinned version (0004), covered by auth.schema.test.ts. */
 const AUTH_TABLES = new Set(["user", "session", "account", "verification", "rateLimit"]);
 
@@ -37,6 +42,7 @@ async function introspect(apply: (db: ReturnType<typeof nodeSqliteDb>) => Promis
       .all<{ name: string }>()
   )
     .map((t) => t.name)
+    .filter((name) => !PAUSED_TABLES.has(name))
     .filter((n) => !AUTH_TABLES.has(n));
 
   const columns: Record<string, ColumnInfo[]> = {};

@@ -1,7 +1,7 @@
 /**
  * Canonical **application** schema (tenant + workspace tables). Applied verbatim
  * by the node:sqlite adapter in tests and by the local seed. The migration files
- * (0001..0024) must converge on this exact shape — test/db.schema-parity.test.ts
+ * (0001..0023) must converge on this exact shape — test/db.schema-parity.test.ts
  * compares table columns AND foreign keys.
  *
  * The Better Auth tables (user / session / account / verification / rateLimit)
