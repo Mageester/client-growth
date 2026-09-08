@@ -71,7 +71,7 @@ export function links() {
 const MARKETING_ROUTES = new Set(["/", "/product"]);
 
 /** React Router's static routes accept trailing slashes and case variations. */
-export function isProposalSharePath(pathname: string): boolean {
+function isExactPublicPath(pathname: string, expected: string): boolean {
   const withoutTrailingSlashes = pathname.replace(/\/+$/, "");
   const segments = withoutTrailingSlashes.split("/");
   let decoded: string[];
@@ -84,11 +84,20 @@ export function isProposalSharePath(pathname: string): boolean {
     return false;
   }
   if (decoded.some((segment, index) => segment === "" && segments[index] !== "")) return false;
-  return decoded.join("/").toLowerCase() === "/proposal/share";
+  return decoded.join("/").toLowerCase() === expected;
+}
+
+export function isProposalSharePath(pathname: string): boolean {
+  return isExactPublicPath(pathname, "/proposal/share");
+}
+
+export function isClientReportSharePath(pathname: string): boolean {
+  return isExactPublicPath(pathname, "/report/share");
 }
 
 export async function loader({ request, context }: Route.LoaderArgs) {
-  if (isProposalSharePath(new URL(request.url).pathname)) return { ...EMPTY };
+  const pathname = new URL(request.url).pathname;
+  if (isProposalSharePath(pathname) || isClientReportSharePath(pathname)) return { ...EMPTY };
   const rawTheme = request.headers
     .get("Cookie")
     ?.split("; ")
@@ -326,6 +335,8 @@ export function Layout({ children }: { children: ReactNode }) {
   const publicSignup = data?.publicSignup ?? false;
   const workspaceName = data?.workspaceName ?? null;
   const isProposalShare = isProposalSharePath(location.pathname);
+  const isClientReportShare = isClientReportSharePath(location.pathname);
+  const isStandalonePublicShare = isProposalShare || isClientReportShare;
   const isMarketingRoute = MARKETING_ROUTES.has(location.pathname);
   const showAppNav = signedIn && Boolean(workspaceName) && location.pathname !== "/onboarding";
   const busy = navigation.state === "loading";
@@ -342,21 +353,23 @@ export function Layout({ children }: { children: ReactNode }) {
           these are the constants a share card needs and are the same on every
           page, so they live here rather than being restated per route.
         */}
-        {!isProposalShare && <>
+        {!isStandalonePublicShare && <>
         <meta property="og:site_name" content="Axiom Orbit" />
         <meta property="og:type" content="website" />
         </>}
         {!isProposalShare && !isMarketingRoute && <>
-        <meta
-          property="og:description"
-          content="The client growth platform for agencies."
-        />
-        <meta property="og:image" content="/brand/axiom-orbit-social-1200x630.png" />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta
-          name="description"
-          content="The client growth platform for agencies."
-        />
+        {!isClientReportShare && <>
+          <meta
+            property="og:description"
+            content="The client growth platform for agencies."
+          />
+          <meta property="og:image" content="/brand/axiom-orbit-social-1200x630.png" />
+          <meta name="twitter:card" content="summary_large_image" />
+          <meta
+            name="description"
+            content="The client growth platform for agencies."
+          />
+        </>}
         </>}
         <Meta />
         <Links />
@@ -366,7 +379,7 @@ export function Layout({ children }: { children: ReactNode }) {
           Skip to content
         </a>
         {busy && !isMarketingRoute && <div className="nav-progress" key={location.key} />}
-        {isMarketingRoute ? children : isProposalShare ? <div id="main-content" className="content public-content">{children}</div> : showAppNav ? (
+        {isMarketingRoute ? children : isStandalonePublicShare ? <div id="main-content" className={`content public-content${isClientReportShare ? " client-report-share-content" : ""}`}>{children}</div> : showAppNav ? (
           <div className="app-frame">
             <aside className="app-sidebar">
               <Link className="brand app-brand" to="/changes">

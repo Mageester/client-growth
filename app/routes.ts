@@ -16,6 +16,7 @@ export default [
   route("logout", "routes/logout.tsx"),
   route("invite/:token", "routes/invite.$token.tsx"),
   route("proposal/share", "routes/proposal.share.tsx"),
+  route("report/share", "routes/report.share.tsx"),
 
   // authed, workspace not required yet
   route("onboarding", "routes/onboarding.tsx"),
@@ -30,8 +31,10 @@ export default [
   route("export/workspace", "routes/export.workspace.tsx"),
   route("opportunities", "routes/opportunities._index.tsx"),
   route("opportunities/:id", "routes/opportunities.$id.tsx"),
+  route("reports/:id", "routes/reports.$id.tsx"),
   route("clients", "routes/clients._index.tsx"),
   route("clients/import", "routes/clients.import.tsx"),
+  route("clients/:id/report", "routes/clients.$id.report.tsx"),
   route("clients/:id", "routes/clients.$id.tsx"),
   route("services", "routes/services._index.tsx"),
   route("settings", "routes/settings.tsx"),

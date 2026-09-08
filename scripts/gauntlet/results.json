@@ -1,0 +1,4439 @@
+[
+  {
+    "id": "getaxiom",
+    "name": "getaxiom",
+    "domain": "getaxiom.ca",
+    "vertical": "agency",
+    "offerings": [
+      "Website design and build for local businesses"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 6,
+      "sitemapUrls": 0,
+      "links": 27,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 1 offering(s) represented in the site's navigation, links or sitemap, 4 service page(s) read, 0 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 1,
+      "serviceLikePages": 4
+    },
+    "outcome": "clean",
+    "outcomeSummary": "Read 10 pages and found no unmet billable work.",
+    "limitation": "Only 1 of 12 kinds of gap were checked — no active service is offered for a site with no service pages at all or a service the competition sells and this client does not or a broken conversion path or repair a missing page title or repair duplicate page titles or expand a thin service page or repair a missing h1 or repair a broken internal link or repair a missing meta description or add localbusiness or service schema or add missing image alt attributes.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "cambridgeheating",
+    "name": "cambridgeheating",
+    "domain": "cambridgeheating.ca",
+    "vertical": "hvac",
+    "offerings": [
+      "Furnace repair",
+      "Air conditioning installation",
+      "Water heater replacement",
+      "Duct cleaning"
+    ],
+    "crawl": {
+      "pagesFetched": 7,
+      "pagesReadable": 7,
+      "navCount": 0,
+      "sitemapUrls": 0,
+      "links": 10,
+      "crawlExhaustive": true,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 2 offering(s) represented in the site's navigation, links or sitemap, 4 service page(s) read, 0 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 2,
+      "serviceLikePages": 4
+    },
+    "outcome": "findings",
+    "outcomeSummary": "2 evidence-backed opportunities found.",
+    "limitation": null,
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 2,
+      "passedEvidenceThreshold": 2,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 2,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 2,
+      "newlyFound": 2,
+      "stillOpen": 0,
+      "aiCalls": 2
+    },
+    "findings": [
+      {
+        "ruleId": "missing-service-page",
+        "title": "Water Heater Replacement — dedicated service page",
+        "tier": "commercial",
+        "serviceName": "Service Landing Page",
+        "priceMin": 900,
+        "priceMax": 1800,
+        "confidence": 0.725,
+        "rationale": "Water heater replacement is a specific, high-value service that homeowners search for independently, and the client already sells related HVAC services. A dedicated page would capture targeted demand and support the existing service lineup.",
+        "evidenceRefs": [
+          "https://cambridgeheating.ca/",
+          "https://cambridgeheating.ca/furnace-installation.html",
+          "https://cambridgeheating.ca/furnace-repair.html",
+          "https://cambridgeheating.ca/airconditioner-installation.html",
+          "https://cambridgeheating.ca/air-conditioner-repair.html",
+          "https://cambridgeheating.ca/contact-us.html",
+          "https://cambridgeheating.ca/about-us.html"
+        ],
+        "suggestedScope": [
+          "Service page with detailed description of water heater replacement process",
+          "List of brands and types (tank, tankless) offered",
+          "Benefits and energy efficiency information",
+          "Pricing or quote request section",
+          "FAQ addressing common concerns",
+          "Internal links to related services (furnace, AC)"
+        ],
+        "dedupeKey": "missing-service-page__water-heater-replacement__475b51ce"
+      },
+      {
+        "ruleId": "missing-service-page",
+        "title": "Duct Cleaning — dedicated service page",
+        "tier": "commercial",
+        "serviceName": "Service Landing Page",
+        "priceMin": 900,
+        "priceMax": 1800,
+        "confidence": 0.725,
+        "rationale": "Duct cleaning is a specific, sellable service that homeowners search for independently, and the site currently lacks a dedicated page for it. Creating one would capture relevant traffic and provide a clear conversion path.",
+        "evidenceRefs": [
+          "https://cambridgeheating.ca/",
+          "https://cambridgeheating.ca/furnace-installation.html",
+          "https://cambridgeheating.ca/furnace-repair.html",
+          "https://cambridgeheating.ca/airconditioner-installation.html",
+          "https://cambridgeheating.ca/air-conditioner-repair.html",
+          "https://cambridgeheating.ca/contact-us.html",
+          "https://cambridgeheating.ca/about-us.html"
+        ],
+        "suggestedScope": [
+          "Dedicated service page with detailed description of duct cleaning process",
+          "Benefits section (improved air quality, energy efficiency, allergy relief)",
+          "FAQ addressing common concerns (frequency, cost, signs of needed cleaning)",
+          "Call-to-action for booking or requesting a quote",
+          "Internal links from related pages (furnace repair, air conditioning) and to contact page"
+        ],
+        "dedupeKey": "missing-service-page__duct-cleaning__f20dc294"
+      }
+    ]
+  },
+  {
+    "id": "drainworks",
+    "name": "drainworks",
+    "domain": "drainworks.com",
+    "vertical": "plumbing",
+    "offerings": [
+      "Drain cleaning",
+      "Faucet and tap repair",
+      "Toilet repair",
+      "Cast iron stack replacement",
+      "Emergency plumbing"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 69,
+      "sitemapUrls": 0,
+      "links": 153,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 5 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 0 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 5,
+      "serviceLikePages": 9
+    },
+    "outcome": "clean",
+    "outcomeSummary": "Read 10 pages and found no unmet billable work.",
+    "limitation": "Only 1 of 12 kinds of gap were checked — no active service is offered for a site with no service pages at all or a service the competition sells and this client does not or a broken conversion path or repair a missing page title or repair duplicate page titles or expand a thin service page or repair a missing h1 or repair a broken internal link or repair a missing meta description or add localbusiness or service schema or add missing image alt attributes.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "kids-connect",
+    "name": "kids-connect",
+    "domain": "kids-connect.ca",
+    "vertical": "childcare",
+    "offerings": [
+      "Brick Club social groups for autistic children",
+      "Social skills groups",
+      "One to one support sessions",
+      "Parent consultations"
+    ],
+    "crawl": {
+      "pagesFetched": 5,
+      "pagesReadable": 5,
+      "navCount": 4,
+      "sitemapUrls": 74,
+      "links": 6,
+      "crawlExhaustive": true,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": false,
+      "reason": "This site has no service pages: the crawl followed every link on it and found 1 offering(s) represented in the site's navigation, links or sitemap, 0 service page(s) read, 0 service URL(s) in the sitemap. Nothing was blocked and nothing was left unread, so this is the whole site.",
+      "limitation": "site-too-thin",
+      "representedOfferings": 1,
+      "serviceLikePages": 0
+    },
+    "outcome": "inconclusive",
+    "outcomeSummary": "This site has no pages describing what the business sells, so no gap can be claimed.",
+    "limitation": "This site has no service pages: the crawl followed every link on it and found 1 offering(s) represented in the site's navigation, links or sitemap, 0 service page(s) read, 0 service URL(s) in the sitemap. Nothing was blocked and nothing was left unread, so this is the whole site. Nothing in this client's setup would change that — the pages simply are not there. A missing-service-page finding needs a site that describes its services somewhere.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "morrisjenkins",
+    "name": "morrisjenkins",
+    "domain": "morrisjenkins.com",
+    "vertical": "hvac",
+    "offerings": [
+      "Air conditioning repair",
+      "Furnace replacement",
+      "Heat pump installation",
+      "Water heater replacement",
+      "Indoor air quality",
+      "Standby generators"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 92,
+      "sitemapUrls": 100,
+      "links": 115,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 6 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 60 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 6,
+      "serviceLikePages": 9
+    },
+    "outcome": "clean",
+    "outcomeSummary": "Read 10 pages and found no unmet billable work.",
+    "limitation": "Only 1 of 12 kinds of gap were checked — no active service is offered for a site with no service pages at all or a service the competition sells and this client does not or a broken conversion path or repair a missing page title or repair duplicate page titles or expand a thin service page or repair a missing h1 or repair a broken internal link or repair a missing meta description or add localbusiness or service schema or add missing image alt attributes.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "michaelandson",
+    "name": "michaelandson",
+    "domain": "michaelandson.com",
+    "vertical": "hvac",
+    "offerings": [
+      "Central air conditioning repair",
+      "Furnace installation",
+      "Drain clearing",
+      "Sewer line repair",
+      "Electrical panel upgrades",
+      "Water damage restoration"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 46,
+      "sitemapUrls": 100,
+      "links": 205,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 6 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 53 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 6,
+      "serviceLikePages": 9
+    },
+    "outcome": "clean",
+    "outcomeSummary": "Read 10 pages and found no unmet billable work.",
+    "limitation": "Only 1 of 12 kinds of gap were checked — no active service is offered for a site with no service pages at all or a service the competition sells and this client does not or a broken conversion path or repair a missing page title or repair duplicate page titles or expand a thin service page or repair a missing h1 or repair a broken internal link or repair a missing meta description or add localbusiness or service schema or add missing image alt attributes.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "aireserv",
+    "name": "aireserv",
+    "domain": "aireserv.com",
+    "vertical": "hvac",
+    "offerings": [
+      "Air conditioner repair",
+      "Heat pump installation",
+      "Ductless mini split systems",
+      "Geothermal heating",
+      "Dryer vent cleaning",
+      "Indoor air quality testing"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 92,
+      "sitemapUrls": 0,
+      "links": 264,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 6 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 0 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 6,
+      "serviceLikePages": 9
+    },
+    "outcome": "clean",
+    "outcomeSummary": "Read 10 pages and found no unmet billable work.",
+    "limitation": "Only 1 of 12 kinds of gap were checked — no active service is offered for a site with no service pages at all or a service the competition sells and this client does not or a broken conversion path or repair a missing page title or repair duplicate page titles or expand a thin service page or repair a missing h1 or repair a broken internal link or repair a missing meta description or add localbusiness or service schema or add missing image alt attributes.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "mrrooter",
+    "name": "Mr. Rooter Plumbing",
+    "domain": "www.mrrooter.com",
+    "vertical": "plumbing",
+    "offerings": [
+      "drain cleaning",
+      "water heater repair",
+      "sewer line repair",
+      "sump pump installation",
+      "trenchless pipe repair"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 97,
+      "sitemapUrls": 100,
+      "links": 198,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 4 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 4 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 4,
+      "serviceLikePages": 9
+    },
+    "outcome": "clean",
+    "outcomeSummary": "Read 10 pages and found no unmet billable work.",
+    "limitation": "Only 1 of 12 kinds of gap were checked — no active service is offered for a site with no service pages at all or a service the competition sells and this client does not or a broken conversion path or repair a missing page title or repair duplicate page titles or expand a thin service page or repair a missing h1 or repair a broken internal link or repair a missing meta description or add localbusiness or service schema or add missing image alt attributes.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "atlasplumbing",
+    "name": "atlasplumbing",
+    "domain": "atlasplumbing.ca",
+    "vertical": "plumbing",
+    "offerings": [
+      "Drain cleaning",
+      "Water heater installation",
+      "Leak detection",
+      "Toilet and faucet repair"
+    ],
+    "crawl": {
+      "pagesFetched": 8,
+      "pagesReadable": 8,
+      "navCount": 8,
+      "sitemapUrls": 0,
+      "links": 10,
+      "crawlExhaustive": true,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": false,
+      "reason": "This site has no service pages: the crawl followed every link on it and found 0 offering(s) represented in the site's navigation, links or sitemap, 0 service page(s) read, 0 service URL(s) in the sitemap. Nothing was blocked and nothing was left unread, so this is the whole site.",
+      "limitation": "site-too-thin",
+      "representedOfferings": 0,
+      "serviceLikePages": 0
+    },
+    "outcome": "inconclusive",
+    "outcomeSummary": "This site has no pages describing what the business sells, so no gap can be claimed.",
+    "limitation": "This site has no service pages: the crawl followed every link on it and found 0 offering(s) represented in the site's navigation, links or sitemap, 0 service page(s) read, 0 service URL(s) in the sitemap. Nothing was blocked and nothing was left unread, so this is the whole site. Nothing in this client's setup would change that — the pages simply are not there. A missing-service-page finding needs a site that describes its services somewhere.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "fixitright",
+    "name": "fixitright",
+    "domain": "fixitrightplumbing.com.au",
+    "vertical": "plumbing",
+    "offerings": [
+      "Blocked drains",
+      "Hot water systems",
+      "Burst pipe repair",
+      "Leak detection",
+      "Drain relining",
+      "Gas leak repair"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 35,
+      "sitemapUrls": 0,
+      "links": 111,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 6 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 0 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 6,
+      "serviceLikePages": 9
+    },
+    "outcome": "clean",
+    "outcomeSummary": "Read 10 pages and found no unmet billable work.",
+    "limitation": "Only 1 of 12 kinds of gap were checked — no active service is offered for a site with no service pages at all or a service the competition sells and this client does not or a broken conversion path or repair a missing page title or repair duplicate page titles or expand a thin service page or repair a missing h1 or repair a broken internal link or repair a missing meta description or add localbusiness or service schema or add missing image alt attributes.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "mrelectric",
+    "name": "mrelectric",
+    "domain": "mrelectric.com",
+    "vertical": "electrician",
+    "offerings": [
+      "Electrical panel installation",
+      "Outlet installation and repair",
+      "Ceiling fan installation",
+      "Electrical safety inspections",
+      "Generator installation",
+      "Landscape lighting"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 101,
+      "sitemapUrls": 100,
+      "links": 225,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 5 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 12 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 5,
+      "serviceLikePages": 9
+    },
+    "outcome": "clean",
+    "outcomeSummary": "Read 10 pages and found no unmet billable work.",
+    "limitation": "Only 1 of 12 kinds of gap were checked — no active service is offered for a site with no service pages at all or a service the competition sells and this client does not or a broken conversion path or repair a missing page title or repair duplicate page titles or expand a thin service page or repair a missing h1 or repair a broken internal link or repair a missing meta description or add localbusiness or service schema or add missing image alt attributes.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "altimadental",
+    "name": "altimadental",
+    "domain": "altimadental.com",
+    "vertical": "dentist",
+    "offerings": [
+      "Dental implants",
+      "Teeth whitening",
+      "Root canal treatment",
+      "Invisalign clear aligners",
+      "Wisdom tooth extraction"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 85,
+      "sitemapUrls": 0,
+      "links": 100,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 5 offering(s) represented in the site's navigation, links or sitemap, 8 service page(s) read, 0 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 5,
+      "serviceLikePages": 8
+    },
+    "outcome": "clean",
+    "outcomeSummary": "Read 10 pages and found no unmet billable work.",
+    "limitation": "Only 1 of 12 kinds of gap were checked — no active service is offered for a site with no service pages at all or a service the competition sells and this client does not or a broken conversion path or repair a missing page title or repair duplicate page titles or expand a thin service page or repair a missing h1 or repair a broken internal link or repair a missing meta description or add localbusiness or service schema or add missing image alt attributes.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "smiledesign",
+    "name": "smiledesign",
+    "domain": "smiledesigndentistry.com",
+    "vertical": "dentist",
+    "offerings": [
+      "Dental implants",
+      "Porcelain veneers",
+      "Teeth whitening",
+      "Invisalign clear aligners",
+      "Full mouth reconstruction"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 52,
+      "sitemapUrls": 0,
+      "links": 99,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 4 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 0 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 4,
+      "serviceLikePages": 9
+    },
+    "outcome": "clean",
+    "outcomeSummary": "Read 10 pages and found no unmet billable work.",
+    "limitation": "Only 1 of 12 kinds of gap were checked — no active service is offered for a site with no service pages at all or a service the competition sells and this client does not or a broken conversion path or repair a missing page title or repair duplicate page titles or expand a thin service page or repair a missing h1 or repair a broken internal link or repair a missing meta description or add localbusiness or service schema or add missing image alt attributes.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "bloordental",
+    "name": "bloordental",
+    "domain": "bloordental.com",
+    "vertical": "dentist",
+    "offerings": [
+      "Dental implants",
+      "Root canal therapy",
+      "Invisalign clear aligners",
+      "TMJ therapy",
+      "Emergency dentistry",
+      "Teeth whitening"
+    ],
+    "crawl": {
+      "pagesFetched": 1,
+      "pagesReadable": 1,
+      "navCount": 32,
+      "sitemapUrls": 0,
+      "links": 2,
+      "crawlExhaustive": false,
+      "blockedEvents": [
+        {
+          "url": "https://bloordentalhealthcentre.com/sitemap.xml",
+          "reason": "redirect leaves the allowed same-site boundary"
+        }
+      ]
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 5 offering(s) represented in the site's navigation, links or sitemap, 0 service page(s) read, 0 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 5,
+      "serviceLikePages": 0
+    },
+    "outcome": "clean",
+    "outcomeSummary": "Read 1 page and found no unmet billable work.",
+    "limitation": "Only 1 of 12 kinds of gap were checked — no active service is offered for a site with no service pages at all or a service the competition sells and this client does not or a broken conversion path or repair a missing page title or repair duplicate page titles or expand a thin service page or repair a missing h1 or repair a broken internal link or repair a missing meta description or add localbusiness or service schema or add missing image alt attributes.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "yorkvilledental",
+    "name": "yorkvilledental",
+    "domain": "yorkvilledental.ca",
+    "vertical": "dentist",
+    "offerings": [
+      "Dental implants",
+      "Teeth whitening",
+      "Invisalign clear aligners",
+      "Emergency dentistry"
+    ],
+    "crawl": {
+      "pagesFetched": 1,
+      "pagesReadable": 0,
+      "navCount": 0,
+      "sitemapUrls": 0,
+      "links": 0,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": false,
+      "reason": "Insufficient service coverage: only 0 offering(s) represented in the site's navigation, links or sitemap, 0 service page(s) read, 0 service URL(s) in the sitemap — the crawl did not demonstrably reach the site's service pages, so no absence can be claimed.",
+      "limitation": "coverage-limited",
+      "representedOfferings": 0,
+      "serviceLikePages": 0
+    },
+    "outcome": "inconclusive",
+    "outcomeSummary": "No readable pages were returned, so nothing was assessed.",
+    "limitation": "The site responded, but no page returned readable HTML content.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "physiomed",
+    "name": "physiomed",
+    "domain": "physiomed.ca",
+    "vertical": "clinic",
+    "offerings": [
+      "Physiotherapy",
+      "Chiropractic care",
+      "Custom orthotics",
+      "Massage therapy",
+      "Pelvic floor physiotherapy"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 63,
+      "sitemapUrls": 0,
+      "links": 137,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 5 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 0 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 5,
+      "serviceLikePages": 9
+    },
+    "outcome": "clean",
+    "outcomeSummary": "Read 10 pages and found no unmet billable work.",
+    "limitation": "Only 1 of 12 kinds of gap were checked — no active service is offered for a site with no service pages at all or a service the competition sells and this client does not or a broken conversion path or repair a missing page title or repair duplicate page titles or expand a thin service page or repair a missing h1 or repair a broken internal link or repair a missing meta description or add localbusiness or service schema or add missing image alt attributes.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "renoduck",
+    "name": "renoduck",
+    "domain": "renoduck.com",
+    "vertical": "contractor",
+    "offerings": [
+      "Basement finishing",
+      "Basement underpinning",
+      "Legal basement apartment conversion",
+      "Bathroom renovation",
+      "Kitchen renovation"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 34,
+      "sitemapUrls": 0,
+      "links": 180,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 5 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 0 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 5,
+      "serviceLikePages": 9
+    },
+    "outcome": "clean",
+    "outcomeSummary": "Read 10 pages and found no unmet billable work.",
+    "limitation": "Only 1 of 12 kinds of gap were checked — no active service is offered for a site with no service pages at all or a service the competition sells and this client does not or a broken conversion path or repair a missing page title or repair duplicate page titles or expand a thin service page or repair a missing h1 or repair a broken internal link or repair a missing meta description or add localbusiness or service schema or add missing image alt attributes.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "nusite",
+    "name": "nusite",
+    "domain": "nusite.ca",
+    "vertical": "contractor",
+    "offerings": [
+      "Basement waterproofing",
+      "Foundation repair",
+      "Underpinning",
+      "Drainage systems"
+    ],
+    "crawl": {
+      "pagesFetched": 1,
+      "pagesReadable": 1,
+      "navCount": 1,
+      "sitemapUrls": 0,
+      "links": 1,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": false,
+      "reason": "Insufficient service coverage: only 0 offering(s) represented in the site's navigation, links or sitemap, 0 service page(s) read, 0 service URL(s) in the sitemap — the crawl did not demonstrably reach the site's service pages, so no absence can be claimed.",
+      "limitation": "coverage-limited",
+      "representedOfferings": 0,
+      "serviceLikePages": 0
+    },
+    "outcome": "inconclusive",
+    "outcomeSummary": "The crawl never reached this site's service pages, so no gap can be claimed.",
+    "limitation": "Insufficient service coverage: only 0 offering(s) represented in the site's navigation, links or sitemap, 0 service page(s) read, 0 service URL(s) in the sitemap — the crawl did not demonstrably reach the site's service pages, so no absence can be claimed.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "nerdsonsite",
+    "name": "nerdsonsite",
+    "domain": "nerdsonsite.com",
+    "vertical": "agency",
+    "offerings": [
+      "Managed IT services",
+      "On-site IT support",
+      "Cyber security services",
+      "Cloud services",
+      "Computer repair"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 32,
+      "sitemapUrls": 0,
+      "links": 45,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 5 offering(s) represented in the site's navigation, links or sitemap, 7 service page(s) read, 0 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 5,
+      "serviceLikePages": 7
+    },
+    "outcome": "clean",
+    "outcomeSummary": "Read 10 pages and found no unmet billable work.",
+    "limitation": "Only 1 of 12 kinds of gap were checked — no active service is offered for a site with no service pages at all or a service the competition sells and this client does not or a broken conversion path or repair a missing page title or repair duplicate page titles or expand a thin service page or repair a missing h1 or repair a broken internal link or repair a missing meta description or add localbusiness or service schema or add missing image alt attributes.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "goddardschool",
+    "name": "goddardschool",
+    "domain": "goddardschool.com",
+    "vertical": "childcare",
+    "offerings": [
+      "Infant care",
+      "Toddler programs",
+      "Preschool",
+      "Pre-kindergarten",
+      "Before and after school programs",
+      "Summer camp programs"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 23,
+      "sitemapUrls": 0,
+      "links": 69,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 4 offering(s) represented in the site's navigation, links or sitemap, 1 service page(s) read, 0 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 4,
+      "serviceLikePages": 1
+    },
+    "outcome": "clean",
+    "outcomeSummary": "Read 10 pages and found no unmet billable work.",
+    "limitation": "Only 1 of 12 kinds of gap were checked — no active service is offered for a site with no service pages at all or a service the competition sells and this client does not or a broken conversion path or repair a missing page title or repair duplicate page titles or expand a thin service page or repair a missing h1 or repair a broken internal link or repair a missing meta description or add localbusiness or service schema or add missing image alt attributes.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "thelawnsalon",
+    "name": "thelawnsalon",
+    "domain": "thelawnsalon.ca",
+    "vertical": "landscaping",
+    "offerings": [
+      "Deck building",
+      "Paving stone patios and walkways",
+      "Retaining walls",
+      "Fence installation",
+      "Sodding",
+      "Grading and drainage"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 28,
+      "sitemapUrls": 0,
+      "links": 144,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 5 offering(s) represented in the site's navigation, links or sitemap, 4 service page(s) read, 0 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 5,
+      "serviceLikePages": 4
+    },
+    "outcome": "clean",
+    "outcomeSummary": "Read 10 pages and found no unmet billable work.",
+    "limitation": "Only 1 of 12 kinds of gap were checked — no active service is offered for a site with no service pages at all or a service the competition sells and this client does not or a broken conversion path or repair a missing page title or repair duplicate page titles or expand a thin service page or repair a missing h1 or repair a broken internal link or repair a missing meta description or add localbusiness or service schema or add missing image alt attributes.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "davey",
+    "name": "Davey Tree",
+    "domain": "www.davey.com",
+    "vertical": "tree service",
+    "offerings": [
+      "tree pruning",
+      "tree removal",
+      "stump grinding",
+      "plant health care",
+      "emergency storm cleanup"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 141,
+      "sitemapUrls": 100,
+      "links": 151,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 4 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 0 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 4,
+      "serviceLikePages": 9
+    },
+    "outcome": "findings",
+    "outcomeSummary": "1 evidence-backed opportunity found.",
+    "limitation": null,
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 1,
+      "passedEvidenceThreshold": 1,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 1,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 1,
+      "newlyFound": 1,
+      "stillOpen": 0,
+      "aiCalls": 1
+    },
+    "findings": [
+      {
+        "ruleId": "missing-service-page",
+        "title": "Stump Grinding — dedicated service page",
+        "tier": "commercial",
+        "serviceName": "Service Landing Page",
+        "priceMin": 900,
+        "priceMax": 1800,
+        "confidence": 0.75,
+        "rationale": "Stump grinding is a specific, sellable service that customers actively search for, and it is distinct from tree removal or pruning. Since the site lacks a dedicated page, creating one would capture targeted demand and improve SEO.",
+        "evidenceRefs": [
+          "https://www.davey.com/",
+          "https://www.davey.com/residential-tree-services/tree-health-inspection-treatment/",
+          "https://www.davey.com/residential-tree-services/shrub-pruning/",
+          "https://www.davey.com/residential-tree-services/tree-removal/",
+          "https://www.davey.com/residential-tree-services/tree-trimming-pruning/",
+          "https://www.davey.com/residential-tree-services/lawn-care-services/lawn-pest-grub-control/",
+          "https://www.davey.com/professional-landscaping/",
+          "https://www.davey.com/commercial-services/commercial-grounds-maintenance/",
+          "https://www.davey.com/commercial-services/commercial-snow-ice-removal/",
+          "https://www.davey.com/commercial-services/class-a-property-landscaping-services/"
+        ],
+        "suggestedScope": [
+          "Dedicated service page with keyword-optimized content for 'stump grinding'",
+          "FAQ section addressing stump grinding process, costs, and aftercare",
+          "Photo gallery or video demonstrating stump grinding work",
+          "Call-to-action for free estimates and local office contact",
+          "Internal links to related services like tree removal and land clearing"
+        ],
+        "dedupeKey": "missing-service-page__stump-grinding__679fdc51"
+      }
+    ]
+  },
+  {
+    "id": "bartlett",
+    "name": "Bartlett Tree Experts",
+    "domain": "www.bartlett.com",
+    "vertical": "tree care (regional independent)",
+    "offerings": [
+      "tree pruning",
+      "tree removal",
+      "tree fertilization",
+      "insect and disease management",
+      "stump grinding",
+      "cabling and bracing"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 0,
+      "sitemapUrls": 100,
+      "links": 0,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 4 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 52 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 4,
+      "serviceLikePages": 9
+    },
+    "outcome": "findings",
+    "outcomeSummary": "1 evidence-backed opportunity found.",
+    "limitation": null,
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 1,
+      "passedEvidenceThreshold": 1,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 1,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 1,
+      "newlyFound": 1,
+      "stillOpen": 0,
+      "aiCalls": 1
+    },
+    "findings": [
+      {
+        "ruleId": "missing-service-page",
+        "title": "Stump Grinding — dedicated service page",
+        "tier": "commercial",
+        "serviceName": "Service Landing Page",
+        "priceMin": 900,
+        "priceMax": 1800,
+        "confidence": 0.75,
+        "rationale": "Stump grinding is a specific, sellable service that customers search for independently, and the site lacks a dedicated page for it. Creating one would capture targeted demand and support the existing tree removal offering.",
+        "evidenceRefs": [
+          "https://www.bartlett.com/",
+          "https://www.bartlett.com/services/tree-inspections",
+          "https://www.bartlett.com/services/pruning",
+          "https://www.bartlett.com/services/tree-removal",
+          "https://www.bartlett.com/services/irrigation",
+          "https://www.bartlett.com/services/irrigation-and-water-management",
+          "https://www.bartlett.com/services/cabling-and-bracing",
+          "https://www.bartlett.com/services/drought",
+          "https://www.bartlett.com/services/felling",
+          "https://www.bartlett.com/services/fertilization"
+        ],
+        "suggestedScope": [
+          "Dedicated stump grinding service page with SEO-optimized copy",
+          "FAQ section addressing stump depth, cleanup, and costs",
+          "Photo gallery of before/after stump grinding projects",
+          "Call-to-action for free estimates and contact form"
+        ],
+        "dedupeKey": "missing-service-page__stump-grinding__434395ec"
+      }
+    ]
+  },
+  {
+    "id": "activegreenross",
+    "name": "activegreenross",
+    "domain": "activegreenross.com",
+    "vertical": "automotive",
+    "offerings": [
+      "Tire installation",
+      "Brake repair",
+      "Oil changes",
+      "Wheel alignment",
+      "Vehicle safety inspections"
+    ],
+    "crawl": {
+      "pagesFetched": 7,
+      "pagesReadable": 7,
+      "navCount": 2,
+      "sitemapUrls": 0,
+      "links": 144,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 4 offering(s) represented in the site's navigation, links or sitemap, 6 service page(s) read, 0 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 4,
+      "serviceLikePages": 6
+    },
+    "outcome": "clean",
+    "outcomeSummary": "Read 7 pages and found no unmet billable work.",
+    "limitation": "Only 1 of 12 kinds of gap were checked — no active service is offered for a site with no service pages at all or a service the competition sells and this client does not or a broken conversion path or repair a missing page title or repair duplicate page titles or expand a thin service page or repair a missing h1 or repair a broken internal link or repair a missing meta description or add localbusiness or service schema or add missing image alt attributes.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "benfranklin",
+    "name": "Benjamin Franklin Plumbing",
+    "domain": "www.benjaminfranklinplumbing.com",
+    "vertical": "plumbing",
+    "offerings": [
+      "drain cleaning",
+      "water heater installation",
+      "leak detection",
+      "water softener installation",
+      "bathroom remodeling"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 66,
+      "sitemapUrls": 100,
+      "links": 98,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 3 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 51 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 3,
+      "serviceLikePages": 9
+    },
+    "outcome": "clean",
+    "outcomeSummary": "Read 10 pages and found no unmet billable work.",
+    "limitation": "Only 1 of 12 kinds of gap were checked — no active service is offered for a site with no service pages at all or a service the competition sells and this client does not or a broken conversion path or repair a missing page title or repair duplicate page titles or expand a thin service page or repair a missing h1 or repair a broken internal link or repair a missing meta description or add localbusiness or service schema or add missing image alt attributes.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "onehour",
+    "name": "One Hour Heating & Air Conditioning",
+    "domain": "www.onehourheatandair.com",
+    "vertical": "hvac",
+    "offerings": [
+      "air conditioning repair",
+      "furnace installation",
+      "heat pump installation",
+      "duct cleaning",
+      "indoor air quality"
+    ],
+    "crawl": {
+      "pagesFetched": 8,
+      "pagesReadable": 8,
+      "navCount": 48,
+      "sitemapUrls": 100,
+      "links": 56,
+      "crawlExhaustive": false,
+      "blockedEvents": [
+        {
+          "url": "https://www.onehourheatandair.com/services/ductwork/duct-cleaning/",
+          "reason": "request timeout"
+        },
+        {
+          "url": "https://www.onehourheatandair.com/services/ductwork/duct-installation/",
+          "reason": "request timeout"
+        }
+      ]
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 5 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 20 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 5,
+      "serviceLikePages": 9
+    },
+    "outcome": "clean",
+    "outcomeSummary": "Read 8 pages and found no unmet billable work.",
+    "limitation": "2 requests during this run could not be completed, so a small part of the site was not assessed. Only 1 of 12 kinds of gap were checked — no active service is offered for a site with no service pages at all or a service the competition sells and this client does not or a broken conversion path or repair a missing page title or repair duplicate page titles or expand a thin service page or repair a missing h1 or repair a broken internal link or repair a missing meta description or add localbusiness or service schema or add missing image alt attributes.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "aire-serv",
+    "name": "Aire Serv",
+    "domain": "www.aireserv.com",
+    "vertical": "hvac",
+    "offerings": [
+      "ac repair",
+      "furnace repair",
+      "heat pump installation",
+      "thermostat installation",
+      "commercial hvac"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 92,
+      "sitemapUrls": 100,
+      "links": 160,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 5 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 81 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 5,
+      "serviceLikePages": 9
+    },
+    "outcome": "clean",
+    "outcomeSummary": "Read 10 pages and found no unmet billable work.",
+    "limitation": "Only 1 of 12 kinds of gap were checked — no active service is offered for a site with no service pages at all or a service the competition sells and this client does not or a broken conversion path or repair a missing page title or repair duplicate page titles or expand a thin service page or repair a missing h1 or repair a broken internal link or repair a missing meta description or add localbusiness or service schema or add missing image alt attributes.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "trugreen",
+    "name": "TruGreen",
+    "domain": "www.trugreen.com",
+    "vertical": "lawn care",
+    "offerings": [
+      "lawn fertilization",
+      "weed control",
+      "grub control",
+      "tree and shrub care",
+      "mosquito control"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 0,
+      "sitemapUrls": 100,
+      "links": 43,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 5 offering(s) represented in the site's navigation, links or sitemap, 6 service page(s) read, 19 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 5,
+      "serviceLikePages": 6
+    },
+    "outcome": "clean",
+    "outcomeSummary": "Read 10 pages and found no unmet billable work.",
+    "limitation": "Only 1 of 12 kinds of gap were checked — no active service is offered for a site with no service pages at all or a service the competition sells and this client does not or a broken conversion path or repair a missing page title or repair duplicate page titles or expand a thin service page or repair a missing h1 or repair a broken internal link or repair a missing meta description or add localbusiness or service schema or add missing image alt attributes.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "mollymaid",
+    "name": "Molly Maid",
+    "domain": "www.mollymaid.com",
+    "vertical": "cleaning",
+    "offerings": [
+      "recurring house cleaning",
+      "deep cleaning",
+      "move out cleaning",
+      "apartment cleaning",
+      "post construction cleaning"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 59,
+      "sitemapUrls": 100,
+      "links": 125,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 5 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 62 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 5,
+      "serviceLikePages": 9
+    },
+    "outcome": "clean",
+    "outcomeSummary": "Read 10 pages and found no unmet billable work.",
+    "limitation": "Only 1 of 12 kinds of gap were checked — no active service is offered for a site with no service pages at all or a service the competition sells and this client does not or a broken conversion path or repair a missing page title or repair duplicate page titles or expand a thin service page or repair a missing h1 or repair a broken internal link or repair a missing meta description or add localbusiness or service schema or add missing image alt attributes.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "servpro",
+    "name": "Servpro",
+    "domain": "www.servpro.com",
+    "vertical": "restoration",
+    "offerings": [
+      "water damage restoration",
+      "fire damage restoration",
+      "mold remediation",
+      "storm damage cleanup",
+      "biohazard cleanup"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 12,
+      "sitemapUrls": 100,
+      "links": 90,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 5 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 48 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 5,
+      "serviceLikePages": 9
+    },
+    "outcome": "clean",
+    "outcomeSummary": "Read 10 pages and found no unmet billable work.",
+    "limitation": "Only 1 of 12 kinds of gap were checked — no active service is offered for a site with no service pages at all or a service the competition sells and this client does not or a broken conversion path or repair a missing page title or repair duplicate page titles or expand a thin service page or repair a missing h1 or repair a broken internal link or repair a missing meta description or add localbusiness or service schema or add missing image alt attributes.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "terminix",
+    "name": "Terminix",
+    "domain": "www.terminix.com",
+    "vertical": "pest control",
+    "offerings": [
+      "termite control",
+      "bed bug treatment",
+      "mosquito control",
+      "rodent control",
+      "wildlife removal"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 2,
+      "sitemapUrls": 100,
+      "links": 77,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 5 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 47 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 5,
+      "serviceLikePages": 9
+    },
+    "outcome": "clean",
+    "outcomeSummary": "Read 10 pages and found no unmet billable work.",
+    "limitation": "Only 1 of 12 kinds of gap were checked — no active service is offered for a site with no service pages at all or a service the competition sells and this client does not or a broken conversion path or repair a missing page title or repair duplicate page titles or expand a thin service page or repair a missing h1 or repair a broken internal link or repair a missing meta description or add localbusiness or service schema or add missing image alt attributes.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "aptive",
+    "name": "Aptive Environmental",
+    "domain": "www.goaptive.com",
+    "vertical": "pest control",
+    "offerings": [
+      "general pest control",
+      "mosquito treatment",
+      "ant control",
+      "spider control",
+      "wasp nest removal"
+    ],
+    "crawl": {
+      "pagesFetched": 0,
+      "pagesReadable": 0,
+      "navCount": 0,
+      "sitemapUrls": 0,
+      "links": 0,
+      "crawlExhaustive": false,
+      "blockedEvents": [
+        {
+          "url": "https://aptivepestcontrol.com/",
+          "reason": "redirect leaves the allowed same-site boundary"
+        },
+        {
+          "url": "https://aptivepestcontrol.com/",
+          "reason": "redirect leaves the allowed same-site boundary"
+        }
+      ]
+    },
+    "coverage": {
+      "analyzable": false,
+      "reason": "Insufficient service coverage: only 0 offering(s) represented in the site's navigation, links or sitemap, 0 service page(s) read, 0 service URL(s) in the sitemap — the crawl did not demonstrably reach the site's service pages, so no absence can be claimed.",
+      "limitation": "coverage-limited",
+      "representedOfferings": 0,
+      "serviceLikePages": 0
+    },
+    "outcome": "inconclusive",
+    "outcomeSummary": "The site could not be reached safely, so nothing was assessed.",
+    "limitation": "Requests to this domain were refused by the network policy — the address did not resolve to a public host, used an unsupported scheme, or redirected somewhere unsafe.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "jiffylube",
+    "name": "Jiffy Lube",
+    "domain": "www.jiffylube.com",
+    "vertical": "auto service",
+    "offerings": [
+      "oil change",
+      "brake service",
+      "battery replacement",
+      "transmission fluid service",
+      "fleet services"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 38,
+      "sitemapUrls": 100,
+      "links": 78,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 4 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 16 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 4,
+      "serviceLikePages": 9
+    },
+    "outcome": "clean",
+    "outcomeSummary": "Read 10 pages and found no unmet billable work.",
+    "limitation": "Only 1 of 12 kinds of gap were checked — no active service is offered for a site with no service pages at all or a service the competition sells and this client does not or a broken conversion path or repair a missing page title or repair duplicate page titles or expand a thin service page or repair a missing h1 or repair a broken internal link or repair a missing meta description or add localbusiness or service schema or add missing image alt attributes.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "midas",
+    "name": "Midas",
+    "domain": "www.midas.com",
+    "vertical": "auto repair",
+    "offerings": [
+      "brake repair",
+      "oil change",
+      "tire installation",
+      "exhaust repair",
+      "wheel alignment"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 66,
+      "sitemapUrls": 99,
+      "links": 76,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 5 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 2 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 5,
+      "serviceLikePages": 9
+    },
+    "outcome": "clean",
+    "outcomeSummary": "Read 10 pages and found no unmet billable work.",
+    "limitation": "Only 1 of 12 kinds of gap were checked — no active service is offered for a site with no service pages at all or a service the competition sells and this client does not or a broken conversion path or repair a missing page title or repair duplicate page titles or expand a thin service page or repair a missing h1 or repair a broken internal link or repair a missing meta description or add localbusiness or service schema or add missing image alt attributes.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "milestone",
+    "name": "Milestone Electric, A/C, & Plumbing",
+    "domain": "www.callmilestone.com",
+    "vertical": "home services",
+    "offerings": [
+      "electrical panel upgrade",
+      "ev charger installation",
+      "generator installation",
+      "air conditioning repair",
+      "water heater installation"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 7,
+      "sitemapUrls": 0,
+      "links": 133,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 4 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 0 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 4,
+      "serviceLikePages": 9
+    },
+    "outcome": "clean",
+    "outcomeSummary": "Read 10 pages and found no unmet billable work.",
+    "limitation": "Only 1 of 12 kinds of gap were checked — no active service is offered for a site with no service pages at all or a service the competition sells and this client does not or a broken conversion path or repair a missing page title or repair duplicate page titles or expand a thin service page or repair a missing h1 or repair a broken internal link or repair a missing meta description or add localbusiness or service schema or add missing image alt attributes.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "roto-rooter",
+    "name": "Roto-Rooter",
+    "domain": "www.rotorooter.com",
+    "vertical": "plumbing",
+    "offerings": [
+      "drain cleaning",
+      "water cleanup",
+      "sewer repair",
+      "septic tank pumping",
+      "plumbing inspection"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 51,
+      "sitemapUrls": 0,
+      "links": 70,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 5 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 0 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 5,
+      "serviceLikePages": 9
+    },
+    "outcome": "clean",
+    "outcomeSummary": "Read 10 pages and found no unmet billable work.",
+    "limitation": "Only 1 of 12 kinds of gap were checked — no active service is offered for a site with no service pages at all or a service the competition sells and this client does not or a broken conversion path or repair a missing page title or repair duplicate page titles or expand a thin service page or repair a missing h1 or repair a broken internal link or repair a missing meta description or add localbusiness or service schema or add missing image alt attributes.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "paul-davis",
+    "name": "Paul Davis Restoration",
+    "domain": "www.pauldavis.com",
+    "vertical": "restoration",
+    "offerings": [
+      "water damage restoration",
+      "fire damage restoration",
+      "mold remediation",
+      "reconstruction services",
+      "contents cleaning"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 51,
+      "sitemapUrls": 0,
+      "links": 74,
+      "crawlExhaustive": false,
+      "blockedEvents": [
+        {
+          "url": "https://pauldavis.com/",
+          "reason": "response content type is not crawlable XML/text: text/html; charset=utf-8"
+        }
+      ]
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 5 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 0 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 5,
+      "serviceLikePages": 9
+    },
+    "outcome": "clean",
+    "outcomeSummary": "Read 10 pages and found no unmet billable work.",
+    "limitation": "1 request during this run could not be completed, so a small part of the site was not assessed. Only 1 of 12 kinds of gap were checked — no active service is offered for a site with no service pages at all or a service the competition sells and this client does not or a broken conversion path or repair a missing page title or repair duplicate page titles or expand a thin service page or repair a missing h1 or repair a broken internal link or repair a missing meta description or add localbusiness or service schema or add missing image alt attributes.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "the-grounds-guys",
+    "name": "The Grounds Guys",
+    "domain": "www.groundsguys.com",
+    "vertical": "landscaping",
+    "offerings": [
+      "lawn maintenance",
+      "landscape design",
+      "irrigation installation",
+      "snow removal",
+      "hardscaping"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 99,
+      "sitemapUrls": 100,
+      "links": 214,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 5 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 30 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 5,
+      "serviceLikePages": 9
+    },
+    "outcome": "clean",
+    "outcomeSummary": "Read 10 pages and found no unmet billable work.",
+    "limitation": "Only 1 of 12 kinds of gap were checked — no active service is offered for a site with no service pages at all or a service the competition sells and this client does not or a broken conversion path or repair a missing page title or repair duplicate page titles or expand a thin service page or repair a missing h1 or repair a broken internal link or repair a missing meta description or add localbusiness or service schema or add missing image alt attributes.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "glass-doctor",
+    "name": "Glass Doctor",
+    "domain": "www.glassdoctor.com",
+    "vertical": "glass repair",
+    "offerings": [
+      "auto glass replacement",
+      "windshield repair",
+      "shower door installation",
+      "residential window replacement",
+      "storefront glass"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 85,
+      "sitemapUrls": 0,
+      "links": 101,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 5 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 0 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 5,
+      "serviceLikePages": 9
+    },
+    "outcome": "clean",
+    "outcomeSummary": "Read 10 pages and found no unmet billable work.",
+    "limitation": "Only 1 of 12 kinds of gap were checked — no active service is offered for a site with no service pages at all or a service the competition sells and this client does not or a broken conversion path or repair a missing page title or repair duplicate page titles or expand a thin service page or repair a missing h1 or repair a broken internal link or repair a missing meta description or add localbusiness or service schema or add missing image alt attributes.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "mr-electric",
+    "name": "Mr. Electric",
+    "domain": "www.mrelectric.com",
+    "vertical": "electrical",
+    "offerings": [
+      "electrical panel upgrade",
+      "ev charger installation",
+      "ceiling fan installation",
+      "generator installation",
+      "electrical safety inspection"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 101,
+      "sitemapUrls": 0,
+      "links": 225,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 5 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 0 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 5,
+      "serviceLikePages": 9
+    },
+    "outcome": "clean",
+    "outcomeSummary": "Read 10 pages and found no unmet billable work.",
+    "limitation": "Only 1 of 12 kinds of gap were checked — no active service is offered for a site with no service pages at all or a service the competition sells and this client does not or a broken conversion path or repair a missing page title or repair duplicate page titles or expand a thin service page or repair a missing h1 or repair a broken internal link or repair a missing meta description or add localbusiness or service schema or add missing image alt attributes.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "precision-door",
+    "name": "Precision Door Service",
+    "domain": "www.precisiondoor.net",
+    "vertical": "garage doors",
+    "offerings": [
+      "garage door repair",
+      "garage door spring replacement",
+      "garage door opener installation",
+      "new garage door installation",
+      "commercial garage doors"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 42,
+      "sitemapUrls": 100,
+      "links": 46,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 5 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 0 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 5,
+      "serviceLikePages": 9
+    },
+    "outcome": "clean",
+    "outcomeSummary": "Read 10 pages and found no unmet billable work.",
+    "limitation": "Only 1 of 12 kinds of gap were checked — no active service is offered for a site with no service pages at all or a service the competition sells and this client does not or a broken conversion path or repair a missing page title or repair duplicate page titles or expand a thin service page or repair a missing h1 or repair a broken internal link or repair a missing meta description or add localbusiness or service schema or add missing image alt attributes.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "gutter-helmet",
+    "name": "Gutter Helmet",
+    "domain": "www.gutterhelmet.com",
+    "vertical": "gutters",
+    "offerings": [
+      "gutter guard installation",
+      "gutter replacement",
+      "gutter cleaning",
+      "heated gutter systems",
+      "commercial gutter protection"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 8,
+      "sitemapUrls": 100,
+      "links": 53,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 5 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 77 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 5,
+      "serviceLikePages": 9
+    },
+    "outcome": "clean",
+    "outcomeSummary": "Read 10 pages and found no unmet billable work.",
+    "limitation": "Only 1 of 12 kinds of gap were checked — no active service is offered for a site with no service pages at all or a service the competition sells and this client does not or a broken conversion path or repair a missing page title or repair duplicate page titles or expand a thin service page or repair a missing h1 or repair a broken internal link or repair a missing meta description or add localbusiness or service schema or add missing image alt attributes.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "bellbrothers",
+    "name": "Bell Brothers Plumbing, Heating & Air",
+    "domain": "www.bellbrothers.com",
+    "vertical": "hvac/plumbing (Sacramento)",
+    "offerings": [
+      "air conditioning repair",
+      "furnace replacement",
+      "heat pump installation",
+      "water heater installation",
+      "sewer line replacement",
+      "duct sealing"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 14,
+      "sitemapUrls": 0,
+      "links": 76,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 5 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 0 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 5,
+      "serviceLikePages": 9
+    },
+    "outcome": "findings",
+    "outcomeSummary": "1 evidence-backed opportunity found.",
+    "limitation": null,
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 1,
+      "passedEvidenceThreshold": 1,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 1,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 1,
+      "newlyFound": 1,
+      "stillOpen": 0,
+      "aiCalls": 1
+    },
+    "findings": [
+      {
+        "ruleId": "missing-service-page",
+        "title": "Duct Sealing — dedicated service page",
+        "tier": "commercial",
+        "serviceName": "Service Landing Page",
+        "priceMin": 900,
+        "priceMax": 1800,
+        "confidence": 0.65,
+        "rationale": "Duct sealing is a specific, sellable service that improves HVAC efficiency and indoor air quality, distinct from duct cleaning. It is a legitimate offering for a heating and air company to market with its own page.",
+        "evidenceRefs": [
+          "https://bellbrothers.com/",
+          "https://bellbrothers.com/commercial/plumbing",
+          "https://bellbrothers.com/commercial/hvac",
+          "https://bellbrothers.com/heating",
+          "https://bellbrothers.com/cooling",
+          "https://bellbrothers.com/plumbing",
+          "https://bellbrothers.com/plumbing/sewer-line-repair-replacement",
+          "https://bellbrothers.com/24-7-emergency-heating-and-cooling",
+          "https://bellbrothers.com/heating/heat-pump-installation",
+          "https://bellbrothers.com/heating/maintenance",
+          "verified:https://bellbrothers.com/duct-cleaning",
+          "considered:https://bellbrothers.com/duct-cleaning"
+        ],
+        "suggestedScope": [
+          "Dedicated page with SEO copy explaining duct sealing benefits, process, and signs you need it",
+          "Comparison of duct sealing vs. duct cleaning",
+          "Service area coverage and contact/quote form",
+          "Internal links to related services (HVAC maintenance, air quality)"
+        ],
+        "dedupeKey": "missing-service-page__duct-sealing__56c2eed4"
+      }
+    ]
+  },
+  {
+    "id": "gilmore",
+    "name": "Gilmore Heating, Air & Plumbing",
+    "domain": "www.gilmoreair.com",
+    "vertical": "hvac/plumbing (Sacramento)",
+    "offerings": [
+      "ac installation",
+      "furnace repair",
+      "heat pump installation",
+      "water heater repair",
+      "drain cleaning",
+      "indoor air quality"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 14,
+      "sitemapUrls": 0,
+      "links": 61,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 6 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 0 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 6,
+      "serviceLikePages": 9
+    },
+    "outcome": "clean",
+    "outcomeSummary": "Read 10 pages and found no unmet billable work.",
+    "limitation": "Only 1 of 12 kinds of gap were checked — no active service is offered for a site with no service pages at all or a service the competition sells and this client does not or a broken conversion path or repair a missing page title or repair duplicate page titles or expand a thin service page or repair a missing h1 or repair a broken internal link or repair a missing meta description or add localbusiness or service schema or add missing image alt attributes.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "coolray",
+    "name": "Coolray Heating, Cooling, Plumbing & Electrical",
+    "domain": "www.coolray.com",
+    "vertical": "home services (Atlanta)",
+    "offerings": [
+      "ac repair",
+      "furnace installation",
+      "heat pump installation",
+      "water heater installation",
+      "electrical panel upgrade",
+      "generator installation"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 46,
+      "sitemapUrls": 100,
+      "links": 106,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 6 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 18 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 6,
+      "serviceLikePages": 9
+    },
+    "outcome": "clean",
+    "outcomeSummary": "Read 10 pages and found no unmet billable work.",
+    "limitation": "Only 1 of 12 kinds of gap were checked — no active service is offered for a site with no service pages at all or a service the competition sells and this client does not or a broken conversion path or repair a missing page title or repair duplicate page titles or expand a thin service page or repair a missing h1 or repair a broken internal link or repair a missing meta description or add localbusiness or service schema or add missing image alt attributes.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "callsnappy",
+    "name": "Snappy Services",
+    "domain": "www.callsnappy.com",
+    "vertical": "electrical/plumbing/hvac (Atlanta)",
+    "offerings": [
+      "electrical panel upgrade",
+      "ev charger installation",
+      "standby generator installation",
+      "drain cleaning",
+      "water heater installation",
+      "ac repair"
+    ],
+    "crawl": {
+      "pagesFetched": 1,
+      "pagesReadable": 1,
+      "navCount": 2,
+      "sitemapUrls": 0,
+      "links": 1,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": false,
+      "reason": "Insufficient service coverage: only 0 offering(s) represented in the site's navigation, links or sitemap, 0 service page(s) read, 0 service URL(s) in the sitemap — the crawl did not demonstrably reach the site's service pages, so no absence can be claimed.",
+      "limitation": "coverage-limited",
+      "representedOfferings": 0,
+      "serviceLikePages": 0
+    },
+    "outcome": "inconclusive",
+    "outcomeSummary": "The crawl never reached this site's service pages, so no gap can be claimed.",
+    "limitation": "Insufficient service coverage: only 0 offering(s) represented in the site's navigation, links or sitemap, 0 service page(s) read, 0 service URL(s) in the sitemap — the crawl did not demonstrably reach the site's service pages, so no absence can be claimed.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "romanelectric",
+    "name": "Roman Electric, Plumbing, Heating & Cooling",
+    "domain": "www.romanelectrichome.com",
+    "vertical": "electrical/plumbing/hvac (Milwaukee)",
+    "offerings": [
+      "electrical panel upgrade",
+      "ceiling fan installation",
+      "water heater installation",
+      "furnace repair",
+      "ev charger installation",
+      "whole house rewiring"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 0,
+      "sitemapUrls": 0,
+      "links": 48,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 4 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 0 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 4,
+      "serviceLikePages": 9
+    },
+    "outcome": "findings",
+    "outcomeSummary": "2 evidence-backed opportunities found.",
+    "limitation": null,
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 2,
+      "passedEvidenceThreshold": 2,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 2,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 2,
+      "newlyFound": 2,
+      "stillOpen": 0,
+      "aiCalls": 2
+    },
+    "findings": [
+      {
+        "ruleId": "missing-service-page",
+        "title": "Ev Charger Installation — dedicated service page",
+        "tier": "commercial",
+        "serviceName": "Service Landing Page",
+        "priceMin": 900,
+        "priceMax": 1800,
+        "confidence": 0.75,
+        "rationale": "EV charger installation is a specific, high-demand electrical service that customers actively search for and pay for. Since the client is an electrical contractor and the service is absent from the site, a dedicated page would capture relevant traffic and generate leads.",
+        "evidenceRefs": [
+          "https://romanelectrichome.com/",
+          "https://romanelectrichome.com/services/",
+          "https://romanelectrichome.com/electrical/indoor-outdoor-lighting/",
+          "https://romanelectrichome.com/electrical/wiring-rewiring-cabling/",
+          "https://romanelectrichome.com/hvac-service/heating/",
+          "https://romanelectrichome.com/hvac-service/cooling/",
+          "https://romanelectrichome.com/boiler-installation-and-repair/",
+          "https://romanelectrichome.com/hvac-service/hvac-maintenance/",
+          "https://romanelectrichome.com/plumbing/",
+          "https://romanelectrichome.com/electrical/design-remodel/"
+        ],
+        "suggestedScope": [
+          "Dedicated landing page with SEO-optimized content on EV charger installation",
+          "Overview of charger types (Level 1, 2, DC fast) and compatibility",
+          "Benefits of home EV charging and cost considerations",
+          "Service area and process description",
+          "Call-to-action for quotes and contact form",
+          "FAQ section addressing common concerns",
+          "Internal links to related electrical services"
+        ],
+        "dedupeKey": "missing-service-page__ev-charger-installation__aeff2429"
+      },
+      {
+        "ruleId": "missing-service-page",
+        "title": "Whole House Rewiring — dedicated service page",
+        "tier": "commercial",
+        "serviceName": "Service Landing Page",
+        "priceMin": 900,
+        "priceMax": 1800,
+        "confidence": 0.75,
+        "rationale": "Whole house rewiring is a specific, high-value electrical service that homeowners search for and hire contractors to perform. It is distinct from general wiring and deserves its own dedicated page to capture relevant search traffic and clearly present the service offering.",
+        "evidenceRefs": [
+          "https://romanelectrichome.com/",
+          "https://romanelectrichome.com/services/",
+          "https://romanelectrichome.com/electrical/indoor-outdoor-lighting/",
+          "https://romanelectrichome.com/electrical/wiring-rewiring-cabling/",
+          "https://romanelectrichome.com/hvac-service/heating/",
+          "https://romanelectrichome.com/hvac-service/cooling/",
+          "https://romanelectrichome.com/boiler-installation-and-repair/",
+          "https://romanelectrichome.com/hvac-service/hvac-maintenance/",
+          "https://romanelectrichome.com/plumbing/",
+          "https://romanelectrichome.com/electrical/design-remodel/"
+        ],
+        "suggestedScope": [
+          "Dedicated page with detailed description of whole house rewiring process",
+          "Benefits and safety considerations",
+          "Signs you need rewiring",
+          "FAQ section",
+          "Call-to-action for quotes and contact"
+        ],
+        "dedupeKey": "missing-service-page__whole-house-rewiring__b885d33c"
+      }
+    ]
+  },
+  {
+    "id": "jonesservices",
+    "name": "Jones Services",
+    "domain": "www.jonesservices.com",
+    "vertical": "hvac/plumbing/electrical (Hudson Valley NY)",
+    "offerings": [
+      "air conditioning installation",
+      "boiler repair",
+      "water heater installation",
+      "generator installation",
+      "drain cleaning",
+      "ductless mini split installation"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 66,
+      "sitemapUrls": 0,
+      "links": 77,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 6 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 0 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 6,
+      "serviceLikePages": 9
+    },
+    "outcome": "clean",
+    "outcomeSummary": "Read 10 pages and found no unmet billable work.",
+    "limitation": "Only 1 of 12 kinds of gap were checked — no active service is offered for a site with no service pages at all or a service the competition sells and this client does not or a broken conversion path or repair a missing page title or repair duplicate page titles or expand a thin service page or repair a missing h1 or repair a broken internal link or repair a missing meta description or add localbusiness or service schema or add missing image alt attributes.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "lentheplumber",
+    "name": "Len The Plumber",
+    "domain": "www.lentheplumber.com",
+    "vertical": "plumbing (Mid-Atlantic)",
+    "offerings": [
+      "drain cleaning",
+      "water heater installation",
+      "sump pump replacement",
+      "sewer line repair",
+      "gas line installation",
+      "well pump repair"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 60,
+      "sitemapUrls": 0,
+      "links": 92,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 6 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 0 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 6,
+      "serviceLikePages": 9
+    },
+    "outcome": "clean",
+    "outcomeSummary": "Read 10 pages and found no unmet billable work.",
+    "limitation": "Only 1 of 12 kinds of gap were checked — no active service is offered for a site with no service pages at all or a service the competition sells and this client does not or a broken conversion path or repair a missing page title or repair duplicate page titles or expand a thin service page or repair a missing h1 or repair a broken internal link or repair a missing meta description or add localbusiness or service schema or add missing image alt attributes.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "mauzy",
+    "name": "Mauzy Heating, Air & Solar",
+    "domain": "www.mauzy.com",
+    "vertical": "hvac/solar (San Diego)",
+    "offerings": [
+      "air conditioning repair",
+      "furnace installation",
+      "heat pump installation",
+      "solar panel installation",
+      "water heater installation",
+      "ductwork replacement"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 87,
+      "sitemapUrls": 0,
+      "links": 144,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 5 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 0 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 5,
+      "serviceLikePages": 9
+    },
+    "outcome": "clean",
+    "outcomeSummary": "Read 10 pages and found no unmet billable work.",
+    "limitation": "Only 1 of 12 kinds of gap were checked — no active service is offered for a site with no service pages at all or a service the competition sells and this client does not or a broken conversion path or repair a missing page title or repair duplicate page titles or expand a thin service page or repair a missing h1 or repair a broken internal link or repair a missing meta description or add localbusiness or service schema or add missing image alt attributes.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "abchome",
+    "name": "ABC Home & Commercial Services",
+    "domain": "www.abchomeandcommercial.com",
+    "vertical": "pest/lawn/home services (Texas)",
+    "offerings": [
+      "pest control",
+      "termite treatment",
+      "lawn care",
+      "air conditioning repair",
+      "plumbing repair",
+      "rodent control"
+    ],
+    "crawl": {
+      "pagesFetched": 9,
+      "pagesReadable": 9,
+      "navCount": 21,
+      "sitemapUrls": 94,
+      "links": 111,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 6 offering(s) represented in the site's navigation, links or sitemap, 8 service page(s) read, 49 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 6,
+      "serviceLikePages": 8
+    },
+    "outcome": "clean",
+    "outcomeSummary": "Read 9 pages and found no unmet billable work.",
+    "limitation": "Only 1 of 12 kinds of gap were checked — no active service is offered for a site with no service pages at all or a service the competition sells and this client does not or a broken conversion path or repair a missing page title or repair duplicate page titles or expand a thin service page or repair a missing h1 or repair a broken internal link or repair a missing meta description or add localbusiness or service schema or add missing image alt attributes.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "bakerroofing",
+    "name": "Baker Roofing Company",
+    "domain": "www.bakerroofing.com",
+    "vertical": "roofing (Raleigh NC)",
+    "offerings": [
+      "residential roof replacement",
+      "commercial roofing",
+      "roof repair",
+      "metal roofing",
+      "gutter installation",
+      "solar roofing"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 58,
+      "sitemapUrls": 0,
+      "links": 63,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 4 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 0 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 4,
+      "serviceLikePages": 9
+    },
+    "outcome": "findings",
+    "outcomeSummary": "1 evidence-backed opportunity found.",
+    "limitation": null,
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 1,
+      "passedEvidenceThreshold": 1,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 1,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 1,
+      "newlyFound": 1,
+      "stillOpen": 0,
+      "aiCalls": 1
+    },
+    "findings": [
+      {
+        "ruleId": "missing-service-page",
+        "title": "Gutter Installation — dedicated service page",
+        "tier": "commercial",
+        "serviceName": "Service Landing Page",
+        "priceMin": 900,
+        "priceMax": 1800,
+        "confidence": 0.75,
+        "rationale": "Gutter installation is a specific, sellable service that complements your roofing offerings. Since your site lacks a dedicated page for it, creating one would help capture relevant search traffic and clearly present this service to potential customers.",
+        "evidenceRefs": [
+          "https://bakerroofing.com/",
+          "https://bakerroofing.com/commercial-roof-repairs/",
+          "https://bakerroofing.com/commercial-roof-replacement/",
+          "https://bakerroofing.com/new-construction-roofing/",
+          "https://bakerroofing.com/restoration-waterproofing/",
+          "https://bakerroofing.com/roofing-systems/",
+          "https://bakerroofing.com/tpo-vs-pvc-roofing-which-is-right-for-your-building/",
+          "https://bakerroofing.com/national-training-safety/",
+          "https://bakerroofing.com/roof-maintenance-program/",
+          "https://bakerroofing.com/glossary-of-roofing-terms/"
+        ],
+        "suggestedScope": [
+          "Dedicated gutter installation service page with SEO-optimized content",
+          "Overview of gutter types (seamless, copper, etc.) and installation process",
+          "Benefits of professional gutter installation and maintenance tips",
+          "Internal links to related roofing services and contact/quote request section"
+        ],
+        "dedupeKey": "missing-service-page__gutter-installation__5e459c21"
+      }
+    ]
+  },
+  {
+    "id": "interstateroofing",
+    "name": "Interstate Roofing",
+    "domain": "www.interstateroofing.com",
+    "vertical": "roofing (Denver)",
+    "offerings": [
+      "roof replacement",
+      "storm damage repair",
+      "hail damage restoration",
+      "gutter replacement",
+      "siding installation",
+      "commercial roofing"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 23,
+      "sitemapUrls": 90,
+      "links": 113,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 4 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 33 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 4,
+      "serviceLikePages": 9
+    },
+    "outcome": "findings",
+    "outcomeSummary": "1 evidence-backed opportunity found.",
+    "limitation": null,
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 1,
+      "passedEvidenceThreshold": 1,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 1,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 1,
+      "newlyFound": 1,
+      "stillOpen": 0,
+      "aiCalls": 1
+    },
+    "findings": [
+      {
+        "ruleId": "missing-service-page",
+        "title": "Siding Installation — dedicated service page",
+        "tier": "commercial",
+        "serviceName": "Service Landing Page",
+        "priceMin": 900,
+        "priceMax": 1800,
+        "confidence": 0.75,
+        "rationale": "Siding installation is a distinct home exterior service that customers actively search for and hire contractors to perform. Although the client's primary focus is roofing, they already position themselves as an exterior remodeling company, making siding a natural and sellable service.",
+        "evidenceRefs": [
+          "https://www.interstateroofing.com/or",
+          "https://www.interstateroofing.com/or/roofing",
+          "https://www.interstateroofing.com/wa/roofing",
+          "https://www.interstateroofing.com/or/roofing/maintenance",
+          "https://www.interstateroofing.com/or/roofing/repair",
+          "https://www.interstateroofing.com/or/roofing/replacement",
+          "https://www.interstateroofing.com/or/roofing/inspections",
+          "https://www.interstateroofing.com/wa/roofing/inspections",
+          "https://www.interstateroofing.com/or/portland/roofing",
+          "https://www.interstateroofing.com/wa/vancouver/roofing"
+        ],
+        "suggestedScope": [
+          "Dedicated siding installation service page with SEO-optimized content",
+          "Gallery of siding projects",
+          "Comparison of siding materials (vinyl, fiber cement, etc.)",
+          "FAQs about siding installation and maintenance",
+          "Call-to-action for free estimates"
+        ],
+        "dedupeKey": "missing-service-page__siding-installation__6a783e06"
+      }
+    ]
+  },
+  {
+    "id": "lifescape",
+    "name": "Lifescape Colorado",
+    "domain": "www.lifescapecolorado.com",
+    "vertical": "landscape design/build (Denver)",
+    "offerings": [
+      "landscape design",
+      "landscape construction",
+      "outdoor lighting",
+      "irrigation installation",
+      "landscape maintenance",
+      "water features"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 29,
+      "sitemapUrls": 100,
+      "links": 53,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 5 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 33 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 5,
+      "serviceLikePages": 9
+    },
+    "outcome": "findings",
+    "outcomeSummary": "1 evidence-backed opportunity found.",
+    "limitation": null,
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 1,
+      "passedEvidenceThreshold": 1,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 1,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 1,
+      "newlyFound": 1,
+      "stillOpen": 0,
+      "aiCalls": 1
+    },
+    "findings": [
+      {
+        "ruleId": "missing-service-page",
+        "title": "Water Features — dedicated service page",
+        "tier": "commercial",
+        "serviceName": "Service Landing Page",
+        "priceMin": 900,
+        "priceMax": 1800,
+        "confidence": 0.65,
+        "rationale": "Water features are a specific, sellable landscape service that customers actively search for, and the site currently lacks a dedicated page for it. Building a page would fill a clear gap and support the client's existing landscape design and construction offerings.",
+        "evidenceRefs": [
+          "https://lifescapecolorado.com/",
+          "https://lifescapecolorado.com/design/",
+          "https://lifescapecolorado.com/maintenance-services/",
+          "https://lifescapecolorado.com/landscape-design-portfolio/",
+          "https://lifescapecolorado.com/2010/04/the-marden-project-modern-landscaping/",
+          "https://lifescapecolorado.com/2010/07/the-benefits-of-led-lighting/",
+          "https://lifescapecolorado.com/2010/08/recycle-your-landscaping-waste/",
+          "https://lifescapecolorado.com/2010/08/french-garden-design/",
+          "https://lifescapecolorado.com/2010/09/designing-the-landscape/",
+          "https://lifescapecolorado.com/2010/09/colorado-fall-landscaping-tips/",
+          "verified:https://lifescapecolorado.com/2026/07/colorado-scaping/",
+          "verified:https://lifescapecolorado.com/2010/03/saving-water/",
+          "verified:https://lifescapecolorado.com/2010/08/how-to-effeciently-water-your-yard/",
+          "verified:https://lifescapecolorado.com/2010/12/winter-watering-for-your-colorado-landscaping/",
+          "verified:https://lifescapecolorado.com/2011/01/important-colorado-winter-watering-tips/",
+          "verified:https://lifescapecolorado.com/2011/06/3-benefits-of-a-water-effiecient-landscape/",
+          "verified:https://lifescapecolorado.com/2011/07/save-water-with-clever-sprinkler-gadgets/",
+          "considered:https://lifescapecolorado.com/2026/07/colorado-scaping/",
+          "considered:https://lifescapecolorado.com/2010/03/saving-water/",
+          "considered:https://lifescapecolorado.com/2010/08/how-to-effeciently-water-your-yard/",
+          "considered:https://lifescapecolorado.com/2010/12/winter-watering-for-your-colorado-landscaping/",
+          "considered:https://lifescapecolorado.com/2011/01/important-colorado-winter-watering-tips/",
+          "considered:https://lifescapecolorado.com/2011/06/3-benefits-of-a-water-effiecient-landscape/",
+          "considered:https://lifescapecolorado.com/2011/07/save-water-with-clever-sprinkler-gadgets/"
+        ],
+        "suggestedScope": [
+          "Dedicated service page for water features",
+          "Overview of water feature types (ponds, waterfalls, fountains, streams)",
+          "Benefits and customization options",
+          "Integration with landscape design and construction",
+          "Project gallery and case studies",
+          "FAQ section",
+          "Call-to-action for consultations"
+        ],
+        "dedupeKey": "missing-service-page__water-features__c9bef3e1"
+      }
+    ]
+  },
+  {
+    "id": "russelllandscape",
+    "name": "Russell Landscape",
+    "domain": "www.russelllandscape.com",
+    "vertical": "commercial landscaping (Georgia)",
+    "offerings": [
+      "commercial landscape maintenance",
+      "landscape installation",
+      "irrigation management",
+      "erosion control",
+      "seasonal color",
+      "athletic field maintenance"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 34,
+      "sitemapUrls": 30,
+      "links": 44,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 4 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 12 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 4,
+      "serviceLikePages": 9
+    },
+    "outcome": "findings",
+    "outcomeSummary": "2 evidence-backed opportunities found.",
+    "limitation": null,
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 2,
+      "passedEvidenceThreshold": 2,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 2,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 2,
+      "newlyFound": 2,
+      "stillOpen": 0,
+      "aiCalls": 2
+    },
+    "findings": [
+      {
+        "ruleId": "missing-service-page",
+        "title": "Erosion Control — dedicated service page",
+        "tier": "commercial",
+        "serviceName": "Service Landing Page",
+        "priceMin": 900,
+        "priceMax": 1800,
+        "confidence": 0.75,
+        "rationale": "Erosion control is a specific, sellable service within commercial landscaping, often sought by property managers and municipalities. A dedicated page would target relevant search queries and clearly present the service offering.",
+        "evidenceRefs": [
+          "https://www.russelllandscape.com/",
+          "https://www.russelllandscape.com/services/turf-maintenance/",
+          "https://www.russelllandscape.com/services/irrigation/",
+          "https://www.russelllandscape.com/services/landscape-maintenance/",
+          "https://www.russelllandscape.com/services/landscape-design/",
+          "https://www.russelllandscape.com/services/enhancements/",
+          "https://www.russelllandscape.com/services/seasonal-color/",
+          "https://www.russelllandscape.com/services/construction/",
+          "https://www.russelllandscape.com/services/government-services/",
+          "https://www.russelllandscape.com/services/"
+        ],
+        "suggestedScope": [
+          "Service overview and benefits",
+          "Erosion control methods and solutions",
+          "Industries served (e.g., commercial, municipal)",
+          "Project examples or case studies",
+          "FAQ section",
+          "Call-to-action for consultation"
+        ],
+        "dedupeKey": "missing-service-page__erosion-control__0c9ad16c"
+      },
+      {
+        "ruleId": "missing-service-page",
+        "title": "Athletic Field Maintenance — dedicated service page",
+        "tier": "commercial",
+        "serviceName": "Service Landing Page",
+        "priceMin": 900,
+        "priceMax": 1800,
+        "confidence": 0.75,
+        "rationale": "Athletic field maintenance is a specialized commercial landscaping service that schools, parks, and sports complexes actively procure. It is distinct from general turf maintenance and warrants its own page to capture targeted search demand.",
+        "evidenceRefs": [
+          "https://www.russelllandscape.com/",
+          "https://www.russelllandscape.com/services/turf-maintenance/",
+          "https://www.russelllandscape.com/services/irrigation/",
+          "https://www.russelllandscape.com/services/landscape-maintenance/",
+          "https://www.russelllandscape.com/services/landscape-design/",
+          "https://www.russelllandscape.com/services/enhancements/",
+          "https://www.russelllandscape.com/services/seasonal-color/",
+          "https://www.russelllandscape.com/services/construction/",
+          "https://www.russelllandscape.com/services/government-services/",
+          "https://www.russelllandscape.com/services/"
+        ],
+        "suggestedScope": [
+          "Dedicated service page with SEO copy targeting 'athletic field maintenance' and related keywords",
+          "List of specific services: mowing, line painting, aeration, overseeding, fertilization, irrigation management for fields",
+          "Case studies or project gallery of maintained athletic fields",
+          "Client testimonials from schools or sports facilities",
+          "FAQ section addressing field safety, durability, and maintenance schedules",
+          "Clear call-to-action for quotes or consultations"
+        ],
+        "dedupeKey": "missing-service-page__athletic-field-maintenance__199479f0"
+      }
+    ]
+  },
+  {
+    "id": "castlekeepers",
+    "name": "Castle Keepers House Cleaning",
+    "domain": "www.castlekeepers.com",
+    "vertical": "house cleaning (Charleston/Atlanta)",
+    "offerings": [
+      "recurring house cleaning",
+      "deep cleaning",
+      "move in cleaning",
+      "move out cleaning",
+      "post construction cleaning",
+      "green cleaning"
+    ],
+    "crawl": {
+      "pagesFetched": 9,
+      "pagesReadable": 9,
+      "navCount": 13,
+      "sitemapUrls": 0,
+      "links": 16,
+      "crawlExhaustive": false,
+      "blockedEvents": [
+        {
+          "url": "https://www.castlekeepers.com/user_sessions/logout",
+          "reason": "disallowed by the site's robots.txt"
+        },
+        {
+          "url": "https://bzglfiles.s3.ca-central-1.amazonaws.com/u/262912/84c3b7a3094542ce4cca4d0312315d29807129a0/original/ckbrokerageservices.pdf?response-content-type=application%2Fpdf&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=ASIA2AEJH4L566FI5XAM%2F20260907%2Fca-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260907T023817Z&X-Amz-Expires=953&X-Amz-Security-Token=IQoJb3JpZ2luX2VjEGUaDGNhLWNlbnRyYWwtMSJGMEQCIGBCwXBWn1362A9BI9b2TNRMY1CHF0wUpZZKTjws%2BtobAiBYgMTXjv2z3uTqBDiLVFZaqnxkDOgIMw2e4NpnZUxn3SrEBQguEAQaDDY4NzQ4MjU5NDA0MyIMtSUgxCmR%2BPH8XM4VKqEFUlb7%2FtigvLi%2Fyv2snQ5pWutM2gkBJdNGQjYn1l3LKzYSkLft24EKTe8qD0LjDszuCMIEy8raCxUmB9JKN5rAkwgplJK5BAGDx8aDok7vAkVkCecShh4PWhP%2BXYS%2FZ9n%2BoDq78exUcp%2FR3KSebQcig2jAGz3rS1X%2FND9wSGmK0Vy3DuZX%2FDgPM%2F%2B48U%2BuUhnPOn%2BP4ron%2FlSRtprD8D1PupBJ1nWvWb0NTelVAcWD0sA2HTKoW7uqiHqxgx83FBS%2B6h9OBM1JJsV%2BhkR%2FJ%2BV04di7CFAmcdXpN2YZOo3eZc7HmPboAo0RjTvSik1N4Cb28rCHeTTT2isjRMWgYv2T85W3SHvDpD44vxz5wvtDGslmW8%2BTlr2xndp4xRTgw%2BG42Z06diZuToSKRVs7MI%2BbZ1pH%2BYh%2FawCDcUZEyVlnnKEmymsZw1fP9fLT9dtZIbnuaHuA2gvLerUgysYL1ga6zWOIEdK5BEPClNRQ3hYt%2Ba23n20KLLEwK%2FVEg0ZMOcmqGrCNyE3KRftPrkG9tpIP5bqmuIMyXNOCEr6ra5J7hSM9r17gGU%2FOu6bcInxKMHSdT%2FcAQa43a7QiIFt16eLnyMw3dD%2FKLRXBj4ELG9mDsYNBmsaI%2BZxgn1JX6WNkmbFSAeBa2%2FI6BFCWuGLknBQdwCyYzieRurr3l5MLiaEig3XGf893fCtH%2FInJuFXwJYwOYJ57Yq0P5aM0OuhPtAGdZUUgUHlhO%2BW2oaqeW8JtsN5CmFWG3XRotNl9tAuFc%2B5o13rDODMFpqAoLQWLSgBbA3uJSaIve5qFNZqpH3YKZjGuB%2BJkSHVgN6h%2BheBO2jbOzM2uT%2FZyolajHj1lspR37zEffxHilHpK2KuX1uPG8zKN9wDwedBAPYVutg%2FDOmTK6jC3pffUBjqyAflcUDyMuFJz437wf9ccrE4yAMuvwIpIBwZf3bHXgAthrc%2BABPe%2Fl3GMcxY%2BXUI1dZWwWv9fR1YX7%2BxXkuXCkQQdriF6KjCBXniN5at%2F72mUfzNkpWcBRyBDYFb1wvzlbc1daCnQdGWoTfC3oORADCtkoApA7P1Y9aVK%2F4xCwqT1nm1ws8mOPRbJeMmls8UUJX2B1mNV4GtOS2mLcQJuovfW82cYZMjSIXRlr3VRC%2BjKVNE%3D&X-Amz-SignedHeaders=host&X-Amz-Signature=33e32f33ec0f623d83a92c404bde17cd6039bd2bacbe3726e4878580bb2a4feb",
+          "reason": "redirect leaves the allowed same-site boundary"
+        }
+      ]
+    },
+    "coverage": {
+      "analyzable": false,
+      "reason": "Insufficient service coverage: only 0 offering(s) represented in the site's navigation, links or sitemap, 0 service page(s) read, 0 service URL(s) in the sitemap — the crawl did not demonstrably reach the site's service pages, so no absence can be claimed.",
+      "limitation": "coverage-limited",
+      "representedOfferings": 0,
+      "serviceLikePages": 0
+    },
+    "outcome": "inconclusive",
+    "outcomeSummary": "The crawl never reached this site's service pages, so no gap can be claimed.",
+    "limitation": "Insufficient service coverage: only 0 offering(s) represented in the site's navigation, links or sitemap, 0 service page(s) read, 0 service URL(s) in the sitemap — the crawl did not demonstrably reach the site's service pages, so no absence can be claimed.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "arrow",
+    "name": "Arrow Exterminators",
+    "domain": "www.arrowexterminators.com",
+    "vertical": "pest control (Southeast independent)",
+    "offerings": [
+      "pest control",
+      "termite control",
+      "mosquito control",
+      "bed bug treatment",
+      "wildlife removal",
+      "crawl space encapsulation"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 76,
+      "sitemapUrls": 100,
+      "links": 117,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 5 offering(s) represented in the site's navigation, links or sitemap, 9 service page(s) read, 49 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 5,
+      "serviceLikePages": 9
+    },
+    "outcome": "findings",
+    "outcomeSummary": "1 evidence-backed opportunity found.",
+    "limitation": null,
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 1,
+      "passedEvidenceThreshold": 1,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 1,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 1,
+      "newlyFound": 1,
+      "stillOpen": 0,
+      "aiCalls": 1
+    },
+    "findings": [
+      {
+        "ruleId": "missing-service-page",
+        "title": "Crawl Space Encapsulation — dedicated service page",
+        "tier": "commercial",
+        "serviceName": "Service Landing Page",
+        "priceMin": 900,
+        "priceMax": 1800,
+        "confidence": 0.75,
+        "rationale": "Crawl space encapsulation is a specific, sellable service that homeowners actively search for, and it is distinct from the pest control services currently listed. A dedicated page would capture relevant search demand and allow the client to market this service independently.",
+        "evidenceRefs": [
+          "https://www.arrowexterminators.com/",
+          "https://www.arrowexterminators.com/commercial",
+          "https://www.arrowexterminators.com/commercial/industries/office-buildings",
+          "https://www.arrowexterminators.com/commercial/services/bed-bug-control",
+          "https://www.arrowexterminators.com/commercial/services/insect-control",
+          "https://www.arrowexterminators.com/pest-control/mosquito-control",
+          "https://www.arrowexterminators.com/commercial/services/termite-control",
+          "https://www.arrowexterminators.com/commercial/services/rodent-control-exclusion",
+          "https://www.arrowexterminators.com/commercial/services/fly-control",
+          "https://www.arrowexterminators.com/commercial/industries"
+        ],
+        "suggestedScope": [
+          "Dedicated service page with detailed description of crawl space encapsulation",
+          "Benefits section (moisture control, mold prevention, energy efficiency)",
+          "Process overview (inspection, encapsulation, drainage, dehumidification)",
+          "Comparison with related services (e.g., moisture control, insulation)",
+          "Customer testimonials and before/after photos",
+          "Call-to-action for free inspection or quote"
+        ],
+        "dedupeKey": "missing-service-page__crawl-space-encapsulation__29419baa"
+      }
+    ]
+  },
+  {
+    "id": "hupy",
+    "name": "Hupy and Abraham",
+    "domain": "www.hupy.com",
+    "vertical": "personal injury law (WI/IL/IA)",
+    "offerings": [
+      "car accident lawyer",
+      "motorcycle accident lawyer",
+      "truck accident lawyer",
+      "workers compensation",
+      "dog bite injury",
+      "nursing home abuse"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 55,
+      "sitemapUrls": 100,
+      "links": 288,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 5 offering(s) represented in the site's navigation, links or sitemap, 2 service page(s) read, 18 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 5,
+      "serviceLikePages": 2
+    },
+    "outcome": "findings",
+    "outcomeSummary": "1 evidence-backed opportunity found.",
+    "limitation": null,
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 1,
+      "passedEvidenceThreshold": 1,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 1,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 1,
+      "newlyFound": 1,
+      "stillOpen": 0,
+      "aiCalls": 1
+    },
+    "findings": [
+      {
+        "ruleId": "missing-service-page",
+        "title": "Nursing Home Abuse — dedicated service page",
+        "tier": "commercial",
+        "serviceName": "Service Landing Page",
+        "priceMin": 900,
+        "priceMax": 1800,
+        "confidence": 0.75,
+        "rationale": "Nursing home abuse is a specific legal practice area that clients actively search for and hire attorneys to handle. A dedicated page would allow the firm to target this high-value niche with tailored content and conversion paths.",
+        "evidenceRefs": [
+          "https://www.hupy.com/",
+          "https://www.hupy.com/bio.cfm",
+          "https://www.hupy.com/aboutus.cfm",
+          "https://www.hupy.com/library/contributing-to-the-community/",
+          "https://www.hupy.com/library/career-opportunities.cfm",
+          "https://www.hupy.com/library/press-room.cfm",
+          "https://www.hupy.com/practice_areas/",
+          "https://www.hupy.com/practice_areas/wisconsin-personal-injury-lawyers.cfm",
+          "https://www.hupy.com/library/spinal-cord-injury-causes-complications-and-treatments.cfm",
+          "https://www.hupy.com/practice_areas/wisconsin-car-accident-lawyers.cfm"
+        ],
+        "suggestedScope": [
+          "Dedicated page with keyword-optimized copy explaining nursing home abuse claims",
+          "FAQ section addressing common questions about signs of abuse and legal recourse",
+          "Case results or testimonials specific to nursing home abuse cases",
+          "Clear call-to-action for free case evaluation",
+          "Internal links to related practice areas and attorney bios"
+        ],
+        "dedupeKey": "missing-service-page__nursing-home-abuse__92237c15"
+      }
+    ]
+  },
+  {
+    "id": "nicoletlaw",
+    "name": "Nicolet Law Accident & Injury Lawyers",
+    "domain": "www.nicoletlaw.com",
+    "vertical": "personal injury law (WI/MN)",
+    "offerings": [
+      "car accident lawyer",
+      "personal injury",
+      "social security disability",
+      "workers compensation",
+      "slip and fall",
+      "wrongful death"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 9,
+      "navCount": 99,
+      "sitemapUrls": 0,
+      "links": 232,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 4 offering(s) represented in the site's navigation, links or sitemap, 2 service page(s) read, 0 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 4,
+      "serviceLikePages": 2
+    },
+    "outcome": "findings",
+    "outcomeSummary": "1 evidence-backed opportunity found.",
+    "limitation": null,
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 1,
+      "passedEvidenceThreshold": 1,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 1,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 1,
+      "newlyFound": 1,
+      "stillOpen": 0,
+      "aiCalls": 1
+    },
+    "findings": [
+      {
+        "ruleId": "missing-service-page",
+        "title": "Social Security Disability — dedicated service page",
+        "tier": "commercial",
+        "serviceName": "Service Landing Page",
+        "priceMin": 900,
+        "priceMax": 1800,
+        "confidence": 0.75,
+        "rationale": "Social Security Disability is a distinct legal service that clients hire attorneys for, separate from personal injury. Since the site lacks a dedicated page, creating one would target a specific audience and improve SEO.",
+        "evidenceRefs": [
+          "https://nicoletlaw.com/",
+          "https://nicoletlaw.com/practice-areas/",
+          "https://nicoletlaw.com/practice-areas/&quot;/privacy/&quot",
+          "https://nicoletlaw.com/injured-get-nicolet/",
+          "https://nicoletlaw.com/attorneys/the-nicolet-law-story/",
+          "https://nicoletlaw.com/midwest-motorcycle-lawyers/",
+          "https://nicoletlaw.com/midwest-cycling-lawyers/",
+          "https://nicoletlaw.com/attorneys/",
+          "https://nicoletlaw.com/community-involvement/",
+          "https://nicoletlaw.com/community-involvement/college-scholarship-video-essay-contest/"
+        ],
+        "suggestedScope": [
+          "Dedicated page explaining Social Security Disability claims and how the firm assists",
+          "Content on eligibility, application process, and appeals",
+          "FAQ section addressing common concerns",
+          "Internal links to attorney profiles and contact forms",
+          "Calls-to-action for free case evaluation"
+        ],
+        "dedupeKey": "missing-service-page__social-security-disability__d6f7cdc1"
+      }
+    ]
+  },
+  {
+    "id": "perfectteeth",
+    "name": "Perfect Teeth",
+    "domain": "www.perfectteeth.com",
+    "vertical": "dental (CO/NM/AZ)",
+    "offerings": [
+      "teeth cleaning",
+      "dental implants",
+      "invisalign",
+      "teeth whitening",
+      "root canal",
+      "emergency dentist"
+    ],
+    "crawl": {
+      "pagesFetched": 10,
+      "pagesReadable": 10,
+      "navCount": 17,
+      "sitemapUrls": 40,
+      "links": 30,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": true,
+      "reason": "Service coverage confirmed: 5 offering(s) represented in the site's navigation, links or sitemap, 8 service page(s) read, 2 service URL(s) in the sitemap.",
+      "limitation": null,
+      "representedOfferings": 5,
+      "serviceLikePages": 8
+    },
+    "outcome": "clean",
+    "outcomeSummary": "Read 10 pages and found no unmet billable work.",
+    "limitation": "Only 1 of 12 kinds of gap were checked — no active service is offered for a site with no service pages at all or a service the competition sells and this client does not or a broken conversion path or repair a missing page title or repair duplicate page titles or expand a thin service page or repair a missing h1 or repair a broken internal link or repair a missing meta description or add localbusiness or service schema or add missing image alt attributes.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  },
+  {
+    "id": "goettl",
+    "name": "Goettl Air Conditioning & Plumbing",
+    "domain": "www.goettl.com",
+    "vertical": "hvac/plumbing (Southwest)",
+    "offerings": [
+      "air conditioning repair",
+      "furnace installation",
+      "heat pump installation",
+      "ductwork repair",
+      "indoor air quality",
+      "water treatment"
+    ],
+    "crawl": {
+      "pagesFetched": 1,
+      "pagesReadable": 0,
+      "navCount": 0,
+      "sitemapUrls": 0,
+      "links": 0,
+      "crawlExhaustive": false,
+      "blockedEvents": []
+    },
+    "coverage": {
+      "analyzable": false,
+      "reason": "Insufficient service coverage: only 0 offering(s) represented in the site's navigation, links or sitemap, 0 service page(s) read, 0 service URL(s) in the sitemap — the crawl did not demonstrably reach the site's service pages, so no absence can be claimed.",
+      "limitation": "coverage-limited",
+      "representedOfferings": 0,
+      "serviceLikePages": 0
+    },
+    "outcome": "inconclusive",
+    "outcomeSummary": "No readable pages were returned, so nothing was assessed.",
+    "limitation": "The site responded, but no page returned readable HTML content.",
+    "catalogReach": {
+      "matched": 1,
+      "total": 12,
+      "unmatchedLabels": [
+        "A site with no service pages at all",
+        "A service the competition sells and this client does not",
+        "A broken conversion path",
+        "Repair a missing page title",
+        "Repair duplicate page titles",
+        "Expand a thin service page",
+        "Repair a missing H1",
+        "Repair a broken internal link",
+        "Repair a missing meta description",
+        "Add LocalBusiness or Service schema",
+        "Add missing image alt attributes"
+      ]
+    },
+    "stats": {
+      "candidates": 0,
+      "passedEvidenceThreshold": 0,
+      "suppressedByPriorDecision": 0,
+      "suppressedByCoverage": 0,
+      "evaluated": 0,
+      "rejectedByEvaluator": 0,
+      "evaluatorErrors": 0,
+      "resolved": 0,
+      "surfaced": 0,
+      "newlyFound": 0,
+      "stillOpen": 0,
+      "aiCalls": 0
+    },
+    "findings": []
+  }
+]

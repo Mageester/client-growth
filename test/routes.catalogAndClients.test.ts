@@ -73,6 +73,7 @@ beforeEach(async () => {
         BETTER_AUTH_SECRET: "x".repeat(40),
         BETTER_AUTH_URL: "http://localhost:8787",
         AI_PROVIDER: "mock",
+        ENABLE_EXTERNAL_BUSINESS_MISMATCH: "true",
       },
     },
   };

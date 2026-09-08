@@ -15,6 +15,7 @@ import { assessCatalogCoverage } from "@/core/rules/registry";
 import { assessAnalysisReadiness, type ReadinessState } from "@/core/analysisReadiness";
 import { assessServiceCoverage } from "@/core/absenceVerification";
 import { suggestOfferings, type SuggestedOffering } from "@/core/offeringSuggestions";
+import { isExternalBusinessMismatchEnabled } from "@/config/env";
 import {
   summarizeEvidenceFailure,
   type EvidenceFailureSummary,
@@ -102,6 +103,11 @@ type BusinessProfilePreview = {
 };
 
 const MAX_BUSINESS_PROFILE_UPLOAD_BYTES = 256_000;
+const EXTERNAL_MISMATCH_INTENTS = new Set([
+  "preview-business-profile",
+  "confirm-business-profile",
+  "import-external-profile",
+]);
 
 export function meta({ data }: Route.MetaArgs) {
   return [{ title: data ? data.client.name + " · Axiom Orbit" : "Client" }];
@@ -114,7 +120,10 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
   const firstRunFailed = new URL(request.url).searchParams.get("firstRun") === "failed";
   const client = await repo.getClient(t.scope, params.id);
   if (!client) throw new Response("Client not found", { status: 404 });
-  const [services, coverage, opportunities, runs, monitoring, evidence, competitors, externalClaims] =
+  const externalMismatchEnabled = isExternalBusinessMismatchEnabled(
+    context.cloudflare.env as Record<string, unknown>,
+  );
+  const [services, coverage, opportunities, runs, monitoring, evidence, competitors] =
     await Promise.all([
       repo.listServices(t.scope),
       repo.listCoverage(t.scope, client.id),
@@ -123,8 +132,10 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
       monitoringRepo.getMonitoring(t.scope, client.id),
       repo.getLatestEvidence(t.scope, client.id),
       listCompetitors(t.scope, client.id),
-      repo.listExternalBusinessClaims(t.scope, client.id),
     ]);
+  const externalClaims = externalMismatchEnabled
+    ? await repo.listExternalBusinessClaims(t.scope, client.id)
+    : [];
   const totals = totalsFor(opportunities);
   const latest = runs[0] ?? null;
 
@@ -174,6 +185,7 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
     readiness,
     suggestions,
     competitors,
+    externalMismatchEnabled,
     externalClaims: resolveCurrentExternalClaims(externalClaims, new Date()),
     maxCompetitors: MAX_COMPETITORS_PER_CLIENT,
     /** Whether a crawl has ever stored evidence for this client. */
@@ -208,6 +220,16 @@ export async function action({ params, request, context }: Route.ActionArgs) {
   if (!existing) throw new Response("Client not found", { status: 404 });
   const form = await request.formData();
   const intent = String(form.get("intent") ?? "");
+
+  if (
+    EXTERNAL_MISMATCH_INTENTS.has(intent) &&
+    !isExternalBusinessMismatchEnabled(context.cloudflare.env as Record<string, unknown>)
+  ) {
+    return {
+      ok: false as const,
+      error: "Business profile comparison is paused until its evidence storage is approved.",
+    };
+  }
 
   if (intent === "delete") {
     const result = await deleteClient(
@@ -585,6 +607,7 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
     // or an older payload must degrade rather than throw.
     competitors = [],
     maxCompetitors = MAX_COMPETITORS_PER_CLIENT,
+    externalMismatchEnabled = false,
     externalClaims = [],
   } = loaderData;
   const navigation = useNavigation();
@@ -659,6 +682,10 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
             </div>
           </div>
           <div className="detail-head-actions">
+            <Link className="btn" to={`/clients/${encodeURIComponent(client.id)}/report`}>
+              <Icon name="document" size={14} />
+              Create report
+            </Link>
             <button className="btn" type="button" onClick={() => setEditOpen(true)}>
               <Icon name="pencil" size={13} />
               Edit
@@ -866,11 +893,13 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
         )}
       </section>
 
-      <ExternalProfileEvidence
-        claims={externalClaims}
-        busy={busy}
-        preview={businessProfilePreview}
-      />
+      {externalMismatchEnabled && (
+        <ExternalProfileEvidence
+          claims={externalClaims}
+          busy={busy}
+          preview={businessProfilePreview}
+        />
+      )}
 
       <section className="section">
         <div className="section-head">

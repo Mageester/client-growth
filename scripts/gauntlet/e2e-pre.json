@@ -1,0 +1,16 @@
+[
+  {
+    "results": [
+      {
+        "clients": 2,
+        "opps": 2,
+        "reservations": 6,
+        "wsname": "Gauntlet Digital"
+      }
+    ],
+    "success": true,
+    "meta": {
+      "duration": 1
+    }
+  }
+]

@@ -1,0 +1,148 @@
+[
+  {
+    "client": "davey",
+    "domain": "www.davey.com",
+    "done": true,
+    "clientCrawlPages": 10,
+    "competitors": [
+      "www.bartlett.com",
+      "www.savatree.com"
+    ],
+    "readable": [
+      "www.savatree.com"
+    ],
+    "unreadable": [
+      "www.bartlett.com"
+    ],
+    "rawGaps": [],
+    "limitation": "Only 1 of 2 competitor sites could be read, and a gap needs 2 to be a pattern rather than one site's choice. No comparison is being claimed.",
+    "gated": []
+  },
+  {
+    "client": "cambridgeheating",
+    "domain": "cambridgeheating.ca",
+    "done": true,
+    "clientCrawlPages": 7,
+    "competitors": [
+      "www.reliancehomecomfort.com",
+      "www.enercare.ca"
+    ],
+    "readable": [
+      "www.reliancehomecomfort.com",
+      "www.enercare.ca"
+    ],
+    "unreadable": [],
+    "rawGaps": [],
+    "limitation": null,
+    "gated": []
+  },
+  {
+    "client": "bellbrothers",
+    "domain": "www.bellbrothers.com",
+    "done": true,
+    "clientCrawlPages": 10,
+    "competitors": [
+      "www.bonney.com",
+      "www.foxandsons.com"
+    ],
+    "readable": [
+      "www.bonney.com",
+      "www.foxandsons.com"
+    ],
+    "unreadable": [],
+    "rawGaps": [],
+    "limitation": null,
+    "gated": []
+  },
+  {
+    "client": "russelllandscape",
+    "domain": "www.russelllandscape.com",
+    "done": true,
+    "clientCrawlPages": 10,
+    "competitors": [
+      "www.brightview.com",
+      "www.ruppertlandscape.com"
+    ],
+    "readable": [
+      "www.brightview.com",
+      "www.ruppertlandscape.com"
+    ],
+    "unreadable": [],
+    "rawGaps": [],
+    "limitation": null,
+    "gated": []
+  },
+  {
+    "client": "hupy",
+    "domain": "www.hupy.com",
+    "done": true,
+    "clientCrawlPages": 10,
+    "competitors": [
+      "www.gruberlawoffices.com",
+      "www.murphyprachthauser.com"
+    ],
+    "readable": [
+      "www.murphyprachthauser.com"
+    ],
+    "unreadable": [
+      "www.gruberlawoffices.com"
+    ],
+    "rawGaps": [],
+    "limitation": "Only 1 of 2 competitor sites could be read, and a gap needs 2 to be a pattern rather than one site's choice. No comparison is being claimed.",
+    "gated": []
+  },
+  {
+    "client": "interstateroofing",
+    "domain": "www.interstateroofing.com",
+    "done": true,
+    "clientCrawlPages": 10,
+    "competitors": [
+      "www.longhome.com",
+      "www.eriehome.com"
+    ],
+    "readable": [
+      "www.longhome.com",
+      "www.eriehome.com"
+    ],
+    "unreadable": [],
+    "rawGaps": [],
+    "limitation": null,
+    "gated": []
+  },
+  {
+    "client": "activegreenross",
+    "domain": "www.activegreenross.com",
+    "done": true,
+    "clientCrawlPages": 7,
+    "competitors": [
+      "www.tirecraft.com",
+      "www.kaltire.com"
+    ],
+    "readable": [
+      "www.tirecraft.com",
+      "www.kaltire.com"
+    ],
+    "unreadable": [],
+    "rawGaps": [],
+    "limitation": null,
+    "gated": []
+  },
+  {
+    "client": "fixitright",
+    "domain": "www.fixitright.ca",
+    "done": true,
+    "clientCrawlPages": 0,
+    "competitors": [
+      "www.affordableappliance.ca",
+      "www.appliance-repair.ca"
+    ],
+    "readable": [],
+    "unreadable": [
+      "www.affordableappliance.ca",
+      "www.appliance-repair.ca"
+    ],
+    "rawGaps": [],
+    "limitation": "Only 0 of 2 competitor sites could be read, and a gap needs 2 to be a pattern rather than one site's choice. No comparison is being claimed.",
+    "gated": []
+  }
+]

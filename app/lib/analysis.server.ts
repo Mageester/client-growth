@@ -2,7 +2,7 @@ import type { Client } from "@/core/schema";
 import { FixtureEvidenceProvider } from "@/adapters/evidence/FixtureEvidenceProvider";
 import { HttpEvidenceProvider } from "@/adapters/evidence/HttpEvidenceProvider";
 import { createEvaluator } from "@/adapters/evaluator/createEvaluator";
-import { parseAnalysisCaps, parseEnv } from "@/config/env";
+import { isExternalBusinessMismatchEnabled, parseAnalysisCaps, parseEnv } from "@/config/env";
 import { classifyAnalysis, type AnalysisOutcomeResult } from "@/core/analysisOutcome";
 import { detectOfferingDrift } from "@/core/offeringDrift";
 import { suggestOfferings } from "@/core/offeringSuggestions";
@@ -176,6 +176,9 @@ export async function runAnalysis(
     // last trustworthy view of what the site advertised.
     const previousOfferingRun = await repo.getLatestExhaustiveAnalysisRun(t, clientId);
     const parsed = parseEnv(env);
+    const externalClaims = isExternalBusinessMismatchEnabled(parsed)
+      ? await repo.listExternalBusinessClaims(t, clientId)
+      : [];
     const result = await analyzeClient({
       client,
       catalog: await repo.listServices(t),
@@ -184,7 +187,7 @@ export async function runAnalysis(
       evidenceProvider: evidenceProviderFor(client, t.workspaceId, deadline.signal),
       evaluator: createEvaluator(parsed),
       maxAiCalls: parsed.MAX_AI_CALLS_PER_RUN,
-      externalClaims: await repo.listExternalBusinessClaims(t, clientId),
+      externalClaims,
       now: options.now,
     });
 

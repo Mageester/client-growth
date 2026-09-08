@@ -1,0 +1,411 @@
+[
+  {
+    "site": "cambridgeheating",
+    "domain": "cambridgeheating.ca",
+    "finding": "Water Heater Replacement — dedicated service page",
+    "tokens": [
+      "water",
+      "heater",
+      "replacement"
+    ],
+    "sitemapProbed": [],
+    "sitemapUrlCount": 0,
+    "sitemapHits": [],
+    "candidateChecks": [
+      {
+        "url": "https://cambridgeheating.ca/water-heater-replacement.html",
+        "status": 404,
+        "serviceContent": false
+      }
+    ],
+    "verdict": "NO_PAGE_FOUND"
+  },
+  {
+    "site": "cambridgeheating",
+    "domain": "cambridgeheating.ca",
+    "finding": "Duct Cleaning — dedicated service page",
+    "tokens": [
+      "duct",
+      "cleaning"
+    ],
+    "sitemapProbed": [],
+    "sitemapUrlCount": 0,
+    "sitemapHits": [],
+    "candidateChecks": [
+      {
+        "url": "https://cambridgeheating.ca/duct-cleaning.html",
+        "status": 404,
+        "serviceContent": false
+      }
+    ],
+    "verdict": "NO_PAGE_FOUND"
+  },
+  {
+    "site": "davey",
+    "domain": "www.davey.com",
+    "finding": "Stump Grinding — dedicated service page",
+    "tokens": [
+      "stump",
+      "grinding"
+    ],
+    "sitemapProbed": [
+      "https://www.davey.com/sitemap.xml"
+    ],
+    "sitemapUrlCount": 3120,
+    "sitemapHits": [],
+    "candidateChecks": [
+      {
+        "url": "https://www.davey.com/residential-tree-services/stump-grinding/",
+        "status": 200,
+        "serviceContent": true
+      }
+    ],
+    "verdict": "PAGE_EXISTS_200"
+  },
+  {
+    "site": "bartlett",
+    "domain": "www.bartlett.com",
+    "finding": "Stump Grinding — dedicated service page",
+    "tokens": [
+      "stump",
+      "grinding"
+    ],
+    "sitemapProbed": [
+      "https://www.bartlett.com/sitemap.xml"
+    ],
+    "sitemapUrlCount": 6333,
+    "sitemapHits": [],
+    "candidateChecks": [
+      {
+        "url": "https://www.bartlett.com/services/stump-grinding",
+        "status": 200,
+        "serviceContent": false
+      }
+    ],
+    "verdict": "NO_PAGE_FOUND"
+  },
+  {
+    "site": "bellbrothers",
+    "domain": "www.bellbrothers.com",
+    "finding": "Duct Sealing — dedicated service page",
+    "tokens": [
+      "duct",
+      "sealing"
+    ],
+    "sitemapProbed": [
+      "https://www.bellbrothers.com/sitemap_index.xml"
+    ],
+    "sitemapUrlCount": 194,
+    "sitemapHits": [],
+    "candidateChecks": [
+      {
+        "url": "https://www.bellbrothers.com/duct-sealing",
+        "status": 404,
+        "serviceContent": false
+      },
+      {
+        "url": "https://www.bellbrothers.com/duct-sealing/",
+        "status": 404,
+        "serviceContent": false
+      }
+    ],
+    "verdict": "NO_PAGE_FOUND"
+  },
+  {
+    "site": "romanelectric",
+    "domain": "www.romanelectrichome.com",
+    "finding": "Ev Charger Installation — dedicated service page",
+    "tokens": [
+      "charger",
+      "installation"
+    ],
+    "sitemapProbed": [
+      "https://www.romanelectrichome.com/sitemap_index.xml"
+    ],
+    "sitemapUrlCount": 511,
+    "sitemapHits": [],
+    "candidateChecks": [
+      {
+        "url": "https://www.romanelectrichome.com/electrical/ev-charger-installation/",
+        "status": 404,
+        "serviceContent": false
+      }
+    ],
+    "verdict": "NO_PAGE_FOUND"
+  },
+  {
+    "site": "romanelectric",
+    "domain": "www.romanelectrichome.com",
+    "finding": "Whole House Rewiring — dedicated service page",
+    "tokens": [
+      "whole",
+      "house",
+      "rewiring"
+    ],
+    "sitemapProbed": [
+      "https://www.romanelectrichome.com/sitemap_index.xml"
+    ],
+    "sitemapUrlCount": 511,
+    "sitemapHits": [],
+    "candidateChecks": [
+      {
+        "url": "https://www.romanelectrichome.com/electrical/whole-house-rewiring/",
+        "status": 404,
+        "serviceContent": false
+      }
+    ],
+    "verdict": "NO_PAGE_FOUND"
+  },
+  {
+    "site": "bakerroofing",
+    "domain": "www.bakerroofing.com",
+    "finding": "Gutter Installation — dedicated service page",
+    "tokens": [
+      "gutter",
+      "installation"
+    ],
+    "sitemapProbed": [
+      "https://www.bakerroofing.com/sitemap_index.xml"
+    ],
+    "sitemapUrlCount": 222,
+    "sitemapHits": [],
+    "candidateChecks": [
+      {
+        "url": "https://www.bakerroofing.com/gutter-installation",
+        "status": 404,
+        "serviceContent": false
+      },
+      {
+        "url": "https://www.bakerroofing.com/gutter-installation/",
+        "status": 404,
+        "serviceContent": false
+      }
+    ],
+    "verdict": "NO_PAGE_FOUND"
+  },
+  {
+    "site": "interstateroofing",
+    "domain": "www.interstateroofing.com",
+    "finding": "Siding Installation — dedicated service page",
+    "tokens": [
+      "siding",
+      "installation"
+    ],
+    "sitemapProbed": [
+      "https://www.interstateroofing.com/sitemap.xml"
+    ],
+    "sitemapUrlCount": 108,
+    "sitemapHits": [],
+    "candidateChecks": [
+      {
+        "url": "https://www.interstateroofing.com/or/siding-installation",
+        "status": 404,
+        "serviceContent": false
+      },
+      {
+        "url": "https://www.interstateroofing.com/wa/siding-installation",
+        "status": 404,
+        "serviceContent": false
+      },
+      {
+        "url": "https://www.interstateroofing.com/siding-installation",
+        "status": 404,
+        "serviceContent": false
+      }
+    ],
+    "verdict": "NO_PAGE_FOUND"
+  },
+  {
+    "site": "lifescape",
+    "domain": "www.lifescapecolorado.com",
+    "finding": "Outdoor Lighting — dedicated service page",
+    "tokens": [
+      "outdoor",
+      "lighting"
+    ],
+    "sitemapProbed": [
+      "https://www.lifescapecolorado.com/sitemap_index.xml"
+    ],
+    "sitemapUrlCount": 893,
+    "sitemapHits": [
+      "https://lifescapecolorado.com/2011/08/outdoor-lighting-options-for-your-home/",
+      "https://lifescapecolorado.com/2013/03/enhance-your-outdoor-living-spaces-with-landscape-lighting/",
+      "https://lifescapecolorado.com/2013/11/magical-outdoor-lighting/",
+      "https://lifescapecolorado.com/2017/08/lighting-to-enhance-outdoor-entertaining/",
+      "https://lifescapecolorado.com/2018/08/lighten-up-outdoor-lighting-is-more-flexible-than-ever/"
+    ],
+    "candidateChecks": [
+      {
+        "url": "https://www.lifescapecolorado.com/outdoor-lighting",
+        "status": 200,
+        "serviceContent": true
+      },
+      {
+        "url": "https://www.lifescapecolorado.com/outdoor-lighting/",
+        "status": 200,
+        "serviceContent": true
+      }
+    ],
+    "verdict": "PAGE_EXISTS_IN_SITEMAP"
+  },
+  {
+    "site": "lifescape",
+    "domain": "www.lifescapecolorado.com",
+    "finding": "Water Features — dedicated service page",
+    "tokens": [
+      "water",
+      "features"
+    ],
+    "sitemapProbed": [
+      "https://www.lifescapecolorado.com/sitemap_index.xml"
+    ],
+    "sitemapUrlCount": 893,
+    "sitemapHits": [
+      "https://lifescapecolorado.com/2012/08/natural-water-features-for-a-naturalistic-landscape/",
+      "https://lifescapecolorado.com/2020/07/5-factors-to-consider-before-diving-into-pools-spas-water-features/",
+      "https://lifescapecolorado.com/2010/08/4-types-of-water-features/"
+    ],
+    "candidateChecks": [
+      {
+        "url": "https://www.lifescapecolorado.com/water-features",
+        "status": 404,
+        "serviceContent": false
+      },
+      {
+        "url": "https://www.lifescapecolorado.com/water-features/",
+        "status": 404,
+        "serviceContent": false
+      }
+    ],
+    "verdict": "PAGE_EXISTS_IN_SITEMAP"
+  },
+  {
+    "site": "russelllandscape",
+    "domain": "www.russelllandscape.com",
+    "finding": "Erosion Control — dedicated service page",
+    "tokens": [
+      "erosion",
+      "control"
+    ],
+    "sitemapProbed": [
+      "https://www.russelllandscape.com/sitemap_index.xml"
+    ],
+    "sitemapUrlCount": 72,
+    "sitemapHits": [],
+    "candidateChecks": [
+      {
+        "url": "https://www.russelllandscape.com/services/erosion-control/",
+        "status": 404,
+        "serviceContent": false
+      }
+    ],
+    "verdict": "NO_PAGE_FOUND"
+  },
+  {
+    "site": "russelllandscape",
+    "domain": "www.russelllandscape.com",
+    "finding": "Athletic Field Maintenance — dedicated service page",
+    "tokens": [
+      "athletic",
+      "field",
+      "maintenance"
+    ],
+    "sitemapProbed": [
+      "https://www.russelllandscape.com/sitemap_index.xml"
+    ],
+    "sitemapUrlCount": 72,
+    "sitemapHits": [],
+    "candidateChecks": [
+      {
+        "url": "https://www.russelllandscape.com/services/athletic-field-maintenance/",
+        "status": 404,
+        "serviceContent": false
+      }
+    ],
+    "verdict": "NO_PAGE_FOUND"
+  },
+  {
+    "site": "arrow",
+    "domain": "www.arrowexterminators.com",
+    "finding": "Crawl Space Encapsulation — dedicated service page",
+    "tokens": [
+      "crawl",
+      "space",
+      "encapsulation"
+    ],
+    "sitemapProbed": [
+      "https://www.arrowexterminators.com/sitemap.xml"
+    ],
+    "sitemapUrlCount": 3956,
+    "sitemapHits": [],
+    "candidateChecks": [
+      {
+        "url": "https://www.arrowexterminators.com/crawl-space-encapsulation",
+        "status": 404,
+        "serviceContent": false
+      },
+      {
+        "url": "https://www.arrowexterminators.com/crawl-space-encapsulation/",
+        "status": 404,
+        "serviceContent": false
+      }
+    ],
+    "verdict": "NO_PAGE_FOUND"
+  },
+  {
+    "site": "hupy",
+    "domain": "www.hupy.com",
+    "finding": "Nursing Home Abuse — dedicated service page",
+    "tokens": [
+      "nursing",
+      "home",
+      "abuse"
+    ],
+    "sitemapProbed": [
+      "https://www.hupy.com/sitemap.xml"
+    ],
+    "sitemapUrlCount": 2837,
+    "sitemapHits": [],
+    "candidateChecks": [
+      {
+        "url": "https://www.hupy.com/nursing-home-abuse",
+        "status": 200,
+        "serviceContent": false
+      },
+      {
+        "url": "https://www.hupy.com/nursing-home-abuse/",
+        "status": 200,
+        "serviceContent": false
+      }
+    ],
+    "verdict": "NO_PAGE_FOUND"
+  },
+  {
+    "site": "nicoletlaw",
+    "domain": "www.nicoletlaw.com",
+    "finding": "Social Security Disability — dedicated service page",
+    "tokens": [
+      "social",
+      "security",
+      "disability"
+    ],
+    "sitemapProbed": [
+      "https://www.nicoletlaw.com/sitemap_index.xml"
+    ],
+    "sitemapUrlCount": 936,
+    "sitemapHits": [],
+    "candidateChecks": [
+      {
+        "url": "https://www.nicoletlaw.com/social-security-disability",
+        "status": 200,
+        "serviceContent": true
+      },
+      {
+        "url": "https://www.nicoletlaw.com/social-security-disability/",
+        "status": 200,
+        "serviceContent": true
+      }
+    ],
+    "verdict": "PAGE_EXISTS_200"
+  }
+]

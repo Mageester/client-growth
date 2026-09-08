@@ -15,7 +15,16 @@ async function boundedRows<T>(statement: SqlStatement): Promise<T[]> {
 }
 
 /** Application data only. Authentication tables and invitation secrets are never exported. */
-export async function workspaceExport(t: TenantScope, now = new Date()) {
+export interface WorkspaceExportOptions {
+  /** Include paused business-profile evidence only when its schema is enabled. */
+  includeExternalBusinessClaims?: boolean;
+}
+
+export async function workspaceExport(
+  t: TenantScope,
+  now = new Date(),
+  options: WorkspaceExportOptions = {},
+) {
   const tables = [
     "clients",
     "services",
@@ -23,10 +32,19 @@ export async function workspaceExport(t: TenantScope, now = new Date()) {
     "opportunities",
     "evidence_bundles",
     "analysis_runs",
-    "external_business_claims",
   ] as const;
 
-  const [rows, workspace, brandingRows, members, shareRows] = await Promise.all([
+  const externalBusinessClaims = options.includeExternalBusinessClaims
+    ? boundedRows<Record<string, unknown>>(
+        t.db
+          .prepare(
+            `SELECT * FROM external_business_claims WHERE workspace_id = ? LIMIT ${EXPORT_QUERY_LIMIT}`,
+          )
+          .bind(t.workspaceId),
+      )
+    : Promise.resolve([] as Record<string, unknown>[]);
+
+  const [rows, workspace, brandingRows, members, shareRows, reportRows, reportShareRows, externalClaims] = await Promise.all([
     Promise.all(
       tables.map((table) =>
         boundedRows<Record<string, unknown>>(
@@ -89,10 +107,56 @@ export async function workspaceExport(t: TenantScope, now = new Date()) {
         )
         .bind(t.workspaceId),
     ),
+    boundedRows<{
+      id: string;
+      workspace_id: string;
+      client_id: string;
+      created_by_user_id: string;
+      generated_at: string;
+      evidence_reviewed_at: string | null;
+      snapshot: string;
+    }>(
+      t.db
+        .prepare(
+          `SELECT id, workspace_id, client_id, created_by_user_id, generated_at,
+                  evidence_reviewed_at, snapshot
+           FROM client_report_snapshots
+           WHERE workspace_id = ?
+           ORDER BY generated_at DESC, id DESC
+           LIMIT ${EXPORT_QUERY_LIMIT}`,
+        )
+        .bind(t.workspaceId),
+    ),
+    boundedRows<{
+      id: string;
+      workspace_id: string;
+      report_id: string;
+      token_hash: string;
+      created_by_user_id: string;
+      created_at: string;
+      expires_at: string;
+      revoked_at: string | null;
+    }>(
+      t.db
+        .prepare(
+          `SELECT id, workspace_id, report_id, token_hash, created_by_user_id,
+                  created_at, expires_at, revoked_at
+           FROM client_report_shares
+           WHERE workspace_id = ?
+           ORDER BY created_at DESC, id DESC
+           LIMIT ${EXPORT_QUERY_LIMIT}`,
+        )
+        .bind(t.workspaceId),
+    ),
+    externalBusinessClaims,
   ]);
 
   const nowIso = now.toISOString();
   const proposalShares = shareRows.map((share) => ({
+    ...share,
+    status: share.revoked_at ? "revoked" : share.expires_at <= nowIso ? "expired" : "active",
+  }));
+  const clientReportShares = reportShareRows.map((share) => ({
     ...share,
     status: share.revoked_at ? "revoked" : share.expires_at <= nowIso ? "expired" : "active",
   }));
@@ -104,13 +168,15 @@ export async function workspaceExport(t: TenantScope, now = new Date()) {
     branding: brandingRows[0] ?? null,
     members,
     proposalShares,
+    clientReports: reportRows,
+    clientReportShares,
     clients: rows[0],
     services: rows[1],
     coverage: rows[2],
     opportunities: rows[3],
     evidence: rows[4],
     analysisRuns: rows[5],
-    externalBusinessClaims: rows[6],
+    externalBusinessClaims: externalClaims,
   };
 }
 

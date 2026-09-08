@@ -1,0 +1,6 @@
+
+{
+  "error": {
+    "text": "no such table: sessions: SQLITE_ERROR"
+  }
+}

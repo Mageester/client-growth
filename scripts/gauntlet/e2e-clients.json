@@ -1,0 +1,6 @@
+
+{
+  "error": {
+    "text": "no such column: site_url at offset 17: SQLITE_ERROR"
+  }
+}

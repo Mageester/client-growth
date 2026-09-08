@@ -1,0 +1,25 @@
+[
+  {
+    "results": [
+      {
+        "id": "ws_56d4d179874c4cabb4c8",
+        "name": "Agency A",
+        "owner_user_id": "BUk7OXPjCAimBDdlu2Og6JWYIWT02dpd"
+      },
+      {
+        "id": "ws_f2e424801ac94c6b88a2",
+        "name": "Agency B",
+        "owner_user_id": "8TKBZdqWnGPbzgcH4uNqib1clEc3hPFz"
+      },
+      {
+        "id": "ws_4eec1caaf0b14a52ace7",
+        "name": "Axiom Web",
+        "owner_user_id": "W69eeEwKRmay75fIYvfrezbcXOqlFQs0"
+      }
+    ],
+    "success": true,
+    "meta": {
+      "duration": 0
+    }
+  }
+]

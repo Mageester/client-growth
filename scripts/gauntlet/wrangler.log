@@ -1,0 +1,113 @@
+
+ ⛅️ wrangler 4.127.1
+────────────────────
+Using secrets defined in .dev.vars
+Your Worker has access to the following bindings:
+Binding                                               Resource                  Mode
+env.DB (client-growth-dev)                            D1 Database               local
+env.ASSETS                                            Assets                    local
+env.AI_PROVIDER ("(hidden)")                          Environment Variable      local
+env.MAX_AI_CALLS_PER_RUN ("(hidden)")                 Environment Variable      local
+env.BETTER_AUTH_SECRET ("(hidden)")                   Environment Variable      local
+env.BETTER_AUTH_URL ("(hidden)")                      Environment Variable      local
+env.MONITORING_TRIGGER_TOKEN ("(hidden)")             Environment Variable      local
+env.EMAIL_TRANSPORT ("(hidden)")                      Environment Variable      local
+env.SIGNUP_MODE ("(hidden)")                          Environment Variable      local
+env.DEEPSEEK_API_KEY ("(hidden)")                     Environment Variable      local
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mScheduled Workers are not automatically triggered during local development.[0m
+
+  To manually trigger a scheduled event, run:
+    curl "http://127.0.0.1:8788/cdn-cgi/local/scheduled"
+  For more details, see [4mhttps://developers.cloudflare.com/workers/configuration/cron-triggers/#test-cron-triggers-locally[0m
+
+
+⎔ Starting local server...
+[wrangler:info] Ready on http://127.0.0.1:8788
+[wrangler:info] GET / 200 OK (1195ms)
+[wrangler:info] GET /clients/client-cambridge-heating-agdi 200 OK (256ms)
+[wrangler:info] GET /opportunities 200 OK (118ms)
+[wrangler:info] POST /clients/client-cambridge-heating-agdi 200 OK (5998ms)
+[wrangler:info] POST /clients/client-cambridge-heating-agdi 200 OK (199ms)
+[wrangler:info] POST /clients 200 OK (273ms)
+[wrangler:info] POST /clients/client-cambridge-heating-co-tutx 200 OK (1401ms)
+[wrangler:info] POST /clients/client-cambridge-heating-co-tutx 200 OK (172ms)
+[wrangler:info] POST /clients 200 OK (108ms)
+[wrangler:info] POST /clients/client-cambridge-heating-co-tutx 302 Found (24ms)
+[wrangler:info] POST /clients/client-cambridge-heating-agdi 200 OK (5627ms)
+[wrangler:info] GET /opportunities/missing-service-page__duct-cleaning__64f59b00 200 OK (90ms)
+[wrangler:info] POST /opportunities/missing-service-page__duct-cleaning__64f59b00 302 Found (19ms)
+[wrangler:info] POST /opportunities/missing-service-page__duct-cleaning__64f59b00 302 Found (38ms)
+[wrangler:info] POST /opportunities/missing-service-page__duct-cleaning__64f59b00 302 Found (23ms)
+[wrangler:info] GET /opportunities/missing-service-page__duct-cleaning__64f59b00 200 OK (136ms)
+[wrangler:info] POST /opportunities/missing-service-page__duct-cleaning__64f59b00 302 Found (22ms)
+[wrangler:info] POST /opportunities/missing-service-page__duct-cleaning__64f59b00 302 Found (22ms)
+[wrangler:info] POST /opportunities/missing-service-page__duct-cleaning__64f59b00 400 Bad Request (35ms)
+[wrangler:info] POST /opportunities/missing-service-page__duct-cleaning__64f59b00 302 Found (19ms)
+[wrangler:info] POST /opportunities/missing-service-page__duct-cleaning__64f59b00 200 OK (143ms)
+[wrangler:info] POST /opportunities/missing-service-page__duct-cleaning__64f59b00 200 OK (164ms)
+[wrangler:info] POST /opportunities/missing-service-page__water-heater-replacement__a40e52f2 302 Found (15ms)
+[wrangler:info] POST /opportunities/missing-service-page__water-heater-replacement__a40e52f2 302 Found (19ms)
+[wrangler:info] POST /opportunities/missing-service-page__water-heater-replacement__a40e52f2 200 OK (156ms)
+[wrangler:info] POST /opportunities/qopp-nf-1 404 Not Found (34ms)
+[wrangler:info] GET /opportunities/qopp-nf-1 404 Not Found (63ms)
+[wrangler:info] POST /clients/client-cambridge-heating-agdi 200 OK (1872ms)
+[wrangler:info] GET /opportunities/missing-service-page__duct-cleaning__64f59b00 200 OK (135ms)
+[wrangler:info] GET / 200 OK (78ms)
+[wrangler:info] GET /brand/axiom-orbit-primary-transparent.png 200 OK (21ms)
+[wrangler:info] GET /assets/entry.client-EANu5VCQ.js 200 OK (68ms)
+[wrangler:info] GET /assets/root-T8ONMwJ0.css 200 OK (73ms)
+[wrangler:info] GET /assets/chunk-BV7QT456-BgP885wU.js 200 OK (108ms)
+[wrangler:info] GET /assets/root-CjjYvuir.js 200 OK (125ms)
+[wrangler:info] GET /assets/ui-DOKC6n1u.js 200 OK (142ms)
+[wrangler:info] GET /assets/marketing-layout-BniEERFC.css 200 OK (9ms)
+[wrangler:info] GET /assets/_index-D4uuCTh5.js 200 OK (20ms)
+[wrangler:info] GET /assets/marketing-layout-WQyCpXjD.js 200 OK (32ms)
+[wrangler:info] GET /assets/marketing-visuals-B_1YyQqq.js 200 OK (41ms)
+[wrangler:info] GET /__manifest 200 OK (4ms)
+[wrangler:info] GET /brand/axiom-orbit-app-icon-32.png 200 OK (7ms)
+[wrangler:info] GET /assets/login-B02A_gRI.js 200 OK (14ms)
+[wrangler:info] GET /login.data 200 OK (17ms)
+[wrangler:info] GET /brand/axiom-orbit-icon-chrome-transparent.png 200 OK (9ms)
+[wrangler:info] GET /brand/axiom-orbit-icon-black-transparent.png 200 OK (13ms)
+[wrangler:info] GET /brand/axiom-orbit-primary-black-transparent.png 200 OK (18ms)
+[wrangler:info] GET /axiom-logo.webp 200 OK (23ms)
+[wrangler:info] GET /__manifest 200 OK (6ms)
+[email:console] email verification for aidanmageebusiness@gmail.com: http://localhost:8788/api/auth/verify-email?token=eyJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6ImFpZGFubWFnZWVidXNpbmVzc0BnbWFpbC5jb20iLCJpYXQiOjE3ODg3ODkwMzYsImV4cCI6MTc4ODc5MjYzNn0.lowT-doPiOmXoOZHLY4h9O3dMdxsc7XW5q5Xzgw7E70&callbackURL=http%3A%2F%2Flocalhost%3A8788%2Flogin%3Fverified%3Dsuccess
+[wrangler:info] POST /login.data 200 OK (84ms)
+[wrangler:info] GET /login.data 200 OK (5ms)
+[email:console] email verification for aidanmageebusiness@gmail.com: http://localhost:8788/api/auth/verify-email?token=eyJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6ImFpZGFubWFnZWVidXNpbmVzc0BnbWFpbC5jb20iLCJpYXQiOjE3ODg3ODkwMzgsImV4cCI6MTc4ODc5MjYzOH0.vIRox1SOLYT4kanyG9ebjkEILrN8xmWjUAwWY3_CyA4&callbackURL=http%3A%2F%2Flocalhost%3A8788%2Flogin%3Fverified%3Dsuccess
+[wrangler:info] POST /login.data 200 OK (49ms)
+[wrangler:info] GET /login.data 200 OK (3ms)
+[email:console] email verification for aidanmageebusiness@gmail.com: http://localhost:8788/api/auth/verify-email?token=eyJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6ImFpZGFubWFnZWVidXNpbmVzc0BnbWFpbC5jb20iLCJpYXQiOjE3ODg3ODkwMzgsImV4cCI6MTc4ODc5MjYzOH0.vIRox1SOLYT4kanyG9ebjkEILrN8xmWjUAwWY3_CyA4&callbackURL=http%3A%2F%2Flocalhost%3A8788%2Flogin%3Fverified%3Dsuccess
+[wrangler:info] POST /login.data 200 OK (52ms)
+[wrangler:info] GET /login.data 200 OK (5ms)
+[email:console] email verification for aidanmageebusiness@gmail.com: http://localhost:8788/api/auth/verify-email?token=eyJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6ImFpZGFubWFnZWVidXNpbmVzc0BnbWFpbC5jb20iLCJpYXQiOjE3ODg3ODkwMzksImV4cCI6MTc4ODc5MjYzOX0.3bdqyzXLiGoP8h_qB3qK_rLgHY-Sz_4hkR27JGwTOqg&callbackURL=http%3A%2F%2Flocalhost%3A8788%2Flogin%3Fverified%3Dsuccess
+[wrangler:info] POST /login.data 200 OK (516ms)
+[wrangler:info] GET /login.data 200 OK (3ms)
+[wrangler:info] POST /settings 200 OK (156ms)
+[wrangler:info] POST /settings 302 Found (26ms)
+[wrangler:info] GET /settings 200 OK (116ms)
+[wrangler:info] GET /onboarding 200 OK (136ms)
+[wrangler:info] POST /onboarding 200 OK (133ms)
+[wrangler:info] POST /onboarding 302 Found (259ms)
+[wrangler:info] GET /onboarding 200 OK (73ms)
+⎔ Reloading local server...
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mBuild failed with 1 error:[0m
+
+  [31mX [41;31m[[41;97mERROR[41;31m][0m [1mCould not resolve "../build/server/index.js"[0m
+  
+      workers/app.ts:42:23:
+  [37m      42 │ import * as build from [32m"../build/server/index.js"[37m;
+           ╵                        [32m~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+  
+  
+
+
+⎔ Local server updated and ready
+[wrangler:warn] The Workers runtime crashed unexpectedly and is being restarted (crash #1). Any additional runtime output above may indicate the cause.
+[wrangler:warn] The Workers runtime crashed unexpectedly and is being restarted (crash #1). Any additional runtime output above may indicate the cause.
+[wrangler:info] Updated and ready on http://127.0.0.1:8788
+[wrangler:warn] The Workers runtime crashed unexpectedly and is being restarted (crash #2). Any additional runtime output above may indicate the cause.
+[wrangler:warn] The Workers runtime crashed unexpectedly and is being restarted (crash #2). Any additional runtime output above may indicate the cause.
+[wrangler:info] Updated and ready on http://127.0.0.1:8788
