@@ -186,7 +186,7 @@ async function fixture() {
     evaluatorRejections: 0,
     evaluatorErrors: 0,
   });
-  await saveWorkspaceBranding(scope, { logo: null });
+  await saveWorkspaceBranding(scope, { logo: null, reportTheme: "editorial" });
   __setSessionResolver(async () => ({
     userId: "owner_a",
     user: { id: "owner_a", email: "owner@axiom.example", name: "Avery Owner" },
@@ -217,6 +217,7 @@ describe("client-facing report routes", () => {
     } as never)) as Awaited<ReturnType<typeof reportBuilder.loader>>;
     expect(builder.candidates.defaultSelectedKeys).toHaveLength(2);
     expect(builder.candidates.health).toHaveLength(1);
+    expect(builder.branding.reportTheme).toBe("editorial");
 
     const commercial = builder.candidates.commercial.map((candidate) => candidate.key);
     const generated = (await call(reportBuilder.action, {
@@ -311,6 +312,7 @@ describe("client-facing report routes", () => {
       createElement(reportShare.default, { loaderData: page } as never),
     );
     expect(html).toContain("Northwind Heating");
+    expect(html).toContain('data-report-theme="editorial"');
     expect(html).toContain("&lt;script&gt;alert(&#x27;x&#x27;)&lt;/script&gt;");
     expect(html).not.toContain("opp_heat");
     expect(html).not.toContain("ws_a");

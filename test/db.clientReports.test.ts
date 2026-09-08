@@ -72,6 +72,7 @@ async function fixture() {
     active: true,
   });
   await repo.upsertClient(scopeA, clientA);
+  await saveWorkspaceBranding(scopeA, { reportTheme: "editorial" });
   const source = opportunity();
   await repo.saveAnalysis(scopeA, [source]);
   const candidates = buildReportCandidates({
@@ -84,7 +85,7 @@ async function fixture() {
     workspaceId: "ws_a",
     createdByUserId: "owner_a",
     client: clientA,
-    agency: { name: "Axiom North", logo: null },
+    agency: { name: "Axiom North", logo: null, theme: "editorial" },
     preparedBy: "Avery Owner",
     generatedAt: NOW.toISOString(),
     evidenceReviewedAt: NOW.toISOString(),
@@ -133,6 +134,7 @@ describe("client report persistence", () => {
       await repo.saveOpportunityProposalText(scopeA, "opp_heat", "Changed after report");
       await saveWorkspaceBranding(scopeA, {
         logo: "data:image/png;base64,iVBORw0KGgo=",
+        reportTheme: "signal",
       });
       await db
         .prepare("UPDATE opportunities SET price_min = ?, price_max = ?, title = ? WHERE id = ?")
@@ -142,6 +144,7 @@ describe("client report persistence", () => {
       const loaded = await getClientReportById(scopeA, created.reportId);
       expect(loaded?.snapshot.public.client.name).toBe("Northwind Heating");
       expect(loaded?.snapshot.public.agency.logo).toBeNull();
+      expect(loaded?.snapshot.public.agency.theme).toBe("editorial");
       expect(loaded?.snapshot.public.recommendedProjects[0]?.findings[0]?.title).toContain(
         "Heat Pump",
       );

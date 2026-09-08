@@ -312,6 +312,29 @@ describe("proposal share routes", () => {
     expect(result).toEqual({ ok: true });
     expect(await getWorkspaceBranding(scopeA)).toMatchObject({
       logo: "data:image/png;base64,iVBORw0KGgo=",
+      reportTheme: "studio",
+    });
+  });
+
+  it("saves the selected client report style without changing the logo", async () => {
+    await saveWorkspaceBranding(scopeA, { logo: null, reportTheme: "signal" });
+    expect(await getWorkspaceBranding(scopeA)).toMatchObject({
+      logo: null,
+      reportTheme: "signal",
+    });
+
+    const result = await call(settings.action as never, {
+      request: new Request("http://localhost/settings", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ workspaceName: "Axiom North Updated", reportTheme: "editorial" }),
+      }),
+      context: ctx,
+    });
+    expect(result).toEqual({ ok: true });
+    expect(await getWorkspaceBranding(scopeA)).toMatchObject({
+      logo: null,
+      reportTheme: "editorial",
     });
   });
 

@@ -242,7 +242,7 @@ describe("client report snapshots", () => {
       workspaceId: "ws_tri",
       createdByUserId: "user_owner",
       client,
-      agency: { name: "Axiom Studio", logo: "data:image/png;base64,iVBORw0KGgo=" },
+      agency: { name: "Axiom Studio", logo: "data:image/png;base64,iVBORw0KGgo=", theme: "editorial" },
       preparedBy: "Avery Owner",
       generatedAt: "2026-09-07T13:00:00.000Z",
       evidenceReviewedAt: "2026-09-07T12:00:00.000Z",
@@ -262,6 +262,7 @@ describe("client report snapshots", () => {
       commercial[1]!.project.title,
       commercial[0]!.project.title,
     ]);
+    expect(stored.public.agency.theme).toBe("editorial");
     expect(stored.public.supportingProjects.map((project) => project.title)).toEqual([
       health[0]!.project.title,
     ]);

@@ -1,4 +1,10 @@
 import type { Opportunity } from "@/core/schema";
+import {
+  DEFAULT_REPORT_THEME,
+  isReportTheme,
+  normalizeReportTheme,
+  type ReportTheme,
+} from "@/core/reportTheme";
 import { normalizeAndValidateUrl } from "@/adapters/evidence/urlPolicy";
 import * as repo from "@/db/repositories";
 import type { SqlDb } from "@/db/sql";
@@ -14,6 +20,7 @@ const MAX_PUBLIC_LOGO_URL_LENGTH = 2_048;
 
 export interface WorkspaceBranding {
   logo: string | null;
+  reportTheme: ReportTheme;
   updatedAt: string | null;
 }
 
@@ -140,32 +147,92 @@ export function validateLogo(input: unknown): LogoValidation {
   return { ok: true, value: policy.url.toString() };
 }
 
-export async function getWorkspaceBranding(t: TenantScope): Promise<WorkspaceBranding> {
+interface WorkspaceBrandingRow {
+  logo: string | null;
+  report_theme?: string | null;
+  updated_at: string;
+}
+
+async function readWorkspaceBranding(t: TenantScope): Promise<{
+  branding: WorkspaceBranding;
+  hasReportThemeColumn: boolean;
+}> {
+  const columns = await t.db
+    .prepare("PRAGMA table_info(workspace_branding)")
+    .all<{ name: string }>();
+  const hasReportThemeColumn = columns.some((column) => column.name === "report_theme");
   const row = await t.db
-    .prepare("SELECT logo, updated_at FROM workspace_branding WHERE workspace_id = ?")
+    .prepare(
+      hasReportThemeColumn
+        ? "SELECT logo, report_theme, updated_at FROM workspace_branding WHERE workspace_id = ?"
+        : "SELECT logo, updated_at FROM workspace_branding WHERE workspace_id = ?",
+    )
     .bind(t.workspaceId)
-    .first<{ logo: string | null; updated_at: string }>();
-  return { logo: row?.logo ?? null, updatedAt: row?.updated_at ?? null };
+    .first<WorkspaceBrandingRow>();
+  return {
+    branding: {
+      logo: row?.logo ?? null,
+      reportTheme: normalizeReportTheme(row?.report_theme),
+      updatedAt: row?.updated_at ?? null,
+    },
+    hasReportThemeColumn,
+  };
+}
+
+export async function getWorkspaceBranding(t: TenantScope): Promise<WorkspaceBranding> {
+  return (await readWorkspaceBranding(t)).branding;
 }
 
 export async function saveWorkspaceBranding(
   t: TenantScope,
-  input: { logo?: unknown },
+  input: { logo?: unknown; reportTheme?: unknown },
 ): Promise<WorkspaceBranding> {
-  const checked = validateLogo(input.logo);
-  if (!checked.ok) throw new ProposalShareError("invalid-branding", checked.error);
+  const { branding: current, hasReportThemeColumn } = await readWorkspaceBranding(t);
+  const checkedLogo = input.logo === undefined
+    ? { ok: true as const, value: current.logo }
+    : validateLogo(input.logo);
+  if (!checkedLogo.ok) throw new ProposalShareError("invalid-branding", checkedLogo.error);
+  const reportTheme = input.reportTheme === undefined
+    ? current.reportTheme
+    : isReportTheme(input.reportTheme)
+      ? input.reportTheme
+      : null;
+  if (!reportTheme) {
+    throw new ProposalShareError("invalid-branding", "Choose one of the available report styles.");
+  }
+  if (!hasReportThemeColumn) {
+    if (input.reportTheme !== undefined && reportTheme !== DEFAULT_REPORT_THEME) {
+      throw new ProposalShareError(
+        "invalid-branding",
+        "Report styles are not available until the reports update is complete.",
+      );
+    }
+    const updatedAt = new Date().toISOString();
+    await t.db
+      .prepare(
+        `INSERT INTO workspace_branding (workspace_id, logo, updated_at)
+         VALUES (?, ?, ?)
+         ON CONFLICT(workspace_id) DO UPDATE SET
+           logo = excluded.logo,
+           updated_at = excluded.updated_at`,
+      )
+      .bind(t.workspaceId, checkedLogo.value, updatedAt)
+      .run();
+    return { logo: checkedLogo.value, reportTheme: DEFAULT_REPORT_THEME, updatedAt };
+  }
   const updatedAt = new Date().toISOString();
   await t.db
     .prepare(
-      `INSERT INTO workspace_branding (workspace_id, logo, updated_at)
-       VALUES (?, ?, ?)
+      `INSERT INTO workspace_branding (workspace_id, logo, report_theme, updated_at)
+       VALUES (?, ?, ?, ?)
        ON CONFLICT(workspace_id) DO UPDATE SET
          logo = excluded.logo,
+         report_theme = excluded.report_theme,
          updated_at = excluded.updated_at`,
     )
-    .bind(t.workspaceId, checked.value, updatedAt)
+    .bind(t.workspaceId, checkedLogo.value, reportTheme, updatedAt)
     .run();
-  return { logo: checked.value, updatedAt };
+  return { logo: checkedLogo.value, reportTheme, updatedAt };
 }
 
 interface WorkspaceOwnerRow {

@@ -2,6 +2,7 @@ import type {
   ClientReportPublicSnapshot,
   ClientReportStoredSnapshot,
 } from "@/core/clientReport";
+import { normalizeReportTheme } from "@/core/reportTheme";
 import { normalizeAndValidateUrl } from "@/adapters/evidence/urlPolicy";
 import * as repo from "@/db/repositories";
 import type { SqlDb } from "@/db/sql";
@@ -153,7 +154,16 @@ function parseStoredSnapshot(value: string): ClientReportStoredSnapshot | null {
     ) {
       return null;
     }
-    return parsed;
+    return {
+      ...parsed,
+      public: {
+        ...parsed.public,
+        agency: {
+          ...parsed.public.agency,
+          theme: normalizeReportTheme(parsed.public.agency.theme),
+        },
+      },
+    };
   } catch {
     return null;
   }
@@ -196,7 +206,11 @@ function publicProjection(snapshot: ClientReportStoredSnapshot): ClientReportPub
   const value = snapshot.public;
   return {
     schemaVersion: 1,
-    agency: { name: value.agency.name, logo: safeLogo(value.agency.logo) },
+    agency: {
+      name: value.agency.name,
+      logo: safeLogo(value.agency.logo),
+      theme: normalizeReportTheme(value.agency.theme),
+    },
     client: { name: value.client.name, domain: value.client.domain },
     preparedBy: value.preparedBy,
     generatedAt: value.generatedAt,

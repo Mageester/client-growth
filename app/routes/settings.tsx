@@ -7,6 +7,7 @@ import {
   saveWorkspaceBranding,
   validateLogo,
 } from "@/db/proposalShares";
+import { REPORT_THEME_OPTIONS } from "@/core/reportTheme";
 import {
   createWorkspaceInvitation,
   listPendingWorkspaceInvitations,
@@ -47,6 +48,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     email: t.user.email,
     workspaceName: t.workspace.name,
     logo: branding.logo,
+    reportTheme: branding.reportTheme,
     isOwner: t.userId === t.workspace.ownerUserId,
     members,
     invitations,
@@ -144,7 +146,12 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
   try {
     await renameWorkspace(t.db, t.workspace.id, name);
-    if (form.has("logo")) await saveWorkspaceBranding(t.scope, { logo });
+    if (form.has("logo") || form.has("reportTheme")) {
+      await saveWorkspaceBranding(t.scope, {
+        logo,
+        reportTheme: form.has("reportTheme") ? form.get("reportTheme") : undefined,
+      });
+    }
   } catch (error) {
     if (isProposalShareError(error)) return { error: error.message };
     throw error;
@@ -236,6 +243,35 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
               Optional PNG or JPEG. A small inline data URL is safest; public logos must use HTTPS.
             </p>
           </div>
+          <fieldset className="report-theme-settings">
+            <legend>Client report style</legend>
+            <p className="field-help">Choose the visual treatment used for new client reports. Existing reports stay unchanged.</p>
+            <div className="report-theme-options" role="radiogroup" aria-label="Client report style">
+              {REPORT_THEME_OPTIONS.map((theme) => (
+                <label className={`report-theme-option${loaderData.reportTheme === theme.id ? " is-selected" : ""}`} key={theme.id}>
+                  <input
+                    type="radio"
+                    name="reportTheme"
+                    value={theme.id}
+                    defaultChecked={loaderData.reportTheme === theme.id}
+                  />
+                  <span
+                    className="report-theme-swatch"
+                    aria-hidden="true"
+                    style={{ background: theme.paper, borderColor: theme.accent }}
+                  >
+                    <span style={{ background: theme.accent }} />
+                    <i style={{ background: theme.ink }} />
+                    <b style={{ background: theme.accent }} />
+                  </span>
+                  <span className="report-theme-copy">
+                    <strong>{theme.label}</strong>
+                    <small>{theme.description}</small>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
           <div className="form-actions">
             <button type="submit" className="btn btn-primary" disabled={saving}>
               {saving ? "Saving…" : "Save changes"}

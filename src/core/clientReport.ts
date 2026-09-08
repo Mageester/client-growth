@@ -1,4 +1,5 @@
 import type { Client, Opportunity, OpportunityStatus } from "@/core/schema";
+import { normalizeReportTheme, type ReportTheme } from "@/core/reportTheme";
 import { parseEvidenceRef } from "@/core/evidenceRef";
 import { normalizeAndValidateUrl } from "@/adapters/evidence/urlPolicy";
 import {
@@ -83,7 +84,7 @@ export interface ClientReportProjectSnapshot {
 
 export interface ClientReportPublicSnapshot {
   schemaVersion: 1;
-  agency: { name: string; logo: string | null };
+  agency: { name: string; logo: string | null; theme: ReportTheme };
   client: { name: string; domain: string };
   preparedBy: string;
   generatedAt: string;
@@ -139,7 +140,7 @@ export interface BuildClientReportSnapshotInput {
   workspaceId: string;
   createdByUserId: string;
   client: Pick<Client, "id" | "name" | "domain">;
-  agency: { name: string; logo: string | null };
+  agency: { name: string; logo: string | null; theme?: ReportTheme };
   preparedBy: string;
   generatedAt: string;
   evidenceReviewedAt: string | null;
@@ -467,7 +468,11 @@ export function buildClientReportSnapshot(
   return {
     public: {
       schemaVersion: 1,
-      agency: { name: agencyName, logo: input.agency.logo ?? null },
+      agency: {
+        name: agencyName,
+        logo: input.agency.logo ?? null,
+        theme: normalizeReportTheme(input.agency.theme),
+      },
       client: { name: input.client.name, domain: input.client.domain },
       preparedBy: input.preparedBy.trim() || "Your agency team",
       generatedAt: input.generatedAt,

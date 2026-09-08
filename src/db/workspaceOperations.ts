@@ -60,10 +60,10 @@ export async function workspaceExport(
       .prepare("SELECT id, name, created_at FROM workspaces WHERE id = ?")
       .bind(t.workspaceId)
       .first<{ id: string; name: string; created_at: string }>(),
-    boundedRows<{ workspace_id: string; logo: string | null; updated_at: string }>(
+    boundedRows<{ workspace_id: string; logo: string | null; report_theme: string; updated_at: string }>(
       t.db
         .prepare(
-          `SELECT workspace_id, logo, updated_at
+          `SELECT workspace_id, logo, report_theme, updated_at
            FROM workspace_branding
            WHERE workspace_id = ?
            LIMIT ${EXPORT_QUERY_LIMIT}`,

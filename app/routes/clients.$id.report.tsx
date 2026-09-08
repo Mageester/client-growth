@@ -8,6 +8,7 @@ import {
   type ReportCandidate,
   type ReportCandidates,
 } from "@/core/clientReport";
+import { reportThemeOption } from "@/core/reportTheme";
 import { createClientReport, isClientReportError } from "@/db/clientReports";
 import { getWorkspaceBranding } from "@/db/proposalShares";
 import * as repo from "@/db/repositories";
@@ -116,7 +117,7 @@ export async function action({ params, request, context }: Route.ActionArgs) {
       workspaceId: t.scope.workspaceId,
       createdByUserId: t.userId,
       client: inputs.client,
-      agency: { name: t.workspace.name, logo: inputs.branding.logo },
+      agency: { name: t.workspace.name, logo: inputs.branding.logo, theme: inputs.branding.reportTheme },
       preparedBy: t.user.name.trim() || t.user.email,
       generatedAt: new Date().toISOString(),
       evidenceReviewedAt: inputs.candidates.evidenceReviewedAt,
@@ -260,7 +261,7 @@ export default function ClientReportBuilder({ loaderData, actionData }: Route.Co
           workspaceId: "preview",
           createdByUserId: "preview",
           client,
-          agency: { name: agencyName, logo: branding.logo },
+          agency: { name: agencyName, logo: branding.logo, theme: branding.reportTheme },
           preparedBy,
           generatedAt: previewGeneratedAt,
           evidenceReviewedAt: candidates.evidenceReviewedAt,
@@ -317,6 +318,14 @@ export default function ClientReportBuilder({ loaderData, actionData }: Route.Co
               <p>Start with the strongest commercial priorities. Site-health work stays separate for later.</p>
             </div>
             <span className="report-builder-selection-count">{selected.length} selected</span>
+          </div>
+          <div className="report-builder-style-summary">
+            <div>
+              <span className="report-builder-style-kicker">Report style</span>
+              <strong>{reportThemeOption(branding.reportTheme).label}</strong>
+              <small>{reportThemeOption(branding.reportTheme).description}</small>
+            </div>
+            <Link to="/settings#general" className="btn btn-quiet btn-sm">Change style</Link>
           </div>
 
           {actionData && !actionData.ok && (

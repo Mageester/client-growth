@@ -175,7 +175,10 @@ export function ClientReportDocument({
   const evidenceDate = snapshot.evidenceReviewedAt;
 
   return (
-    <article className={`client-report-document${publicView ? " is-public" : ""}`}>
+    <article
+      className={`client-report-document${publicView ? " is-public" : ""}`}
+      data-report-theme={snapshot.agency.theme}
+    >
       <section className="client-report-cover">
         <div className="client-report-brand">
           {logo && <img src={logo} alt={`${snapshot.agency.name} logo`} referrerPolicy="no-referrer" />}
