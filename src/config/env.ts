@@ -15,6 +15,21 @@ export const EnvSchema = z.object({
   DEEPSEEK_API_KEY: z.string().optional(),
   DEEPSEEK_BASE_URL: z.string().url().optional(),
   DEEPSEEK_MODEL: z.string().optional(),
+  /**
+   * Business-to-site mismatch is paused until its additive schema is approved
+   * and deployed. The string form is what Wrangler supplies; parsing it
+   * explicitly avoids z.coerce.boolean turning "false" into true.
+   */
+  ENABLE_EXTERNAL_BUSINESS_MISMATCH: z
+    .preprocess(
+      (value) => {
+        if (value === "true") return true;
+        if (value === "false") return false;
+        return value;
+      },
+      z.boolean(),
+    )
+    .default(false),
   MAX_AI_CALLS_PER_RUN: z.coerce.number().int().positive().max(100).default(10),
   /**
    * Clients one scheduled invocation may analyze. Multiplied by
@@ -52,6 +67,15 @@ export type Env = z.infer<typeof EnvSchema>;
 
 export function parseEnv(raw: Record<string, unknown> = {}): Env {
   return EnvSchema.parse(raw);
+}
+
+/**
+ * The only boundary that may make the paused external-claims repository
+ * reachable. Keep this strict and default-off: a missing flag must mean the
+ * production schema can omit external_business_claims safely.
+ */
+export function isExternalBusinessMismatchEnabled(raw: Record<string, unknown>): boolean {
+  return raw.ENABLE_EXTERNAL_BUSINESS_MISMATCH === true || raw.ENABLE_EXTERNAL_BUSINESS_MISMATCH === "true";
 }
 
 /**
