@@ -103,7 +103,8 @@ export type ResetWorkspaceResult =
  * Removed: clients and everything hanging off them (coverage, evidence,
  * opportunities, analysis runs, competitors — monitoring state lives on the
  * client row), the service catalog, workspace branding, pending invitations,
- * proposal share links, and any non-owner workspace members.
+ * proposal/report share links and snapshots, and any non-owner workspace
+ * members.
  *
  * Authorization is enforced HERE, at the write boundary: the acting user must
  * be the workspace owner and must type the workspace's current name exactly.
@@ -138,6 +139,8 @@ export async function resetWorkspace(
   // no client foreign key and is the workspace's usage history.
   const statements: SqlBatchStatement[] = [
     { sql: "DELETE FROM proposal_shares WHERE workspace_id = ?", params: [workspaceId] },
+    { sql: "DELETE FROM client_report_shares WHERE workspace_id = ?", params: [workspaceId] },
+    { sql: "DELETE FROM client_report_snapshots WHERE workspace_id = ?", params: [workspaceId] },
     { sql: "DELETE FROM workspace_invitations WHERE workspace_id = ?", params: [workspaceId] },
     { sql: "DELETE FROM client_competitors WHERE workspace_id = ?", params: [workspaceId] },
     { sql: "DELETE FROM analysis_runs WHERE workspace_id = ?", params: [workspaceId] },

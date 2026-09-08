@@ -5,7 +5,13 @@ import { createMemoryRouter, MemoryRouter, RouterProvider } from "react-router";
 import { readFileSync } from "node:fs";
 
 import { AnalysisRunning, formatCurrencyRange, deferMenuClose } from "../app/components/ui";
-import { AppNavigation, ThemePicker, isProposalSharePath, loader as rootLoader } from "../app/root";
+import {
+  AppNavigation,
+  ThemePicker,
+  isClientReportSharePath,
+  isProposalSharePath,
+  loader as rootLoader,
+} from "../app/root";
 import { homeRenderClock } from "../app/routes/changes";
 import { healthSectionDescription } from "../app/routes/opportunities._index";
 import OpportunityDetail from "../app/routes/opportunities.$id";
@@ -291,6 +297,32 @@ describe("public proposal share shell", () => {
     try {
       const result = await rootLoader({
         request: new Request("http://localhost/proposal/share/?token=test"),
+        context: { cloudflare: { env: { DB: {} } } },
+      } as never);
+
+      expect(result.signedIn).toBe(false);
+      expect(sessionLookups).toBe(0);
+    } finally {
+      __setSessionResolver(null);
+    }
+  });
+
+  it.each(["/report/share", "/report/share/", "/REPORT/SHARE/"]) (
+    "recognizes %s as the standalone client report path",
+    (pathname) => {
+      expect(isClientReportSharePath(pathname)).toBe(true);
+    },
+  );
+
+  it("skips session resolution for a matched client report path", async () => {
+    let sessionLookups = 0;
+    __setSessionResolver(async () => {
+      sessionLookups += 1;
+      return null;
+    });
+    try {
+      const result = await rootLoader({
+        request: new Request("http://localhost/report/share?token=test"),
         context: { cloudflare: { env: { DB: {} } } },
       } as never);
 

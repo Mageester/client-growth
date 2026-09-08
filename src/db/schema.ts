@@ -1,7 +1,7 @@
 /**
  * Canonical **application** schema (tenant + workspace tables). Applied verbatim
  * by the node:sqlite adapter in tests and by the local seed. The migration files
- * (0001..0023) must converge on this exact shape — test/db.schema-parity.test.ts
+ * (0001..0024) must converge on this exact shape — test/db.schema-parity.test.ts
  * compares table columns AND foreign keys.
  *
  * The Better Auth tables (user / session / account / verification / rateLimit)
@@ -293,4 +293,41 @@ CREATE INDEX IF NOT EXISTS idx_proposal_shares_opportunity
   ON proposal_shares (workspace_id, opportunity_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_proposal_shares_token_status
   ON proposal_shares (token_hash, revoked_at, expires_at);
+
+/**
+ * Client-facing reports persist an immutable public snapshot plus an audit
+ * projection that retains source opportunity ids only for integrity checks.
+ * Public reads must use the snapshot and never reconstruct from live rows.
+ */
+CREATE TABLE IF NOT EXISTS client_report_snapshots (
+  id TEXT PRIMARY KEY,
+  workspace_id TEXT NOT NULL,
+  client_id TEXT NOT NULL,
+  created_by_user_id TEXT NOT NULL,
+  generated_at TEXT NOT NULL,
+  evidence_reviewed_at TEXT,
+  snapshot TEXT NOT NULL,
+  UNIQUE (workspace_id, id),
+  FOREIGN KEY (workspace_id, client_id) REFERENCES clients (workspace_id, id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_client_report_snapshots_client
+  ON client_report_snapshots (workspace_id, client_id, generated_at DESC);
+
+CREATE TABLE IF NOT EXISTS client_report_shares (
+  id TEXT PRIMARY KEY,
+  workspace_id TEXT NOT NULL REFERENCES workspaces (id) ON DELETE CASCADE,
+  report_id TEXT NOT NULL,
+  token_hash TEXT NOT NULL UNIQUE,
+  created_by_user_id TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  revoked_at TEXT,
+  FOREIGN KEY (workspace_id, report_id) REFERENCES client_report_snapshots (workspace_id, id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_client_report_shares_report
+  ON client_report_shares (workspace_id, report_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_client_report_shares_token_status
+  ON client_report_shares (token_hash, revoked_at, expires_at);
 `;

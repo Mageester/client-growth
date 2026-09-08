@@ -44,7 +44,7 @@ export async function workspaceExport(
       )
     : Promise.resolve([] as Record<string, unknown>[]);
 
-  const [rows, workspace, brandingRows, members, shareRows, externalClaims] = await Promise.all([
+  const [rows, workspace, brandingRows, members, shareRows, reportRows, reportShareRows, externalClaims] = await Promise.all([
     Promise.all(
       tables.map((table) =>
         boundedRows<Record<string, unknown>>(
@@ -107,11 +107,56 @@ export async function workspaceExport(
         )
         .bind(t.workspaceId),
     ),
+    boundedRows<{
+      id: string;
+      workspace_id: string;
+      client_id: string;
+      created_by_user_id: string;
+      generated_at: string;
+      evidence_reviewed_at: string | null;
+      snapshot: string;
+    }>(
+      t.db
+        .prepare(
+          `SELECT id, workspace_id, client_id, created_by_user_id, generated_at,
+                  evidence_reviewed_at, snapshot
+           FROM client_report_snapshots
+           WHERE workspace_id = ?
+           ORDER BY generated_at DESC, id DESC
+           LIMIT ${EXPORT_QUERY_LIMIT}`,
+        )
+        .bind(t.workspaceId),
+    ),
+    boundedRows<{
+      id: string;
+      workspace_id: string;
+      report_id: string;
+      token_hash: string;
+      created_by_user_id: string;
+      created_at: string;
+      expires_at: string;
+      revoked_at: string | null;
+    }>(
+      t.db
+        .prepare(
+          `SELECT id, workspace_id, report_id, token_hash, created_by_user_id,
+                  created_at, expires_at, revoked_at
+           FROM client_report_shares
+           WHERE workspace_id = ?
+           ORDER BY created_at DESC, id DESC
+           LIMIT ${EXPORT_QUERY_LIMIT}`,
+        )
+        .bind(t.workspaceId),
+    ),
     externalBusinessClaims,
   ]);
 
   const nowIso = now.toISOString();
   const proposalShares = shareRows.map((share) => ({
+    ...share,
+    status: share.revoked_at ? "revoked" : share.expires_at <= nowIso ? "expired" : "active",
+  }));
+  const clientReportShares = reportShareRows.map((share) => ({
     ...share,
     status: share.revoked_at ? "revoked" : share.expires_at <= nowIso ? "expired" : "active",
   }));
@@ -123,6 +168,8 @@ export async function workspaceExport(
     branding: brandingRows[0] ?? null,
     members,
     proposalShares,
+    clientReports: reportRows,
+    clientReportShares,
     clients: rows[0],
     services: rows[1],
     coverage: rows[2],

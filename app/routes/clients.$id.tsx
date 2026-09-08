@@ -682,6 +682,10 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
             </div>
           </div>
           <div className="detail-head-actions">
+            <Link className="btn" to={`/clients/${encodeURIComponent(client.id)}/report`}>
+              <Icon name="document" size={14} />
+              Create report
+            </Link>
             <button className="btn" type="button" onClick={() => setEditOpen(true)}>
               <Icon name="pencil" size={13} />
               Edit

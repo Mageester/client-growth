@@ -32,6 +32,7 @@ const EXPECTED_MIGRATIONS = [
   "0021_offering_drift.sql",
   "0022_sales_funnel.sql",
   "0023_external_business_claims.sql",
+  "0024_client_reports.sql",
 ] as const;
 
 const DEMO_IDENTIFIERS = [
@@ -47,6 +48,8 @@ const DEMO_IDENTIFIERS = [
   ["workspace_invitations", "workspace_id", "ws_demo"],
   ["workspace_branding", "workspace_id", "ws_demo"],
   ["proposal_shares", "workspace_id", "ws_demo"],
+  ["client_report_snapshots", "workspace_id", "ws_demo"],
+  ["client_report_shares", "workspace_id", "ws_demo"],
   ["user", "id", "user_demo"],
   ["session", "userId", "user_demo"],
   ["account", "userId", "user_demo"],
