@@ -291,14 +291,24 @@ export async function listExternalBusinessClaims(
   t: TenantScope,
   clientId: string,
 ): Promise<ExternalBusinessClaim[]> {
-  const rows = await t.db
-    .prepare(
-      `SELECT * FROM external_business_claims
-       WHERE client_id = ? AND workspace_id = ?
-       ORDER BY retrieved_at DESC, id ASC`,
-    )
-    .bind(clientId, t.workspaceId)
-    .all<ExternalBusinessClaimRow>();
+  let rows: ExternalBusinessClaimRow[];
+  try {
+    rows = await t.db
+      .prepare(
+        `SELECT * FROM external_business_claims
+         WHERE client_id = ? AND workspace_id = ?
+         ORDER BY retrieved_at DESC, id ASC`,
+      )
+      .bind(clientId, t.workspaceId)
+      .all<ExternalBusinessClaimRow>();
+  } catch (error) {
+    // Migration 0023 is intentionally not part of the deployed analysis
+    // boundary yet. A normal client page must still render against a database
+    // at 0022; do not hide any other D1 failure behind this compatibility path.
+    const message = error instanceof Error ? error.message : String(error);
+    if (/no such table:\s*external_business_claims/i.test(message)) return [];
+    throw error;
+  }
   return rows.map(toExternalBusinessClaim);
 }
 

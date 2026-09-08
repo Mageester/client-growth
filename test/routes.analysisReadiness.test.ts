@@ -3,7 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import Database from "better-sqlite3";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import * as repo from "@/db/repositories";
 import { createWorkspaceForOwner } from "@/db/workspaces";
@@ -107,7 +107,11 @@ const analyze = () =>
     params: { id: CLIENT_ID },
     request: formReq({ intent: "analyze" }),
     context: ctx,
-  } as never) as Promise<{ ok: boolean; error?: string }>;
+  } as never) as Promise<{
+    ok: boolean;
+    error?: string;
+    run?: { outcome: string };
+  }>;
 
 beforeEach(async () => {
   raw = new Database(":memory:");
@@ -134,6 +138,7 @@ beforeEach(async () => {
 });
 
 afterEach(() => {
+  vi.unstubAllGlobals();
   __setSessionResolver(null);
   raw.close();
 });
@@ -170,6 +175,29 @@ describe("pre-analysis readiness", () => {
 
     expect(result.ok).toBe(false);
     expect(await repo.listAnalysisRuns(scope, CLIENT_ID, 5)).toHaveLength(0);
+  });
+
+  it("does not require the unapplied external-profile migration to analyze a client", async () => {
+    await addClient(["roofing", "siding"]);
+    await addService(["landing-page"]);
+    raw.exec("DROP TABLE external_business_claims");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new Error("getaddrinfo ENOTFOUND");
+      }),
+    );
+
+    const result = await analyze();
+
+    expect(result.ok).toBe(true);
+    expect(result.error).toBeUndefined();
+    expect(result.run?.outcome).toBe("inconclusive");
+    expect(await repo.listAnalysisRuns(scope, CLIENT_ID, 5)).toHaveLength(1);
+
+    // The action revalidates the same client route. A production database at
+    // migration 0022 must still be able to render it after the run.
+    await expect(loadClient()).resolves.toBeDefined();
   });
 
   it("tells the client page nothing can be checked yet", async () => {

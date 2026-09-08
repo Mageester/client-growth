@@ -184,7 +184,9 @@ export async function runAnalysis(
       evidenceProvider: evidenceProviderFor(client, t.workspaceId, deadline.signal),
       evaluator: createEvaluator(parsed),
       maxAiCalls: parsed.MAX_AI_CALLS_PER_RUN,
-      externalClaims: await repo.listExternalBusinessClaims(t, clientId),
+      // The owner-authorized external-profile path is paused until migration
+      // 0023 is deployed. Normal website analysis must remain independent of
+      // that optional table and preserve the website coverage gate on its own.
       now: options.now,
     });
 
