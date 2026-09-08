@@ -90,6 +90,12 @@ type AnalysisReadinessView = {
   total: number;
 };
 
+type WebsiteCoverageView = {
+  analyzable: boolean;
+  reason: string;
+  limitation: "site-too-thin" | "coverage-limited" | null;
+};
+
 type BusinessProfilePreview = {
   profileJson: string;
   items: Array<{
@@ -190,6 +196,13 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
     maxCompetitors: MAX_COMPETITORS_PER_CLIENT,
     /** Whether a crawl has ever stored evidence for this client. */
     hasEvidence: evidence !== null,
+    websiteCoverage: crawlCoverage
+      ? {
+          analyzable: crawlCoverage.analyzable,
+          reason: crawlCoverage.reason,
+          limitation: crawlCoverage.limitation,
+        }
+      : null,
     crawlFailure,
     state: clientState({ outcome: latest?.outcome ?? null, openCount: totals.open }),
   };
@@ -327,12 +340,18 @@ export async function action({ params, request, context }: Route.ActionArgs) {
       t.scope,
       ClientSchema.parse({ ...existing, offerings }),
     );
+    const latestEvidence = await repo.getLatestEvidence(t.scope, existing.id);
+    const coverageBlocked = latestEvidence
+      ? !assessServiceCoverage({ client: { offerings }, evidence: latestEvidence }).analyzable
+      : false;
     return {
       ok: true as const,
       message:
         added.length === 0
           ? "Those services were already in this client's profile."
-          : `Added ${added.length} ${added.length === 1 ? "service" : "services"} to ${existing.name}. Re-analyze to check them against the site.`,
+          : coverageBlocked
+            ? `Added ${added.length} ${added.length === 1 ? "service" : "services"} to ${existing.name} as client context. The site still needs to be read sufficiently before analysis can check missing service pages.`
+            : `Added ${added.length} ${added.length === 1 ? "service" : "services"} to ${existing.name}. Re-analyze to check them against the site.`,
     };
   }
 
@@ -557,6 +576,17 @@ export async function action({ params, request, context }: Route.ActionArgs) {
           "No active service is offered for a kind of website gap, so an analysis could not check anything. Set that up in your catalog first.",
       };
     }
+    const latestEvidence = await repo.getLatestEvidence(t.scope, existing.id);
+    if (latestEvidence) {
+      const coverage = assessServiceCoverage({ client: existing, evidence: latestEvidence });
+      if (!coverage.analyzable) {
+        return {
+          ok: false as const,
+          error:
+            "Orbit cannot check this site for missing service pages until enough of the website can be read. Save the client context and try reading it again first.",
+        };
+      }
+    }
     try {
       const result = await runAnalysis(t.scope, context.cloudflare.env as never, existing.id, {
         signal: request.signal,
@@ -609,6 +639,7 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
     maxCompetitors = MAX_COMPETITORS_PER_CLIENT,
     externalMismatchEnabled = false,
     externalClaims = [],
+    websiteCoverage = null,
   } = loaderData;
   const navigation = useNavigation();
   const intent = navigation.formData?.get("intent");
@@ -640,7 +671,9 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
   // A run is worth starting when ANY rule can produce a finding. Blocking it
   // because one rule of several is limited would refuse to look for a broken
   // checkout on a client whose offerings list happens to be short.
-  const canAnalyze = readiness.catalog.matched > 0;
+  const coverageBlocked = websiteCoverage !== null && !websiteCoverage.analyzable;
+  const canAnalyze =
+    readiness.catalog.matched > 0 && (websiteCoverage === null || websiteCoverage.analyzable);
   const latest = runs[0] ?? null;
   const open = opportunities.filter(isOpen).sort(byPotentialValue);
   const closed = opportunities.filter((opp) => !isOpen(opp)).sort(byPotentialValue);
@@ -699,7 +732,9 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
                 title={
                   canAnalyze
                     ? undefined
-                    : "Add a service that is offered for a website gap before analyzing."
+                    : coverageBlocked
+                      ? "The site has not provided enough readable evidence for analysis yet. Save client context or try reading it again."
+                      : "Add a service that is offered for a website gap before analyzing."
                 }
               >
                 <Icon name="refresh" size={15} className={analyzing ? "spin" : undefined} />
@@ -741,7 +776,12 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
         </dl>
       </header>
 
-      <MonitoringRow monitoring={monitoring} busy={busy} canAnalyze={canAnalyze} />
+      <MonitoringRow
+        monitoring={monitoring}
+        busy={busy}
+        canAnalyze={canAnalyze}
+        blockedReason={coverageBlocked ? "the site needs more readable evidence" : undefined}
+      />
 
       <Readiness readiness={readiness} clientName={client.name} />
       <ReadSiteForOfferings
@@ -749,6 +789,7 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
         hasEvidence={loaderData.hasEvidence}
         crawlFailure={loaderData.crawlFailure}
         suggestionCount={suggestions.length}
+        coverage={websiteCoverage}
         busy={busy}
       />
       <SuggestedServices
@@ -756,6 +797,7 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
         clientName={client.name}
         busy={busy}
         onEditClient={() => setEditOpen(true)}
+        coverageBlocked={coverageBlocked}
       />
 
       {analyzing && (
@@ -971,8 +1013,14 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
       <section className="section">
         <div className="section-head">
           <div>
-            <h2 className="title-section">What this business sells</h2>
-            <p>Every analysis checks the site against this list.</p>
+            <h2 className="title-section">
+              {coverageBlocked ? "Know what they offer?" : "What this business sells"}
+            </h2>
+            <p>
+              {coverageBlocked
+                ? "You can save services as client context while the website read is blocked. They do not replace website evidence."
+                : "Every analysis checks the site against this list."}
+            </p>
           </div>
           <button className="btn btn-sm" type="button" onClick={() => setEditOpen(true)}>
             <Icon name="pencil" size={13} />
@@ -990,8 +1038,9 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
               </button>
             }
           >
-            Without this list, Axiom Orbit cannot tell whether the site covers what the business
-            actually does — so it will not claim anything is missing.
+            {coverageBlocked
+              ? "Add what you know now if it helps your client profile. Orbit still needs enough readable website evidence before it can check for missing service pages."
+              : "Without this list, Axiom Orbit cannot tell whether the site covers what the business actually does — so it will not claim anything is missing."}
           </EmptyState>
         ) : (
           <>
@@ -1005,7 +1054,11 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
             <OfferingQuality offerings={client.offerings} onEdit={() => setEditOpen(true)} />
           </>
         )}
-        <OfferingGuidance offerings={client.offerings} showWarnings={false} />
+        <OfferingGuidance
+          offerings={client.offerings}
+          showWarnings={false}
+          coverageBlocked={coverageBlocked}
+        />
         {client.notes && <p className="prose client-notes">{client.notes}</p>}
       </section>
 
@@ -1208,9 +1261,11 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
             <div className="field-hint">
               One per line: things customers actually hire or pay them for. Not claims about the
               business — no "free quotes", "fully insured", "family owned" or "financing available".
-              Two or more makes the analysis far better.
+              {coverageBlocked
+                ? "These entries are client context. Orbit still needs enough readable website evidence before it can analyze missing service pages."
+                : "Two or more makes the analysis far better."}
             </div>
-            <OfferingGuidance raw={editOfferings} />
+            <OfferingGuidance raw={editOfferings} coverageBlocked={coverageBlocked} />
           </div>
           <div className="field">
             <label htmlFor="edit-job-value">Typical job value (optional)</label>
@@ -1311,10 +1366,12 @@ function MonitoringRow({
   monitoring,
   busy,
   canAnalyze,
+  blockedReason,
 }: {
   monitoring: MonitoringState;
   busy: boolean;
   canAnalyze: boolean;
+  blockedReason?: string;
 }) {
   const on = monitoring.cadence !== "off";
   const troubled =
@@ -1380,7 +1437,9 @@ function MonitoringRow({
           title={
             canAnalyze
               ? undefined
-              : "Add a service that is offered for a website gap before turning monitoring on."
+              : blockedReason
+                ? `Monitoring is unavailable because ${blockedReason}.`
+                : "Add a service that is offered for a website gap before turning monitoring on."
           }
         >
           Save
@@ -1499,20 +1558,23 @@ function ReadSiteForOfferings({
   hasEvidence,
   crawlFailure,
   suggestionCount,
+  coverage,
   busy,
 }: {
   client: Client;
   hasEvidence: boolean;
   crawlFailure: EvidenceFailureSummary | null;
   suggestionCount: number;
+  coverage: WebsiteCoverageView | null;
   busy: boolean;
 }) {
+  const coverageBlocked = coverage !== null && !coverage.analyzable;
   // Once suggestions are on screen, SuggestedServices is the thing to look at
   // and this would be a second button saying the same thing.
-  if (suggestionCount > 0) return null;
-  if (client.offerings.length >= 2) return null;
+  if (!coverageBlocked && suggestionCount > 0) return null;
+  if (!coverageBlocked && client.offerings.length >= 2) return null;
 
-  const canRetry = !hasEvidence || crawlFailure !== null;
+  const canRetry = coverageBlocked || !hasEvidence || crawlFailure !== null;
 
   return (
     <div className="notice suggested-services" role="status">
@@ -1523,6 +1585,15 @@ function ReadSiteForOfferings({
             <>
               <strong>{crawlFailure.title}</strong>{" "}
               {crawlFailure.detail}
+            </>
+          ) : coverageBlocked ? (
+            <>
+              <strong>
+                {coverage.limitation === "site-too-thin"
+                  ? "The whole site was read, but no service pages were found."
+                  : "The last read did not reach enough of the site's service structure."}
+              </strong>{" "}
+              Manual offerings are client context only and do not replace website evidence.
             </>
           ) : (
             <>
@@ -1540,10 +1611,12 @@ function ReadSiteForOfferings({
             <input type="hidden" name="intent" value="suggest-from-site" />
             <button className="btn btn-primary" type="submit" disabled={busy}>
               <Icon name="search" size={15} />
-              {hasEvidence ? "Try reading it again" : "Read the site"}
+              {hasEvidence || coverageBlocked ? "Try reading it again" : "Read the site"}
             </button>
             <span className="suggested-note">
-              Nothing is saved until you confirm it. No analysis is run.
+              {coverageBlocked
+                ? "Save client context separately; a retry is what can change website coverage."
+              : "Nothing is saved until you confirm it. No analysis is run."}
             </span>
           </Form>
         )}
@@ -1572,11 +1645,13 @@ function SuggestedServices({
   clientName,
   busy,
   onEditClient,
+  coverageBlocked,
 }: {
   suggestions: SuggestedOffering[];
   clientName: string;
   busy: boolean;
   onEditClient: () => void;
+  coverageBlocked: boolean;
 }) {
   const [open, setOpen] = useState(false);
   if (suggestions.length === 0) return null;
@@ -1586,10 +1661,9 @@ function SuggestedServices({
       <Icon name="alert" size={15} />
       <div>
         <p>
-          The last crawl found {suggestions.length}{" "}
-          {pluralize(suggestions.length, "service", "services")} on this site that{" "}
-          {suggestions.length === 1 ? "is" : "are"} not in {clientName}&rsquo;s profile. These look
-          like services customers can hire this business for.
+          {coverageBlocked
+            ? `The last read found ${suggestions.length} ${pluralize(suggestions.length, "possible service", "possible services")} for ${clientName}&rsquo;s client profile. They are context only; the website evidence is still insufficient for a missing-service check.`
+            : `The last crawl found ${suggestions.length} ${pluralize(suggestions.length, "service", "services")} on this site that ${suggestions.length === 1 ? "is" : "are"} not in ${clientName}&rsquo;s profile. These look like services customers can hire this business for.`}
         </p>
         <button type="button" className="btn" onClick={() => setOpen((v) => !v)}>
           {open ? "Hide" : "Review suggested services"}
@@ -1635,8 +1709,9 @@ function SuggestedServices({
               </button>
             </Form>
             <p className="faint">
-              Nothing has been added yet. Anything you add is checked against the site like a
-              service, and a missing page for one would be priced like a service.
+              {coverageBlocked
+                ? "Nothing has been added yet. Anything you add is saved as client context; it does not unlock analysis until the site can be read sufficiently."
+                : "Nothing has been added yet. Anything you add is checked against the site like a service, and a missing page for one would be priced like a service."}
             </p>
           </>
         )}

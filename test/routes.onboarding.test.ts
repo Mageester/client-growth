@@ -43,6 +43,22 @@ function renderSetupMarkup() {
   return renderToStaticMarkup(createElement(RouterProvider, { router }));
 }
 
+function renderConfirmMarkup(loaderData: unknown) {
+  const router = createMemoryRouter(
+    [
+      {
+        path: "*",
+        element: createElement(onboarding.default, {
+          loaderData,
+          actionData: undefined,
+        } as never),
+      },
+    ],
+    { initialEntries: ["/onboarding?client=client-velvet"] },
+  );
+  return renderToStaticMarkup(createElement(RouterProvider, { router }));
+}
+
 /**
  * Onboarding is two stages, and these tests exist to keep it that way.
  *
@@ -467,6 +483,80 @@ describe("onboarding stage one: read the site, judge nothing", () => {
 });
 
 describe("onboarding stage two: the agency confirms", () => {
+  it("makes a blocked read a save-context state with no normal Analyze CTA", () => {
+    const html = renderConfirmMarkup({
+      stage: "confirm",
+      hasWorkspace: true,
+      needsAgencySetup: false,
+      workspaceName: "Axiom Web",
+      client: {
+        id: "client-velvet",
+        name: "Velvet Nails and Beauty Lounge",
+        domain: "velvetnailsandbeautylounge.ca",
+        offerings: ["Gel manicures", "Nail extensions"],
+      },
+      readFailed: false,
+      crawl: { readablePages: 0, fetchedPages: 0 },
+      crawlFailure: {
+        code: "robots",
+        stage: "robots",
+        title: "The site's crawler instructions limited the read",
+        detail: "Robots.txt prevented Orbit from reaching the pages needed to check services.",
+        retryable: false,
+      },
+      suggestions: [],
+      coverage: {
+        analyzable: false,
+        reason: "Insufficient service coverage.",
+        limitation: "coverage-limited",
+      },
+    });
+
+    expect(html).toMatch(/We couldn(?:&#x27;|&apos;|')t read Velvet Nails and Beauty Lounge yet/);
+    expect(html).toContain("Know what they offer?");
+    expect(html).toContain("Save client");
+    expect(html).toContain("Try reading it again");
+    expect(html).toContain('name="intent" value="save"');
+    expect(html).not.toContain("Analyze Velvet Nails and Beauty Lounge");
+    expect(html).not.toMatch(/at least 2 to confirm/i);
+  });
+
+  it("keeps the normal Analyze flow for readable, sufficiently covered evidence", () => {
+    const html = renderConfirmMarkup({
+      stage: "confirm",
+      hasWorkspace: true,
+      needsAgencySetup: false,
+      workspaceName: "Axiom Web",
+      client: {
+        id: "client-velvet",
+        name: "Velvet Nails and Beauty Lounge",
+        domain: "velvetnailsandbeautylounge.ca",
+        offerings: [],
+      },
+      readFailed: false,
+      crawl: { readablePages: 5, fetchedPages: 6 },
+      crawlFailure: null,
+      suggestions: [
+        {
+          label: "Gel manicures",
+          confidence: "high",
+          evidence: [{ detail: "Found in the services navigation." }],
+        },
+      ],
+      coverage: {
+        analyzable: true,
+        reason: "Service coverage confirmed.",
+        limitation: null,
+      },
+    });
+
+    expect(html).toContain("What Velvet Nails and Beauty Lounge sells");
+    expect(html).toContain("Analyze Velvet Nails and Beauty Lounge");
+    expect(html).toContain('name="intent" value="analyze"');
+    expect(html).toContain("Gel manicures");
+    expect(html).not.toContain("Save client");
+  });
+
   async function reachStageTwo() {
     vi.stubGlobal("fetch", siteFetch());
     const res = await runSetup();
@@ -514,7 +604,6 @@ describe("onboarding stage two: the agency confirms", () => {
       }),
       context: ctx,
     })) as Response;
-
     expect(res.status).toBe(302);
     expect(res.headers.get("location")).toBe("/opportunities?client=" + clientId);
 
@@ -580,6 +669,67 @@ describe("onboarding stage two: the agency confirms", () => {
     expect(res.headers.get("location")).toBe("/opportunities?client=" + clientId);
   });
 
+  it("saves blocked client context but rejects a crafted Analyze post", async () => {
+    const { t, clientId } = await reachStageTwo();
+    const current = await repo.getLatestEvidence(t, clientId);
+    expect(current).not.toBeNull();
+
+    await repo.saveEvidence(
+      t,
+      EvidenceBundleSchema.parse({
+        ...current,
+        capturedAt: "2099-01-01T00:00:02.000Z",
+        site: {
+          ...current!.site,
+          pages: [],
+          links: [],
+          nav: [],
+          sitemapUrls: [],
+          crawlExhaustive: false,
+        },
+        networkEvents: [
+          {
+            url: "https://northwind.example/",
+            outcome: "inconclusive",
+            reason: "request timeout",
+            code: "timeout",
+            stage: "page",
+          },
+        ],
+      }),
+    );
+
+    const saved = (await call(onboarding.action as never, {
+      request: formReq({
+        intent: "save",
+        clientId,
+        offering: ["Heat Pump Installation"],
+      }),
+      context: ctx,
+    })) as Response;
+
+    expect(saved.status).toBe(302);
+    expect(saved.headers.get("location")).toBe("/clients/" + clientId);
+    expect((await repo.getClient(t, clientId))?.offerings).toEqual(["Heat Pump Installation"]);
+    expect(await repo.getLatestAnalysisRun(t, clientId)).toBeNull();
+
+    const crafted = (await call(onboarding.action as never, {
+      request: formReq({
+        intent: "analyze",
+        clientId,
+        offering: ["Heat Pump Installation", "Boiler Repair"],
+      }),
+      context: ctx,
+    })) as { error?: string };
+
+    expect(crafted.error).toMatch(/cannot check this site for missing service pages/i);
+    expect((await repo.getClient(t, clientId))?.offerings).toEqual([
+      "Heat Pump Installation",
+      "Boiler Repair",
+    ]);
+    expect(await repo.getLatestAnalysisRun(t, clientId)).toBeNull();
+  });
+
   it("re-reads the site on request without recording a run", async () => {
     const { t, clientId } = await reachStageTwo();
 
@@ -590,5 +740,54 @@ describe("onboarding stage two: the agency confirms", () => {
 
     expect(res.headers.get("location")).toBe("/onboarding?client=" + clientId);
     expect(await repo.getLatestAnalysisRun(t, clientId)).toBeNull();
+  });
+
+  it("returns a blocked client to the normal Analyze flow after a successful retry", async () => {
+    const { t, clientId } = await reachStageTwo();
+    const current = await repo.getLatestEvidence(t, clientId);
+    expect(current).not.toBeNull();
+
+    await repo.saveEvidence(
+      t,
+      EvidenceBundleSchema.parse({
+        ...current,
+        capturedAt: "2020-01-01T00:00:03.000Z",
+        site: {
+          ...current!.site,
+          pages: [],
+          links: [],
+          nav: [],
+          sitemapUrls: [],
+          crawlExhaustive: false,
+        },
+        networkEvents: [
+          {
+            url: "https://northwind.example/",
+            outcome: "inconclusive",
+            reason: "request timeout",
+            code: "timeout",
+            stage: "page",
+          },
+        ],
+      }),
+    );
+
+    vi.stubGlobal("fetch", siteFetch());
+    const retry = (await call(onboarding.action as never, {
+      request: formReq({ intent: "reread", clientId }),
+      context: ctx,
+    })) as Response;
+    expect(retry.headers.get("location")).toBe("/onboarding?client=" + clientId);
+
+    const data = (await call(onboarding.loader as never, {
+      request: new Request("http://localhost/onboarding?client=" + clientId),
+      context: ctx,
+    })) as {
+      coverage: { analyzable: boolean } | null;
+      crawl: { readablePages: number } | null;
+    };
+    expect(data.coverage?.analyzable).toBe(true);
+    expect(data.crawl?.readablePages).toBeGreaterThan(0);
+    expect(renderConfirmMarkup(data)).toContain("Analyze Northwind Heating");
   });
 });

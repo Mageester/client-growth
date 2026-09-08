@@ -288,14 +288,14 @@ describe("suggested services", () => {
 });
 
 describe("readiness copy tells setup apart from crawler limits", () => {
-  it("points at the offerings list when the site was read and the profile is thin", async () => {
+  it("keeps partial website coverage authoritative when the profile is thin", async () => {
     await saveEvidenceWithServices();
 
     const { readiness } = await loadClient();
     const missingPage = readiness.rules.find((r) => r.ruleId === "missing-service-page")!;
 
-    expect(missingPage.actionable).toBe(true);
-    expect(missingPage.state).not.toBe("site_coverage_limited");
+    expect(missingPage.actionable).toBe(false);
+    expect(missingPage.state).toBe("site_coverage_limited");
   });
 
   it("blames the crawler, not the agency, when nothing could be read", async () => {

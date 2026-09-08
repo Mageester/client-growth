@@ -3,12 +3,15 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import Database from "better-sqlite3";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { createMemoryRouter, RouterProvider } from "react-router";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import * as repo from "@/db/repositories";
 import { createWorkspaceForOwner } from "@/db/workspaces";
 import { SCHEMA_SQL } from "@/db/schema";
-import { ClientSchema, ServiceSchema } from "@/core/schema";
+import { ClientSchema, EvidenceBundleSchema, ServiceSchema } from "@/core/schema";
 import { __setSessionResolver } from "../app/lib/session.server";
 import { d1LikeOver } from "./helpers/testAuth";
 
@@ -108,6 +111,22 @@ const analyze = () =>
     request: formReq({ intent: "analyze" }),
     context: ctx,
   } as never) as Promise<{ ok: boolean; error?: string }>;
+
+function renderClientMarkup(loaderData: unknown) {
+  const router = createMemoryRouter(
+    [
+      {
+        path: "*",
+        element: createElement(clientDetail.default, {
+          loaderData,
+          actionData: undefined,
+        } as never),
+      },
+    ],
+    { initialEntries: ["/clients/" + CLIENT_ID] },
+  );
+  return renderToStaticMarkup(createElement(RouterProvider, { router }));
+}
 
 beforeEach(async () => {
   raw = new Database(":memory:");
@@ -216,6 +235,76 @@ describe("pre-analysis readiness", () => {
     // a call-to-action is broken, and must not be reported as though it does.
     expect(ruleOf(readiness, "broken-conversion-path").state).toBe("ready");
     expect(readiness.state).toBe("ready");
+  });
+
+  it("disables the normal Analyze CTA when stored website coverage is blocked", async () => {
+    await addClient(["gel manicures", "nail extensions"]);
+    await addService(["landing-page"]);
+    await repo.saveEvidence(
+      scope,
+      EvidenceBundleSchema.parse({
+        clientId: CLIENT_ID,
+        source: "http",
+        capturedAt: "2026-09-07T00:00:00.000Z",
+        site: {
+          pages: [],
+          nav: [],
+          links: [],
+          sitemapUrls: [],
+          crawlExhaustive: false,
+        },
+        networkEvents: [
+          {
+            url: "https://meridiandental.invalid/",
+            outcome: "inconclusive",
+            reason: "robots.txt prevented the read",
+            code: "robots",
+            stage: "robots",
+          },
+        ],
+      }),
+    );
+
+    const data = await clientDetail.loader({
+      params: { id: CLIENT_ID },
+      request: new Request("http://localhost/clients/" + CLIENT_ID),
+      context: ctx,
+    } as never);
+    const html = renderClientMarkup(data);
+
+    expect(html).toContain("Know what they offer?");
+    expect(html).toContain("Try reading it again");
+    expect(html).toContain("The site has not provided enough readable evidence for analysis yet");
+    expect(html).toMatch(/<button[^>]*disabled[^>]*>.*Analyze site/s);
+  });
+
+  it("refuses a crafted detail Analyze post when manual offerings cannot fix coverage", async () => {
+    await addClient(["gel manicures", "nail extensions"]);
+    await addService(["landing-page"]);
+    await repo.saveEvidence(
+      scope,
+      EvidenceBundleSchema.parse({
+        clientId: CLIENT_ID,
+        source: "http",
+        capturedAt: "2026-09-07T00:00:01.000Z",
+        site: { pages: [], nav: [], links: [], sitemapUrls: [], crawlExhaustive: false },
+        networkEvents: [
+          {
+            url: "https://meridiandental.invalid/",
+            outcome: "inconclusive",
+            reason: "request timeout",
+            code: "timeout",
+            stage: "page",
+          },
+        ],
+      }),
+    );
+
+    const result = await analyze();
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatch(/cannot check this site for missing service pages/i);
+    expect(await repo.listAnalysisRuns(scope, CLIENT_ID, 5)).toHaveLength(0);
   });
 
   it("has nothing to warn about once the workspace is properly set up", async () => {
