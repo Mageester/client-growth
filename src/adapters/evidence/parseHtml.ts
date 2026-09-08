@@ -1,4 +1,5 @@
 import { isSameSite } from "@/adapters/evidence/urlPolicy";
+import { isServiceSectionLabel } from "@/core/siteStructure";
 
 /**
  * Deliberately small, dependency-free HTML extraction. No DOM, no jsdom, no
@@ -23,6 +24,8 @@ export interface ParsedLink {
   title: string;
   scheme: LinkScheme;
   inNav: boolean;
+  /** True when nested beneath a menu group explicitly headed Services/etc. */
+  inServiceNav: boolean;
 }
 
 export interface ParsedForm {
@@ -261,6 +264,27 @@ function anchorRecords(input: string): AnchorRecord[] {
   return out;
 }
 
+/**
+ * Raw hrefs nested beneath a semantic services menu.
+ *
+ * `<details><summary>Services</summary>…</details>` is the server-rendered
+ * structure used by Shopify and many accessible menus. Extracting the group is
+ * intentionally separate from the flat nav pass so Shop and Services links do
+ * not become indistinguishable after parsing.
+ */
+function serviceNavigationHrefs(input: string): Set<string> {
+  const hrefs = new Set<string>();
+  const detailsRe = /<details\b[^>]*>([\s\S]*?)<\/details>/gi;
+  let match: RegExpExecArray | null;
+  while ((match = detailsRe.exec(input)) !== null) {
+    const block = match[1] ?? "";
+    const summary = clean(/<summary\b[^>]*>([\s\S]*?)<\/summary>/i.exec(block)?.[1] ?? "");
+    if (!isServiceSectionLabel(summary)) continue;
+    for (const anchor of anchorRecords(block)) hrefs.add(anchor.href);
+  }
+  return hrefs;
+}
+
 function schemeOf(href: string): LinkScheme | null {
   const value = href.trim();
   try {
@@ -331,6 +355,7 @@ export function parseHtml(html: string, url: string): ParsedPage {
     ...captures(/<[a-z]+\b[^>]*\brole=["']navigation["'][^>]*>([\s\S]*?)<\/[a-z]+>/gi, body),
   ];
   const navHrefs = new Set<string>();
+  const serviceNavHrefs = serviceNavigationHrefs(body);
   const navSet = new Set<string>();
   for (const block of navBlocks) {
     for (const a of anchorRecords(block)) {
@@ -359,6 +384,7 @@ export function parseHtml(html: string, url: string): ParsedPage {
           title: a.title,
           scheme,
           inNav: navHrefs.has(a.href),
+          inServiceNav: serviceNavHrefs.has(a.href),
         });
       } else if (!existing.label && label) {
         existing.label = label;
@@ -387,12 +413,14 @@ export function parseHtml(html: string, url: string): ParsedPage {
         title: a.title,
         scheme: "http",
         inNav: navHrefs.has(a.href),
+        inServiceNav: serviceNavHrefs.has(a.href),
       });
     } else {
       if (!existing.label && label) existing.label = label;
       if (!existing.ariaLabel && a.ariaLabel) existing.ariaLabel = a.ariaLabel;
       if (!existing.title && a.title) existing.title = a.title;
       if (navHrefs.has(a.href)) existing.inNav = true;
+      if (serviceNavHrefs.has(a.href)) existing.inServiceNav = true;
     }
   }
 

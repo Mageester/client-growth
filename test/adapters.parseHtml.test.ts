@@ -6,6 +6,26 @@ import { loadRawHtml } from "./helpers/fixtures";
 const BASE = "https://coolbreezehvac.example/";
 
 describe("parseHtml", () => {
+  it("preserves links grouped under a services menu", () => {
+    const parsed = parseHtml(
+      `<html><body><nav>
+        <details><summary>Shop</summary><ul>
+          <li><a href="/collections/hair-care">Hair care</a></li>
+        </ul></details>
+        <details><summary>Services</summary><ul>
+          <li><a href="/pages/hair-extensions">Hair Extensions</a></li>
+          <li><a href="/pages/colour-highlights">Colour &amp; Highlights</a></li>
+        </ul></details>
+      </nav></body></html>`,
+      "https://salon.example/",
+    );
+
+    expect(
+      parsed.links.filter((link) => link.inServiceNav).map((link) => link.label),
+    ).toEqual(["Hair Extensions", "Colour & Highlights"]);
+    expect(parsed.links.find((link) => link.label === "Hair care")?.inServiceNav).toBe(false);
+  });
+
   it("extracts title, h1s, and sub-headings without markup or entities", () => {
     const parsed = parseHtml(loadRawHtml("home.html"), BASE);
     expect(parsed.page.title).toBe("Cool Breeze HVAC | Heating & Cooling in Denver");

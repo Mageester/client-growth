@@ -262,6 +262,51 @@ describe("the boundary is still a boundary", () => {
 });
 
 describe("frontier priority and budgets", () => {
+  it("spends a Shopify-shaped page budget on the site's Services menu, not the earlier Shop menu", async () => {
+    const servicePaths = [
+      "/pages/hair-extensions",
+      "/pages/colour-highlights",
+      "/pages/balayage",
+    ];
+    const shopPaths = [
+      "/collections/shampoo",
+      "/collections/conditioner",
+      "/collections/tools",
+      "/collections/gift-cards",
+    ];
+    const serviceAnchors = servicePaths
+      .map((path) => `<li><a href="${path}">${path.split("/").at(-1)}</a></li>`)
+      .join("");
+    const shopAnchors = shopPaths
+      .map((path) => `<li><a href="${path}">${path.split("/").at(-1)}</a></li>`)
+      .join("");
+    const routes: Record<string, Route> = {
+      "https://example.com/": {
+        body: `<html><head><title>Salon</title></head><body><h1>Salon</h1>
+          <nav>
+            <details><summary>Shop</summary><ul>${shopAnchors}</ul></details>
+            <details><summary>Services</summary><ul>${serviceAnchors}</ul></details>
+          </nav><p>${"word ".repeat(60)}</p></body></html>`,
+      },
+    };
+    for (const path of [...shopPaths, ...servicePaths]) {
+      routes[`https://example.com${path}`] = page(path);
+    }
+
+    const evidence = await new HttpEvidenceProvider({
+      fetchImpl: siteFetch(routes).fetchImpl,
+      maxPages: 4,
+    }).getEvidence(client("example.com"));
+
+    expect(urlsOf(evidence.site.pages)).toEqual([
+      "https://example.com/",
+      ...servicePaths.map((path) => `https://example.com${path}`),
+    ]);
+    expect(
+      evidence.site.links.filter((link) => link.inServiceNav).map((link) => link.href),
+    ).toEqual(servicePaths.map((path) => `https://example.com${path}`));
+  });
+
   it("collapses index files and trailing slashes before spending crawl slots", async () => {
     const { fetchImpl, requested } = siteFetch({
       "https://example.com/": page("Home", [

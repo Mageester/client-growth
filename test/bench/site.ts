@@ -86,6 +86,7 @@ function toEvidenceLink(origin: string, link: SiteLink): EvidenceLink {
     ariaLabel: "",
     title: "",
     inNav: link.inNav ?? false,
+    inServiceNav: false,
     foundOn: (link.foundOn ?? ["/"]).map((p) => abs(origin, p)),
   };
 }

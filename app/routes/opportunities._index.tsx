@@ -8,6 +8,7 @@ import {
   type ProjectView,
 } from "@/core/projectPackaging";
 import { tierForRule } from "@/core/rules/registry";
+import { assessCatalogCoverage } from "@/core/rules/registry";
 import { byEvidencedValue, computeWinRates, winRatesFromRanked } from "@/core/winRates";
 import { changeHeadline, type MonitoringOutcome } from "@/core/monitoring";
 import { isAnalysisLimitExceeded } from "@/db/analysisLimits";
@@ -82,6 +83,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   return {
     groups,
     serviceName,
+    catalogMatched: assessCatalogCoverage(services).matched,
     winRates: winRates.ranked,
     monitoring: {
       ...portfolio,
@@ -204,7 +206,7 @@ function ProjectSection({
 }
 
 export default function OpportunitiesIndex({ loaderData, actionData }: Route.ComponentProps) {
-  const { groups, serviceName, monitoring, winRates } = loaderData;
+  const { groups, serviceName, monitoring, winRates, catalogMatched = 0 } = loaderData;
   // Findings are ordered by what this agency actually sells, and commercial
   // work always outranks site health however the rates fall.
   const rates = winRatesFromRanked(winRates);
@@ -466,6 +468,7 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
               filter={filter}
               openCount={open.length}
               closedCount={closed.length}
+              catalogMatched={catalogMatched}
               onFilter={setFilter}
             />
           ) : (
@@ -754,6 +757,7 @@ function FeedEmpty({
   filter,
   openCount,
   closedCount,
+  catalogMatched,
   onFilter,
 }: {
   selected: Group | null;
@@ -762,6 +766,7 @@ function FeedEmpty({
   filter: FeedFilter;
   openCount: number;
   closedCount: number;
+  catalogMatched: number;
   onFilter: (value: FeedFilter) => void;
 }) {
   const analyzeButton = (clientId: string, label: string) => (
@@ -806,6 +811,23 @@ function FeedEmpty({
       );
     }
     if (selected.state === "inconclusive") {
+      if (catalogMatched === 0) {
+        return (
+          <EmptyState
+            icon="alert"
+            title="Analysis setup is incomplete"
+            actions={
+              <Link className="btn btn-primary" to="/services">
+                Set up services
+              </Link>
+            }
+          >
+            {selected.run?.summary ?? "Nothing could be checked yet."}{" "}
+            {selected.run?.limitation ??
+              "At least one active service needs to say which kind of website gap it answers."}
+          </EmptyState>
+        );
+      }
       return (
         <EmptyState
           icon="alert"

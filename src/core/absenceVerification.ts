@@ -446,11 +446,26 @@ function isHomepage(url: string): boolean {
  * The homepage never counts. Every business's homepage says what it does, so
  * counting it makes "we fetched one page" mean "we reached the services".
  */
-function isServiceLikePage(page: EvidencePage, heads: string[][]): boolean {
+function isServiceLikePage(
+  page: EvidencePage,
+  heads: string[][],
+  serviceNavTargets: Set<string>,
+): boolean {
   if (isHomepage(page.url)) return false;
   if (looksLikeServiceUrl(page.url)) return true;
   if (slugSaysNonService(page.url)) return false;
+  if (serviceNavTargets.has(normalizedPageUrl(page.url))) return true;
   return heads.some((head) => slugCoversOffering(page.url, head));
+}
+
+function normalizedPageUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    parsed.hash = "";
+    return parsed.toString().replace(/\/$/, "");
+  } catch {
+    return url.replace(/#.*$/, "").replace(/\/$/, "");
+  }
 }
 
 /** The same question for a URL the crawl only knows about from the sitemap. */
@@ -516,9 +531,14 @@ export function assessServiceCoverage(input: {
     ...evidence.site.links.filter((l) => l.scheme === "http").map((l) => l.href),
     ...evidence.site.sitemapUrls,
   ];
+  const serviceNavTargets = new Set(
+    evidence.site.links
+      .filter((link) => link.scheme === "http" && link.inServiceNav)
+      .map((link) => normalizedPageUrl(link.href)),
+  );
   // Page text counts only from pages that are themselves service pages.
   const serviceLikePages = evidence.site.pages.filter((page) =>
-    isServiceLikePage(page, heads),
+    isServiceLikePage(page, heads, serviceNavTargets),
   );
   const servicePageText = serviceLikePages.map((p) =>
     [p.title, ...p.h1s, ...p.headings].join(" "),

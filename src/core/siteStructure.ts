@@ -51,6 +51,24 @@ export const SERVICE_SECTION_SEGMENTS: ReadonlySet<string> = new Set([
   "residential", "commercial",
 ]);
 
+/**
+ * Does a menu heading name the part of a site where its services live?
+ *
+ * Some CMSs put every public page under a generic `/pages/` URL, so the URL
+ * alone loses the strongest structural signal the author supplied: a nested
+ * menu headed "Services", "Treatments", or "What we do". Keep this generic
+ * and structural; the children still need their own readable pages.
+ */
+export function isServiceSectionLabel(label: string): boolean {
+  const normalized = label
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  const withoutQualifier = normalized.replace(/^(?:all|our)-/, "");
+  return SERVICE_SECTION_SEGMENTS.has(normalized) || SERVICE_SECTION_SEGMENTS.has(withoutQualifier);
+}
+
 /** A verb of work in a URL segment: the page is about doing something for you. */
 export const SERVICE_WORD =
   /(repair|install|installation|replacement|replace|cleaning|clean|control|removal|remove|treatment|maintenance|remediation|restoration|inspection|encapsulation|pruning|grinding|rewiring|lighting|irrigation|whitening|extraction|therapy|training|tuning|tune-up|detailing|resurfacing|relining|waterproofing|underpinning|renovation|remodel|landscaping|paving|roofing|plumbing|heating|cooling|wiring|grooming|coaching|consulting|design|build|repairs|servicing)/i;
@@ -118,6 +136,19 @@ export function isRegistryPath(url: string): boolean {
   });
 }
 
+/** CMS storefront namespaces whose children are products or category indexes. */
+const COMMERCE_ANCESTOR_SEGMENTS: ReadonlySet<string> = new Set([
+  "collection",
+  "collections",
+  "product",
+  "products",
+]);
+
+function isCommerceCatalogPath(url: string): boolean {
+  const segments = pathSegments(url);
+  return segments.slice(0, -1).some((segment) => COMMERCE_ANCESTOR_SEGMENTS.has(segment));
+}
+
 /** Is this segment one of the boring pages every site has? */
 export function isNonServiceSegment(segment: string): boolean {
   return NON_SERVICE_SEGMENTS.has(segment);
@@ -130,6 +161,7 @@ export function isNonServiceSegment(segment: string): boolean {
  */
 export function isInServiceSection(url: string): boolean {
   if (isRegistryPath(url)) return false;
+  if (isCommerceCatalogPath(url)) return false;
   return pathSegments(url).some((segment) => SERVICE_SECTION_SEGMENTS.has(segment));
 }
 
@@ -146,6 +178,7 @@ export function isServiceHub(url: string): boolean {
  */
 export function isServiceSectionChild(url: string): boolean {
   if (isRegistryPath(url)) return false;
+  if (isCommerceCatalogPath(url)) return false;
   const segments = pathSegments(url);
   const hub = segments.findIndex((segment) => SERVICE_SECTION_SEGMENTS.has(segment));
   return hub !== -1 && hub < segments.length - 1;
@@ -158,6 +191,7 @@ export function isServiceSectionChild(url: string): boolean {
  */
 export function hasServiceWordInSlug(url: string): boolean {
   if (isRegistryPath(url)) return false;
+  if (isCommerceCatalogPath(url)) return false;
   const segments = pathSegments(url);
   const last = segments[segments.length - 1] ?? "";
   if (!last || isNonServiceSegment(last)) return false;
@@ -181,7 +215,10 @@ export function looksLikeServiceUrl(url: string): boolean {
  * the frontier costs no extra requests at all; it only changes which ten of the
  * hundred discovered links get read.
  */
-export function crawlPriority(url: string, options: { inNav?: boolean } = {}): number {
+export function crawlPriority(
+  url: string,
+  options: { inNav?: boolean; inServiceNav?: boolean } = {},
+): number {
   const segments = pathSegments(url);
   if (segments.length === 0) return 1_000; // the homepage, always first
 
@@ -192,6 +229,9 @@ export function crawlPriority(url: string, options: { inNav?: boolean } = {}): n
   else if (isServiceHub(url)) score += 80;
   if (hasServiceWordInSlug(url)) score += 60;
   if (options.inNav) score += 15;
+  // A child of a menu explicitly headed "Services" is stronger evidence than
+  // an arbitrary nav link, even when a CMS stores it at `/pages/foo`.
+  if (options.inServiceNav) score += 90;
 
   // The boring pages every site has. They are not worthless — a Contact page is
   // where broken-conversion-path evidence lives — just worth less than the

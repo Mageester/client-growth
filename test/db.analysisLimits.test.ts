@@ -4,7 +4,7 @@ import { reserveAnalysisStart, type AnalysisLimit } from "@/db/analysisLimits";
 import { nodeSqliteDb, type NodeSqliteDb } from "@/db/nodeSqlite";
 import * as repo from "@/db/repositories";
 import { createWorkspaceForOwner } from "@/db/workspaces";
-import { ClientSchema } from "@/core/schema";
+import { ClientSchema, ServiceSchema } from "@/core/schema";
 import type { TenantScope } from "@/db/tenant";
 import { runAnalysis } from "../app/lib/analysis.server";
 
@@ -154,6 +154,22 @@ describe("analysis admission limits", () => {
   });
 
   it("counts a run that fails before crawling toward the daily cap", async () => {
+    // Make the request eligible to start. The invalid provider then fails
+    // after admission, which is the boundary this test is about; an empty
+    // catalog is now a read-only precondition failure and intentionally costs
+    // no reservation.
+    await repo.upsertService(
+      A,
+      ServiceSchema.parse({
+        id: "svc-landing-page",
+        name: "Service landing page",
+        priceMin: 500,
+        priceMax: 900,
+        tags: ["landing-page"],
+        active: true,
+      }),
+    );
+
     await expect(
       runAnalysis(A, { AI_PROVIDER: "not-a-provider" }, "client_a", {
         now: NOW,

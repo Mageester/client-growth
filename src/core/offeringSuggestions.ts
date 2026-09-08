@@ -113,6 +113,23 @@ const QUESTION = /\?\s*$/;
 /** A downloadable document is not a service page. */
 const DOCUMENT_URL = /\.(pdf|docx?|xlsx?|pptx?|zip|csv|jpe?g|png|gif|svg|webp|mp4|mp3)$/i;
 
+/**
+ * Product-detail vocabulary seen on commerce-heavy sites. A URL can contain a
+ * normally useful service signal ("control", "replacement", "design") while
+ * actually naming a remote, circuit board or replacement component for sale.
+ * Keep those catalog rows out unless the same slug explicitly describes work
+ * being delivered, such as installation or repair.
+ */
+const PRODUCT_CATALOG_WORD =
+  /(?:^|[\/_-])(accessor(?:y|ies)|board|boards|circuit|clicker|clickers|component|components|control-station|keypad|keypads|motherboard|motherboards|part|parts|receiver|receivers|remote-?controls?|remotes?|switch|switches|transmitter|transmitters)(?:[-_.\/]|$)/i;
+const SERVICE_DELIVERY_WORD =
+  /(?:^|[-_])(build|building|clean|cleaning|consulting|design-service|installation|install|maintenance|remediation|remodel|renovation|repair|repairs|restoration|servicing|therapy|training|treatment|tune-up|waterproofing)(?:[-_.]|$)/i;
+
+function isProductCatalogUrl(url: string): boolean {
+  const pathname = new URL(url, "https://client-growth.invalid/").pathname;
+  return PRODUCT_CATALOG_WORD.test(pathname) && !SERVICE_DELIVERY_WORD.test(pathname);
+}
+
 /** WordPress-style archive titles: "Category: Teeth Whitening", "Tag: Plumbing". */
 const ARCHIVE_TITLE = /^(category|categories|tag|tags|archive|archives|author|page)\s*[:|-]/i;
 
@@ -161,6 +178,7 @@ function usableLabel(label: string): boolean {
   // starts with a capital — "good candidates for teeth whitening" is a sentence
   // lifted out of a blog post, and it reads as nonsense in a confirmation list.
   if (!/^[\p{Lu}\p{N}]/u.test(label)) return false;
+  if (/^buy\b/i.test(label)) return false;
   if (ARCHIVE_TITLE.test(label)) return false;
   if (QUESTION.test(label)) return false;
   if (LOCATION_QUALIFIED.test(label)) return false;
@@ -185,7 +203,9 @@ function usableLabel(label: string): boolean {
  */
 function usableUrl(url: string): boolean {
   if (isRegistryPath(url)) return false;
-  if (DOCUMENT_URL.test(new URL(url, "https://client-growth.invalid/").pathname)) return false;
+  const pathname = new URL(url, "https://client-growth.invalid/").pathname;
+  if (DOCUMENT_URL.test(pathname)) return false;
+  if (isProductCatalogUrl(url)) return false;
   // A page under /blog or /project-gallery is writing about the work, not an
   // offer of it. goddardschool.com/blog/babyproofing-your-home was being
   // suggested as a service a childcare business sells.
@@ -228,11 +248,43 @@ function coveredByExisting(label: string, existingKeys: Set<string>): boolean {
   return existingKeys.has(keyOf(label));
 }
 
+function samePage(left: string, right: string): boolean {
+  return pageKey(left) === pageKey(right);
+}
+
+function pageKey(url: string): string {
+  try {
+    const parsed = new URL(url);
+    parsed.hash = "";
+    return parsed.toString().replace(/\/$/, "");
+  } catch {
+    return url.replace(/#.*$/, "").replace(/\/$/, "");
+  }
+}
+
 export function suggestOfferings(input: SuggestOfferingsInput): SuggestedOffering[] {
   const max = input.max ?? 12;
   const { site } = input.evidence;
   const existingKeys = new Set(input.existingOfferings.map(keyOf));
   const candidates = new Map<string, Candidate>();
+  const readableServicePageLabels = new Map<string, string>();
+
+  // A storefront can contain hundreds of product URLs whose names happen to
+  // include service verbs ("control", "replacement", "design"). Without an
+  // explicit Services menu there is no deterministic basis for deciding which
+  // categories are work a customer can hire the business to do. Returning no
+  // suggestions is honest; the agency can still enter offerings manually.
+  const hasExplicitServiceMenu = site.links.some((link) => link.inServiceNav);
+  const commerceSignals = new Set(
+    site.links
+      .filter(
+        (link) =>
+          link.scheme === "http" &&
+          (isProductCatalogUrl(link.href) || /^\s*(buy|add to cart)\b/i.test(link.label)),
+      )
+      .map((link) => pageKey(link.href)),
+  ).size;
+  if (!hasExplicitServiceMenu && commerceSignals >= 6) return [];
 
   const add = (
     rawLabel: string,
@@ -267,14 +319,26 @@ export function suggestOfferings(input: SuggestOfferingsInput): SuggestedOfferin
   for (const page of site.pages) {
     if (page.status < 200 || page.status >= 300 || page.wordCount === 0) continue;
     if (isServiceHub(page.url) || !usableUrl(page.url)) continue;
-    if (!isInServiceSection(page.url) && !hasServiceWordInSlug(page.url)) continue;
+    const serviceNavLink = site.links.find(
+      (link) => link.scheme === "http" && link.inServiceNav && samePage(link.href, page.url),
+    );
+    if (!isInServiceSection(page.url) && !hasServiceWordInSlug(page.url) && !serviceNavLink) continue;
     // A page's own H1 is what it calls itself; its <title> usually carries the
     // brand as well, so the part before the first separator is the useful half.
     const written =
       cleanLabel(page.h1s[0] ?? "") || cleanLabel(page.title.split(/\s+[|–—·]\s+/)[0] ?? "");
     const label = nameFor(written, page.url);
     if (label === null) continue;
+    readableServicePageLabels.set(pageKey(page.url), label);
     add(label, "service-section-page", page.url, `Has its own page at ${page.url}`);
+    if (serviceNavLink) {
+      add(
+        label,
+        "navigation-link",
+        serviceNavLink.href,
+        "Grouped under Services in the site's main navigation",
+      );
+    }
   }
 
   // ---- B. Links into the service section, and navigation -------------------
@@ -292,10 +356,10 @@ export function suggestOfferings(input: SuggestOfferingsInput): SuggestedOfferin
     // Prefer the words a person wrote; fall back to the URL only when those
     // words are a generic call to action.
     const written = cleanLabel(link.label || link.ariaLabel || link.title);
-    const label = nameFor(written, link.href);
+    const label = readableServicePageLabels.get(pageKey(link.href)) ?? nameFor(written, link.href);
     if (label === null) continue;
 
-    if (isInServiceSection(link.href)) {
+    if (isInServiceSection(link.href) || link.inServiceNav) {
       add(label, "service-section-link", link.href, `Listed under the site's services section (${link.href})`);
     } else if (hasServiceWordInSlug(link.href)) {
       add(label, "service-section-link", link.href, `Has its own page at ${link.href}`);

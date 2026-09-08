@@ -21,6 +21,13 @@ import {
  */
 
 describe("service section recognition", () => {
+  it("does not mistake a commerce collection named packages for a services section", () => {
+    expect(isInServiceSection("https://x.example/collections/packages")).toBe(false);
+    expect(looksLikeServiceUrl("https://x.example/collections/packages")).toBe(false);
+    expect(hasServiceWordInSlug("https://x.example/products/scalp-treatment-bundle")).toBe(false);
+    expect(isInServiceSection("https://x.example/services/packages")).toBe(true);
+  });
+
   it("recognises a services hub whatever the site calls it", () => {
     for (const url of [
       "https://x.example/services",

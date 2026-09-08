@@ -267,6 +267,7 @@ export async function brokenConversionPathRule(ctx: RuleContext): Promise<Candid
       title: "",
       scheme: "http",
       inNav: false,
+      inServiceNav: false,
       foundOn: [target],
     };
     const intent = classifyConversionLink(asLink);

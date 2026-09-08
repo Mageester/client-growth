@@ -4,6 +4,7 @@ import { HttpEvidenceProvider } from "@/adapters/evidence/HttpEvidenceProvider";
 import { createEvaluator } from "@/adapters/evaluator/createEvaluator";
 import { isExternalBusinessMismatchEnabled, parseAnalysisCaps, parseEnv } from "@/config/env";
 import { classifyAnalysis, type AnalysisOutcomeResult } from "@/core/analysisOutcome";
+import { assessCatalogCoverage } from "@/core/rules/registry";
 import { detectOfferingDrift } from "@/core/offeringDrift";
 import { suggestOfferings } from "@/core/offeringSuggestions";
 import { analyzeClient, type AnalyzeClientResult } from "@/pipeline/analyzeClient";
@@ -154,8 +155,18 @@ export async function runAnalysis(
   const client = await repo.getClient(t, clientId);
   if (!client) throw new Response("Client not found", { status: 404 });
 
+  const catalog = await repo.listServices(t);
+  if (assessCatalogCoverage(catalog).matched === 0) {
+    throw new Error(
+      "No active service is offered for a kind of website gap, so an analysis could not check anything. Set that up in your catalog first.",
+    );
+  }
+
   // Admission is the first stateful step after the tenant/client lookup. It is
-  // deliberately before full env parsing, crawling and evaluator construction
+  // deliberately before full env parsing, crawling and evaluator construction.
+  // Catalog readiness is a read-only precondition checked above: a request that
+  // can prove no finding is possible is not an analysis start and must not burn
+  // the client's cooldown.
   // so an accepted start is counted even when a later stage throws — including
   // a stage that throws because the environment is misconfigured. Only the caps
   // themselves are read first, and only they can reject a start from here.
@@ -181,7 +192,7 @@ export async function runAnalysis(
       : [];
     const result = await analyzeClient({
       client,
-      catalog: await repo.listServices(t),
+      catalog,
       coverage: await repo.listCoverage(t, clientId),
       existing: await repo.listOpportunities(t, clientId),
       evidenceProvider: evidenceProviderFor(client, t.workspaceId, deadline.signal),

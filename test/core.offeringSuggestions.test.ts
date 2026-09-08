@@ -24,7 +24,7 @@ function bundle(p: {
     status?: number;
     wordCount?: number;
   }>;
-  links?: Array<{ href: string; label?: string; inNav?: boolean }>;
+  links?: Array<{ href: string; label?: string; inNav?: boolean; inServiceNav?: boolean }>;
   sitemapUrls?: string[];
   nav?: string[];
 }): EvidenceBundle {
@@ -48,6 +48,7 @@ function bundle(p: {
         href: l.href,
         label: l.label ?? "",
         inNav: l.inNav ?? false,
+        inServiceNav: l.inServiceNav ?? false,
         scheme: "http",
         foundOn: ["https://x.example/"],
       })),
@@ -60,6 +61,64 @@ const labels = (evidence: EvidenceBundle, existing: string[] = []) =>
   suggestOfferings({ evidence, existingOfferings: existing }).map((s) => s.label);
 
 describe("offering suggestions", () => {
+  it("suggests readable pages the site files under a nested Services menu even when their URLs are generic", () => {
+    const evidence = bundle({
+      pages: [
+        { url: "https://x.example/pages/hair-extensions", h1s: ["Hair Extensions"] },
+        { url: "https://x.example/pages/balayage", h1s: ["Balayage"] },
+      ],
+      links: [
+        {
+          href: "https://x.example/pages/hair-extensions",
+          label: "Hair Extensions",
+          inNav: true,
+          inServiceNav: true,
+        },
+        {
+          href: "https://x.example/pages/balayage",
+          label: "Balayage",
+          inNav: true,
+          inServiceNav: true,
+        },
+      ],
+    });
+
+    expect(labels(evidence)).toEqual(expect.arrayContaining(["Hair Extensions", "Balayage"]));
+  });
+
+  it("returns one offering per Services-menu page and ignores a store collection named packages", () => {
+    const evidence = bundle({
+      pages: [
+        { url: "https://x.example/pages/curly-hair", h1s: ["Curly Hair Services"] },
+        { url: "https://x.example/collections/packages", h1s: ["Bundles"] },
+        {
+          url: "https://x.example/products/scalp-nourishing-treatment-bundle",
+          h1s: ["Scalp Nourishing Treatment Bundle"],
+        },
+      ],
+      links: [
+        {
+          href: "https://x.example/pages/curly-hair",
+          label: "Curly Haircut",
+          inNav: true,
+          inServiceNav: true,
+        },
+        {
+          href: "https://x.example/collections/packages",
+          label: "Bundles",
+          inNav: true,
+        },
+        {
+          href: "https://x.example/products/scalp-nourishing-treatment-bundle",
+          label: "Scalp Nourishing Treatment Bundle",
+          inNav: true,
+        },
+      ],
+    });
+
+    expect(labels(evidence)).toEqual(["Curly Hair Services"]);
+  });
+
   it("suggests services from pages the crawl actually read", () => {
     const evidence = bundle({
       pages: [
@@ -161,6 +220,60 @@ describe("offering suggestions", () => {
 });
 
 describe("what must never be suggested", () => {
+  it("does not turn an ecommerce parts catalog into client services", () => {
+    // gatesnfences.com is a deliberately difficult real-site case: a large
+    // product catalog whose URLs contain words such as "control", "design"
+    // and "replacement". Those words are useful service-page signals on a
+    // trade site, but here the links are products and Buy-now controls.
+    const evidence = bundle({
+      links: [
+        {
+          href: "https://x.example/Remote-Controls/MultiCode-308911-Garage-Doors-Remote-Controls-One-Button.html",
+          label: "Buy I",
+        },
+        {
+          href: "https://x.example/Circuit-Boards/AllStar-Control-Boards-Main-Circuit-Logic-Boards.html",
+          label: "Allstar",
+        },
+        {
+          href: "https://x.example/Access-Control/Doorking-Replacement-Components-DKS.html",
+          label: "Doorking Replacement Components DKS",
+        },
+        {
+          href: "https://x.example/services/access-control-installation",
+          label: "Access Control Installation",
+        },
+        {
+          href: "https://x.example/Railings-Balcony-Porch-Deck-Rails.html",
+          label: "Railings",
+          inServiceNav: true,
+        },
+      ],
+    });
+
+    expect(labels(evidence)).toEqual(
+      expect.arrayContaining(["Access Control Installation", "Railings"]),
+    );
+    expect(labels(evidence)).not.toEqual(
+      expect.arrayContaining(["Buy I", "Allstar", "Doorking Replacement Components DKS"]),
+    );
+  });
+
+  it("fails closed on a commerce-heavy catalog with no explicit services menu", () => {
+    const links = Array.from({ length: 8 }, (_, index) => ({
+      href: `https://x.example/Remote-Controls/model-${index}-remote-control.html`,
+      label: index % 2 === 0 ? "Buy it now" : `Model ${index}`,
+      inNav: false,
+    }));
+    links.push({
+      href: "https://x.example/Railings-Balcony-Porch-Deck-Rails.html",
+      label: "Railings",
+      inNav: true,
+    });
+
+    expect(labels(bundle({ links }))).toEqual([]);
+  });
+
   it("excludes trust claims, promotions and generic claims", () => {
     // Every one of these is real navigation text from the corpus.
     const evidence = bundle({

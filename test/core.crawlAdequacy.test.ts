@@ -7,7 +7,7 @@ import { ClientSchema, EvidenceBundleSchema, ServiceSchema, type EvidenceBundle 
 function bundle(p: {
   pages?: { url: string; title?: string; h1s?: string[]; headings?: string[] }[];
   nav?: string[];
-  links?: { href: string; label?: string; inNav?: boolean }[];
+  links?: { href: string; label?: string; inNav?: boolean; inServiceNav?: boolean }[];
   sitemapUrls?: string[];
 }): EvidenceBundle {
   return EvidenceBundleSchema.parse({
@@ -24,7 +24,12 @@ function bundle(p: {
         wordCount: 100,
       })),
       nav: p.nav ?? [],
-      links: (p.links ?? []).map((l) => ({ href: l.href, label: l.label ?? "", inNav: l.inNav ?? false })),
+      links: (p.links ?? []).map((l) => ({
+        href: l.href,
+        label: l.label ?? "",
+        inNav: l.inNav ?? false,
+        inServiceNav: l.inServiceNav ?? false,
+      })),
       sitemapUrls: p.sitemapUrls ?? [],
     },
   });
@@ -43,6 +48,36 @@ const LANDING_CATALOG = [
 ];
 
 describe("crawl / service-coverage adequacy", () => {
+  it("recognizes readable pages grouped by the site under Services even when the CMS URL is generic", () => {
+    const evidence = bundle({
+      pages: [
+        { url: "https://x.example/" },
+        { url: "https://x.example/pages/hair-extensions", h1s: ["Hair Extensions"] },
+        { url: "https://x.example/pages/balayage", h1s: ["Balayage"] },
+      ],
+      nav: ["Hair Extensions", "Balayage"],
+      links: [
+        {
+          href: "https://x.example/pages/hair-extensions",
+          label: "Hair Extensions",
+          inNav: true,
+          inServiceNav: true,
+        },
+        {
+          href: "https://x.example/pages/balayage",
+          label: "Balayage",
+          inNav: true,
+          inServiceNav: true,
+        },
+      ],
+    });
+
+    const result = assessServiceCoverage({ client: { offerings: [] }, evidence });
+
+    expect(result.analyzable).toBe(true);
+    expect(result.serviceLikePages).toBe(2);
+  });
+
   it("Castle Keepers style: real pages + nav, but NO service coverage -> not analyzable", () => {
     const client = {
       offerings: ["recurring house cleaning", "deep cleaning", "move out cleaning", "post construction cleaning", "green cleaning"],

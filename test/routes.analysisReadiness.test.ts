@@ -154,10 +154,31 @@ beforeEach(async () => {
 
 afterEach(() => {
   __setSessionResolver(null);
+  vi.unstubAllGlobals();
   raw.close();
 });
 
 describe("pre-analysis readiness", () => {
+  it("refuses the Opportunities analyze action before crawl or cooldown when the catalog cannot produce a finding", async () => {
+    await addClient(["hair extensions", "balayage"]);
+    const fetchSpy = vi.fn(async () => {
+      throw new Error("network must not be reached");
+    });
+    vi.stubGlobal("fetch", fetchSpy);
+
+    const opportunities = await import("../app/routes/opportunities._index");
+    const result = (await opportunities.action({
+      request: formReq({ clientId: CLIENT_ID }),
+      context: ctx,
+    } as never)) as { ok: boolean; error?: string };
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatch(/no active service is offered/i);
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(await repo.listAnalysisRuns(scope, CLIENT_ID, 5)).toHaveLength(0);
+    expect(raw.prepare("SELECT COUNT(*) AS count FROM analysis_limit_reservations").get()).toEqual({ count: 0 });
+  });
+
   it("refuses to start a run when no service is offered for any gap", async () => {
     await addClient(["dental implants", "invisalign"]);
 

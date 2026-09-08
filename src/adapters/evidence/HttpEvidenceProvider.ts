@@ -803,7 +803,10 @@ export class HttpEvidenceProvider implements EvidenceProvider {
     // Careers and Privacy Policy ahead of the services. See crawlPriority.
     const frontier = new Map<string, { url: string; priority: number; discovered: number }>();
     let discovered = 0;
-    const enqueue = (rawUrl: string, options: { inNav?: boolean } = {}): void => {
+    const enqueue = (
+      rawUrl: string,
+      options: { inNav?: boolean; inServiceNav?: boolean } = {},
+    ): void => {
       const parsed = normalizeAndValidateUrl(rawUrl);
       if (!parsed.ok || !isSameSite(parsed.url, origin)) return;
       // The canonical key owns crawl identity and the page slot. Keep the
@@ -956,6 +959,7 @@ export class HttpEvidenceProvider implements EvidenceProvider {
           if (!existing.ariaLabel && link.ariaLabel) existing.ariaLabel = link.ariaLabel;
           if (!existing.title && link.title) existing.title = link.title;
           if (link.inNav) existing.inNav = true;
+          if (link.inServiceNav) existing.inServiceNav = true;
           if (!existing.foundOn.includes(finalUrl)) existing.foundOn.push(finalUrl);
         }
 
@@ -964,7 +968,7 @@ export class HttpEvidenceProvider implements EvidenceProvider {
         // page slots on Cloudflare's email-obfuscation endpoint costs a real
         // page of the client's website.
         if (isPlatformInfrastructurePath(link.href)) continue;
-        enqueue(link.href, { inNav: link.inNav });
+        enqueue(link.href, { inNav: link.inNav, inServiceNav: link.inServiceNav });
       }
     }
 

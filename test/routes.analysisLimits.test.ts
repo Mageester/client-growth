@@ -8,7 +8,7 @@ import { createElement } from "react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { ClientSchema } from "@/core/schema";
+import { ClientSchema, ServiceSchema } from "@/core/schema";
 import { reserveAnalysisStart } from "@/db/analysisLimits";
 import * as repo from "@/db/repositories";
 import { createWorkspaceForOwner } from "@/db/workspaces";
@@ -65,6 +65,18 @@ beforeEach(async () => {
     }),
   );
   scope = { db, workspaceId: "ws_a" };
+  await repo.upsertService(
+    scope,
+    ServiceSchema.parse({
+      id: "svc-pages",
+      name: "Service page",
+      description: "",
+      priceMin: 500,
+      priceMax: 1000,
+      tags: ["landing-page"],
+      active: true,
+    }),
+  );
   __setSessionResolver(async () => ({
     userId: "u_a",
     user: { id: "u_a", email: "a@example.test", name: "A" },
@@ -86,6 +98,62 @@ afterEach(() => {
 });
 
 describe("analysis limit route handling", () => {
+  it("renders catalog setup failure as setup work, not a site read failure or an immediate retry", () => {
+    const loaderData = {
+      groups: [
+        {
+          client: { id: "client_a", name: "Client A", domain: "client-a.example", offerings: [], notes: "" },
+          opportunities: [],
+          totals: { open: 0, priceMin: 0, priceMax: 0 },
+          run: {
+            id: 1,
+            clientId: "client_a",
+            startedAt: "2026-09-08T12:00:00.000Z",
+            finishedAt: "2026-09-08T12:00:01.000Z",
+            source: "http",
+            outcome: "inconclusive",
+            summary: "Nothing could be checked — no service in your catalog is offered for a website gap.",
+            limitation: "Add or edit a service, set what it is offered for, then re-analyze.",
+            pagesRead: 8,
+            pagesFetched: 10,
+            blockedEvents: 0,
+            inconclusiveEvents: 0,
+            surfaced: 0,
+            stats: {},
+            trigger: "manual",
+            newCount: 0,
+            resolvedCount: 0,
+            evaluatorCalls: 0,
+            evaluatorRejections: 0,
+            evaluatorErrors: 0,
+            crawlExhaustive: false,
+            suggestedOfferings: [],
+            offeringDrift: [],
+          },
+          monitoring: { cadence: "off", nextDueAt: null, lastAttemptAt: null, lastSuccessAt: null, lastOutcome: null, consecutiveFailures: 0, claimedAt: null },
+          state: "inconclusive",
+        },
+      ],
+      serviceName: {},
+      catalogMatched: 0,
+      winRates: [],
+      monitoring: { monitored: 0, due: 0, unhealthy: 0, newFindings: 0, resolvedFindings: 0, checks: 0 },
+    };
+    const html = renderToStaticMarkup(
+      createElement(RouterProvider, {
+        router: createMemoryRouter(
+          [{ path: "/opportunities", element: createElement(OpportunitiesIndex, { loaderData, actionData: undefined } as never) }],
+          { initialEntries: ["/opportunities?client=client_a"] },
+        ),
+      } as never),
+    );
+
+    expect(html).toContain("Analysis setup is incomplete");
+    expect(html).toContain("Set up services");
+    expect(html).not.toContain("This site could not be read");
+    expect(html).not.toContain("Try again");
+  });
+
   it("returns a normal limit result from the opportunities action", async () => {
     await reserveAnalysisStart(scope, "client_a", { now: new Date() });
 

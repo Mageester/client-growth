@@ -120,6 +120,8 @@ export const EvidenceLinkSchema = z.object({
   title: z.string().default(""),
   /** True when this link appeared inside a <nav> / role="navigation" region. */
   inNav: z.boolean().default(false),
+  /** True when the site grouped this link below a Services/Treatments menu heading. */
+  inServiceNav: z.boolean().default(false),
   /** URLs of the crawled pages this link appeared on. */
   foundOn: z.array(z.string()).default([]),
 });
