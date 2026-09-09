@@ -25,6 +25,10 @@ function normalizedUrl(value: string): string | null {
   }
 }
 
+function isAllowedUrl(url: string | null, allowed: ReadonlySet<string>): url is string {
+  return url !== null && allowed.has(url);
+}
+
 function meaningKey(value: string): string {
   return significantTokens(value)
     .map((token) => (token.length > 3 && token.endsWith("s") ? token.slice(0, -1) : token))
@@ -45,7 +49,9 @@ export function sanitizeCatalogDraft(input: {
   for (const row of parsed.services) {
     const key = meaningKey(row.name);
     if (!key || seen.has(key)) continue;
-    const sourceUrls = [...new Set(row.sourceUrls.map(normalizedUrl).filter((url): url is string => Boolean(url) && allowed.has(url)))];
+    const sourceUrls = [
+      ...new Set(row.sourceUrls.map(normalizedUrl).filter((url) => isAllowedUrl(url, allowed))),
+    ];
     if (row.sourceKind !== "summary" && sourceUrls.length === 0) continue;
     const clean = {
       ...row,
@@ -57,4 +63,3 @@ export function sanitizeCatalogDraft(input: {
   }
   return result;
 }
-

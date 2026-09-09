@@ -104,6 +104,57 @@ export async function upsertService(t: TenantScope, service: Service): Promise<v
     .run();
 }
 
+/**
+ * Validate and ownership-check the complete reviewed draft before writing any
+ * row, then persist it through the database's transactional batch boundary.
+ */
+export async function upsertServicesAtomic(
+  t: TenantScope,
+  services: readonly Service[],
+): Promise<void> {
+  const parsed = services.map((service) => ServiceSchema.parse(service));
+  const owners = await Promise.all(
+    parsed.map((service) =>
+      t.db
+        .prepare("SELECT workspace_id FROM services WHERE id = ?")
+        .bind(service.id)
+        .first<{ workspace_id: string }>(),
+    ),
+  );
+  for (let index = 0; index < parsed.length; index++) {
+    const owner = owners[index];
+    if (owner && owner.workspace_id !== t.workspaceId) {
+      throw new CrossWorkspaceError(`service ${parsed[index]!.id} belongs to another workspace`);
+    }
+  }
+  if (parsed.length === 0) return;
+
+  const updatedAt = nowIso();
+  await t.db.batch(
+    parsed.map((service) => ({
+      sql: `INSERT INTO services (id, workspace_id, name, description, price_min, price_max, tags, active, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+              name = excluded.name, description = excluded.description,
+              price_min = excluded.price_min, price_max = excluded.price_max,
+              tags = excluded.tags, active = excluded.active, updated_at = excluded.updated_at
+            WHERE services.workspace_id = ?`,
+      params: [
+        service.id,
+        t.workspaceId,
+        service.name,
+        service.description,
+        service.priceMin,
+        service.priceMax,
+        JSON.stringify(service.tags),
+        service.active ? 1 : 0,
+        updatedAt,
+        t.workspaceId,
+      ],
+    })),
+  );
+}
+
 export async function setServiceActive(
   t: TenantScope,
   id: string,

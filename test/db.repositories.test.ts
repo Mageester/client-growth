@@ -34,6 +34,35 @@ describe("tenant repositories", () => {
     expect(await repo.listServices(t)).toHaveLength(4);
   });
 
+  it("saves a reviewed service catalog as one atomic batch", async () => {
+    await repo.upsertServicesAtomic(t, hvacCatalog().slice(0, 3));
+
+    expect((await repo.listServices(t)).map((service) => service.id).sort()).toEqual([
+      "svc-brand-refresh",
+      "svc-landing-page",
+      "svc-seo-retainer",
+    ]);
+  });
+
+  it("does not partially save when any generated service is invalid", async () => {
+    const services = hvacCatalog().slice(0, 2);
+    services[1] = { ...services[1]!, priceMin: 2000, priceMax: 1000 };
+
+    await expect(repo.upsertServicesAtomic(t, services)).rejects.toThrow(/priceMax/);
+    expect(await repo.listServices(t)).toEqual([]);
+  });
+
+  it("does not partially save when an id belongs to another workspace", async () => {
+    await createWorkspaceForOwner(db, { id: "ws_other", name: "Other", ownerUserId: "u2" });
+    const other = { db, workspaceId: "ws_other" };
+    await repo.upsertService(other, hvacCatalog()[1]!);
+
+    await expect(repo.upsertServicesAtomic(t, hvacCatalog().slice(0, 2))).rejects.toThrow(
+      /another workspace/,
+    );
+    expect(await repo.listServices(t)).toEqual([]);
+  });
+
   it("round-trips a client and its coverage", async () => {
     for (const s of hvacCatalog()) await repo.upsertService(t, s);
     await repo.upsertClient(t, hvacClient());
