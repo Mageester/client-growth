@@ -79,6 +79,7 @@ describe("login verification callback return path", () => {
     "https://evil.example",
     "//evil.example",
     "/\\evil.example/escape",
+    "/reports\\summary?view=full",
   ])("falls back to the home page after login for unsafe returnTo %s", async (returnTo) => {
     authApi.signInEmail.mockResolvedValueOnce(
       new Response(null, {
@@ -96,5 +97,28 @@ describe("login verification callback return path", () => {
       context,
     } as never)) as Response;
     expect(response.headers.get("location")).toBe("/");
+  });
+
+  it("preserves an encoded relative path and query after login", async () => {
+    authApi.signInEmail.mockResolvedValueOnce(
+      new Response(null, {
+        status: 200,
+        headers: { "set-cookie": "session=valid; Path=/; HttpOnly" },
+      }),
+    );
+    const request = new Request(
+      "https://app.example.com/login?returnTo=%2Freports%2Freport-1%3Fview%3Dsummary",
+      {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          email: "recipient@example.com",
+          password: "correct-horse-battery",
+        }),
+      },
+    );
+
+    const response = (await login.action({ request, context } as never)) as Response;
+    expect(response.headers.get("location")).toBe("/reports/report-1?view=summary");
   });
 });

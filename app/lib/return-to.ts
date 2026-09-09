@@ -1,5 +1,12 @@
 export function safeReturnTo(value: string | null | undefined): string | undefined {
-  if (!value || !value.startsWith("/") || value.startsWith("//")) return undefined;
+  if (
+    !value ||
+    !value.startsWith("/") ||
+    value.startsWith("//") ||
+    value.includes("\\")
+  ) {
+    return undefined;
+  }
   try {
     const parsed = new URL(value, "https://orbit.invalid");
     return parsed.origin === "https://orbit.invalid"

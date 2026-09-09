@@ -150,6 +150,85 @@ it("records thrown analysis failures without storing provider secrets or losing 
   }finally{p.close();}
 });
 
+it("correlates a timestamp-skewed scheduled failure without merging nearby unrelated runs",async()=>{
+  const now=new Date('2026-09-04T12:00:00.000Z');
+  const p=await buildPortfolio({workspaces:2,perWorkspace:2,now});
+  try {
+    const scope=p.scopeFor('ws_a');
+    const client=p.clients.find(c=>c.workspaceId==='ws_a')!;
+    await p.db.prepare(`INSERT INTO analysis_limit_reservations
+      (workspace_id, client_id, reserved_at, day_utc, finished_at, failed)
+      VALUES (?, ?, ?, ?, ?, 1)`).bind(
+        'ws_a',
+        client.clientId,
+        '2026-09-04T11:40:01.000Z',
+        '2026-09-04',
+        '2026-09-04T11:41:00.000Z',
+      ).run();
+
+    const recordFailure = (input:{startedAt:string;finishedAt:string;summary:string;trigger:'manual'|'scheduled'}) =>
+      repo.recordAnalysisRun(scope,{
+        clientId:client.clientId,
+        startedAt:input.startedAt,
+        finishedAt:input.finishedAt,
+        source:'http',
+        outcome:'inconclusive',
+        summary:input.summary,
+        limitation:null,
+        pagesRead:0,
+        pagesFetched:0,
+        blockedEvents:0,
+        inconclusiveEvents:0,
+        surfaced:0,
+        stats:{failed:1},
+        trigger:input.trigger,
+        newCount:0,
+        resolvedCount:0,
+        evaluatorCalls:0,
+        evaluatorRejections:0,
+        evaluatorErrors:0,
+      });
+    await recordFailure({
+      startedAt:'2026-09-04T11:40:00.000Z',
+      finishedAt:'2026-09-04T11:41:01.000Z',
+      summary:'This scheduled check could not be completed, so nothing was assessed.',
+      trigger:'scheduled',
+    });
+    await recordFailure({
+      startedAt:'2026-09-04T11:40:00.500Z',
+      finishedAt:'2026-09-04T11:40:30.000Z',
+      summary:'Nearby manual failure.',
+      trigger:'manual',
+    });
+    await recordFailure({
+      startedAt:'2026-09-04T11:34:59.000Z',
+      finishedAt:'2026-09-04T11:35:30.000Z',
+      summary:'Earlier scheduled failure outside the correlation window.',
+      trigger:'scheduled',
+    });
+
+    const health=await analysisHealth(scope,now);
+    expect(health.failedStarts).toBe(1);
+    expect(health.investigations).toHaveLength(3);
+    expect(health.investigations).toContainEqual({
+      kind:'failed-start',
+      clientName:`Client ${client.clientId}`,
+      stage:'Analysis start',
+      at:'2026-09-04T11:41:01.000Z',
+      reason:'This scheduled check could not be completed, so nothing was assessed.',
+    });
+    expect(health.investigations).toContainEqual(expect.objectContaining({
+      kind:'completed-run',
+      reason:'Nearby manual failure.',
+    }));
+    expect(health.investigations).toContainEqual(expect.objectContaining({
+      kind:'completed-run',
+      reason:'Earlier scheduled failure outside the correlation window.',
+    }));
+    expect(health.investigations.filter(row=>row.reason.startsWith('This scheduled check'))).toHaveLength(1);
+  }finally{p.close();}
+});
+
 it("alerts on an elevated inconclusive rate and exposes incomplete starts without calling them clean",async()=>{
   const now=new Date('2026-09-04T12:00:00.000Z');
   const p=await buildPortfolio({workspaces:2,perWorkspace:6,now});

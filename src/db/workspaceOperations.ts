@@ -5,6 +5,7 @@ const MAX_EXPORT_ROWS = 10_000;
 const EXPORT_QUERY_LIMIT = MAX_EXPORT_ROWS + 1;
 const EXPORT_TOO_LARGE_MESSAGE =
   "This workspace needs a larger export. Contact support; no partial export was generated.";
+const FAILED_RUN_CORRELATION_WINDOW_SECONDS = 5 * 60;
 
 async function boundedRows<T>(statement: SqlStatement): Promise<T[]> {
   const rows = await statement.all<T>();
@@ -247,7 +248,7 @@ export async function analysisHealth(t: TenantScope, now = new Date()) {
       .prepare(
         `SELECT a.id, COALESCE(c.name, 'Client no longer in workspace') AS clientName,
                 a.reserved_at AS reservedAt, a.finished_at AS finishedAt,
-                r.finished_at AS runFinishedAt, r.summary
+                r.id AS runId, r.finished_at AS runFinishedAt, r.summary
          FROM analysis_limit_reservations a
          LEFT JOIN clients c
            ON c.id = a.client_id AND c.workspace_id = a.workspace_id
@@ -257,8 +258,17 @@ export async function analysisHealth(t: TenantScope, now = new Date()) {
              FROM analysis_runs matched
              WHERE matched.workspace_id = a.workspace_id
                AND matched.client_id = a.client_id
-               AND matched.started_at = a.reserved_at
-             ORDER BY matched.id DESC
+               AND matched.trigger = 'scheduled'
+               AND matched.outcome = 'inconclusive'
+               AND CASE
+                 WHEN json_valid(matched.stats)
+                   THEN COALESCE(CAST(json_extract(matched.stats, '$.failed') AS INTEGER), 0)
+                 ELSE 0
+               END = 1
+               AND julianday(matched.started_at) >=
+                 julianday(a.reserved_at) - ${FAILED_RUN_CORRELATION_WINDOW_SECONDS} / 86400.0
+               AND matched.started_at <= a.reserved_at
+             ORDER BY matched.started_at DESC, matched.id DESC
              LIMIT 1
            )
           AND r.workspace_id = a.workspace_id
@@ -272,6 +282,7 @@ export async function analysisHealth(t: TenantScope, now = new Date()) {
         clientName: string;
         reservedAt: string;
         finishedAt: string | null;
+        runId: number | null;
         runFinishedAt: string | null;
         summary: string | null;
       }>(),
@@ -315,13 +326,18 @@ export async function analysisHealth(t: TenantScope, now = new Date()) {
     at: row.runFinishedAt ?? row.finishedAt ?? row.reservedAt,
     reason: row.summary ?? "The run stopped before a detailed record was created.",
   }));
-  const completedInvestigations: AnalysisInvestigationRow[] = recentErrors.map((row) => ({
-    kind: "completed-run",
-    clientName: row.clientName,
-    stage: row.evaluatorErrors > 0 ? "Evaluation" : "Analysis result",
-    at: row.finishedAt,
-    reason: row.summary,
-  }));
+  const matchedFailedRunIds = new Set(
+    failedReservations.flatMap((row) => (row.runId === null ? [] : [row.runId])),
+  );
+  const completedInvestigations: AnalysisInvestigationRow[] = recentErrors
+    .filter((row) => !matchedFailedRunIds.has(row.id))
+    .map((row) => ({
+      kind: "completed-run",
+      clientName: row.clientName,
+      stage: row.evaluatorErrors > 0 ? "Evaluation" : "Analysis result",
+      at: row.finishedAt,
+      reason: row.summary,
+    }));
   const investigations = [...failedInvestigations, ...completedInvestigations]
     .sort((left, right) => right.at.localeCompare(left.at));
 
