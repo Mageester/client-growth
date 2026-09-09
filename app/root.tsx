@@ -136,6 +136,7 @@ const NAV = [
   { to: "/changes", label: "Home", icon: "home" as const },
   { to: "/clients", label: "Clients", icon: "users" as const },
   { to: "/opportunities", label: "Opportunities", icon: "target" as const },
+  { to: "/monitor", label: "Monitor", icon: "signal" as const },
   { to: "/settings", label: "Settings", icon: "settings" as const },
 ];
 

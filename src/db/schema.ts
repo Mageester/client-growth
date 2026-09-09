@@ -13,8 +13,19 @@ CREATE TABLE IF NOT EXISTS workspaces (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   owner_user_id TEXT NOT NULL,
-  created_at TEXT NOT NULL
+  created_at TEXT NOT NULL,
+  -- MONITOR weekly-digest schedule + preferences (0025). Cadence defaults to
+  -- 'weekly' but stays inert until the workspace is entitled to MONITOR.
+  monitor_digest_cadence TEXT NOT NULL DEFAULT 'weekly',
+  monitor_digest_only_on_change INTEGER NOT NULL DEFAULT 1,
+  monitor_digest_recipient TEXT,
+  monitor_digest_next_due_at TEXT,
+  monitor_digest_last_sent_at TEXT,
+  monitor_digest_claimed_at TEXT
 );
+
+CREATE INDEX IF NOT EXISTS idx_workspaces_digest_due
+  ON workspaces (monitor_digest_cadence, monitor_digest_next_due_at);
 
 CREATE TABLE IF NOT EXISTS workspace_members (
   workspace_id TEXT NOT NULL REFERENCES workspaces (id) ON DELETE CASCADE,
@@ -331,4 +342,28 @@ CREATE INDEX IF NOT EXISTS idx_client_report_shares_report
   ON client_report_shares (workspace_id, report_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_client_report_shares_token_status
   ON client_report_shares (token_hash, revoked_at, expires_at);
+
+/**
+ * MONITOR digest history and idempotency (0025). One row per (workspace, week)
+ * recording what the digest tick did: sent, deliberately skipped, or failed.
+ * UNIQUE (workspace_id, period_start) is the idempotency key — a retry or an
+ * overlapping tick can never email the same week twice.
+ */
+CREATE TABLE IF NOT EXISTS monitor_digest_runs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  workspace_id TEXT NOT NULL REFERENCES workspaces (id) ON DELETE CASCADE,
+  period_start TEXT NOT NULL,
+  period_end TEXT NOT NULL,
+  sent_at TEXT NOT NULL,
+  recipient TEXT,
+  outcome TEXT NOT NULL,
+  new_count INTEGER NOT NULL DEFAULT 0,
+  resolved_count INTEGER NOT NULL DEFAULT 0,
+  client_count INTEGER NOT NULL DEFAULT 0,
+  error TEXT,
+  UNIQUE (workspace_id, period_start)
+);
+
+CREATE INDEX IF NOT EXISTS idx_monitor_digest_runs_ws
+  ON monitor_digest_runs (workspace_id, sent_at DESC);
 `;

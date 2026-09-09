@@ -32,6 +32,7 @@ import {
   type MonitoringState,
 } from "@/core/monitoring";
 import * as monitoringRepo from "@/db/monitoring";
+import { isWorkspaceEntitledToMonitor } from "@/core/entitlements";
 import { parseJobValue } from "@/core/clientValue";
 import { MAX_COMPETITORS_PER_CLIENT } from "@/core/competitorGaps";
 import {
@@ -129,6 +130,13 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
   const externalMismatchEnabled = isExternalBusinessMismatchEnabled(
     context.cloudflare.env as unknown as Record<string, unknown>,
   );
+  // Recurring monitoring is part of MONITOR, the paid tier. V0 is single-owner,
+  // so the signed-in user's address is the workspace owner's address the gate
+  // keys off. Off is always permitted; only turning it on requires entitlement.
+  const monitorEntitled = isWorkspaceEntitledToMonitor(
+    context.cloudflare.env as unknown as Record<string, unknown>,
+    t.user.email,
+  );
   const [services, coverage, opportunities, runs, monitoring, evidence, competitors] =
     await Promise.all([
       repo.listServices(t.scope),
@@ -187,6 +195,7 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
     totals,
     runs,
     monitoring: monitoring ?? monitoringRepo.MONITORING_OFF,
+    monitorEntitled,
     firstRunFailed,
     readiness,
     suggestions,
@@ -548,6 +557,23 @@ export async function action({ params, request, context }: Route.ActionArgs) {
     if (!isMonitoringCadence(cadence)) {
       return { ok: false as const, error: "That is not a monitoring option." };
     }
+    // Turning monitoring ON is a paid capability (MONITOR). Off is always
+    // allowed, so a workspace that loses entitlement can still stop its scans —
+    // and the enable path is the only way monitoring is ever switched on, so
+    // gating it here is what keeps unentitled workspaces out of the scheduler.
+    if (
+      cadence !== "off" &&
+      !isWorkspaceEntitledToMonitor(
+        context.cloudflare.env as unknown as Record<string, unknown>,
+        t.user.email,
+      )
+    ) {
+      return {
+        ok: false as const,
+        error:
+          "Recurring monitoring is part of MONITOR, which isn’t enabled for this workspace yet.",
+      };
+    }
     // The first scheduled check is measured from the last completed analysis, so
     // enabling monitoring right after analyzing does not immediately re-scan.
     const latest = await repo.getLatestAnalysisRun(t.scope, existing.id);
@@ -629,6 +655,9 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
     totals,
     runs,
     monitoring,
+    // Defaulted: a fixture or an older loader payload predates the paid gate, so
+    // it renders as "not entitled" (the locked upsell) rather than throwing.
+    monitorEntitled = false,
     state,
     firstRunFailed,
     readiness,
@@ -778,6 +807,7 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
 
       <MonitoringRow
         monitoring={monitoring}
+        monitorEntitled={monitorEntitled}
         busy={busy}
         canAnalyze={canAnalyze}
         blockedReason={coverageBlocked ? "the site needs more readable evidence" : undefined}
@@ -1364,11 +1394,13 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
  */
 function MonitoringRow({
   monitoring,
+  monitorEntitled,
   busy,
   canAnalyze,
   blockedReason,
 }: {
   monitoring: MonitoringState;
+  monitorEntitled: boolean;
   busy: boolean;
   canAnalyze: boolean;
   blockedReason?: string;
@@ -1376,6 +1408,42 @@ function MonitoringRow({
   const on = monitoring.cadence !== "off";
   const troubled =
     monitoring.lastOutcome === "failed" || monitoring.lastOutcome === "inconclusive";
+
+  // MONITOR is not enabled for this workspace. Show what it does and where to
+  // learn more instead of a control that would only be refused on submit. If a
+  // workspace was de-entitled while a client was still monitored, keep a single
+  // "Turn off" action so the agency can stop scans it can no longer manage.
+  if (!monitorEntitled) {
+    return (
+      <div className="monitorbar monitorbar-locked">
+        <div className="monitorbar-copy">
+          <span className="monitorbar-label">
+            <Icon name="refresh" size={13} />
+            Monitoring
+          </span>
+          <span className="monitorbar-state">Part of MONITOR</span>
+          <span className="monitorbar-meta">
+            <span className="dot-sep">·</span>
+            <span>Recurring checks and a weekly digest of new billable work.</span>
+          </span>
+        </div>
+        <div className="monitorbar-actions">
+          <Link className="btn btn-sm" to="/monitor">
+            Learn more
+          </Link>
+          {on && (
+            <Form method="post">
+              <input type="hidden" name="intent" value="set-monitoring" />
+              <input type="hidden" name="cadence" value="off" />
+              <button type="submit" className="btn btn-sm btn-ghost" disabled={busy}>
+                Turn off
+              </button>
+            </Form>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={"monitorbar" + (on ? " is-on" : "")}>

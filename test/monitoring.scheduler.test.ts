@@ -12,7 +12,7 @@ import type { RunAnalysisResult } from "../app/lib/analysis.server";
 import { buildPortfolio, setMonitoringDirect, type Portfolio } from "./helpers/portfolio";
 
 const NOW = new Date("2026-09-02T12:00:00.000Z");
-const ENV = { AI_PROVIDER: "mock", MAX_AI_CALLS_PER_RUN: "10" };
+const ENV = { AI_PROVIDER: "mock", MAX_AI_CALLS_PER_RUN: "10", MONITOR_ENTITLEMENT_MODE: "open" };
 
 let portfolio: Portfolio;
 

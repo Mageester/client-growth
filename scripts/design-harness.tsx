@@ -31,6 +31,7 @@ import Changes from "../app/routes/changes";
 import OpportunitiesIndex from "../app/routes/opportunities._index";
 import Login from "../app/routes/login";
 import Operations from "../app/routes/operations";
+import Monitor from "../app/routes/monitor";
 import { tierForRule } from "../src/core/rules/registry";
 import { jobsToPayback, paybackSentence } from "../src/core/clientValue";
 import ProposalShare from "../app/routes/proposal.share";
@@ -231,6 +232,7 @@ function Shell({ active, children }: { active: string; children: ReactNode }) {
           ["Home", "home"],
           ["Clients", "users"],
           ["Opportunities", "target"],
+          ["Monitor", "signal"],
           ["Settings", "settings"],
         ].map(([label, icon]) =>
           h(
@@ -565,6 +567,7 @@ const clientDetailScreen = h(ClientDetail, {
     totals: { open: 0, closed: 0, priceMin: 0, priceMax: 0 },
     runs: [],
     monitoring: { cadence: "off", nextDueAt: null, lastAttemptAt: null, lastSuccessAt: null, lastOutcome: null },
+    monitorEntitled: true,
     firstRunFailed: false,
     readiness: assessAnalysisReadiness({ catalog: services, offerings: 0 }),
     suggestions: [],
@@ -603,6 +606,7 @@ const blockedClientDetailScreen = h(ClientDetail, {
       lastSuccessAt: null,
       lastOutcome: null,
     },
+    monitorEntitled: true,
     firstRunFailed: false,
     readiness: assessAnalysisReadiness({
       catalog: services,
@@ -791,6 +795,39 @@ const screens: Record<string, { nav: string; node: ReactNode; bare?: boolean; st
           limitation: "coverage-limited",
         },
       },
+    } as never),
+  },
+  monitor: {
+    nav: "Monitor",
+    node: h(Monitor, {
+      loaderData: {
+        entitled: true,
+        ownerEmail: "aidan@northwind.example",
+        emailConfigured: true,
+        portfolio: { monitored: 3, due: 1, unhealthy: 1 },
+        digest: { cadence: "weekly", onlyOnChange: true, recipient: null },
+        digestRuns: [
+          { periodStart: "2026-09-01T00:00:00.000Z", periodEnd: "2026-09-08T00:00:00.000Z", sentAt: "2026-09-08T13:00:00.000Z", recipient: "aidan@northwind.example", outcome: "sent", newCount: 2, resolvedCount: 1, clientCount: 2, error: null },
+          { periodStart: "2026-08-25T00:00:00.000Z", periodEnd: "2026-09-01T00:00:00.000Z", sentAt: "2026-09-01T13:00:00.000Z", recipient: "aidan@northwind.example", outcome: "skipped_no_change", newCount: 0, resolvedCount: 0, clientCount: 0, error: null },
+        ],
+        clients: [
+          { id: "c1", name: "Cambridge Heating", domain: "cambridgeheating.ca", cadence: "weekly", lastOutcome: "findings", lastSuccessAt: "2026-09-07T09:00:00.000Z", nextDueAt: "2026-09-14T09:00:00.000Z", lastChange: { newCount: 2, resolvedCount: 0, at: "2026-09-07T09:00:00.000Z", outcome: "findings" } },
+          { id: "c2", name: "Halton Plumbing", domain: "haltonplumbing.com", cadence: "weekly", lastOutcome: "inconclusive", lastSuccessAt: null, nextDueAt: "2026-09-10T09:00:00.000Z", lastChange: null },
+          { id: "c3", name: "Fenwick Electrical", domain: "fenwickelectrical.co.uk", cadence: "weekly", lastOutcome: "clean", lastSuccessAt: "2026-09-06T09:00:00.000Z", nextDueAt: "2026-09-13T09:00:00.000Z", lastChange: null },
+          { id: "c4", name: "Ardley Roofing", domain: "ardleyroofing.co.uk", cadence: "off", lastOutcome: null, lastSuccessAt: null, nextDueAt: null, lastChange: null },
+        ],
+        changes: [
+          { id: "c1", name: "Cambridge Heating", domain: "cambridgeheating.ca", newCount: 2, resolvedCount: 0, at: "2026-09-07T09:00:00.000Z", outcome: "findings" },
+        ],
+        totalClients: 4,
+        now: "2026-09-08T13:00:00.000Z",
+      },
+    } as never),
+  },
+  "monitor-locked": {
+    nav: "Monitor",
+    node: h(Monitor, {
+      loaderData: { entitled: false, ownerEmail: "aidan@northwind.example" },
     } as never),
   },
   "client-thin": { nav: "Clients", node: clientDetailScreen },

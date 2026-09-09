@@ -19,13 +19,15 @@
       "invocation_logs": false
     }
   },
-  // Recurring monitoring. ONE trigger for the whole product — the tick asks the
-  // database which monitored clients are due and processes a bounded batch, so
-  // the scheduler's frequency is independent of any client's cadence. Hourly is
-  // ample for a weekly cadence and keeps each tick's work small.
-  // Locally: `wrangler dev --test-scheduled`, then POST /__scheduled.
+  // Two unattended schedules. "0 * * * *" is recurring monitoring — the tick
+  // asks the database which monitored clients are due and processes a bounded
+  // batch, so the scheduler's frequency is independent of any client's cadence.
+  // "0 13 * * *" is the MONITOR weekly digest tick; it runs daily and emails
+  // only the workspaces whose weekly digest has come due, so it is kept off the
+  // hourly scan path that spends on the evaluator. scheduled() branches on which
+  // cron fired. Locally: `wrangler dev --test-scheduled`, then POST /__scheduled.
   "triggers": {
-    "crons": ["0 * * * *"]
+    "crons": ["0 * * * *", "0 13 * * *"]
   },
   "d1_databases": [
     {
@@ -41,9 +43,10 @@
       "workers_dev": true,
       "preview_urls": false,
       // Declared explicitly rather than inherited: what runs unattended against
-      // production data should be readable in the production block itself.
+      // production data should be readable in the production block itself. Hourly
+      // recurring monitoring plus the daily MONITOR digest tick.
       "triggers": {
-        "crons": ["0 * * * *"]
+        "crons": ["0 * * * *", "0 13 * * *"]
       },
       "d1_databases": [
         {
@@ -74,6 +77,13 @@
         // team invitation admits its recipient without touching this list.
         "SIGNUP_MODE": "invite",
         "SIGNUP_ALLOWLIST": "",
+        // Who has the paid MONITOR feature (recurring scans + weekly digests).
+        // "off" until it is sold: it fails closed in code too, so an env that
+        // forgot to say grants it to nobody. Move a workspace onto MONITOR by
+        // switching to "allowlist" and naming the owner's address or @domain in
+        // MONITOR_ALLOWLIST. Delete this the day billing enforces the tier.
+        "MONITOR_ENTITLEMENT_MODE": "off",
+        "MONITOR_ALLOWLIST": "",
         // The canonical public origin, and the ONE origin Better Auth trusts —
         // it is never derived from a request's Host or Origin header (see
         // getTrustedAuthBaseURL). orbit.getaxiom.ca now fronts this Worker, and

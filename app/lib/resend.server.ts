@@ -7,6 +7,7 @@ const EMAIL_VERIFICATION_SUBJECT = "Verify your Axiom Orbit email";
 const TEAM_INVITATION_TIMEOUT_MS = 10_000;
 const PASSWORD_RESET_TIMEOUT_MS = 10_000;
 const EMAIL_VERIFICATION_TIMEOUT_MS = 10_000;
+const MONITOR_DIGEST_TIMEOUT_MS = 10_000;
 
 export interface ResendEnv {
   RESEND_API_KEY?: string;
@@ -196,6 +197,52 @@ export function createResendVerificationEmailSender(
     }
 
     if (!response.ok) throw new Error("Verification email delivery failed");
+  };
+}
+
+export interface MonitorDigestEmail {
+  to: string;
+  /** Scopes the idempotency key so re-sends of the same week collapse. */
+  workspaceId: string;
+  periodStart: string;
+  subject: string;
+  text: string;
+  html: string;
+}
+
+export type MonitorDigestSender = (message: MonitorDigestEmail) => Promise<void>;
+
+/**
+ * The MONITOR weekly digest sender. Same discipline as every other Resend
+ * caller here: a Bearer key, a timeout, and a generic failure that never leaks
+ * a provider detail. The idempotency key is scoped to (workspace, week), so a
+ * retry — or an overlapping tick that raced past the DB claim — cannot deliver
+ * the same week's digest twice.
+ */
+export function createResendMonitorDigestSender(
+  config: ResendConfig,
+  fetcher: typeof fetch = fetch,
+): MonitorDigestSender {
+  return async ({ to, workspaceId, periodStart, subject, text, html }) => {
+    const body = { from: config.from, to: [to], subject, text, html };
+
+    let response: Response;
+    try {
+      response = await fetcher(RESEND_EMAILS_URL, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${config.apiKey}`,
+          "Content-Type": "application/json",
+          "Idempotency-Key": `monitor-digest/${workspaceId}/${periodStart}`,
+        },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(MONITOR_DIGEST_TIMEOUT_MS),
+      });
+    } catch {
+      throw new Error("Monitor digest email delivery failed");
+    }
+
+    if (!response.ok) throw new Error("Monitor digest email delivery failed");
   };
 }
 

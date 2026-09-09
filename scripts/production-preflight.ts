@@ -10,6 +10,10 @@ const CONFIG_PATH = join(ROOT, "wrangler.jsonc");
 
 /** Kept in step with src/core/signupAccess.ts; this script must not import the app. */
 const SIGNUP_MODES = ["open", "invite"] as const;
+/** Kept in step with src/core/entitlements.ts; this script must not import the app. */
+const MONITOR_ENTITLEMENT_MODES = ["off", "allowlist", "open"] as const;
+/** The recurring-monitoring scan cron. The MONITOR digest runs on its own. */
+const MONITORING_CRON = "0 * * * *";
 const PRODUCTION_DATABASE_NAME = "client-growth-production";
 const REQUIRED_SECRETS = ["BETTER_AUTH_SECRET", "RESEND_API_KEY"] as const;
 const SECRET_LIKE_VAR_NAME = /(?:^|_)(?:API_KEY|KEY|SECRET|TOKEN|PASSWORD|CREDENTIALS?|PRIVATE_KEY)$/i;
@@ -219,10 +223,18 @@ export function validateProductionConfig(config: unknown): string[] {
   const crons = arrayValue(objectValue(production.triggers ?? root.triggers).crons).filter(
     (cron): cron is string => typeof cron === "string" && cron.trim().length > 0,
   );
-  if (crons.length !== 1) {
+  if (!crons.includes(MONITORING_CRON)) {
     errors.push(
-      "production must declare exactly one cron trigger for recurring monitoring; " +
+      `production must declare the hourly recurring-monitoring cron "${MONITORING_CRON}"; ` +
         "the tick selects due clients itself, so one schedule serves every cadence",
+    );
+  }
+  // MONITOR's weekly digest runs on its own daily cron, kept off the hourly scan
+  // path so a digest never rides on the schedule that spends on the evaluator.
+  const digestCrons = crons.filter((cron) => cron !== MONITORING_CRON);
+  if (digestCrons.length !== 1) {
+    errors.push(
+      `production must declare exactly one daily MONITOR digest cron in addition to "${MONITORING_CRON}"`,
     );
   }
 
@@ -247,6 +259,21 @@ export function validateProductionConfig(config: unknown): string[] {
     );
   } else if (!SIGNUP_MODES.includes(signupMode as (typeof SIGNUP_MODES)[number])) {
     errors.push('production SIGNUP_MODE must be "open" or "invite"');
+  }
+
+  // MONITOR is a paid feature whose engine spends on the evaluator unattended
+  // and whose digest emails agencies on its own. Whether it is sold, and to
+  // whom, is a decision that belongs in a file under review — not a default.
+  const monitorMode = stringValue(productionVars.MONITOR_ENTITLEMENT_MODE);
+  if (monitorMode === undefined) {
+    errors.push(
+      'production must declare MONITOR_ENTITLEMENT_MODE explicitly ("off" until MONITOR is ' +
+        'sold, "allowlist" to grant named agencies, "open" only once billing enforces it)',
+    );
+  } else if (
+    !MONITOR_ENTITLEMENT_MODES.includes(monitorMode as (typeof MONITOR_ENTITLEMENT_MODES)[number])
+  ) {
+    errors.push('production MONITOR_ENTITLEMENT_MODE must be "off", "allowlist" or "open"');
   }
 
   // The console transport prints verification links to the log instead of
@@ -303,6 +330,14 @@ export function productionConfigWarnings(config: unknown): string[] {
       'SIGNUP_MODE is "open": anyone with an email address can create a workspace and draw ' +
         "on the platform's daily analysis allowance. Safe only with billing, or with a " +
         "platform ceiling you would be content to pay in full.",
+    );
+  }
+
+  if (stringValue(vars.MONITOR_ENTITLEMENT_MODE) === "open") {
+    warnings.push(
+      'MONITOR_ENTITLEMENT_MODE is "open": every workspace may turn on recurring scans and ' +
+        "receive weekly digests. Recurring scans spend on the evaluator unattended, so this is " +
+        "safe only with billing, or a platform ceiling you would be content to pay in full.",
     );
   }
 

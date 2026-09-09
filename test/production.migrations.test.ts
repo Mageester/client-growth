@@ -33,6 +33,7 @@ const EXPECTED_MIGRATIONS = [
   "0022_sales_funnel.sql",
   "0023_client_reports.sql",
   "0024_report_themes.sql",
+  "0025_monitor_digests.sql",
 ] as const;
 
 const DEMO_IDENTIFIERS = [
@@ -135,8 +136,21 @@ describe("production migration baseline", () => {
       await db.exec(readFileSync(join(migrationsDir, "0022_sales_funnel.sql"), "utf8"));
       await db.exec(readFileSync(join(migrationsDir, "0023_client_reports.sql"), "utf8"));
       await db.exec(readFileSync(join(migrationsDir, "0024_report_themes.sql"), "utf8"));
+      await db.exec(readFileSync(join(migrationsDir, "0025_monitor_digests.sql"), "utf8"));
 
       expect(await db.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
+
+      // MONITOR's digest schedule lands on the existing workspace with a safe
+      // default and no next-due, so deploying it emails nobody until a workspace
+      // is entitled and has something to report.
+      const workspace = await db
+        .prepare("SELECT * FROM workspaces WHERE id = 'ws_live'")
+        .first<Record<string, unknown>>();
+      expect(workspace?.name).toBe("Live Agency");
+      expect(workspace?.monitor_digest_cadence).toBe("weekly");
+      expect(workspace?.monitor_digest_only_on_change).toBe(1);
+      expect(workspace?.monitor_digest_next_due_at).toBeNull();
+      expect(workspace?.monitor_digest_last_sent_at).toBeNull();
 
       const activeTables = await db
         .prepare(
@@ -184,9 +198,9 @@ describe("production migration baseline", () => {
       .sort();
 
     expect(migrations.slice(-3)).toEqual([
-      "0022_sales_funnel.sql",
       "0023_client_reports.sql",
       "0024_report_themes.sql",
+      "0025_monitor_digests.sql",
     ]);
     expect(migrations).not.toContain("0023_external_business_claims.sql");
   });

@@ -3,7 +3,15 @@ import { createRequestHandler, type ServerBuild } from "react-router";
 import { parseEnv } from "@/config/env";
 import { d1Db } from "../app/lib/d1.server";
 import { runMonitoringTick } from "../app/lib/monitoring.server";
+import { runMonitorDigestTick } from "../app/lib/monitorDigest.server";
 import { runWithWorkerExecutionContext } from "../app/lib/workerContext.server";
+
+/**
+ * The daily cron that drives the MONITOR weekly digest. It runs every day and
+ * emails only the workspaces whose weekly digest has actually come due, so it is
+ * deliberately not tied to the hourly scan. Must match wrangler.jsonc.
+ */
+const MONITOR_DIGEST_CRON = "0 13 * * *";
 
 /**
  * Cloudflare Worker entry. The domain engine in `src/` never imports this file.
@@ -34,6 +42,13 @@ declare global {
      * `wrangler secret put`.
      */
     MONITORING_TRIGGER_TOKEN?: string;
+    /** Who has the paid MONITOR feature. See src/core/entitlements.ts. */
+    MONITOR_ENTITLEMENT_MODE?: string;
+    MONITOR_ALLOWLIST?: string;
+    /** Workspaces one digest tick may email. */
+    MONITOR_DIGEST_MAX_PER_RUN?: string;
+    /** Operator-only trigger for the digest tick. Absent => the route 404s. */
+    MONITOR_DIGEST_TRIGGER_TOKEN?: string;
   }
 }
 
@@ -69,32 +84,66 @@ export default {
    * is logged in the same shape as a success and then rethrown, so it also lands
    * in the platform's own cron error rate where an alert can reach a human.
    */
-  async scheduled(_controller: ScheduledController, env: CloudflareEnvironment, ctx: ExecutionContext) {
-    const tick = runWithWorkerExecutionContext(ctx, () =>
-      runMonitoringTick({
-        db: d1Db(env.DB as never),
-        env: env as unknown as Record<string, unknown>,
-        limit: parseEnv(env as unknown as Record<string, unknown>).MONITORING_MAX_CLIENTS_PER_RUN,
-      }),
-    );
-    // The rejection is handled below; this copy only keeps the invocation alive,
-    // so it is silenced to avoid reporting the same failure twice.
-    ctx.waitUntil(tick.catch(() => undefined));
+  async scheduled(controller: ScheduledController, env: CloudflareEnvironment, ctx: ExecutionContext) {
+    const rawEnv = env as unknown as Record<string, unknown>;
 
-    let result: Awaited<typeof tick>;
-    try {
-      result = await tick;
-    } catch (error) {
-      const cause = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
-      console.error(`[monitoring] tick failed before reporting: ${cause}`);
-      throw error;
+    // Which unattended job fired is decided by the cron, not by a second
+    // handler. The digest tick spends nothing at the provider; the monitoring
+    // tick does, which is why they are separate schedules.
+    if (controller.cron === MONITOR_DIGEST_CRON) {
+      await runScheduledTick(
+        ctx,
+        "monitor-digest",
+        () => runMonitorDigestTick({ db: d1Db(env.DB as never), env: rawEnv }),
+        (r) =>
+          `considered=${r.considered} sent=${r.sent} skipped=${r.skipped} failed=${r.failed}`,
+      );
+      return;
     }
 
-    console.log(
-      `[monitoring] considered=${result.considered} scanned=${result.scanned} ` +
-        `skipped=${result.skipped} failed=${result.failed} new=${result.newFindings} ` +
-        `resolved=${result.resolvedFindings} evaluatorCalls=${result.evaluatorCalls} ` +
-        `budgetExhausted=${result.budgetExhausted}`,
+    await runScheduledTick(
+      ctx,
+      "monitoring",
+      () =>
+        runMonitoringTick({
+          db: d1Db(env.DB as never),
+          env: rawEnv,
+          limit: parseEnv(rawEnv).MONITORING_MAX_CLIENTS_PER_RUN,
+        }),
+      (r) =>
+        `considered=${r.considered} scanned=${r.scanned} skipped=${r.skipped} ` +
+        `failed=${r.failed} new=${r.newFindings} resolved=${r.resolvedFindings} ` +
+        `evaluatorCalls=${r.evaluatorCalls} budgetExhausted=${r.budgetExhausted}`,
     );
   },
 } satisfies ExportedHandler<CloudflareEnvironment>;
+
+/**
+ * Run one scheduled tick with the safety discipline every unattended path here
+ * shares: keep the invocation alive with `waitUntil`, log a one-line summary on
+ * success, and — crucially — **rethrow** a pre-reporting failure so it lands in
+ * Cloudflare's cron error rate where an alert can reach a human. A tick that
+ * fails silently is an hour that produced nothing and told no one.
+ */
+async function runScheduledTick<T>(
+  ctx: ExecutionContext,
+  label: string,
+  run: () => Promise<T>,
+  summary: (result: T) => string,
+): Promise<void> {
+  const task = runWithWorkerExecutionContext(ctx, run);
+  // The rejection is handled below; this copy only keeps the invocation alive,
+  // so it is silenced to avoid reporting the same failure twice.
+  ctx.waitUntil(task.catch(() => undefined));
+
+  let result: T;
+  try {
+    result = await task;
+  } catch (error) {
+    const cause = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+    console.error(`[${label}] tick failed before reporting: ${cause}`);
+    throw error;
+  }
+
+  console.log(`[${label}] ${summary(result)}`);
+}

@@ -24,9 +24,13 @@ export default [
   // operator-only: runs the scheduled monitoring path on demand. Inert unless
   // MONITORING_TRIGGER_TOKEN is configured. Not a user-facing page.
   route("internal/monitoring/run", "routes/internal.monitoring.run.tsx"),
+  // operator-only: runs the MONITOR digest tick on demand. Inert unless
+  // MONITOR_DIGEST_TRIGGER_TOKEN is configured. Not a user-facing page.
+  route("internal/monitoring/digest", "routes/internal.monitoring.digest.tsx"),
 
   // authed + workspace required — each loader/action calls requireTenant itself
   route("changes", "routes/changes.tsx"),
+  route("monitor", "routes/monitor.tsx"),
   route("operations", "routes/operations.tsx"),
   route("export/workspace", "routes/export.workspace.tsx"),
   route("opportunities", "routes/opportunities._index.tsx"),

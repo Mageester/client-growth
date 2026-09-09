@@ -8,7 +8,7 @@ describe("weekly portfolio changes", () => {
     const db = nodeSqliteDb();
     try {
       await db.exec(SCHEMA_SQL);
-      await db.exec(`INSERT INTO workspaces VALUES ('a','Agency','ua','2026-01-01'),('b','Other','ub','2026-01-01');
+      await db.exec(`INSERT INTO workspaces (id,name,owner_user_id,created_at) VALUES ('a','Agency','ua','2026-01-01'),('b','Other','ub','2026-01-01');
         INSERT INTO clients (id,workspace_id,name,domain,updated_at) VALUES ('ca','a','Alpha','alpha.example','2026-01-01'),('cb','b','Beta','beta.example','2026-01-01');`);
       for (const [ws,client,date,outcome,added,fixed] of [
         ['a','ca','2026-09-03T12:00:00.000Z','findings',2,1],
@@ -31,7 +31,7 @@ describe("weekly portfolio changes", () => {
     const db = nodeSqliteDb();
     try {
       await db.exec(SCHEMA_SQL);
-      await db.exec(`INSERT INTO workspaces VALUES ('a','Agency','ua','2026-01-01'),('b','Other','ub','2026-01-01');
+      await db.exec(`INSERT INTO workspaces (id,name,owner_user_id,created_at) VALUES ('a','Agency','ua','2026-01-01'),('b','Other','ub','2026-01-01');
         INSERT INTO clients (id,workspace_id,name,domain,updated_at) VALUES ('ca','a','Alpha','alpha.example','2026-01-01'),('cb','b','Beta','beta.example','2026-01-01');`);
       await db
         .prepare(`INSERT INTO analysis_runs

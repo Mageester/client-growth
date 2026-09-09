@@ -310,6 +310,37 @@ curl -X POST -H "Authorization: Bearer $MONITORING_TRIGGER_TOKEN"   https://clie
 
 Locally: `wrangler dev --test-scheduled`, then `curl -X POST localhost:8788/__scheduled`.
 
+## MONITOR (the paid tier)
+
+MONITOR is the first paid feature: the productized layer on top of recurring
+monitoring. It watches a portfolio and, once a week, emails the agency a digest of
+what changed **in billable terms** — new opportunities, findings a client
+resolved, and an honest "we couldn't read N sites" — then stays quiet when nothing
+sold-able moved. Not uptime, not content diffs.
+
+Because there is no billing yet, entitlement is operator/env policy, default-closed
+and mirroring the signup gate: `MONITOR_ENTITLEMENT_MODE` is `off` / `allowlist` /
+`open`, with `MONITOR_ALLOWLIST` naming owner addresses or `@domains`
+(`src/core/entitlements.ts`). Preflight refuses to deploy unless it is declared.
+The gate fails closed everywhere it matters — an unentitled workspace cannot turn
+monitoring on, is never scanned (no unattended spend), and is never emailed.
+
+```
+cron (0 13 * * *)  ->  scheduled()  ->  runMonitorDigestTick()
+                                          |- listWorkspacesDueForDigest(limit)  bounded
+                                          |- claimWorkspaceDigest(...)          one owner per ws
+                                          |- entitlement gate                   pay -> send
+                                          |- collectDigestFacts + buildMonitorDigest   (no analysis; $0)
+                                          \- send via Resend + record + reschedule
+```
+
+The digest reads already-computed scan output and triggers no analysis, so it
+incurs **no provider spend**; all unattended AI cost stays in the hourly scan,
+which MONITOR now gates by entitlement. Policy is pure in `src/core/monitorDigest.ts`,
+storage/scheduling in `src/db/monitorDigests.ts` (migration `0025`), orchestration
+in `app/lib/monitorDigest.server.ts`, and the console is `/monitor`. Full runbook,
+including the required live Resend digest smoke, is in [`docs/monitor.md`](docs/monitor.md).
+
 ## Status
 
 - **Commercial judgment layer** — structured `subjectType` /
@@ -344,7 +375,7 @@ Locally: `wrangler dev --test-scheduled`, then `curl -X POST localhost:8788/__sc
   explicitly.
 
 Not built: Stripe/billing, pricing enforcement, RBAC beyond owner/member, client
-portal, autonomous outreach, Morrow execution, email or Slack digests, a third
+portal, autonomous outreach, Morrow execution, Slack digests, a third
 commercial opportunity rule.
 
 Current handoff: [docs/HANDOFF-2026-09-06.md](docs/HANDOFF-2026-09-06.md) — what shipped, the

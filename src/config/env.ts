@@ -42,6 +42,13 @@ export const EnvSchema = z.object({
     .positive()
     .max(25)
     .default(MONITORING_MAX_CLIENTS_PER_RUN),
+  /**
+   * Workspaces one MONITOR digest tick may email. The digest reads
+   * already-computed monitoring output and triggers no analysis, so this bounds
+   * email fan-out, not provider spend; kept modest so a single bad tick cannot
+   * blast a whole tenant list.
+   */
+  MONITOR_DIGEST_MAX_PER_RUN: z.coerce.number().int().positive().max(200).default(25),
   /** Analysis starts one workspace may make in a UTC day. */
   ANALYSIS_WORKSPACE_DAILY_LIMIT: z.coerce
     .number()

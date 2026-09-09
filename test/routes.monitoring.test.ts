@@ -59,6 +59,7 @@ beforeEach(async () => {
         DB: portfolio.d1 as never,
         AI_PROVIDER: "mock",
         MAX_AI_CALLS_PER_RUN: "10",
+        MONITOR_ENTITLEMENT_MODE: "open",
       },
     },
   };

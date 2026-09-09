@@ -28,7 +28,7 @@ import {
 const NOW = new Date("2026-09-02T12:00:00.000Z");
 const AFTER_COOLDOWN = new Date("2026-09-02T12:06:00.000Z");
 const AFTER_TWO_COOLDOWNS = new Date("2026-09-02T12:12:00.000Z");
-const ENV = { AI_PROVIDER: "mock", MAX_AI_CALLS_PER_RUN: "10" };
+const ENV = { AI_PROVIDER: "mock", MAX_AI_CALLS_PER_RUN: "10", MONITOR_ENTITLEMENT_MODE: "open" };
 const BATCH = 5;
 
 let portfolio: Portfolio;

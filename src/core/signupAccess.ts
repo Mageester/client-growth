@@ -14,6 +14,8 @@
  * Pure: no database, no environment, no clock beyond what is handed in.
  */
 
+import { matchesAllowlist, normalizeEmail, parseAllowlist } from "@/core/allowlist";
+
 export const SIGNUP_MODES = ["open", "invite"] as const;
 export type SignupMode = (typeof SIGNUP_MODES)[number];
 
@@ -43,15 +45,11 @@ function isSignupMode(value: unknown): value is SignupMode {
 
 /** Normalize one address for comparison. Never used for delivery. */
 export function normalizeSignupEmail(email: string): string {
-  return email.trim().toLowerCase();
+  return normalizeEmail(email);
 }
 
 export function parseSignupAllowlist(raw: unknown): string[] {
-  if (typeof raw !== "string") return [];
-  return raw
-    .split(/[,\s]+/)
-    .map((entry) => entry.trim().toLowerCase())
-    .filter((entry) => entry.length > 0);
+  return parseAllowlist(raw);
 }
 
 export function parseSignupPolicy(raw: Record<string, unknown> = {}): SignupPolicy {
@@ -63,34 +61,10 @@ export function parseSignupPolicy(raw: Record<string, unknown> = {}): SignupPoli
 }
 
 /**
- * Split an address into local part and "@domain", or null if it is not a shape
- * this gate is willing to reason about.
+ * The address-matching rule (exactly one "@", full-address or whole-domain
+ * entries, stricter-than-a-mail-server) lives in [[allowlist]] so the signup
+ * gate and the MONITOR entitlement gate ([[entitlements]]) agree on it.
  *
- * Exactly one "@" is required. Taking the LAST "@" of a multi-"@" string would
- * read `someone@evil.test?@agency.example` as belonging to `@agency.example`
- * and admit a stranger on a domain entry — so a string with two of them is
- * refused outright rather than interpreted. This is an admission gate; being
- * stricter than a mail server is the correct direction to be wrong in.
- */
-function splitAddress(email: string): { local: string; domain: string } | null {
-  const normalized = normalizeSignupEmail(email);
-  const parts = normalized.split("@");
-  if (parts.length !== 2) return null;
-  const [local, host] = parts as [string, string];
-  if (!local || !host) return null;
-  return { local, domain: `@${host}` };
-}
-
-function matchesAllowlist(policy: SignupPolicy, email: string): boolean {
-  const address = splitAddress(email);
-  if (!address) return false;
-  const normalized = `${address.local}${address.domain}`;
-  return policy.allowlist.some(
-    (entry) => entry === normalized || entry === address.domain,
-  );
-}
-
-/**
  * `hasPendingInvitation` is what keeps the gate from breaking the team feature:
  * an owner who invites a colleague has already made exactly the decision this
  * policy exists to require, and the invitee has no account yet, so they must be
@@ -104,7 +78,7 @@ export function decideSignup(input: {
 }): SignupDecision {
   if (input.policy.mode === "open") return { allowed: true, basis: "open" };
   if (input.hasPendingInvitation) return { allowed: true, basis: "invitation" };
-  if (matchesAllowlist(input.policy, input.email)) {
+  if (matchesAllowlist(input.policy.allowlist, input.email)) {
     return { allowed: true, basis: "allowlist" };
   }
   return {

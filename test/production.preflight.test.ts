@@ -144,22 +144,36 @@ describe("production Wrangler configuration", () => {
     );
   });
 
-  it("requires exactly one cron trigger for recurring monitoring", () => {
+  it("requires the hourly monitoring cron plus exactly one daily digest cron", () => {
     const config = clone(readConfig());
     expect(validateProductionConfig(config)).toEqual([]);
 
-    // One trigger for the whole product. The tick selects due clients itself, so
-    // a second schedule is duplicated unattended spend, and none is a scheduler
-    // that silently never runs.
-    for (const triggers of [undefined, { crons: [] }, { crons: ["0 * * * *", "30 * * * *"] }]) {
+    // The hourly scan cron must be present, and exactly one further cron for the
+    // MONITOR digest — no digest cron means digests never send; two means a
+    // duplicated unattended schedule.
+    const missingMonitoring = [undefined, { crons: [] }, { crons: ["0 13 * * *"] }];
+    for (const triggers of missingMonitoring) {
       const broken = clone(config);
-      // Remove the inheritable root trigger too, or production would inherit it.
-      delete broken.triggers;
+      delete broken.triggers; // or production would inherit the root trigger
       if (triggers === undefined) delete broken.env.production.triggers;
       else broken.env.production.triggers = triggers;
 
       expect(validateProductionConfig(broken)).toEqual(
-        expect.arrayContaining([expect.stringMatching(/exactly one cron trigger/)]),
+        expect.arrayContaining([expect.stringMatching(/hourly recurring-monitoring cron/)]),
+      );
+    }
+
+    const wrongDigestCount = [
+      { crons: ["0 * * * *"] }, // no digest cron
+      { crons: ["0 * * * *", "0 13 * * *", "0 14 * * *"] }, // two digest crons
+    ];
+    for (const triggers of wrongDigestCount) {
+      const broken = clone(config);
+      delete broken.triggers;
+      broken.env.production.triggers = triggers;
+
+      expect(validateProductionConfig(broken)).toEqual(
+        expect.arrayContaining([expect.stringMatching(/exactly one daily MONITOR digest cron/)]),
       );
     }
   });
@@ -192,6 +206,26 @@ describe("production Wrangler configuration", () => {
       expect(validateProductionConfig(broken), value).toEqual(
         expect.arrayContaining([
           expect.stringMatching(/SIGNUP_MODE must be "open" or "invite"/),
+        ]),
+      );
+    }
+  });
+
+  it("requires production to state who has the paid MONITOR feature", () => {
+    const config = clone(readConfig());
+    expect(validateProductionConfig(config)).toEqual([]);
+
+    delete config.env.production.vars.MONITOR_ENTITLEMENT_MODE;
+    expect(validateProductionConfig(config)).toEqual(
+      expect.arrayContaining([expect.stringMatching(/MONITOR_ENTITLEMENT_MODE/)]),
+    );
+
+    for (const value of ["OFF", "paid", "on", ""]) {
+      const broken = clone(readConfig());
+      broken.env.production.vars.MONITOR_ENTITLEMENT_MODE = value;
+      expect(validateProductionConfig(broken), value).toEqual(
+        expect.arrayContaining([
+          expect.stringMatching(/MONITOR_ENTITLEMENT_MODE must be "off", "allowlist" or "open"/),
         ]),
       );
     }

@@ -3,7 +3,12 @@ import {
   MONITORING_MAX_CLIENTS_PER_RUN,
   type MonitoringOutcome,
 } from "@/core/monitoring";
+import {
+  decideMonitorEntitlement,
+  parseMonitorEntitlementPolicy,
+} from "@/core/entitlements";
 import * as monitoring from "@/db/monitoring";
+import { ownerEmailsForWorkspaces } from "@/db/workspaces";
 import * as repo from "@/db/repositories";
 import type { SqlDb } from "@/db/sql";
 import type { TenantScope } from "@/db/tenant";
@@ -203,11 +208,46 @@ export async function runMonitoringTick(
   const due = await monitoring.listDueClients(options.db, { now, limit });
   result.considered = due.length;
 
+  // MONITOR entitlement. Recurring scans are the engine of the paid feature, so
+  // a workspace nobody is paying for is never scanned — there is no unattended
+  // provider spend for an unentitled tenant, even one that was entitled when it
+  // enabled monitoring and has since been de-entitled. In "open" mode every
+  // workspace qualifies and no lookup happens; in "off" mode none do; only
+  // "allowlist" resolves owner addresses, and then only for this bounded batch.
+  const policy = parseMonitorEntitlementPolicy(options.env);
+  let entitledWorkspaces: Set<string> | null = null; // null => every workspace
+  if (policy.mode === "off") {
+    entitledWorkspaces = new Set();
+  } else if (policy.mode === "allowlist") {
+    const ids = [...new Set(due.map((candidate) => candidate.workspaceId))];
+    const emails = await ownerEmailsForWorkspaces(options.db, ids);
+    entitledWorkspaces = new Set(
+      ids.filter(
+        (id) => decideMonitorEntitlement({ policy, ownerEmail: emails.get(id) ?? null }).entitled,
+      ),
+    );
+  }
+
   for (const candidate of due) {
     // Between clients only: a scan is never abandoned half-recorded.
     if (Date.now() - startedAtMs >= budgetMs) {
       result.budgetExhausted = true;
       break;
+    }
+
+    // Not paying for MONITOR: skip before claiming, so nothing spends and the
+    // client is left exactly as it was for whenever the workspace is entitled.
+    if (entitledWorkspaces && !entitledWorkspaces.has(candidate.workspaceId)) {
+      result.skipped++;
+      result.clients.push({
+        clientId: candidate.clientId,
+        workspaceId: candidate.workspaceId,
+        outcome: "skipped",
+        newCount: 0,
+        resolvedCount: 0,
+        evaluatorCalls: 0,
+      });
+      continue;
     }
 
     // The workspace comes from the client's own row and scopes everything after

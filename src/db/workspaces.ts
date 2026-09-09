@@ -77,6 +77,38 @@ export async function getWorkspace(db: SqlDb, id: string): Promise<Workspace | n
   return row ? toWorkspace(row) : null;
 }
 
+/**
+ * The owner email for each of the given workspace ids.
+ *
+ * The MONITOR entitlement gate keys off the workspace owner's address, and the
+ * unattended paths that must honour it — the monitoring scan tick and the
+ * digest tick — have no session to read an email from. A workspace whose owner
+ * row is missing maps to `null`, and the gate treats `null` as not entitled, so
+ * a broken join fails closed rather than granting a paid feature by accident.
+ */
+export async function ownerEmailsForWorkspaces(
+  db: SqlDb,
+  workspaceIds: readonly string[],
+): Promise<Map<string, string | null>> {
+  const ids = [...new Set(workspaceIds)].filter((id) => id.length > 0);
+  const result = new Map<string, string | null>();
+  if (ids.length === 0) return result;
+
+  const placeholders = ids.map(() => "?").join(", ");
+  const rows = await db
+    .prepare(
+      `SELECT w.id AS workspace_id, u.email AS email
+       FROM workspaces w
+       LEFT JOIN "user" u ON u.id = w.owner_user_id
+       WHERE w.id IN (${placeholders})`,
+    )
+    .bind(...ids)
+    .all<{ workspace_id: string; email: string | null }>();
+
+  for (const row of rows) result.set(row.workspace_id, row.email ?? null);
+  return result;
+}
+
 export async function renameWorkspace(db: SqlDb, id: string, name: string): Promise<boolean> {
   const trimmed = name.trim();
   if (!trimmed) return false;
@@ -138,6 +170,7 @@ export async function resetWorkspace(
   // workspace id. analysis_limit_reservations is deliberately absent: it has
   // no client foreign key and is the workspace's usage history.
   const statements: SqlBatchStatement[] = [
+    { sql: "DELETE FROM monitor_digest_runs WHERE workspace_id = ?", params: [workspaceId] },
     { sql: "DELETE FROM proposal_shares WHERE workspace_id = ?", params: [workspaceId] },
     { sql: "DELETE FROM client_report_shares WHERE workspace_id = ?", params: [workspaceId] },
     { sql: "DELETE FROM client_report_snapshots WHERE workspace_id = ?", params: [workspaceId] },
