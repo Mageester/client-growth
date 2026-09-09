@@ -21,6 +21,8 @@ import * as reportBuilder from "../app/routes/clients.$id.report";
 import * as clientDetail from "../app/routes/clients.$id";
 import * as reportPreview from "../app/routes/reports.$id";
 import * as reportShare from "../app/routes/report.share";
+import { ClientReportDocument } from "../app/components/client-report";
+import { formatDate } from "../app/components/ui";
 
 const migrationsDir = join(dirname(fileURLToPath(import.meta.url)), "..", "migrations");
 const NOW = "2026-09-07T14:00:00.000Z";
@@ -83,9 +85,9 @@ function call(fn: (args: never) => unknown, args: unknown): Promise<unknown> {
   });
 }
 
-function renderReport(loaderData: unknown) {
+function renderReport(loaderData: unknown, actionData?: unknown) {
   const router = createMemoryRouter(
-    [{ path: "*", element: createElement(reportPreview.default, { loaderData, actionData: undefined } as never) }],
+    [{ path: "*", element: createElement(reportPreview.default, { loaderData, actionData } as never) }],
     { initialEntries: ["/reports/report_fixture"] },
   );
   return renderToStaticMarkup(createElement(RouterProvider, { router }));
@@ -253,7 +255,7 @@ describe("client-facing report routes", () => {
       request: formReq({ intent: "create-share" }),
       params: { id: reportId },
       context,
-    })) as { ok: boolean; shareUrl?: string };
+    })) as { ok: boolean; shareUrl?: string; expiresAt?: string };
     expect(createdShare.ok).toBe(true);
     const reloaded = (await reportPreview.loader({
       request: new Request(`http://localhost/reports/${reportId}`),
@@ -261,7 +263,18 @@ describe("client-facing report routes", () => {
       context,
     } as never)) as Awaited<ReturnType<typeof reportPreview.loader>>;
     expect(reloaded.activeShares).toHaveLength(1);
-    expect(renderReport(reloaded)).toContain("Revoke active links");
+    const reloadedHtml = renderReport(reloaded);
+    expect(reloadedHtml).toContain("Revoke active links");
+    expect(reloadedHtml).toContain(
+      `<time dateTime="${reloaded.report.snapshot.public.generatedAt}">${formatDate(reloaded.report.snapshot.public.generatedAt)}</time>`,
+    );
+    expect(reloadedHtml).toContain(
+      `<time dateTime="${reloaded.activeShares[0]!.expiresAt}">${formatDate(reloaded.activeShares[0]!.expiresAt)}</time>`,
+    );
+    const shareHtml = renderReport(reloaded, createdShare);
+    expect(shareHtml).toContain(
+      `<time dateTime="${createdShare.expiresAt}">${formatDate(createdShare.expiresAt)}</time>`,
+    );
 
     const clientLoaderData = await clientDetail.loader({
       request: new Request("http://localhost/clients/cli_a"),
@@ -337,6 +350,29 @@ describe("client-facing report routes", () => {
     });
     expect(preview.report.snapshot.public.recommendedProjects[1]?.packagePrice).toBeNull();
     expect(preview.report.snapshot.audit.includedOpportunityIds).toHaveLength(2);
+
+    const fullHtml = renderToStaticMarkup(
+      createElement(ClientReportDocument, { snapshot: preview.report.snapshot.public }),
+    );
+    expect(fullHtml).toContain('data-report-density="full"');
+    expect(fullHtml).toContain('class="client-report-cover"');
+
+    const compactSnapshot = {
+      ...preview.report.snapshot.public,
+      executiveSummary: {
+        recommendedProjectCount: 0,
+        strongestCommercialArea: null,
+        underlyingOpportunityValue: null,
+      },
+      recommendedProjects: [],
+      supportingProjects: [preview.report.snapshot.public.recommendedProjects[0]!],
+    };
+    const compactHtml = renderToStaticMarkup(
+      createElement(ClientReportDocument, { snapshot: compactSnapshot }),
+    );
+    expect(compactHtml).toContain('data-report-density="compact"');
+    expect(compactHtml).toContain('class="client-report-compact-header"');
+    expect(compactHtml).not.toContain('class="client-report-cover"');
 
     const created = (await call(reportPreview.action, {
       request: formReq({ intent: "create-share" }),

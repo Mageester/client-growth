@@ -9,9 +9,12 @@ import Changes from "../app/routes/changes";
 import OpportunityDetail from "../app/routes/opportunities.$id";
 import OpportunitiesIndex from "../app/routes/opportunities._index";
 import Onboarding from "../app/routes/onboarding";
+import Operations from "../app/routes/operations";
 import ServicesIndex from "../app/routes/services._index";
+import Settings from "../app/routes/settings";
 import { OpportunityQueue } from "../app/components/signal-desk";
-import { PageContextMeta } from "../app/components/ui";
+import { SettingsNavigation } from "../app/components/settings-navigation";
+import { formatDate, PageContextMeta } from "../app/components/ui";
 
 function render(node: ReactNode, initialEntry = "/") {
   const router = createMemoryRouter([{ path: "*", element: node }], {
@@ -416,19 +419,90 @@ describe("approved page anatomy", () => {
     expect(html).toContain("Prepare client proposal");
   });
 
-  it("places Services inside a secondary Settings navigation", () => {
-    const html = render(
+  it("names only the six real Settings destinations and describes them truthfully", () => {
+    const html = render(createElement(SettingsNavigation, { active: "services" }), "/services");
+    const labels = [...html.matchAll(/<b>([^<]+)<\/b>/g)].map((match) => match[1]);
+    const descriptions = [...html.matchAll(/<small>([^<]+)<\/small>/g)].map((match) => match[1]);
+
+    expect(labels).toEqual([
+      "General",
+      "Monitoring",
+      "Services",
+      "Data and health",
+      "Team",
+      "Account",
+    ]);
+    expect(descriptions).toEqual([
+      "Workspace settings",
+      "Automated client rechecks",
+      "Agency service catalog",
+      "Export and analysis reliability",
+      "Users and permissions",
+      "Email and account access",
+    ]);
+    expect(html).not.toMatch(/Billing|Integrations|Plans and payments/);
+  });
+
+  it("keeps Services and workspace export reachable from truthful Settings surfaces", () => {
+    const servicesHtml = render(
       createElement(ServicesIndex, { loaderData: { services: [] } } as never),
       "/services",
     );
+    expect(servicesHtml).toContain("Manage the services you offer to clients.");
 
-    for (const label of ["General", "Integrations", "Services", "Team", "Billing"]) {
-      expect(html).toContain(label);
-    }
-    // Check health is a Settings section too, which is what lets the primary
-    // sidebar stay at four destinations.
-    expect(html).toContain("Check health");
-    expect(html).toContain("Manage the services you offer to clients.");
+    const at = "2026-09-08T15:30:00.000Z";
+    const operationsHtml = render(
+      createElement(Operations, {
+        loaderData: {
+          current: { checks: 1, clean: 0, findings: 0, inconclusive: 1, evaluatorErrors: 0, evaluatorCalls: 0 },
+          rate: 1,
+          previousRate: null,
+          failedStarts: 1,
+          incompleteStarts: 0,
+          alert: null,
+          investigations: [{ kind: "run", clientName: "Northwind", stage: "Analysis", at, reason: "Stopped safely." }],
+          sales: { rows: [], totalSold: 0, totalSoldValue: 0 },
+          email: { deliverable: true, detail: "Configured." },
+        },
+      } as never),
+      "/operations",
+    );
+    expect(operationsHtml).toContain('href="/export/workspace"');
+    expect(operationsHtml).toContain("Export workspace data");
+    expect(operationsHtml).toContain(`<time dateTime="${at}">${formatDate(at, true)}</time>`);
+  });
+
+  it("presents HTTPS as the normal logo input and keeps data URLs advanced", () => {
+    const html = render(
+      createElement(Settings, {
+        loaderData: {
+          email: "owner@example.com",
+          workspaceName: "Axiom Studio",
+          logo: null,
+          reportTheme: "classic",
+          isOwner: false,
+          members: [],
+          invitations: [],
+          monitoring: {
+            monitored: 0,
+            due: 0,
+            unhealthy: 0,
+            newFindings: 0,
+            resolvedFindings: 0,
+            checks: 0,
+            runs: 0,
+            inconclusive: 0,
+            evaluatorErrors: 0,
+          },
+        },
+        actionData: undefined,
+      } as never),
+      "/settings",
+    );
+
+    expect(html).toContain("Optional HTTPS logo URL");
+    expect(html).toMatch(/<details[^>]*>[\s\S]*data URL/i);
+    expect(html).not.toContain("Proposal logo");
   });
 });
 

@@ -1625,8 +1625,20 @@ html[data-theme="light"] .app-frame .entity-mark {
 }
 
 .app-frame .signal-client-trigger {
-  min-width: 156px;
+  min-width: 0;
+  max-width: 100%;
   justify-content: space-between;
+}
+
+.app-frame .signal-client-trigger > span:not(.scope-count) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-frame .signal-client-trigger > svg {
+  flex-shrink: 0;
 }
 
 .app-frame .signal-client-trigger .scope-count {
@@ -2911,6 +2923,8 @@ html[data-theme="light"] .app-frame .entity-mark {
     margin-top: 26px;
     flex-wrap: wrap;
   }
+  .app-frame .opportunities-page .pagehead { margin-bottom: 30px; }
+  .app-frame .opportunities-page .pagehead-actions { margin-top: 18px; gap: 12px; }
 }
 
 @media (max-width: 1240px) {
@@ -3032,6 +3046,27 @@ html[data-theme="light"] .app-frame .entity-mark {
   .app-frame .summary-line { font-size: 18px; }
   .app-frame .eyebrow { margin-bottom: 20px; }
   .app-frame .page-context-meta { position: static; margin-bottom: 20px; justify-content: space-between; }
+  .app-frame .opportunities-page {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .app-frame .opportunities-page .pagehead { margin-bottom: 22px; }
+  .app-frame .opportunities-page .pagehead-actions {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    margin-top: 16px;
+    gap: 10px;
+  }
+  .app-frame .opportunities-page .signal-client-trigger {
+    width: 100%;
+  }
+  .app-frame .opportunities-page .orbit-select-wrap {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
   .app-frame .orbit-search { flex: 1 1 100%; width: 100%; }
   .app-frame .import-clients { flex: 1; }
   .app-frame .attention-row {
@@ -3257,6 +3292,9 @@ html[data-theme="light"] .app-frame .entity-mark {
   }
   .app-frame .settings-layout { grid-template-columns: 1fr; gap: 28px; }
   .app-frame .settings-nav {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     grid-auto-flow: row;
     grid-auto-columns: auto;
@@ -3780,6 +3818,52 @@ html[data-theme="light"] .app-frame .entity-mark {
   background:
     radial-gradient(circle at 95% 5%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 28%),
     linear-gradient(145deg, color-mix(in srgb, var(--accent) 10%, var(--surface)), var(--surface) 56%);
+}
+
+.client-report-compact-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 1.25fr);
+  gap: 1.5rem 2rem;
+  padding: 2rem;
+  border-bottom: 1px solid #dce7e1;
+  background: linear-gradient(135deg, #f1f8f3 0%, #fffefa 72%);
+}
+
+.client-report-compact-title {
+  min-width: 0;
+}
+
+.client-report-compact-title h2 {
+  margin-top: 0.45rem;
+  color: #18272f;
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 500;
+  letter-spacing: -0.05em;
+  line-height: 1;
+  overflow-wrap: anywhere;
+}
+
+.client-report-compact-title p {
+  margin-top: 0.5rem;
+  color: #63747a;
+}
+
+.client-report-compact-header .client-report-cover-meta,
+.client-report-compact-header .client-report-notice {
+  grid-column: 1 / -1;
+}
+
+.client-report-document[data-report-density="compact"] .client-report-summary {
+  padding-block: 2rem;
+}
+
+.client-report-document[data-report-density="compact"] .client-report-section {
+  padding-top: 2.5rem;
+}
+
+.client-report-document[data-report-density="compact"] .client-report-project-list {
+  margin-top: 1rem;
 }
 
 .client-report-brand {
@@ -5429,6 +5513,17 @@ body:has(.client-report-document.is-public) {
     min-height: 0;
     padding: 2rem 1.25rem 1.6rem;
     border-radius: 13px;
+  }
+
+  .client-report-compact-header {
+    grid-template-columns: 1fr;
+    gap: 1.1rem;
+    padding: 1.25rem 1rem;
+  }
+
+  .client-report-compact-header .client-report-cover-meta,
+  .client-report-compact-header .client-report-notice {
+    grid-column: auto;
   }
 
   .client-report-cover-title h2 {

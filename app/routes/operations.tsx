@@ -158,7 +158,8 @@ export default function Operations({ loaderData: d }: Route.ComponentProps) {
               <ul className="weekly-list">
                 {d.investigations.map((row, index) => (
                   <li key={`${row.kind}-${row.at}-${row.clientName}-${index}`}>
-                    <b>{row.clientName}</b> · {row.stage} · {formatDate(row.at, true)}
+                    <b>{row.clientName}</b> · {row.stage} · {" "}
+                    <time dateTime={row.at}>{formatDate(row.at, true)}</time>
                     <p>{row.reason}</p>
                   </li>
                 ))}

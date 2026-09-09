@@ -13,7 +13,7 @@ import {
   loader as rootLoader,
 } from "../app/root";
 import { homeRenderClock } from "../app/routes/changes";
-import { healthSectionDescription } from "../app/routes/opportunities._index";
+import OpportunitiesIndex, { healthSectionDescription } from "../app/routes/opportunities._index";
 import OpportunityDetail from "../app/routes/opportunities.$id";
 import { __setSessionResolver } from "../app/lib/session.server";
 
@@ -114,6 +114,69 @@ describe("mobile viewport safety", () => {
     expect(phoneRules).toMatch(/\.app-frame \.detail \.record-meta\s*\{[\s\S]*min-width:\s*0/);
     expect(phoneRules).toMatch(/\.app-frame \.detail \.record-meta > span:last-child\s*\{[\s\S]*overflow-wrap:\s*anywhere/);
     expect(css).toMatch(/\.app-frame \.opportunities-page \.orbit-select-wrap\s*\{[\s\S]*width:\s*180px/);
+  });
+
+  it("bounds the selected-client and mobile filter controls without shrinking their icons", () => {
+    const css = readFileSync(new URL("../app/styles/orbit-approved.css", import.meta.url), "utf8");
+    const triggerRule = /\.app-frame \.signal-client-trigger\s*\{([\s\S]*?)\}/.exec(css)?.[1] ?? "";
+    const labelRule = /\.app-frame \.signal-client-trigger > span:not\(\.scope-count\)\s*\{([\s\S]*?)\}/.exec(css)?.[1] ?? "";
+    const iconRule = /\.app-frame \.signal-client-trigger > svg\s*\{([\s\S]*?)\}/.exec(css)?.[1] ?? "";
+    const phoneRules = css.slice(css.lastIndexOf("@media (max-width: 700px)"));
+
+    expect(triggerRule).toMatch(/min-width:\s*0/);
+    expect(triggerRule).toMatch(/max-width:\s*100%/);
+    expect(labelRule).toMatch(/min-width:\s*0/);
+    expect(labelRule).toMatch(/text-overflow:\s*ellipsis/);
+    expect(iconRule).toMatch(/flex-shrink:\s*0/);
+    expect(phoneRules).toMatch(/\.app-frame \.opportunities-page \.pagehead-actions\s*\{[\s\S]*max-width:\s*100%/);
+    expect(phoneRules).toMatch(/\.app-frame \.opportunities-page \.orbit-select-wrap\s*\{[\s\S]*max-width:\s*100%/);
+    expect(phoneRules).toMatch(/\.app-frame \.settings-nav\s*\{[\s\S]*max-width:\s*100%/);
+  });
+
+  it("formats the visible cooldown date while preserving its machine-readable instant", () => {
+    const retryAt = "2026-09-04T12:05:00.000Z";
+    const loaderData = {
+      groups: [
+        {
+          client: { id: "client_a", name: "A very long selected client name", domain: "client-a.example", offerings: [], notes: "" },
+          opportunities: [],
+          totals: { open: 0, priceMin: 0, priceMax: 0 },
+          run: null,
+          monitoring: { cadence: "off", nextDueAt: null, lastAttemptAt: null, lastSuccessAt: null, lastOutcome: null, consecutiveFailures: 0, claimedAt: null },
+          state: "never",
+        },
+      ],
+      serviceName: {},
+      catalogMatched: 1,
+      winRates: [],
+      monitoring: { monitored: 0, due: 0, unhealthy: 0, newFindings: 0, resolvedFindings: 0, checks: 0 },
+    };
+    const html = renderToStaticMarkup(
+      createElement(
+        RouterProvider,
+        {
+          router: createMemoryRouter(
+            [{
+              path: "/opportunities",
+              element: createElement(OpportunitiesIndex, {
+                loaderData,
+                actionData: {
+                  ok: false,
+                  clientId: "client_a",
+                  error: `This client was analyzed recently. Try again after ${retryAt}.`,
+                  limitation: { code: "client-cooldown", reason: "This client was analyzed recently.", retryAt, retryAfterMs: 300_000 },
+                },
+              } as never),
+            }],
+            { initialEntries: ["/opportunities"] },
+          ),
+        } as never,
+      ),
+    );
+
+    const visibleDate = /<time dateTime="2026-09-04T12:05:00.000Z">([^<]+)<\/time>/.exec(html)?.[1];
+    expect(visibleDate).toBeTruthy();
+    expect(visibleDate).not.toBe(retryAt);
   });
 
   it("keeps finding identity readable when rows get narrow", () => {

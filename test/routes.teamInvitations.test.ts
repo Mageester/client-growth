@@ -1,6 +1,9 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { createMemoryRouter, RouterProvider } from "react-router";
 
 import Database from "better-sqlite3";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -12,6 +15,7 @@ import { __setSessionResolver } from "../app/lib/session.server";
 import { d1LikeOver } from "./helpers/testAuth";
 import * as inviteRoute from "../app/routes/invite.$token";
 import * as settings from "../app/routes/settings";
+import { formatDate } from "../app/components/ui";
 
 const migrationsDir = join(dirname(fileURLToPath(import.meta.url)), "..", "migrations");
 
@@ -130,7 +134,7 @@ describe("settings team management", () => {
     const loaded = (await settings.loader({ request: new Request("http://localhost/settings"), context: ctx } as never)) as {
       isOwner: boolean;
       members: Array<{ email: string; role: string }>;
-      invitations: Array<{ invitedEmail: string; role: string }>;
+      invitations: Array<{ invitedEmail: string; role: string; expiresAt: string }>;
     };
     expect(loaded.isOwner).toBe(true);
     expect(loaded.members.map((member) => `${member.email}:${member.role}`)).toEqual([
@@ -140,6 +144,17 @@ describe("settings team management", () => {
     expect(loaded.invitations).toEqual([
       expect.objectContaining({ invitedEmail: "new.person@example.com", role: "member" }),
     ]);
+
+    const html = renderToStaticMarkup(
+      createElement(RouterProvider, {
+        router: createMemoryRouter(
+          [{ path: "/settings", element: createElement(settings.default, { loaderData: loaded, actionData: undefined } as never) }],
+          { initialEntries: ["/settings"] },
+        ),
+      }),
+    );
+    const expiresAt = loaded.invitations[0]!.expiresAt;
+    expect(html).toContain(`<time dateTime="${expiresAt}">${formatDate(expiresAt)}</time>`);
   });
 
   it("keeps invitation creation and revocation owner-only", async () => {
@@ -241,6 +256,41 @@ describe("team invitation acceptance route", () => {
       params: { token: invitation.token },
     } as never);
     expect(replay).toEqual({ error: "This invitation has already been accepted." });
+  });
+
+  it("formats the invitation expiry while retaining the exact ISO instant", () => {
+    const expiresAt = "2026-09-14T12:00:00.000Z";
+    const html = renderToStaticMarkup(
+      createElement(
+        RouterProvider,
+        {
+          router: createMemoryRouter(
+            [{
+              path: "/invite/:token",
+              element: createElement(inviteRoute.default, {
+                loaderData: {
+                  token: "a".repeat(64),
+                  invitation: {
+                    workspaceName: "Axiom Studio",
+                    invitedEmail: "recipient@example.com",
+                    role: "member",
+                    expiresAt,
+                    expired: false,
+                    accepted: false,
+                    revoked: false,
+                  },
+                  signedIn: false,
+                  emailVerified: false,
+                },
+              }),
+            }],
+            { initialEntries: [`/invite/${"a".repeat(64)}`] },
+          ),
+        },
+      ),
+    );
+
+    expect(html).toContain(`<time dateTime="${expiresAt}">${formatDate(expiresAt)}</time>`);
   });
 
   it("redirects an anonymous visitor back to the invitation after login", async () => {

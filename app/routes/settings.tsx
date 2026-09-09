@@ -21,7 +21,7 @@ import {
   getResendConfig,
 } from "../lib/resend.server";
 import { getTrustedAuthBaseURL } from "../lib/auth.server";
-import { AxiomCredit, Icon, PageContextMeta, pluralize } from "../components/ui";
+import { AxiomCredit, formatDate, Icon, PageContextMeta, pluralize } from "../components/ui";
 import { requireTenant } from "../lib/session.server";
 import { SettingsNavigation } from "../components/settings-navigation";
 import type { Route } from "./+types/settings";
@@ -170,7 +170,7 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
         <div className="pagehead-copy">
           <span className="eyebrow">Settings</span>
           <h1 className="title-page">Settings</h1>
-          <p className="summary-line">Manage your workspace, services, and integrations.</p>
+          <p className="summary-line">Manage your workspace, monitoring, services, data, team, and account.</p>
         </div>
       </div>
 
@@ -229,19 +229,23 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
             />
           </div>
           <div className="field">
-            <label htmlFor="workspaceLogo">Proposal logo</label>
+            <label htmlFor="workspaceLogo">Optional HTTPS logo URL</label>
             <input
               id="workspaceLogo"
               name="logo"
               type="text"
               inputMode="url"
               defaultValue={loaderData.logo ?? ""}
-              placeholder="data:image/png;base64,… or https://…"
+              placeholder="https://example.com/logo.png"
               aria-describedby="workspaceLogoHelp"
             />
             <p id="workspaceLogoHelp" className="field-help">
-              Optional PNG or JPEG. A small inline data URL is safest; public logos must use HTTPS.
+              Use a public HTTPS URL for a PNG or JPEG shown on new client reports.
             </p>
+            <details className="field-help">
+              <summary>Advanced logo format</summary>
+              <p>A small inline PNG or JPEG data URL remains supported for existing workflows.</p>
+            </details>
           </div>
           <fieldset className="report-theme-settings">
             <legend>Client report style</legend>
@@ -333,7 +337,8 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
                     <div className="kv-row" key={invitation.id}>
                       <dt>{invitation.invitedEmail}</dt>
                       <dd>
-                        {invitation.role} · expires {invitation.expiresAt}{" "}
+                        {invitation.role} · expires {" "}
+                        <time dateTime={invitation.expiresAt}>{formatDate(invitation.expiresAt)}</time>{" "}
                         <Form method="post" style={{ display: "inline" }}>
                           <input type="hidden" name="intent" value="revoke-invitation" />
                           <input type="hidden" name="invitationId" value={invitation.id} />

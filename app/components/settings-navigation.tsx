@@ -5,8 +5,8 @@ import { Icon, type IconName } from "./ui";
 
 /**
  * The secondary navigation for everything that is configuration rather than
- * work: the workspace, the service catalog, monitoring, the team, billing, and
- * the reliability of the checks themselves. Keeping these here is what lets the
+ * work: the workspace, the service catalog, monitoring, the team, the account,
+ * and the reliability of the checks themselves. Keeping these here is what lets the
  * primary sidebar stay at four destinations.
  *
  * Three of these are sections of the Settings page rather than separate routes.
@@ -37,8 +37,8 @@ const SETTINGS_LINKS: Array<{
   {
     key: "monitoring",
     to: "/settings#monitoring",
-    label: "Integrations",
-    description: "Connected tools",
+    label: "Monitoring",
+    description: "Automated client rechecks",
     icon: "link",
     section: "monitoring",
   },
@@ -46,15 +46,15 @@ const SETTINGS_LINKS: Array<{
     key: "services",
     to: "/services",
     label: "Services",
-    description: "Manage service offerings",
+    description: "Agency service catalog",
     icon: "briefcase",
     page: "services",
   },
   {
     key: "health",
     to: "/operations",
-    label: "Check health",
-    description: "Analysis reliability",
+    label: "Data and health",
+    description: "Export and analysis reliability",
     icon: "shield",
     page: "health",
   },
@@ -69,8 +69,8 @@ const SETTINGS_LINKS: Array<{
   {
     key: "account",
     to: "/settings#account",
-    label: "Billing",
-    description: "Plans and payments",
+    label: "Account",
+    description: "Email and account access",
     icon: "document",
     section: "account",
   },

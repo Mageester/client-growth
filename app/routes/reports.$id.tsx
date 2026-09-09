@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Form, Link } from "react-router";
 
 import { ClientReportDocument } from "../components/client-report";
-import { Icon } from "../components/ui";
+import { formatDate, Icon } from "../components/ui";
 import {
   ClientReportError,
   createClientReportShare,
@@ -83,7 +83,12 @@ export default function ClientReportPreview({ loaderData, actionData }: Route.Co
             <Icon name="arrow-left" size={14} />
             {report.snapshot.public.client.name}
           </Link>
-          <span className="client-report-toolbar-status">Private preview · snapshot generated {report.snapshot.public.generatedAt.slice(0, 10)}</span>
+          <span className="client-report-toolbar-status">
+            Private preview · snapshot generated {" "}
+            <time dateTime={report.snapshot.public.generatedAt}>
+              {formatDate(report.snapshot.public.generatedAt)}
+            </time>
+          </span>
         </div>
         <div className="client-report-toolbar-actions">
           <button type="button" className="btn" onClick={() => window.print()}>
@@ -112,7 +117,10 @@ export default function ClientReportPreview({ loaderData, actionData }: Route.Co
             <span className="eyebrow">Active share links</span>
             <h2>{activeShares.length} active {activeShares.length === 1 ? "link" : "links"}</h2>
             <p>
-              The next link expires {new Date(activeShares[activeShares.length - 1]!.expiresAt).toLocaleDateString()}.
+              The next link expires {" "}
+              <time dateTime={activeShares[activeShares.length - 1]!.expiresAt}>
+                {formatDate(activeShares[activeShares.length - 1]!.expiresAt)}
+              </time>.
             </p>
           </div>
           {canManageShares && (
@@ -134,7 +142,11 @@ export default function ClientReportPreview({ loaderData, actionData }: Route.Co
             <input aria-label="Secure report link" readOnly value={shareUrl} />
             <button type="button" className="btn" onClick={copyShare}>{copied ? "Copied" : "Copy link"}</button>
           </div>
-          {shareExpiresAt && <p className="client-report-share-expiry">Expires {new Date(shareExpiresAt).toLocaleDateString()}</p>}
+          {shareExpiresAt && (
+            <p className="client-report-share-expiry">
+              Expires <time dateTime={shareExpiresAt}>{formatDate(shareExpiresAt)}</time>
+            </p>
+          )}
         </section>
       )}
 

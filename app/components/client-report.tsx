@@ -171,13 +171,40 @@ export function ClientReportDocument({
   const logo = safeLogo(snapshot.agency.logo);
   const summary = snapshot.executiveSummary;
   const evidenceDate = snapshot.evidenceReviewedAt;
+  const reportDensity =
+    snapshot.recommendedProjects.length === 0 && snapshot.supportingProjects.length <= 1
+      ? "compact"
+      : "full";
 
   return (
     <article
       className={`client-report-document${publicView ? " is-public" : ""}`}
       data-report-theme={snapshot.agency.theme}
+      data-report-density={reportDensity}
     >
-      <section className="client-report-cover">
+      {reportDensity === "compact" ? (
+        <section className="client-report-compact-header">
+          <div className="client-report-brand">
+            {logo && <img src={logo} alt={`${snapshot.agency.name} logo`} referrerPolicy="no-referrer" />}
+            <div>
+              <span className="client-report-eyebrow">Prepared by</span>
+              <h1>{snapshot.agency.name}</h1>
+            </div>
+          </div>
+          <div className="client-report-compact-title">
+            <span className="client-report-eyebrow">Client growth review</span>
+            <h2>{snapshot.client.name}</h2>
+            <p>{snapshot.client.domain}</p>
+          </div>
+          <dl className="client-report-cover-meta">
+            <div><dt>Prepared by</dt><dd>{snapshot.preparedBy}</dd></div>
+            <div><dt>Prepared</dt><dd><time dateTime={snapshot.generatedAt}>{formatDate(snapshot.generatedAt)}</time></dd></div>
+            <div><dt>Evidence reviewed</dt><dd>{evidenceDate ? <time dateTime={evidenceDate}>{formatDate(evidenceDate)}</time> : "Not recorded"}</dd></div>
+          </dl>
+          <p className="client-report-notice">{snapshot.notice}</p>
+        </section>
+      ) : (
+        <section className="client-report-cover">
         <div className="client-report-brand">
           {logo && <img src={logo} alt={`${snapshot.agency.name} logo`} referrerPolicy="no-referrer" />}
           <div>
@@ -196,7 +223,8 @@ export function ClientReportDocument({
           <div><dt>Evidence reviewed</dt><dd>{evidenceDate ? <time dateTime={evidenceDate}>{formatDate(evidenceDate)}</time> : "Not recorded"}</dd></div>
         </dl>
         <p className="client-report-notice">{snapshot.notice}</p>
-      </section>
+        </section>
+      )}
 
       <ReportSection eyebrow="01 / Overview" title="Executive summary" className="client-report-summary">
         <p className="client-report-lede">
