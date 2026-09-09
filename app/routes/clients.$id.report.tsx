@@ -5,6 +5,8 @@ import {
   buildClientReportSnapshot,
   buildReportCandidates,
   ClientReportValidationError,
+  defaultReportReason,
+  MAX_REPORT_REASON,
   type ReportCandidate,
   type ReportCandidates,
 } from "@/core/clientReport";
@@ -111,6 +113,14 @@ export async function action({ params, request, context }: Route.ActionArgs) {
   if (agencyNote.error) return { ok: false as const, error: agencyNote.error };
   const nextStepNote = textField(form, "nextStepNote", MAX_NEXT_STEP_NOTE);
   if (nextStepNote.error) return { ok: false as const, error: nextStepNote.error };
+  const reasons: Record<string, string> = {};
+  for (const key of selectedKeys) {
+    const value = form.get(`reason:${key}`);
+    if (value !== null && typeof value !== "string") {
+      return { ok: false as const, error: "Enter text for the reason to raise." };
+    }
+    reasons[key] = value ?? "";
+  }
 
   try {
     const snapshot = buildClientReportSnapshot({
@@ -128,6 +138,7 @@ export async function action({ params, request, context }: Route.ActionArgs) {
         showUnderlyingValue: form.get("showUnderlyingValue") === "on",
         packagePrices: packageInputs.prices,
         confirmedPackagePriceKeys: packageInputs.confirmedKeys,
+        reasons,
         agencyNote: agencyNote.value,
         nextStepNote: nextStepNote.value,
       },
@@ -161,6 +172,8 @@ function CandidateChoice({
   packageConfirmed,
   onPackagePrice,
   onPackageConfirmed,
+  reason,
+  onReason,
 }: {
   candidate: ReportCandidate;
   selected: boolean;
@@ -172,9 +185,10 @@ function CandidateChoice({
   packageConfirmed: boolean;
   onPackagePrice: (value: string) => void;
   onPackageConfirmed: (checked: boolean) => void;
+  reason: string;
+  onReason: (value: string) => void;
 }) {
   const entries = candidate.project.entries;
-  const rationales = [...new Set(entries.map((entry) => entry.opportunity.rationale.trim()).filter(Boolean))];
   const support = [...new Set(entries.map((entry) => entry.opportunity.detected.trim()).filter(Boolean))];
   const evidence = [...new Set(entries.flatMap((entry) => entry.opportunity.evidenceRefs))];
   const deliverables = [...new Set(entries.flatMap((entry) => entry.opportunity.suggestedScope).map((line) => line.trim()).filter(Boolean))];
@@ -194,8 +208,17 @@ function CandidateChoice({
       </label>
       <dl className="report-builder-handoff">
         <div>
-          <dt>Reason to raise</dt>
-          <dd>{rationales.join(" ")}</dd>
+          <dt><label htmlFor={`reason:${candidate.key}`}>Reason to raise</label></dt>
+          <dd className="report-builder-textarea">
+            <textarea
+              id={`reason:${candidate.key}`}
+              name={`reason:${candidate.key}`}
+              value={reason}
+              onChange={(event) => onReason(event.target.value)}
+              rows={3}
+              maxLength={MAX_REPORT_REASON}
+            />
+          </dd>
         </div>
         <div>
           <dt>What supports it</dt>
@@ -273,6 +296,9 @@ export default function ClientReportBuilder({ loaderData, actionData }: Route.Co
   const [nextStepNote, setNextStepNote] = useState("");
   const [packagePrices, setPackagePrices] = useState<Record<string, string>>({});
   const [confirmedPrices, setConfirmedPrices] = useState<Record<string, boolean>>({});
+  const [reasons, setReasons] = useState<Record<string, string>>(() =>
+    Object.fromEntries(allCandidates.map((candidate) => [candidate.key, defaultReportReason(candidate)])),
+  );
 
   const toggle = (key: string, checked: boolean) => {
     setSelectedKeys((current) => checked ? [...current, key] : current.filter((item) => item !== key));
@@ -307,6 +333,7 @@ export default function ClientReportBuilder({ loaderData, actionData }: Route.Co
             selectedKeys,
             orderedKeys,
             showUnderlyingValue,
+            reasons,
             packagePrices: Object.fromEntries(
               Object.entries(packagePrices).map(([key, value]) => [key, Number(value)]),
             ),
@@ -388,6 +415,8 @@ export default function ClientReportBuilder({ loaderData, actionData }: Route.Co
                   <CandidateChoice
                     key={candidate.key}
                     candidate={candidate}
+                    reason={reasons[candidate.key] ?? defaultReportReason(candidate)}
+                    onReason={(value) => setReasons((current) => ({ ...current, [candidate.key]: value }))}
                     selected={selectedKeys.includes(candidate.key)}
                     canMoveUp={orderedKeys.indexOf(candidate.key) > 0}
                     canMoveDown={orderedKeys.indexOf(candidate.key) >= 0 && orderedKeys.indexOf(candidate.key) < orderedKeys.length - 1}
@@ -411,6 +440,8 @@ export default function ClientReportBuilder({ loaderData, actionData }: Route.Co
                     <CandidateChoice
                       key={candidate.key}
                       candidate={candidate}
+                      reason={reasons[candidate.key] ?? defaultReportReason(candidate)}
+                      onReason={(value) => setReasons((current) => ({ ...current, [candidate.key]: value }))}
                       selected={selectedKeys.includes(candidate.key)}
                       canMoveUp={orderedKeys.indexOf(candidate.key) > 0}
                       canMoveDown={orderedKeys.indexOf(candidate.key) >= 0 && orderedKeys.indexOf(candidate.key) < orderedKeys.length - 1}

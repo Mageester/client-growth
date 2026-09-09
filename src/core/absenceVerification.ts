@@ -513,7 +513,7 @@ export interface CoverageAssessment {
  */
 export function assessServiceCoverage(input: {
   client: { offerings: string[] };
-  evidence: EvidenceBundle;
+  evidence: Pick<EvidenceBundle, "site">;
 }): CoverageAssessment {
   const { evidence } = input;
   const offerings = input.client.offerings.filter((o) => offeringHead(o).length > 0);

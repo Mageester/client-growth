@@ -152,6 +152,7 @@ export interface BuildClientReportSnapshotInput {
     packagePrices?: Readonly<Record<string, number | null | undefined>>;
     /** Keys explicitly confirmed by a human in the builder. */
     confirmedPackagePriceKeys?: readonly string[];
+    reasons?: Readonly<Record<string, string | undefined>>;
     agencyNote?: string | null;
     nextStepNote?: string | null;
   };
@@ -317,6 +318,31 @@ function safeText(value: string, fallback: string): string {
   return trimmed && !INTERNAL_LANGUAGE.test(trimmed) ? trimmed : fallback;
 }
 
+export const MAX_REPORT_REASON = 1_200;
+
+/** Concrete persisted reasons, deduplicated and bounded for the report editor. */
+export function defaultReportReason(candidate: ReportCandidate): string {
+  const reasons = [...new Set(candidate.project.entries
+    .map((entry) => safeText(entry.opportunity.rationale, ""))
+    .filter(Boolean))];
+  return (reasons.join(" ") || "A focused piece of work connected to what this business offers.")
+    .slice(0, MAX_REPORT_REASON);
+}
+
+function reportReason(candidate: ReportCandidate, value: string | undefined): string {
+  if (value !== undefined && typeof value !== "string") {
+    throw new ClientReportValidationError("Enter text for the reason to raise.");
+  }
+  const reason = value?.trim() || defaultReportReason(candidate);
+  if (reason.length > MAX_REPORT_REASON) {
+    throw new ClientReportValidationError("Keep the reason to raise within 1,200 characters.");
+  }
+  if (INTERNAL_LANGUAGE.test(reason)) {
+    throw new ClientReportValidationError("Use client-facing wording in the reason to raise.");
+  }
+  return reason;
+}
+
 function safeScope(project: ProjectView<ProjectEntry>): string[] {
   const scope = [...new Set(
     project.entries.flatMap((entry) => entry.opportunity.suggestedScope.map((line) => line.trim())),
@@ -341,6 +367,7 @@ function projectSnapshot(
   candidate: ReportCandidate,
   showUnderlyingValue: boolean,
   packagePrice: number | null | undefined,
+  reason?: string,
 ): ClientReportProjectSnapshot {
   const project = candidate.project;
   const packageSnapshot =
@@ -349,10 +376,7 @@ function projectSnapshot(
       : { amount: packagePrice, currency: "USD" as const };
   return {
     title: safeText(project.title, "Recommended website work"),
-    rationale: safeText(
-      project.summary,
-      "A focused piece of work connected to what this business offers.",
-    ),
+    rationale: reportReason(candidate, reason),
     observed: projectObserved(project),
     scope: safeScope(project),
     findings: project.entries.map((entry) => ({
@@ -445,11 +469,12 @@ export function buildClientReportSnapshot(
     candidate.category === "commercial" && confirmedPackagePriceKeys.has(candidate.key)
       ? validatePackagePrice(packagePrices[candidate.key])
       : null;
+  const reasonFor = (candidate: ReportCandidate) => input.selection.reasons?.[candidate.key];
   const recommendedProjects = commercialCandidates.map((candidate) =>
-    projectSnapshot(candidate, input.selection.showUnderlyingValue, packageFor(candidate)),
+    projectSnapshot(candidate, input.selection.showUnderlyingValue, packageFor(candidate), reasonFor(candidate)),
   );
   const supportingProjects = healthCandidates.map((candidate) =>
-    projectSnapshot(candidate, input.selection.showUnderlyingValue, packageFor(candidate)),
+    projectSnapshot(candidate, input.selection.showUnderlyingValue, packageFor(candidate), reasonFor(candidate)),
   );
   const includedEntries = selected.flatMap((candidate) => candidate.project.entries);
   const publicValue = input.selection.showUnderlyingValue

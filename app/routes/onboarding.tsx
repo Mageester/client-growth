@@ -7,6 +7,7 @@ import { RULE_SERVICE_LINKS } from "@/core/rules/registry";
 import { TECHNICAL_STARTER_PRICE_BANDS } from "@/core/rules/technical";
 import { suggestOfferings, type SuggestedOffering } from "@/core/offeringSuggestions";
 import { assessServiceCoverage } from "@/core/absenceVerification";
+import { assessAnalysisReadiness } from "@/core/analysisReadiness";
 import { summarizeEvidenceFailure } from "@/core/evidenceDiagnostics";
 import {
   createWorkspaceForOwner,
@@ -273,6 +274,9 @@ export async function loader({ request, context }: Route.LoaderArgs) {
           suggestions,
           coverage,
           readiness: analysisReadinessForClient({ client, catalog, evidence }),
+          // Site structure supports recalculation as the agency changes its
+          // confirmations; network diagnostics and other evidence stay server-side.
+          readinessContext: { catalog, site: evidence?.site ?? null },
         };
       }
     }
@@ -878,7 +882,7 @@ function ConfirmStage({
   // 20-second wait.
   const submitting = navigation.state !== "idle" && navigation.formMethod === "POST";
   const client = loaderData.client;
-  const { crawl, crawlFailure, suggestions, readFailed, coverage, readiness } = loaderData;
+  const { crawl, crawlFailure, suggestions, readFailed, coverage, readinessContext, readiness: persistedReadiness } = loaderData;
 
   const [checked, setChecked] = useState<Record<string, boolean>>(() =>
     Object.fromEntries([
@@ -915,6 +919,23 @@ function ConfirmStage({
   ]);
   const warnings = offeringWarnings(confirmed);
   const unreadable = readFailed || !crawl || crawl.readablePages === 0;
+  const currentCoverage = readinessContext?.site
+    ? assessServiceCoverage({ client: { offerings: confirmed }, evidence: { site: readinessContext.site } })
+    : null;
+  const readiness = readinessContext
+    ? assessAnalysisReadiness({
+        catalog: readinessContext.catalog,
+        offerings: confirmed.length,
+        lastCrawl: readinessContext.site
+          ? {
+              analyzable: currentCoverage?.analyzable ?? false,
+              readablePages: crawl?.readablePages ?? 0,
+              suggestedOfferings: suggestions.length,
+              limitation: currentCoverage?.limitation ?? null,
+            }
+          : undefined,
+      })
+    : persistedReadiness;
   // Older static render fixtures do not cross the loader boundary. The live
   // route always supplies readiness; this fallback only preserves those view
   // fixtures while retaining their legacy coverage semantics.

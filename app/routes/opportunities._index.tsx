@@ -532,7 +532,7 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
               {contactEntries.length > 0 && (
                 <section className="signal-section-break">
                   <div className="feed-head-copy">
-                    <h2>Reviewed recommendations</h2>
+                    <h2>Recommendations to consider</h2>
                     <div className="feed-head-meta">
                       <span>Commercial findings and website work you have progressed toward a client conversation.</span>
                     </div>

@@ -237,6 +237,89 @@ afterEach(() => {
 });
 
 describe("client-facing report routes", () => {
+  it("rejects a file submitted as a report reason", async () => {
+    const builder = await reportBuilder.loader({
+      request: new Request("http://localhost/clients/cli_a/report"),
+      params: { id: "cli_a" }, context,
+    } as never);
+    const key = builder.candidates.defaultSelectedKeys[0]!;
+    const form = new FormData();
+    form.set("intent", "generate");
+    form.set("selectedProject", key);
+    form.set("orderedProject", key);
+    form.set(`reason:${key}`, new File(["uploaded content"], "reason.txt"));
+    const result = await call(reportBuilder.action, {
+      request: new Request("http://localhost/clients/cli_a/report", { method: "POST", body: form }),
+      params: { id: "cli_a" }, context,
+    });
+    expect(result).toEqual({ ok: false, error: "Enter text for the reason to raise." });
+  });
+
+  it.each([
+    { label: "oversized", reason: "x".repeat(1201), error: /1,200 characters/ },
+    { label: "internal wording", reason: "The evaluator confidence score recommends this.", error: /client-facing wording/ },
+  ])("rejects a $label reason on the server before saving a report", async ({ reason, error }) => {
+    const builder = await reportBuilder.loader({
+      request: new Request("http://localhost/clients/cli_a/report"),
+      params: { id: "cli_a" }, context,
+    } as never);
+    const key = builder.candidates.defaultSelectedKeys[0]!;
+    const result = await call(reportBuilder.action, {
+      request: formReq({ intent: "generate", selectedProject: key, orderedProject: key, [`reason:${key}`]: reason }),
+      params: { id: "cli_a" }, context,
+    }) as { ok: boolean; error: string };
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatch(error);
+  });
+
+  it("offers a bounded reason editor initialized from stored rationales", async () => {
+    const builder = await reportBuilder.loader({
+      request: new Request("http://localhost/clients/cli_a/report"),
+      params: { id: "cli_a" }, context,
+    } as never);
+    const html = renderBuilder(builder);
+    const key = builder.candidates.defaultSelectedKeys[0]!;
+    expect(html).toContain(`name="reason:${key}"`);
+    expect(html).toMatch(/<textarea[^>]*name="reason:[^"]+"[^>]*maxLength="1200"[^>]*>A focused service page gives this offering a clear place to be understood\.<\/textarea>/);
+  });
+
+  it.each([
+    { label: "concrete stored", submitted: undefined },
+    { label: "edited", submitted: "  Explain the heat pump options <script>alert('x')</script> before the spring visit.  " },
+  ])("retains the $label reason through private and public saved reports", async ({ submitted }) => {
+    const builder = await reportBuilder.loader({
+      request: new Request("http://localhost/clients/cli_a/report"),
+      params: { id: "cli_a" }, context,
+    } as never);
+    const key = builder.candidates.defaultSelectedKeys[0]!;
+    const reason = submitted?.trim() ?? "A focused service page gives this offering a clear place to be understood.";
+    const generated = await call(reportBuilder.action, {
+      request: formReq({ intent: "generate", selectedProject: key, orderedProject: key,
+        ...(submitted === undefined ? {} : { [`reason:${key}`]: submitted }),
+      }),
+      params: { id: "cli_a" }, context,
+    }) as Response;
+    expect(generated.status).toBe(302);
+    const reportId = generated.headers.get("Location")!.split("/").at(-1)!;
+    const saved = await reportPreview.loader({
+      request: new Request(`http://localhost/reports/${reportId}`),
+      params: { id: reportId }, context,
+    } as never);
+    expect(saved.report.snapshot.public.recommendedProjects[0]?.rationale).toBe(reason);
+    const escapedReason = renderToStaticMarkup(createElement("p", null, reason)).slice(3, -4);
+    expect(renderReport(saved)).toContain(escapedReason);
+    expect(renderReport(saved)).not.toContain("<script>");
+    const created = await call(reportPreview.action, {
+      request: formReq({ intent: "create-share" }), params: { id: reportId }, context,
+    }) as { ok: boolean; shareUrl: string };
+    expect(created.ok).toBe(true);
+    const page = await reportShare.loader({ request: new Request(created.shareUrl), context } as never);
+    const html = renderToStaticMarkup(createElement(reportShare.default, { loaderData: page } as never));
+    expect(html).toContain("Reason to raise");
+    expect(html).toContain(escapedReason);
+    expect(html).not.toContain("<script>");
+  });
+
   it("retains share controls after reload and removes anonymous access after revocation", async () => {
     const builder = (await reportBuilder.loader({
       request: new Request("http://localhost/clients/cli_a/report"),

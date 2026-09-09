@@ -715,6 +715,28 @@ describe("onboarding stage two: the agency confirms", () => {
     return { t: await workspaceScope(), clientId };
   }
 
+  it("enables Analyze from current checked offerings with real loader readiness", async () => {
+    const { t, clientId } = await reachStageTwo();
+    const services = await repo.listServices(t);
+    for (const service of services) {
+      if (!service.tags.includes("service-pages-build")) {
+        await repo.setServiceActive(t, service.id, false);
+      }
+    }
+    const data = await onboarding.loader({
+      request: new Request("http://localhost/onboarding?client=" + clientId),
+      context: ctx,
+    } as never);
+    expect(data.client?.offerings).toEqual([]);
+    expect(data.readiness?.readyCount).toBe(0);
+    expect(data.suggestions.some((suggestion) => suggestion.confidence === "high")).toBe(true);
+    expect((await repo.getLatestEvidence(t, clientId))?.site.crawlExhaustive).toBe(true);
+    const html = renderConfirmMarkup(data);
+    expect(html).toContain('name="intent" value="analyze"');
+    expect(html).toContain("Analyze Northwind Heating");
+    expect((await repo.getClient(t, clientId))?.offerings).toEqual([]);
+  });
+
   it("offers what the crawl found, with its provenance, and saves none of it yet", async () => {
     const { t, clientId } = await reachStageTwo();
 
