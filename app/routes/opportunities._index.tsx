@@ -412,7 +412,7 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
       >
         <p className="summary-line">
           <b className="num">{contactTotals.open}</b>
-          <span>open {pluralize(contactTotals.open, "reviewed recommendation", "reviewed recommendations")}</span>
+          <span>open {pluralize(contactTotals.open, "recommendation", "recommendations")}</span>
           {contactTotals.open > 0 && (
             <>
               <span className="dot-sep">·</span>

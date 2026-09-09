@@ -380,7 +380,7 @@ describe("opportunity queue presentation", () => {
     expect(html).toContain("Water Heater Service Expansion");
     expect(rows.every((row) => row.status === "new")).toBe(true);
     expect(html).toContain("Recommendations to consider");
-    expect(html).not.toContain("Reviewed recommendations");
+    expect(html).not.toMatch(/reviewed recommendations?/i);
     expect(html).toContain("Underlying opportunity value");
     expect(html).toContain("$2,700 – $5,400");
     expect(html).not.toContain("Package price");

@@ -54,3 +54,16 @@ Earlier complete-code checks before the final multipart validation regression we
 - Build emitted existing React Router v8 future-flag and empty-route-chunk notices; tests emitted expected negative-path logs and SQLite experimental warnings. None caused a failed check.
 
 The TDD skill guided sequential behavioral regression and implementation cycles. No extra agent was spawned.
+
+## Round 2 — remaining mixed-bucket summary wording
+
+Base: `944acf1189c568d189ec7e83e370aaf633972179`. The first fix changed the section heading but missed the lowercase metric summary. The summary now says `open recommendation(s)`; section order, commercial-first grouping, and the maintenance split are untouched. The existing all-new-commercial render regression now rejects `/reviewed recommendations?/i` across the whole rendered page.
+
+- RED: `pnpm test -- test/routes.opportunityDecisions.test.ts -t "presents related service findings"` exited 1 at 12:03:19 Toronto: 1 failed / 28 skipped because the markup still matched `/reviewed recommendations?/i`.
+- GREEN: the identical command exited 0 at 12:03:31: 1 passed / 28 skipped after the literal correction.
+- `pnpm test -- test/routes.opportunityDecisions.test.ts test/app.actionCenter.test.ts test/app.ui.test.ts`: exit 0, **3 files / 75 tests passed** (12:03:46 Toronto).
+- `pnpm typecheck`: exit 0.
+- `pnpm build`: exit 0; client and SSR builds passed, with the same existing empty-chunk/future-flag notices.
+- `git diff --check`: exit 0 after this report update.
+
+Self-review: only one production copy literal, one strengthened assertion, and this evidence appendix changed. No behavioral, ordering, maintenance, security, pricing, or schema change. No additional browser acceptance performed for this literal correction.
