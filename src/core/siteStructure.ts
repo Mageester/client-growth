@@ -51,6 +51,10 @@ export const SERVICE_SECTION_SEGMENTS: ReadonlySet<string> = new Set([
   "residential", "commercial",
 ]);
 
+function isServiceSectionSegment(segment: string): boolean {
+  return SERVICE_SECTION_SEGMENTS.has(segment) || /(?:^|-)services$/.test(segment);
+}
+
 /**
  * Does a menu heading name the part of a site where its services live?
  *
@@ -66,7 +70,7 @@ export function isServiceSectionLabel(label: string): boolean {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
   const withoutQualifier = normalized.replace(/^(?:all|our)-/, "");
-  return SERVICE_SECTION_SEGMENTS.has(normalized) || SERVICE_SECTION_SEGMENTS.has(withoutQualifier);
+  return isServiceSectionSegment(normalized) || isServiceSectionSegment(withoutQualifier);
 }
 
 /** A verb of work in a URL segment: the page is about doing something for you. */
@@ -162,14 +166,14 @@ export function isNonServiceSegment(segment: string): boolean {
 export function isInServiceSection(url: string): boolean {
   if (isRegistryPath(url)) return false;
   if (isCommerceCatalogPath(url)) return false;
-  return pathSegments(url).some((segment) => SERVICE_SECTION_SEGMENTS.has(segment));
+  return pathSegments(url).some(isServiceSectionSegment);
 }
 
 /** Is this URL the service hub page itself, rather than a page underneath it? */
 export function isServiceHub(url: string): boolean {
   if (isRegistryPath(url)) return false;
   const segments = pathSegments(url);
-  return segments.length === 1 && SERVICE_SECTION_SEGMENTS.has(segments[0]!);
+  return segments.length === 1 && isServiceSectionSegment(segments[0]!);
 }
 
 /**
@@ -180,7 +184,7 @@ export function isServiceSectionChild(url: string): boolean {
   if (isRegistryPath(url)) return false;
   if (isCommerceCatalogPath(url)) return false;
   const segments = pathSegments(url);
-  const hub = segments.findIndex((segment) => SERVICE_SECTION_SEGMENTS.has(segment));
+  const hub = segments.findIndex(isServiceSectionSegment);
   return hub !== -1 && hub < segments.length - 1;
 }
 

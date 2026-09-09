@@ -57,6 +57,16 @@ describe("service section recognition", () => {
     }
   });
 
+  it("recognises a branded services section and its child pages", () => {
+    const hub = "https://x.example/savs-window-tinting-services";
+    const child = `${hub}/residential-window-tinting`;
+
+    expect(isServiceHub(hub)).toBe(true);
+    expect(isInServiceSection(child)).toBe(true);
+    expect(isServiceSectionChild(child)).toBe(true);
+    expect(looksLikeServiceUrl(child)).toBe(true);
+  });
+
   it("recognises a service page on a site with no services drawer at all", () => {
     // cambridgeheating.ca is built exactly like this: flat .html files.
     for (const url of [

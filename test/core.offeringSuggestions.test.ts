@@ -150,6 +150,27 @@ describe("offering suggestions", () => {
     );
   });
 
+  it("returns the complete catalog from a branded services section", () => {
+    const base = "https://www.savswindowtint.com/savs-window-tinting-services";
+    const services = [
+      ["auto-window-tint", "Auto Window Tint"],
+      ["ceramic-window-tinting", "Ceramic Window Tinting"],
+      ["vinyl-wrap", "Vinyl Wrap"],
+      ["residential-window-tinting", "Residential Window Tinting"],
+      ["commercial-window-tinting", "Commercial Window Tinting"],
+    ] as const;
+    const evidence = bundle({
+      pages: [
+        { url: "https://www.savswindowtint.com/" },
+        ...services.map(([slug, label]) => ({ url: `${base}/${slug}`, h1s: [label] })),
+      ],
+      links: services.map(([slug, label]) => ({ href: `${base}/${slug}`, label })),
+      sitemapUrls: services.map(([slug]) => `${base}/${slug}`),
+    });
+
+    expect(labels(evidence)).toEqual(services.map(([, label]) => label).sort());
+  });
+
   it("reads service URLs out of the sitemap", () => {
     const evidence = bundle({
       sitemapUrls: [
