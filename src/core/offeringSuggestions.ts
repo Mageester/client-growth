@@ -1,6 +1,6 @@
 import type { EvidenceBundle } from "@/core/schema";
 import { classifyCommercialLanguage } from "@/core/commercialLanguage";
-import { significantTokens, titleCase } from "@/core/text";
+import { coreTokens, significantTokens, singularize, titleCase } from "@/core/text";
 import {
   isArchivePath,
   isEditorialPath,
@@ -143,9 +143,27 @@ interface Candidate {
   kinds: Set<OfferingEvidenceKind>;
 }
 
-/** A stable key so "Heat Pump Repair" and "heat pump repairs" are one thing. */
+const NON_DISTINGUISHING_CATALOG_WORDS = new Set([
+  "company",
+  "companies",
+  "local",
+  "near",
+  "me",
+  "professional",
+  "professionals",
+  "service",
+  "services",
+]);
+
+/**
+ * A stable catalog key that preserves differences a customer can actually buy.
+ * "Window tinting services" and "window tinting" are one entry, while
+ * residential and commercial tinting remain two distinct offerings.
+ */
 function keyOf(label: string): string {
-  const tokens = significantTokens(label);
+  const tokens = coreTokens(label)
+    .filter((token) => !NON_DISTINGUISHING_CATALOG_WORDS.has(token))
+    .map(singularize);
   return tokens.length > 0 ? tokens.slice().sort().join(" ") : label.trim().toLowerCase();
 }
 
