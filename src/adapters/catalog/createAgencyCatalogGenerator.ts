@@ -13,4 +13,3 @@ export function createAgencyCatalogGenerator(env: Env, fetchImpl?: typeof fetch)
     fetchImpl,
   });
 }
-
