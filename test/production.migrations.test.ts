@@ -34,6 +34,7 @@ const EXPECTED_MIGRATIONS = [
   "0023_client_reports.sql",
   "0024_report_themes.sql",
   "0025_monitor_digests.sql",
+  "0025_catalog_generation_limits.sql",
 ] as const;
 
 const DEMO_IDENTIFIERS = [
@@ -46,6 +47,7 @@ const DEMO_IDENTIFIERS = [
   ["opportunities", "workspace_id", "ws_demo"],
   ["analysis_runs", "workspace_id", "ws_demo"],
   ["analysis_limit_reservations", "workspace_id", "ws_demo"],
+  ["catalog_generation_reservations", "workspace_id", "ws_demo"],
   ["workspace_invitations", "workspace_id", "ws_demo"],
   ["workspace_branding", "workspace_id", "ws_demo"],
   ["proposal_shares", "workspace_id", "ws_demo"],
@@ -137,6 +139,7 @@ describe("production migration baseline", () => {
       await db.exec(readFileSync(join(migrationsDir, "0023_client_reports.sql"), "utf8"));
       await db.exec(readFileSync(join(migrationsDir, "0024_report_themes.sql"), "utf8"));
       await db.exec(readFileSync(join(migrationsDir, "0025_monitor_digests.sql"), "utf8"));
+      await db.exec(readFileSync(join(migrationsDir, "0025_catalog_generation_limits.sql"), "utf8"));
 
       expect(await db.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
 
@@ -197,10 +200,11 @@ describe("production migration baseline", () => {
       .filter((file) => file.endsWith(".sql"))
       .sort();
 
-    expect(migrations.slice(-3)).toEqual([
+    expect(migrations.slice(-4)).toEqual([
       "0023_client_reports.sql",
       "0024_report_themes.sql",
       "0025_monitor_digests.sql",
+      "0025_catalog_generation_limits.sql",
     ]);
     expect(migrations).not.toContain("0023_external_business_claims.sql");
   });

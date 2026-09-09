@@ -70,6 +70,8 @@
         // 200 analyses x 10 evaluator calls = 2,000 paid calls in the worst day.
         // Raise it as a decision; never discover it from an invoice.
         "ANALYSIS_PLATFORM_DAILY_LIMIT": "200",
+        "CATALOG_AI_WORKSPACE_DAILY_LIMIT": "10",
+        "CATALOG_AI_PLATFORM_DAILY_LIMIT": "200",
         // Who may create a workspace. "invite" while there is no billing:
         // self-serve signup plus metered paid work plus no way to charge is a
         // bill with strangers' names on it. Delete this the day billing lands.

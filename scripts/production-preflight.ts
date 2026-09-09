@@ -301,6 +301,19 @@ export function validateProductionConfig(config: unknown): string[] {
     errors.push("ANALYSIS_PLATFORM_DAILY_LIMIT must be a whole number between 1 and 10000");
   }
 
+  for (const name of [
+    "CATALOG_AI_WORKSPACE_DAILY_LIMIT",
+    "CATALOG_AI_PLATFORM_DAILY_LIMIT",
+  ] as const) {
+    const raw = stringValue(productionVars[name]);
+    const value = raw === undefined ? undefined : Number(raw);
+    if (raw === undefined) {
+      errors.push(`production must declare ${name} explicitly`);
+    } else if (!Number.isInteger(value) || value! < 1 || value! > 10_000) {
+      errors.push(`${name} must be a whole number between 1 and 10000`);
+    }
+  }
+
   if (!flags.includes("nodejs_compat")) {
     errors.push('compatibility_flags must include "nodejs_compat"');
   }
@@ -347,6 +360,15 @@ export function productionConfigWarnings(config: unknown): string[] {
     warnings.push(
       `Worst-case paid evaluator calls in one UTC day: ${platformCap * perRun} ` +
         `(${platformCap} analyses x ${perRun} calls). Confirm that number is one you would pay.`,
+    );
+  }
+
+
+  const catalogPlatformCap = Number(stringValue(vars.CATALOG_AI_PLATFORM_DAILY_LIMIT));
+  if (Number.isInteger(catalogPlatformCap)) {
+    warnings.push(
+      `Worst-case paid catalog generations in one UTC day: ${catalogPlatformCap}. ` +
+        "Confirm that number is one you would pay.",
     );
   }
 

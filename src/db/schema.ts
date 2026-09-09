@@ -273,6 +273,22 @@ CREATE INDEX IF NOT EXISTS idx_analysis_limits_day_all
   ON analysis_limit_reservations (day_utc);
 
 /**
+ * Append-only paid catalog-generation admissions. Unlike services, these rows
+ * are accounting records and remain counted when generation later fails.
+ */
+CREATE TABLE IF NOT EXISTS catalog_generation_reservations (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  workspace_id TEXT NOT NULL REFERENCES workspaces (id) ON DELETE CASCADE,
+  reserved_at TEXT NOT NULL,
+  day_utc TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_catalog_generation_limits_workspace_day
+  ON catalog_generation_reservations (workspace_id, day_utc);
+CREATE INDEX IF NOT EXISTS idx_catalog_generation_limits_day_all
+  ON catalog_generation_reservations (day_utc);
+
+/**
  * Explicitly saved workspace branding used when an owner creates a proposal
  * snapshot. Keeping it separate from the original workspace row makes this
  * additive for the production schema while preserving the existing name field.

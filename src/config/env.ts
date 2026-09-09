@@ -5,6 +5,10 @@ import {
   ANALYSIS_PLATFORM_DAILY_LIMIT,
   ANALYSIS_WORKSPACE_DAILY_LIMIT,
 } from "@/db/analysisLimits";
+import {
+  CATALOG_AI_PLATFORM_DAILY_LIMIT,
+  CATALOG_AI_WORKSPACE_DAILY_LIMIT,
+} from "@/db/catalogGenerationLimits";
 
 /**
  * Validated runtime configuration. The default provider is "mock": nothing pays
@@ -68,6 +72,20 @@ export const EnvSchema = z.object({
     .positive()
     .max(10_000)
     .default(ANALYSIS_PLATFORM_DAILY_LIMIT),
+  /** AI-assisted catalog drafts one workspace may request per UTC day. */
+  CATALOG_AI_WORKSPACE_DAILY_LIMIT: z.coerce
+    .number()
+    .int()
+    .positive()
+    .max(10_000)
+    .default(CATALOG_AI_WORKSPACE_DAILY_LIMIT),
+  /** Operator-wide ceiling on paid catalog-generation requests per UTC day. */
+  CATALOG_AI_PLATFORM_DAILY_LIMIT: z.coerce
+    .number()
+    .int()
+    .positive()
+    .max(10_000)
+    .default(CATALOG_AI_PLATFORM_DAILY_LIMIT),
 });
 
 export type Env = z.infer<typeof EnvSchema>;
@@ -106,5 +124,21 @@ export function parseAnalysisCaps(raw: Record<string, unknown> = {}): AnalysisCa
   return AnalysisCapsSchema.parse({
     ANALYSIS_WORKSPACE_DAILY_LIMIT: raw.ANALYSIS_WORKSPACE_DAILY_LIMIT,
     ANALYSIS_PLATFORM_DAILY_LIMIT: raw.ANALYSIS_PLATFORM_DAILY_LIMIT,
+  });
+}
+
+export const CatalogGenerationCapsSchema = EnvSchema.pick({
+  CATALOG_AI_WORKSPACE_DAILY_LIMIT: true,
+  CATALOG_AI_PLATFORM_DAILY_LIMIT: true,
+});
+
+export type CatalogGenerationCaps = z.infer<typeof CatalogGenerationCapsSchema>;
+
+export function parseCatalogGenerationCaps(
+  raw: Record<string, unknown> = {},
+): CatalogGenerationCaps {
+  return CatalogGenerationCapsSchema.parse({
+    CATALOG_AI_WORKSPACE_DAILY_LIMIT: raw.CATALOG_AI_WORKSPACE_DAILY_LIMIT,
+    CATALOG_AI_PLATFORM_DAILY_LIMIT: raw.CATALOG_AI_PLATFORM_DAILY_LIMIT,
   });
 }

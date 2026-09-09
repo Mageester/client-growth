@@ -18,15 +18,19 @@ function response(content: unknown, status = 200) {
 
 describe("DeepSeek agency catalog generator", () => {
   it("makes one deterministic JSON request and treats page copy as untrusted data", async () => {
-    const fetchImpl = vi.fn(async () => response({ services: [{
+    let capturedInit: RequestInit | undefined;
+    const fetchImpl = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      capturedInit = init;
+      return response({ services: [{
       name: "Web Design", description: "A conversion-focused website from strategy through launch.",
       sourceKind: "both", sourceUrls: ["https://agency.example/services"],
-    }] }));
+      }] });
+    });
     const generator = new DeepSeekAgencyCatalogGenerator({ apiKey: "key", fetchImpl });
     const result = await generator.generate(input);
     expect(result).toHaveLength(1);
     expect(fetchImpl).toHaveBeenCalledTimes(1);
-    const body = JSON.parse(String((fetchImpl.mock.calls[0]![1] as RequestInit).body));
+    const body = JSON.parse(String(capturedInit?.body));
     expect(body.temperature).toBe(0);
     expect(body.response_format).toEqual({ type: "json_object" });
     expect(body.messages[0].content).toMatch(/untrusted data/i);
@@ -43,4 +47,3 @@ describe("DeepSeek agency catalog generator", () => {
     expect(() => new DeepSeekAgencyCatalogGenerator({ apiKey: "" })).toThrow(/api key/i);
   });
 });
-

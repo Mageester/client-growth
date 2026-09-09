@@ -63,6 +63,8 @@ describe("production Wrangler configuration", () => {
       DEEPSEEK_BASE_URL: "https://api.deepseek.com",
       DEEPSEEK_MODEL: "deepseek-chat",
       MAX_AI_CALLS_PER_RUN: "10",
+      CATALOG_AI_WORKSPACE_DAILY_LIMIT: "10",
+      CATALOG_AI_PLATFORM_DAILY_LIMIT: "200",
     });
     expect(production?.secrets?.required).toEqual(
       expect.arrayContaining(["BETTER_AUTH_SECRET", "RESEND_API_KEY", "DEEPSEEK_API_KEY"]),
@@ -249,10 +251,32 @@ describe("production Wrangler configuration", () => {
     }
   });
 
+  it("requires explicit workspace and platform ceilings on catalog generation", () => {
+    for (const name of [
+      "CATALOG_AI_WORKSPACE_DAILY_LIMIT",
+      "CATALOG_AI_PLATFORM_DAILY_LIMIT",
+    ] as const) {
+      const config = clone(readConfig());
+      delete config.env.production.vars[name];
+      expect(validateProductionConfig(config), name).toEqual(
+        expect.arrayContaining([expect.stringContaining(name)]),
+      );
+
+      for (const value of ["0", "-1", "10001", "lots", "2.5"]) {
+        const broken = clone(readConfig());
+        broken.env.production.vars[name] = value;
+        expect(validateProductionConfig(broken), `${name}=${value}`).toEqual(
+          expect.arrayContaining([expect.stringMatching(new RegExp(`${name} must be a whole number`))]),
+        );
+      }
+    }
+  });
+
   it("says out loud what the worst paid day costs, and warns when signup is open", () => {
     const config = clone(readConfig());
     expect(productionConfigWarnings(config)).toEqual([
       expect.stringMatching(/2000 \(200 analyses x 10 calls\)/),
+      expect.stringMatching(/catalog generations in one UTC day: 200/),
     ]);
 
     config.env.production.vars.SIGNUP_MODE = "open";
