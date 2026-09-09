@@ -3794,3 +3794,53 @@ a.ev-title:hover {
   flex: 1 1 12rem;
   min-width: 0;
 }
+
+/* Review-first agency catalog generation. */
+.catalog-assistant {
+  margin: 0 0 24px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+}
+
+.catalog-assistant-head,
+.catalog-review-summary,
+.catalog-bulk-price {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.catalog-assistant-head h3 { margin: 4px 0 6px; }
+.catalog-assistant-head p { margin: 0; color: var(--muted); max-width: 62ch; }
+.catalog-assistant-inputs { display: grid; gap: 14px; margin-top: 18px; }
+.catalog-assistant-inputs > .btn { justify-self: start; }
+.catalog-review { display: grid; gap: 14px; margin-top: 20px; }
+.catalog-review-summary span,
+.catalog-sources { color: var(--muted); font-size: 12px; }
+.catalog-bulk-price { justify-content: flex-start; flex-wrap: wrap; }
+.catalog-bulk-price input { width: 120px; }
+.catalog-review-list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.catalog-review-list li {
+  display: grid;
+  grid-template-columns: minmax(180px, .8fr) minmax(260px, 1.5fr) 220px;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.catalog-review-list li.is-off { opacity: .55; }
+.catalog-review-select,
+.catalog-sources { grid-column: 1 / -1; display: flex; gap: 10px; align-items: center; }
+.catalog-sources a { color: inherit; }
+.catalog-manual-hint { margin: 14px 0 0; }
+
+@media (max-width: 820px) {
+  .catalog-assistant-head,
+  .catalog-review-summary { align-items: flex-start; }
+  .catalog-review-list li { grid-template-columns: 1fr; }
+  .catalog-review-select,
+  .catalog-sources { grid-column: 1; }
+}
