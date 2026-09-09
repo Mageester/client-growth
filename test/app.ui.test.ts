@@ -1,12 +1,18 @@
 import { describe, expect, it, vi } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { createMemoryRouter, MemoryRouter, RouterProvider } from "react-router";
+import {
+  createMemoryRouter,
+  MemoryRouter,
+  RouterProvider,
+  UNSAFE_FrameworkContext,
+} from "react-router";
 import { readFileSync } from "node:fs";
 
 import { AnalysisRunning, formatCurrencyRange, deferMenuClose } from "../app/components/ui";
 import {
   AppNavigation,
+  Layout,
   ThemePicker,
   isClientReportSharePath,
   isProposalSharePath,
@@ -358,6 +364,68 @@ describe("opportunity inspector values", () => {
 });
 
 describe("public proposal share shell", () => {
+  function renderRootDocument(pathname: string): string {
+    const router = createMemoryRouter(
+      [
+        {
+          id: "root",
+          path: "*",
+          element: createElement(Layout, null, createElement("article", null, "Page")),
+        },
+      ],
+      {
+        initialEntries: [pathname],
+        hydrationData: {
+          loaderData: {
+            root: {
+              signedIn: false,
+              workspaceName: null,
+              email: null,
+              theme: "dark",
+              publicSignup: false,
+            },
+          },
+        },
+      },
+    );
+
+    return renderToStaticMarkup(
+      createElement(
+        UNSAFE_FrameworkContext.Provider,
+        {
+          value: {
+            manifest: {
+              entry: { module: "/assets/entry.js", imports: [] },
+              routes: {
+                root: {
+                  id: "root",
+                  path: "*",
+                  module: "/assets/root.js",
+                  imports: [],
+                  hasAction: false,
+                  hasClientAction: false,
+                  hasClientLoader: false,
+                  hasClientMiddleware: false,
+                  hasErrorBoundary: false,
+                  hasLoader: false,
+                },
+              },
+              url: "/assets/manifest.js",
+              version: "test",
+            },
+            routeModules: { root: {} },
+            future: {},
+            ssr: true,
+            isSpaMode: false,
+            routeDiscovery: { mode: "initial" },
+            serverHandoffString: "{}",
+          } as never,
+        },
+        createElement(RouterProvider, { router }),
+      ),
+    );
+  }
+
   it.each(["/proposal/share", "/proposal/share/", "/PROPOSAL/SHARE/", "/proposal/%73hare"]) (
     "recognizes %s as the standalone share path",
     (pathname) => {
@@ -391,10 +459,17 @@ describe("public proposal share shell", () => {
     }
   });
 
-  it.each(["/report/share", "/report/share/", "/REPORT/SHARE/"]) (
+  it.each(["/report/share", "/report/share/", "/REPORT/SHARE/", "/report/%73hare"]) (
     "recognizes %s as the standalone client report path",
     (pathname) => {
       expect(isClientReportSharePath(pathname)).toBe(true);
+    },
+  );
+
+  it.each(["/report/share-extra", "/report//share", "/report%2Fshare"]) (
+    "does not treat %s as the client report share path",
+    (pathname) => {
+      expect(isClientReportSharePath(pathname)).toBe(false);
     },
   );
 
@@ -415,6 +490,21 @@ describe("public proposal share shell", () => {
     } finally {
       __setSessionResolver(null);
     }
+  });
+
+  it.each(["/proposal/share", "/report/share", "/REPORT/%73HARE/"]) (
+    "omits inline React Router bootstraps from standalone public share document %s",
+    (pathname) => {
+      const html = renderRootDocument(pathname);
+
+      expect(html).not.toContain("<script");
+    },
+  );
+
+  it("retains React Router bootstraps on normal app documents", () => {
+    const html = renderRootDocument("/login");
+
+    expect(html).toContain("<script");
   });
 
   it("keeps the public proposal readable on printed paper", () => {

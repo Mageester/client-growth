@@ -457,8 +457,12 @@ export function Layout({ children }: { children: ReactNode }) {
             </main>
           </>
         )}
-        <ScrollRestoration />
-        <Scripts />
+        {!isStandalonePublicShare && (
+          <>
+            <ScrollRestoration />
+            <Scripts />
+          </>
+        )}
       </body>
     </html>
     </ThemeContext.Provider>
