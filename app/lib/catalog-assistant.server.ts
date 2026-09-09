@@ -5,6 +5,8 @@ import { createAgencyCatalogGenerator } from "@/adapters/catalog/createAgencyCat
 import { parseCatalogGenerationCaps, parseEnv } from "@/config/env";
 import { sanitizeCatalogDraft } from "@/core/agencyCatalogDraft";
 import { ClientSchema, type Service } from "@/core/schema";
+import { ServiceSchema } from "@/core/schema";
+import { suggestServiceTags } from "@/core/serviceTagSuggestions";
 import {
   requireCatalogGenerationReservation,
   type CatalogGenerationAdmission,
@@ -38,6 +40,42 @@ interface CatalogAssistantDependencies {
   ) => Promise<CatalogGenerationAdmission>;
   generator?: AgencyCatalogGenerator;
   listServices?: (scope: TenantScope) => Promise<Service[]>;
+}
+
+const ReviewedCatalogSchema = z
+  .array(
+    z
+      .object({
+        name: z.string().trim().min(2).max(80),
+        description: z.string().trim().min(10).max(500),
+        priceMin: z.number().nonnegative(),
+        priceMax: z.number().nonnegative(),
+      })
+      .strict()
+      .refine((service) => service.priceMax >= service.priceMin, {
+        message: "The top of every price range must be at least its starting price.",
+      }),
+  )
+  .min(1)
+  .max(30);
+
+export function servicesFromReviewedCatalog(raw: string): Service[] {
+  let decoded: unknown;
+  try {
+    decoded = JSON.parse(raw);
+  } catch {
+    throw new Error("The reviewed catalog is not valid JSON.");
+  }
+  const reviewed = ReviewedCatalogSchema.safeParse(decoded);
+  if (!reviewed.success) throw new Error(`The reviewed catalog is invalid: ${reviewed.error.issues[0]?.message ?? "invalid row"}`);
+  return reviewed.data.map((service) =>
+    ServiceSchema.parse({
+      id: `svc-${crypto.randomUUID()}`,
+      ...service,
+      tags: suggestServiceTags(service).map((suggestion) => suggestion.tag),
+      active: true,
+    }),
+  );
 }
 
 function normalizedWebsite(value: string): string {

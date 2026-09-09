@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { Form, useNavigation } from "react-router";
-import { z } from "zod";
 
 import type { Service } from "@/core/schema";
 import { RULE_SERVICE_LINKS } from "@/core/rules/registry";
@@ -22,7 +21,10 @@ import { GlyphMark, markForTags } from "../components/entity-mark";
 import { requireTenant } from "../lib/session.server";
 import { SettingsNavigation } from "../components/settings-navigation";
 import { validateServiceInput } from "../lib/validation";
-import { generateAgencyCatalogDraft } from "../lib/catalog-assistant.server";
+import {
+  generateAgencyCatalogDraft,
+  servicesFromReviewedCatalog,
+} from "../lib/catalog-assistant.server";
 import { CatalogAssistant } from "../components/catalog-assistant";
 import type { Route } from "./+types/services._index";
 
@@ -94,32 +96,8 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
 
   if (intent === "save-generated-catalog") {
-    const ReviewedCatalogSchema = z
-      .array(
-        z
-          .object({
-            name: z.string().trim().min(2).max(80),
-            description: z.string().trim().min(10).max(500),
-            priceMin: z.number().nonnegative(),
-            priceMax: z.number().nonnegative(),
-          })
-          .strict()
-          .refine((service) => service.priceMax >= service.priceMin, {
-            message: "The top of every price range must be at least its starting price.",
-          }),
-      )
-      .min(1)
-      .max(30);
     try {
-      const reviewed = ReviewedCatalogSchema.parse(JSON.parse(String(form.get("catalog") ?? "")));
-      const services = reviewed.map((service) =>
-        ServiceSchema.parse({
-          id: `svc-${crypto.randomUUID()}`,
-          ...service,
-          tags: suggestServiceTags(service).map((suggestion) => suggestion.tag),
-          active: true,
-        }),
-      );
+      const services = servicesFromReviewedCatalog(String(form.get("catalog") ?? ""));
       await repo.upsertServicesAtomic(t.scope, services);
       return {
         ok: true as const,

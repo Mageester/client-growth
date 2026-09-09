@@ -16,11 +16,31 @@ type ReviewRow = AgencyCatalogDraftItem & {
   priceMax: string;
 };
 
-export function CatalogAssistant() {
+export function reviewRowsAreValid(
+  rows: Array<Pick<ReviewRow, "selected" | "name" | "description" | "priceMin" | "priceMax">>,
+): boolean {
+  const selected = rows.filter((row) => row.selected);
+  return selected.length > 0 && selected.every((row) => {
+    if (row.priceMin === "" || row.priceMax === "") return false;
+    const min = Number(row.priceMin);
+    const max = Number(row.priceMax);
+    return row.name.trim().length >= 2 && row.description.trim().length >= 10 && min >= 0 && max >= min;
+  });
+}
+
+export function CatalogAssistant({
+  deferSave = false,
+  onCatalogChange,
+}: {
+  deferSave?: boolean;
+  onCatalogChange?: (catalog: string) => void;
+} = {}) {
   const fetcher = useFetcher<DraftResponse>();
   const [rows, setRows] = useState<ReviewRow[]>([]);
   const [bulkMin, setBulkMin] = useState("");
   const [bulkMax, setBulkMax] = useState("");
+  const [website, setWebsite] = useState("");
+  const [summary, setSummary] = useState("");
   const busy = fetcher.state !== "idle";
 
   useEffect(() => {
@@ -31,20 +51,17 @@ export function CatalogAssistant() {
   }, [fetcher.data]);
 
   const selected = rows.filter((row) => row.selected);
-  const valid = useMemo(
-    () => selected.length > 0 && selected.every((row) => {
-      const min = Number(row.priceMin);
-      const max = Number(row.priceMax);
-      return row.name.trim().length >= 2 && row.description.trim().length >= 10 && min >= 0 && max >= min;
-    }),
-    [selected],
-  );
+  const valid = useMemo(() => reviewRowsAreValid(rows), [rows]);
   const catalog = JSON.stringify(selected.map((row) => ({
     name: row.name.trim(),
     description: row.description.trim(),
     priceMin: Number(row.priceMin),
     priceMax: Number(row.priceMax),
   })));
+
+  useEffect(() => {
+    onCatalogChange?.(valid ? catalog : "");
+  }, [catalog, onCatalogChange, valid]);
 
   const patchRow = (index: number, patch: Partial<ReviewRow>) =>
     setRows((current) => current.map((row, rowIndex) => rowIndex === index ? { ...row, ...patch } : row));
@@ -65,20 +82,19 @@ export function CatalogAssistant() {
         <Icon name="briefcase" size={20} />
       </div>
 
-      <fetcher.Form method="post" className="catalog-assistant-inputs">
-        <input type="hidden" name="intent" value="generate-catalog" />
+      <div className="catalog-assistant-inputs">
         <div className="field">
           <label htmlFor="agency-catalog-website">Agency website</label>
-          <input id="agency-catalog-website" name="website" type="url" placeholder="https://youragency.com" />
+          <input id="agency-catalog-website" name="website" type="url" placeholder="https://youragency.com" value={website} onChange={(event) => setWebsite(event.target.value)} />
         </div>
         <div className="field">
           <label htmlFor="agency-catalog-summary">Or describe what you sell</label>
-          <textarea id="agency-catalog-summary" name="summary" rows={3} placeholder="We design conversion websites, build local SEO campaigns, and manage paid search…" />
+          <textarea id="agency-catalog-summary" name="summary" rows={3} placeholder="We design conversion websites, build local SEO campaigns, and manage paid search…" value={summary} onChange={(event) => setSummary(event.target.value)} />
         </div>
-        <button className="btn btn-primary" type="submit" disabled={busy}>
+        <button className="btn btn-primary" type="button" disabled={busy} onClick={() => fetcher.submit({ intent: "generate-catalog", website, summary }, { method: "post" })}>
           <Icon name="briefcase" size={15} /> {busy ? "Building draft…" : "Build my service catalog"}
         </button>
-      </fetcher.Form>
+      </div>
 
       {fetcher.data && !fetcher.data.ok && <div className="notice err" role="alert"><Icon name="alert" size={15} /><span>{fetcher.data.error}</span></div>}
       {fetcher.data?.ok && fetcher.data.kind === "catalog-save" && <div className="notice ok" role="status"><Icon name="check" size={15} /><span>{fetcher.data.message}</span></div>}
@@ -111,12 +127,14 @@ export function CatalogAssistant() {
               </li>
             ))}
           </ul>
-          <fetcher.Form method="post" className="form-actions">
+          {deferSave ? (
+            <div className="notice ok" role="status"><Icon name="check" size={15} /><span>{valid ? `${selected.length} reviewed services will replace the starter catalog when you continue.` : "Add a valid price range to every selected service to use this catalog."}</span></div>
+          ) : <fetcher.Form method="post" className="form-actions">
             <input type="hidden" name="intent" value="save-generated-catalog" />
             <input type="hidden" name="catalog" value={catalog} />
             <button className="btn btn-primary" type="submit" disabled={busy || !valid}>{busy ? "Saving…" : `Save ${selected.length} selected services`}</button>
             <button className="btn btn-ghost" type="button" onClick={() => setRows([])}>Discard draft</button>
-          </fetcher.Form>
+          </fetcher.Form>}
         </div>
       )}
       <p className="field-hint catalog-manual-hint">Prefer full control? The manual <b>New service</b> form stays available.</p>

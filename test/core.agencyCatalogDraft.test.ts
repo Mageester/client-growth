@@ -48,5 +48,16 @@ describe("agency catalog draft", () => {
       allowedPageUrls: [page], existingServices: [],
     })).toThrow();
   });
-});
 
+  it("drops free lead magnets that are not services the agency sells", () => {
+    const result = sanitizeCatalogDraft({
+      raw: { services: [
+        { name: "Free Website Teardown", description: "A complimentary review used to start a sales conversation.", sourceKind: "website", sourceUrls: [page] },
+        { name: "Paid Website Audit", description: "A detailed paid audit with prioritized findings and a client report.", sourceKind: "website", sourceUrls: [page] },
+      ] },
+      allowedPageUrls: [page],
+      existingServices: [],
+    });
+    expect(result.map((row) => row.name)).toEqual(["Paid Website Audit"]);
+  });
+});
