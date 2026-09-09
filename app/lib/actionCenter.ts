@@ -118,6 +118,10 @@ export function isContactPathOpportunity(opportunity: Opportunity): boolean {
   );
 }
 
+function isSalesFunnelOpportunity(opportunity: Opportunity): boolean {
+  return isContactPathOpportunity(opportunity) || opportunity.status === "lost";
+}
+
 const ACTION_STAGE_ORDER: Record<ActionStage, number> = {
   proposal_prepared: 0,
   accepted: 1,
@@ -426,6 +430,6 @@ export function buildActionCenterAt(
     maintenance,
     attention,
     queue: [...primary, ...maintenance, ...attention],
-    pipeline: pipelineSummary(flatten(input).filter(isContactPathOpportunity)),
+    pipeline: pipelineSummary(flatten(input).filter(isSalesFunnelOpportunity)),
   };
 }

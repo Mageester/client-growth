@@ -105,3 +105,63 @@ Final full-suite result: 141 files passed, 1,286 tests passed.
 
 - The two adjacent filenames in the brief are stale. Their closest current replacements are documented above and pass.
 - Task 6 owns CSS and density polish. The new report-builder handoff facts intentionally use existing semantic markup without broad styling changes.
+
+## Audit remediation round 1: terminal health funnel outcomes
+
+### Finding addressed
+
+The contact-queue predicate admitted progressed site-health work through `sold` but correctly excluded `lost`. Reusing that predicate as the pipeline-metric input therefore dropped health losses from the close-rate denominator. Queue eligibility and sales-funnel metric eligibility are now separate: unreviewed health still stays out of contact totals, progressed health still enters the contact/proposal path, and terminal health `sold` and `lost` outcomes both contribute to existing funnel metrics.
+
+### RED evidence
+
+Added a literal regression with one sold health row and one lost health row, requiring no queue entries, `soldCount: 1`, `lostCount: 1`, and `closeRate: 0.5`.
+
+```text
+pnpm exec vitest run test/app.actionCenter.test.ts --reporter=verbose
+```
+
+Result before the production change: 1 failed / 15 passed. The new test failed at `lostCount`: expected `1`, received `0`.
+
+### GREEN and verification evidence
+
+```text
+pnpm exec vitest run test/app.actionCenter.test.ts --reporter=verbose
+```
+
+Result: 1 file passed, 16 tests passed.
+
+```text
+pnpm exec vitest run test/app.actionCenter.test.ts test/core.projectPackaging.test.ts test/app.approvedRedesign.test.ts test/routes.onboarding.test.ts test/routes.catalogAssistant.test.ts test/core.clientReport.test.ts test/routes.clientReports.test.ts
+```
+
+Result: 7 files passed, 84 tests passed.
+
+```text
+pnpm exec vitest run test/app.portfolio.test.ts test/core.salesFunnel.test.ts test/routes.opportunityDecisions.test.ts test/db.portfolioChanges.test.ts
+```
+
+Result: 4 files passed, 55 tests passed.
+
+```text
+pnpm test
+```
+
+Result: 141 files passed, 1,287 tests passed. Output included the suite's existing SQLite experimental warnings and deliberate error-path logs; there were no test failures.
+
+```text
+pnpm typecheck
+git diff --check
+```
+
+Both commands passed.
+
+### Self-review
+
+- The production change is one narrow eligibility split; queue partitioning, grouping, sorting, and persistence are unchanged.
+- `isContactPathOpportunity` still excludes new/unreviewed and lost health rows, so no terminal row becomes a contact action and no unreviewed health value enters the headline pipeline.
+- The metric predicate adds only `lost` to the existing contact-path population. Sold health was already present, so the close-rate denominator now retains both terminal outcomes without broadening open health metrics.
+- The regression uses literal health rule IDs and literal expected counts/rate; changing the metric filter back to the queue predicate reproduces the observed RED failure.
+
+### Residual concerns
+
+- None specific to this finding. The full suite's existing warnings remain unchanged and non-failing.

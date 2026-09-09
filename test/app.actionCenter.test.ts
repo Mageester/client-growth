@@ -278,6 +278,34 @@ describe("agency action center", () => {
     expect(result.pipeline.soldRevenue).toBe(1200);
   });
 
+  it("includes sold and lost site-health outcomes in funnel metrics", () => {
+    const result = center(
+      [client("health-outcomes")],
+      [
+        opportunity({
+          id: "health-sold",
+          clientId: "health-outcomes",
+          ruleId: "missing-h1",
+          status: "sold",
+          soldAmount: 300,
+        }),
+        opportunity({
+          id: "health-lost",
+          clientId: "health-outcomes",
+          ruleId: "missing-meta-description",
+          status: "lost",
+        }),
+      ],
+      [["health-outcomes", run({ clientId: "health-outcomes" })]],
+    );
+
+    expect(result.primary).toEqual([]);
+    expect(result.maintenance).toEqual([]);
+    expect(result.pipeline.soldCount).toBe(1);
+    expect(result.pipeline.lostCount).toBe(1);
+    expect(result.pipeline.closeRate).toBe(0.5);
+  });
+
   it("shows an inconclusive analysis as retry attention, never as a finding", () => {
     const result = center(
       [client("artfully", "Artfully You")],
