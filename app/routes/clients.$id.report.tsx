@@ -13,7 +13,7 @@ import { createClientReport, isClientReportError } from "@/db/clientReports";
 import { getWorkspaceBranding } from "@/db/proposalShares";
 import * as repo from "@/db/repositories";
 import { ClientReportDocument } from "../components/client-report";
-import { Icon } from "../components/ui";
+import { formatCurrencyRange, Icon } from "../components/ui";
 import { requireTenant } from "../lib/session.server";
 import type { Route } from "./+types/clients.$id.report";
 
@@ -173,6 +173,12 @@ function CandidateChoice({
   onPackagePrice: (value: string) => void;
   onPackageConfirmed: (checked: boolean) => void;
 }) {
+  const entries = candidate.project.entries;
+  const rationales = [...new Set(entries.map((entry) => entry.opportunity.rationale.trim()).filter(Boolean))];
+  const support = [...new Set(entries.map((entry) => entry.opportunity.detected.trim()).filter(Boolean))];
+  const evidence = [...new Set(entries.flatMap((entry) => entry.opportunity.evidenceRefs))];
+  const deliverables = [...new Set(entries.flatMap((entry) => entry.opportunity.suggestedScope).map((line) => line.trim()).filter(Boolean))];
+  const mappedServices = [...new Set(entries.map((entry) => entry.serviceName?.trim()).filter((name): name is string => Boolean(name)))];
   return (
     <article className={`report-builder-choice${selected ? " is-selected" : ""}`}>
       <label className="report-builder-choice-main">
@@ -186,6 +192,37 @@ function CandidateChoice({
           <small>{candidate.project.summary}</small>
         </span>
       </label>
+      <dl className="report-builder-handoff">
+        <div>
+          <dt>Reason to raise</dt>
+          <dd>{rationales.join(" ")}</dd>
+        </div>
+        <div>
+          <dt>What supports it</dt>
+          <dd>
+            {support.join(" ")}
+            {evidence.length > 0 && <small>{evidence.join(" · ")}</small>}
+          </dd>
+        </div>
+        <div>
+          <dt>Deliverable</dt>
+          <dd>{deliverables.join(" · ")}</dd>
+        </div>
+        <div>
+          <dt>Mapped service</dt>
+          <dd>{mappedServices.join(" · ") || "No mapped service name recorded"}</dd>
+        </div>
+        <div>
+          <dt>Price basis</dt>
+          <dd>
+            {formatCurrencyRange(
+              candidate.project.underlyingPriceMin,
+              candidate.project.underlyingPriceMax,
+            )}
+            <small>Agency service ranges; not a package quote.</small>
+          </dd>
+        </div>
+      </dl>
       {selected && (
         <div className="report-builder-choice-controls">
           <div className="report-builder-order-controls" aria-label={`Order ${candidate.project.title}`}>

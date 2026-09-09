@@ -737,8 +737,6 @@ function SetupStage({
 
       <ErrorNotice error={error} />
 
-      <CatalogAssistant deferSave onCatalogChange={setReviewedCatalog} />
-
       {submitting && <ReadingSite domain={normalizeDomain(domain)} stopHref="/opportunities" />}
 
       <Form method="post" hidden={submitting}>
@@ -851,6 +849,8 @@ function SetupStage({
           </span>
         </div>
       </Form>
+
+      <CatalogAssistant deferSave onCatalogChange={setReviewedCatalog} />
     </>
   );
 }

@@ -76,8 +76,20 @@ describe("derived project packaging", () => {
       { client, opportunity: opportunity("drain", "Drain Cleaning"), serviceName: "Service Landing Page" },
     ]);
 
-    expect(projects[0]?.title).toBe("Service expansion opportunity");
+    expect(projects[0]?.title).toBe("Drain Cleaning — dedicated service page");
     expect(projects[0]?.summary).toBe("A focused service-page opportunity for Drain Cleaning.");
+  });
+
+  it("uses the concrete finding title for a one-finding health project", () => {
+    const finding = {
+      ...opportunity("home-h1", "Home page H1 repair"),
+      ruleId: "missing-h1" as const,
+      title: "Home page H1 repair",
+    };
+
+    expect(buildProjectViews([{ client, opportunity: finding }])[0]?.title).toBe(
+      "Home page H1 repair",
+    );
   });
 
   it("falls back to deterministic projects when a semantic proposal names an unknown row", () => {

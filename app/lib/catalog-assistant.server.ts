@@ -24,7 +24,7 @@ const CatalogRequestSchema = z
     summary: z.string().trim().max(4_000).default(""),
   })
   .refine((input) => input.website.length > 0 || input.summary.length >= 10, {
-    message: "Enter an agency website or a summary of at least 10 characters.",
+    message: "Describe the agency or add its website.",
   });
 
 interface CatalogCrawlResult {
@@ -121,7 +121,15 @@ export async function generateAgencyCatalogDraft(
   signal?: AbortSignal,
   dependencies: CatalogAssistantDependencies = {},
 ) {
-  const input = CatalogRequestSchema.parse(rawInput);
+  let input: z.infer<typeof CatalogRequestSchema>;
+  try {
+    input = CatalogRequestSchema.parse(rawInput);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      throw new Error(error.issues[0]?.message ?? "Describe the agency or add its website.");
+    }
+    throw error;
+  }
   let pages: AgencyCatalogGenerationPage[] = [];
   if (input.website) {
     const crawled = await (dependencies.crawl ?? crawlAgencyWebsite)(input.website, signal);

@@ -164,8 +164,8 @@ function projectTitle(
   key: string,
   entries: readonly ProjectEntry[],
 ): string {
+  if (entries.length === 1) return entries[0]!.opportunity.title;
   if (family.key === "service-visibility") {
-    if (entries.length === 1) return "Service expansion opportunity";
     switch (affinityFromKey(key)) {
       case "water-heater":
         return "Water Heater Service Expansion";

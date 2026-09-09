@@ -42,23 +42,20 @@ function ValueFact({ project }: { project: ClientReportProjectSnapshot }) {
   if (!value) return null;
   return (
     <div className="client-report-fact">
-      <dt>Underlying opportunity value</dt>
+      <dt>Price basis</dt>
       <dd>{formatCurrencyRange(value.min, value.max)}</dd>
-      <small>Sum of the existing service ranges included here; this is not a package quote.</small>
+      <small>Agency service ranges included here; this is not a package quote.</small>
     </div>
   );
 }
 
 function PackagePriceFact({ project }: { project: ClientReportProjectSnapshot }) {
+  if (!project.packagePrice) return null;
   return (
     <div className="client-report-fact">
-      <dt>Package price</dt>
-      <dd>
-        {project.packagePrice
-          ? formatCurrencyRange(project.packagePrice.amount, project.packagePrice.amount)
-          : "Pricing to be confirmed"}
-      </dd>
-      {project.packagePrice && <small>Confirmed by the agency for this discussion.</small>}
+      <dt>Agency-confirmed price</dt>
+      <dd>{formatCurrencyRange(project.packagePrice.amount, project.packagePrice.amount)}</dd>
+      <small>Price basis confirmed by the agency for this discussion.</small>
     </div>
   );
 }
@@ -84,6 +81,7 @@ function ReportProject({
         <div>
           {number !== undefined && <span className="client-report-project-number">0{number}</span>}
           <h3>{project.title}</h3>
+          <span className="client-report-eyebrow">Reason to raise</span>
           <p>{project.rationale}</p>
         </div>
         <span className="client-report-project-label">{supporting ? "Supporting work" : "Recommended"}</span>
@@ -91,11 +89,11 @@ function ReportProject({
 
       <div className="client-report-project-grid">
         <section>
-          <h4>What we observed</h4>
+          <h4>What supports it</h4>
           <p>{project.observed}</p>
         </section>
         <section>
-          <h4>Recommended scope</h4>
+          <h4>Deliverable</h4>
           <ul className="client-report-scope-list">
             {project.scope.map((line, index) => <li key={index}>{line}</li>)}
           </ul>

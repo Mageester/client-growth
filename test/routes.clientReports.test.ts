@@ -91,6 +91,14 @@ function renderReport(loaderData: unknown) {
   return renderToStaticMarkup(createElement(RouterProvider, { router }));
 }
 
+function renderBuilder(loaderData: unknown) {
+  const router = createMemoryRouter(
+    [{ path: "*", element: createElement(reportBuilder.default, { loaderData, actionData: undefined } as never) }],
+    { initialEntries: ["/clients/cli_a/report"] },
+  );
+  return renderToStaticMarkup(createElement(RouterProvider, { router }));
+}
+
 function renderClient(loaderData: unknown) {
   const router = createMemoryRouter(
     [{ path: "*", element: createElement(clientDetail.default, { loaderData, actionData: undefined } as never) }],
@@ -284,6 +292,16 @@ describe("client-facing report routes", () => {
     expect(builder.candidates.defaultSelectedKeys).toHaveLength(2);
     expect(builder.candidates.health).toHaveLength(1);
     expect(builder.branding.reportTheme).toBe("editorial");
+    const builderHtml = renderBuilder(builder);
+    expect(builderHtml).toContain("Reason to raise");
+    expect(builderHtml).toContain("What supports it");
+    expect(builderHtml).toContain("Deliverable");
+    expect(builderHtml).toContain("Mapped service");
+    expect(builderHtml).toContain("Price basis");
+    expect(builderHtml).toContain("A focused service page gives this offering a clear place to be understood.");
+    expect(builderHtml).toContain("https://northwind.example/services");
+    expect(builderHtml).toContain("Plan the service page");
+    expect(builderHtml).toContain("Service landing page");
 
     const commercial = builder.candidates.commercial.map((candidate) => candidate.key);
     const generated = (await call(reportBuilder.action, {
@@ -386,6 +404,8 @@ describe("client-facing report routes", () => {
     expect(html).not.toMatch(/DeepSeek|crawler|evaluator|confidence/i);
     expect(html).not.toContain("status:200");
     expect(html).not.toContain("Underlying opportunity value");
+    expect(html).not.toContain("Package price");
+    expect(html).not.toContain("Pricing to be confirmed");
     expect(html).toContain("https://northwind.example/services");
     expect(html.match(/client-report-evidence-item/g)?.length).toBe(1);
     expect(JSON.stringify(page)).not.toContain("shareId");

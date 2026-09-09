@@ -7,6 +7,7 @@ import { AppNavigation } from "../app/root";
 import ClientsIndex from "../app/routes/clients._index";
 import Changes from "../app/routes/changes";
 import OpportunityDetail from "../app/routes/opportunities.$id";
+import OpportunitiesIndex from "../app/routes/opportunities._index";
 import Onboarding from "../app/routes/onboarding";
 import ServicesIndex from "../app/routes/services._index";
 import { OpportunityQueue } from "../app/components/signal-desk";
@@ -198,6 +199,54 @@ describe("approved page anatomy", () => {
     expect(html).toContain("Close rate");
     expect(html).toContain("New on site");
     expect(html).toContain("Heat Pump Servicing");
+  });
+
+  it("puts new health findings in maintenance without inflating contact value", () => {
+    const health = {
+      ...opportunity,
+      id: "o-health",
+      dedupeKey: "missing-h1:home",
+      ruleId: "missing-h1",
+      title: "Home page H1 repair",
+      suggestedServiceId: "s-health",
+      suggestedScope: ["Add a descriptive H1"],
+      priceMin: 150,
+      priceMax: 300,
+    };
+    const group = {
+      client: { id: "c1", name: "Cambridge Heating", domain: "example.com", offerings: [], notes: "" },
+      opportunities: [opportunity, health],
+      totals: { open: 2, closed: 0, priceMin: 1050, priceMax: 2100 },
+      run: null,
+      monitoring: { cadence: "off", nextDueAt: null, lastAttemptAt: null, lastSuccessAt: null, lastOutcome: null, consecutiveFailures: 0, claimedAt: null },
+      state: "attention",
+      readiness: { catalog: { matched: 1, rules: [] }, readyCount: 1, rules: [] },
+    };
+    const html = render(
+      createElement(OpportunitiesIndex, {
+        loaderData: {
+          groups: [group],
+          serviceName: { s1: "Dedicated service page", "s-health": "H1 Heading Repair" },
+          catalogMatched: 1,
+          winRates: [],
+          monitoring: { monitored: 0, due: 0, unhealthy: 0, newFindings: 0, resolvedFindings: 0, checks: 0 },
+        },
+        actionData: undefined,
+      } as never),
+      "/opportunities",
+    );
+
+    expect(html).toContain("Maintenance review");
+    expect(html.indexOf("Heat pump service page")).toBeLessThan(
+      html.indexOf("Maintenance review"),
+    );
+    expect(html.indexOf("Maintenance review")).toBeLessThan(
+      html.indexOf("Home page H1 repair"),
+    );
+    expect(html).toContain("$900 – $1.8k");
+    expect(html).not.toContain("$1.1k – $2.1k");
+    expect(html).toContain("Potential quote input");
+    expect(html).not.toContain("Package price");
   });
 
   it("keeps an inconclusive client as a retry action rather than a fake opportunity", () => {

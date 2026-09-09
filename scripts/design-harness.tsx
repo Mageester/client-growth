@@ -709,7 +709,7 @@ const screens: Record<string, { nav: string; node: ReactNode; bare?: boolean; st
     node: h(Operations, {loaderData:{since:"2026-08-28",until:"2026-09-04",
       current:{checks:10,clean:1,findings:3,inconclusive:6,evaluatorErrors:2,evaluatorCalls:14},previous:{checks:10,clean:4,findings:5,inconclusive:1,evaluatorErrors:0,evaluatorCalls:12},
       rate:0.6,previousRate:0.1,alert:"Axiom Orbit could not fully assess 6 of 10 checks this week. Review client setup and recent check results before relying on this portfolio.",
-      incompleteStarts:1,failedStarts:1,recentErrors:[{id:1,clientName:"Halton Plumbing",finishedAt:"2026-09-04T10:00:00.000Z",outcome:"inconclusive",summary:"This site could not be read well enough to assess.",evaluatorErrors:0}],
+      incompleteStarts:1,failedStarts:1,investigations:[],recentErrors:[{id:1,clientName:"Halton Plumbing",finishedAt:"2026-09-04T10:00:00.000Z",outcome:"inconclusive",summary:"This site could not be read well enough to assess.",evaluatorErrors:0}],
       email:{deliverable:true,detail:"Verification and password-reset email is configured."},
       sales:{totalSold:7,totalSoldValue:9400,rows:[
         {ruleId:"missing-service-page",label:"A missing service page",tier:"commercial",decided:8,sold:6,averageSale:1450},

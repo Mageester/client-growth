@@ -110,6 +110,7 @@ export default function Changes({ loaderData: data }: Route.ComponentProps) {
   const renderNow = homeRenderClock(data.until);
   const firstName = data.firstName ?? "there";
   const primary = data.actionCenter.primary;
+  const maintenance = data.actionCenter.maintenance ?? [];
   const attention = data.actionCenter.attention;
   const pipeline = data.actionCenter.pipeline;
   const activity = data.activity;
@@ -132,6 +133,8 @@ export default function Changes({ loaderData: data }: Route.ComponentProps) {
           <p className="page-statement">
             {primary.length > 0
               ? `${primary.length} ${pluralize(primary.length, "next action", "next actions")} across your clients.`
+              : maintenance.length > 0
+                ? `${maintenance.length} ${pluralize(maintenance.length, "maintenance finding", "maintenance findings")} ready for review.`
               : attention.length > 0
                 ? `${attention.length} ${pluralize(attention.length, "client needs", "clients need")} attention.`
               : portfolio.clients > 0
@@ -159,6 +162,23 @@ export default function Changes({ loaderData: data }: Route.ComponentProps) {
         </section>
       )}
 
+      {maintenance.length > 0 && (
+        <section className="home-attention-center" aria-labelledby="maintenance-review-heading">
+          <div className="section-head home-action-head">
+            <div>
+              <span className="eyebrow">Site upkeep</span>
+              <h2 id="maintenance-review-heading" className="title-section">
+                Maintenance review
+              </h2>
+            </div>
+            <Link to="/opportunities">Review all findings</Link>
+          </div>
+          <ul className="home-action-list">
+            {maintenance.slice(0, 6).map((item) => <ActionCard key={item.id} item={item} />)}
+          </ul>
+        </section>
+      )}
+
       {attention.length > 0 && (
         <section className="home-attention-center" aria-labelledby="needs-attention-heading">
           <div className="section-head home-action-head">
@@ -175,7 +195,7 @@ export default function Changes({ loaderData: data }: Route.ComponentProps) {
         </section>
       )}
 
-      {primary.length === 0 && attention.length === 0 && (
+      {primary.length === 0 && maintenance.length === 0 && attention.length === 0 && (
         <div className="home-clear home-clear-start">
           <Icon name={portfolio.clients === 0 ? "users" : "check"} size={22} />
           <div>

@@ -380,8 +380,8 @@ describe("opportunity queue presentation", () => {
     expect(html).toContain("Water Heater Service Expansion");
     expect(html).toContain("Underlying opportunity value");
     expect(html).toContain("$2,700 – $5,400");
-    expect(html).toContain("Package price");
-    expect(html).toContain("Not set");
+    expect(html).not.toContain("Package price");
+    expect(html).not.toContain("Not set");
   });
 });
 

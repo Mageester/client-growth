@@ -43,11 +43,17 @@ describe("agency catalog assistant orchestration", () => {
     expect(reviewRowsAreValid([{ selected: true, name: "Web Design", description: "A complete website for the client.", priceMin: "0", priceMax: "0" }])).toBe(true);
   });
   it("rejects a request with neither a website nor a useful summary", async () => {
-    await expect(
-      generateAgencyCatalogDraft(scope, env, { website: "", summary: " " }, undefined, {
-        generator,
-      }),
-    ).rejects.toThrow(/website or.*summary/i);
+    const error = await generateAgencyCatalogDraft(
+      scope,
+      env,
+      { website: "", summary: " " },
+      undefined,
+      { generator },
+    ).catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(Error);
+    expect((error as Error).message).toMatch(/describe the agency or add its website/i);
+    expect((error as Error).message).not.toMatch(/"(?:code|path)"|\[\s*\{/i);
   });
 
   it("crawls before reserving a paid call and does not charge an unreadable site", async () => {

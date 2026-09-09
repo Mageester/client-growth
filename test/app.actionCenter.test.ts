@@ -101,23 +101,49 @@ describe("agency action center", () => {
     expect(result.pipeline.openCount).toBe(0);
   });
 
-  it("ranks commercial work above site-health-only work", () => {
+  it("keeps a new H1 finding in maintenance until the agency progresses it", () => {
+    const h1 = opportunity({
+      id: "health-opportunity",
+      clientId: "health",
+      ruleId: "missing-h1",
+      title: "Home page H1 repair",
+      priceMin: 150,
+      priceMax: 300,
+    });
     const result = center(
-      [client("health"), client("commercial")],
-      [
-        opportunity({
-          id: "health-opportunity",
-          clientId: "health",
-          ruleId: "missing-meta-description",
-          title: "Meta description repair",
-          priceMax: 5000,
-        }),
-        opportunity({ id: "commercial-opportunity", clientId: "commercial", priceMax: 900 }),
-      ],
+      [client("health")],
+      [h1],
     );
 
-    expect(result.primary.map((item) => item.kind)).toEqual(["commercial", "site-health"]);
-    expect(result.primary[0]?.client.name).toBe("commercial");
+    expect(result.primary).toEqual([]);
+    expect(result.maintenance).toMatchObject([
+      {
+        kind: "site-health",
+        stage: "new",
+        title: "Home page H1 repair",
+        opportunityIds: ["health-opportunity"],
+      },
+    ]);
+    expect(result.pipeline).toMatchObject({ openCount: 0, openPriceMin: 0, openPriceMax: 0 });
+
+    const progressed = center(
+      [client("health")],
+      [{ ...h1, status: "proposal_prepared" }],
+    );
+    expect(progressed.maintenance).toEqual([]);
+    expect(progressed.primary).toMatchObject([
+      {
+        kind: "site-health",
+        stage: "proposal_prepared",
+        title: "Home page H1 repair",
+        opportunityIds: ["health-opportunity"],
+      },
+    ]);
+    expect(progressed.pipeline).toMatchObject({
+      openCount: 1,
+      openPriceMin: 150,
+      openPriceMax: 300,
+    });
   });
 
   it("keeps progressed site-health work below commercial work without hiding it", () => {

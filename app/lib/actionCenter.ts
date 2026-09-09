@@ -56,6 +56,8 @@ export interface PipelineSummary {
 export interface ActionCenter {
   /** Revenue and explicitly progressed work that belongs in the primary queue. */
   primary: ActionQueueItem[];
+  /** Unreviewed site-health work that may support a future client conversation. */
+  maintenance: ActionQueueItem[];
   /** Operational blockers and setup work that should not outrank revenue actions. */
   attention: ActionQueueItem[];
   /** Backwards-compatible combined projection for non-UI consumers. */
@@ -101,6 +103,21 @@ export interface RecentActivityInput {
 
 type ActionStage = "pitched" | "proposal_prepared" | "accepted" | "new";
 
+const REVIEWED_HEALTH_STATUSES: ReadonlySet<Opportunity["status"]> = new Set([
+  "accepted",
+  "proposal_prepared",
+  "pitched",
+  "sold",
+]);
+
+/** Commercial findings lead immediately; health findings enter only after a human progresses them. */
+export function isContactPathOpportunity(opportunity: Opportunity): boolean {
+  return (
+    tierForRule(opportunity.ruleId) === "commercial" ||
+    REVIEWED_HEALTH_STATUSES.has(opportunity.status)
+  );
+}
+
 const ACTION_STAGE_ORDER: Record<ActionStage, number> = {
   proposal_prepared: 0,
   accepted: 1,
@@ -144,13 +161,13 @@ function familyDetail(
   project: ProjectView<ProjectEntry>,
   opportunities: readonly Opportunity[],
 ): string {
-  if (kind === "site-health") {
-    const count = project.entries.length;
-    return `${count} related ${count === 1 ? "website fix" : "website fixes"} supporting the client work.`;
-  }
   if (stage === "pitched") return "Follow-up is due on pitched work.";
   if (stage === "proposal_prepared") return "A proposal is ready to send to the client.";
   if (stage === "accepted") return "Accepted work ready for a proposal.";
+  if (kind === "site-health") {
+    const count = project.entries.length;
+    return `${count} related ${count === 1 ? "website fix" : "website fixes"} awaiting maintenance review.`;
+  }
   if (opportunities.length === 1) return "A new commercial opportunity is ready for review.";
   return project.summary;
 }
@@ -186,7 +203,7 @@ function opportunityItem(
     title: project.title,
     detail: familyDetail(kind, stage, project, ordered),
     action:
-      kind === "site-health"
+      kind === "site-health" && stage === "new"
         ? "Review"
         : stage === "pitched"
           ? "Follow up with client"
@@ -195,7 +212,7 @@ function opportunityItem(
     count,
     priceMin: project.underlyingPriceMin,
     priceMax: project.underlyingPriceMax,
-    valueLabel: "Underlying opportunity value",
+    valueLabel: kind === "site-health" ? "Potential quote input" : "Underlying opportunity value",
     opportunityIds: ordered.map((opp) => opp.id),
   };
 }
@@ -358,6 +375,7 @@ export function buildActionCenterAt(
 ): ActionCenter {
   const clock = now instanceof Date ? now : new Date(now);
   const primary: ActionQueueItem[] = [];
+  const maintenance: ActionQueueItem[] = [];
   const attention: ActionQueueItem[] = [];
 
   for (const client of input.clients) {
@@ -369,9 +387,20 @@ export function buildActionCenterAt(
       serviceName: input.serviceNameById?.get(opportunity.suggestedServiceId),
     }));
 
-    for (const project of buildProjectViews(projectEntries)) {
+    const contactEntries = projectEntries.filter((entry) =>
+      isContactPathOpportunity(entry.opportunity),
+    );
+    const maintenanceEntries = projectEntries.filter(
+      (entry) => !isContactPathOpportunity(entry.opportunity),
+    );
+
+    for (const project of buildProjectViews(contactEntries)) {
       const item = opportunityItem(client, project, clock);
       if (item) primary.push(item);
+    }
+    for (const project of buildProjectViews(maintenanceEntries)) {
+      const item = opportunityItem(client, project, clock);
+      if (item) maintenance.push(item);
     }
 
     const latest = input.latestRunsByClient.get(client.id);
@@ -383,6 +412,7 @@ export function buildActionCenterAt(
   }
 
   primary.sort(compareItems);
+  maintenance.sort(compareItems);
   attention.sort(
     (a, b) =>
       (a.analysisState === "inconclusive" ? 0 : 1) -
@@ -393,8 +423,9 @@ export function buildActionCenterAt(
 
   return {
     primary,
+    maintenance,
     attention,
-    queue: [...primary, ...attention],
-    pipeline: pipelineSummary(flatten(input)),
+    queue: [...primary, ...maintenance, ...attention],
+    pipeline: pipelineSummary(flatten(input).filter(isContactPathOpportunity)),
   };
 }

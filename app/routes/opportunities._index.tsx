@@ -38,6 +38,7 @@ import {
   pluralize,
 } from "../components/ui";
 import { AnalysisAbortedError, runAnalysis } from "../lib/analysis.server";
+import { isContactPathOpportunity } from "../lib/actionCenter";
 import {
   analysisAdmissionReason,
   analysisReadinessForClient,
@@ -182,6 +183,8 @@ function ProjectSection({
   project: ProjectView<SignalDeskEntry>;
   hrefFor: (entry: SignalDeskEntry) => string;
 }) {
+  const valueLabel =
+    project.family.key === "site-health" ? "Potential quote input" : "Underlying opportunity value";
   return (
     <section className="signal-project">
       <div className="project-head">
@@ -199,13 +202,15 @@ function ProjectSection({
         </div>
         <dl className="project-facts">
           <div>
-            <dt>Underlying opportunity value</dt>
+            <dt>{valueLabel}</dt>
             <dd>{formatCurrencyRange(project.underlyingPriceMin, project.underlyingPriceMax)}</dd>
           </div>
-          <div>
-            <dt>Package price</dt>
-            <dd>Not set</dd>
-          </div>
+          {project.packagePriceMin !== undefined && project.packagePriceMax !== undefined && (
+            <div>
+              <dt>Package price</dt>
+              <dd>{formatCurrencyRange(project.packagePriceMin, project.packagePriceMax)}</dd>
+            </div>
+          )}
           <div>
             <dt>Work in motion</dt>
             <dd>{formatProjectStatusSummary(project.statusSummary) || "Open"}</dd>
@@ -294,15 +299,21 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
   // the two or three findings that answer "what could we sell this client",
   // and a queue led by alt-text warnings reads as a free tool with a login.
   // Same data, same evidence, same prices — the commercial work simply leads.
-  const commercialEntries = signalEntries.filter(
-    (entry) => tierForRule(entry.opportunity.ruleId) === "commercial",
+  const contactEntries = signalEntries.filter((entry) =>
+    isContactPathOpportunity(entry.opportunity),
   );
-  const healthEntries = signalEntries.filter(
-    (entry) => tierForRule(entry.opportunity.ruleId) === "health",
+  const maintenanceEntries = signalEntries.filter(
+    (entry) =>
+      tierForRule(entry.opportunity.ruleId) === "health" &&
+      !isContactPathOpportunity(entry.opportunity),
   );
-  const commercialProjects = buildProjectViews(commercialEntries);
-  const healthProjects = buildProjectViews(healthEntries);
-  const totals = sumTotals(scoped.map((group) => group.totals));
+  const contactProjects = buildProjectViews(contactEntries);
+  const maintenanceProjects = buildProjectViews(maintenanceEntries);
+  const contactTotals = totalsFor(
+    scoped
+      .flatMap((group) => group.opportunities)
+      .filter(isContactPathOpportunity),
+  );
   const portfolioTotals = sumTotals(groups.map((group) => group.totals));
   const needsAttention = groups.filter((group) => group.state === "attention").length;
   const unreadable = groups.filter((group) => group.state === "inconclusive").length;
@@ -394,12 +405,12 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
         }
       >
         <p className="summary-line">
-          <b className="num">{totals.open}</b>
-          <span>open {pluralize(totals.open, "opportunity", "opportunities")}</span>
-          {totals.open > 0 && (
+          <b className="num">{contactTotals.open}</b>
+          <span>open {pluralize(contactTotals.open, "reviewed recommendation", "reviewed recommendations")}</span>
+          {contactTotals.open > 0 && (
             <>
               <span className="dot-sep">·</span>
-              <b className="num">{formatCompactRange(totals.priceMin, totals.priceMax)}</b>
+              <b className="num">{formatCompactRange(contactTotals.priceMin, contactTotals.priceMax)}</b>
               <span>potential revenue</span>
             </>
           )}
@@ -500,9 +511,15 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
             />
           ) : (
             <>
-              {commercialEntries.length > 0 && (
-                <>
-                  {commercialProjects.map((project) => (
+              {contactEntries.length > 0 && (
+                <section className="signal-section-break">
+                  <div className="feed-head-copy">
+                    <h2>Reviewed recommendations</h2>
+                    <div className="feed-head-meta">
+                      <span>Commercial findings and website work you have progressed toward a client conversation.</span>
+                    </div>
+                  </div>
+                  {contactProjects.map((project) => (
                     <ProjectSection
                       key={project.displayKey}
                       project={project}
@@ -511,20 +528,20 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
                       }
                     />
                   ))}
-                </>
+                </section>
               )}
 
-              {healthEntries.length > 0 && (
+              {maintenanceEntries.length > 0 && (
                 <section className="signal-section-break">
                   <div className="feed-head-copy">
-                    <h2>Site health</h2>
+                    <h2>Maintenance review</h2>
                     <div className="feed-head-meta">
                       <span>
-                        {healthSectionDescription(healthEntries.length, filter)}
+                        {healthSectionDescription(maintenanceEntries.length, filter)}
                       </span>
                     </div>
                   </div>
-                  {healthProjects.map((project) => (
+                  {maintenanceProjects.map((project) => (
                     <ProjectSection
                       key={project.displayKey}
                       project={project}

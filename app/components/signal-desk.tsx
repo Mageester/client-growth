@@ -4,6 +4,7 @@ import { Link } from "react-router";
 import type { Client, Opportunity } from "@/core/schema";
 import { buildEvidenceCase } from "../lib/evidence";
 import { isOpen, nextAction, statusBadge } from "../lib/portfolio";
+import { tierForRule } from "@/core/rules/registry";
 import { formatCurrencyRange, formatRelative, Icon } from "./ui";
 import { ClientMark, GlyphMark, markForRule } from "./entity-mark";
 
@@ -99,6 +100,7 @@ export function OpportunitySignalRow({
   const { opportunity, client, serviceName } = entry;
   const badge = statusBadge(opportunity);
   const confidence = Math.round(opportunity.confidence * 100);
+  const isHealth = tierForRule(opportunity.ruleId) === "health";
 
   return (
     <li className={"signal-row" + (selected ? " is-selected" : "")}>
@@ -126,6 +128,7 @@ export function OpportunitySignalRow({
         </span>
         <span className="signal-row-value">
           <span>{formatCurrencyRange(opportunity.priceMin, opportunity.priceMax)}</span>
+          {isHealth && <small>Potential quote input</small>}
         </span>
         <span className="signal-row-confidence">
           <span className={"confidence-dot " + (confidence >= 80 ? "strong" : confidence >= 65 ? "medium" : "low")} />

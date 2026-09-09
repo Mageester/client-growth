@@ -247,6 +247,10 @@ describe("onboarding stage one: read the site, judge nothing", () => {
     expect(html.indexOf("Your first client")).toBeLessThan(html.indexOf("Review starter pricing"));
     expect(html.indexOf('name="clientName"')).toBeLessThan(html.indexOf("Review starter pricing"));
     expect(html.indexOf('name="clientDomain"')).toBeLessThan(html.indexOf("Review starter pricing"));
+    expect(html.indexOf("Review starter pricing")).toBeLessThan(
+      html.indexOf("AI catalog assistant"),
+    );
+    expect(html.indexOf("Read the site")).toBeLessThan(html.indexOf("AI catalog assistant"));
   });
 
   it("explains the default pricing and the crawl-only confirmation gate", () => {
