@@ -20,4 +20,3 @@ export interface AgencyCatalogDraftItem {
 export interface AgencyCatalogGenerator {
   generate(input: AgencyCatalogGenerationInput): Promise<AgencyCatalogDraftItem[]>;
 }
-
