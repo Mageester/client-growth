@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { generateAgencyCatalogDraft } from "../app/lib/catalog-assistant.server";
+import { reviewRowsAreValid } from "../app/components/catalog-assistant";
 import type { AgencyCatalogGenerator } from "@/ports/AgencyCatalogGenerator";
 
 const scope = { db: {} as never, workspaceId: "ws_test" };
@@ -21,6 +22,10 @@ const generator: AgencyCatalogGenerator = {
 };
 
 describe("agency catalog assistant orchestration", () => {
+  it("does not mistake blank review prices for explicit zero-dollar prices", () => {
+    expect(reviewRowsAreValid([{ selected: true, name: "Web Design", description: "A complete website for the client.", priceMin: "", priceMax: "" }])).toBe(false);
+    expect(reviewRowsAreValid([{ selected: true, name: "Web Design", description: "A complete website for the client.", priceMin: "0", priceMax: "0" }])).toBe(true);
+  });
   it("rejects a request with neither a website nor a useful summary", async () => {
     await expect(
       generateAgencyCatalogDraft(scope, env, { website: "", summary: " " }, undefined, {

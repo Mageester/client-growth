@@ -17,6 +17,7 @@ import {
 import type { TenantScope } from "@/db/tenant";
 import { Icon } from "../components/ui";
 import { OfferingGuidance } from "../components/offering-guidance";
+import { CatalogAssistant } from "../components/catalog-assistant";
 import { d1Db } from "../lib/d1.server";
 import { requireSession } from "../lib/session.server";
 import {
@@ -33,6 +34,10 @@ import {
   validateServiceInput,
 } from "../lib/validation";
 import type { Route } from "./+types/onboarding";
+import {
+  generateAgencyCatalogDraft,
+  servicesFromReviewedCatalog,
+} from "../lib/catalog-assistant.server";
 
 export function meta() {
   return [{ title: "Get started · Axiom Orbit" }];
@@ -312,6 +317,41 @@ export async function action({ request, context }: Route.ActionArgs) {
   const form = await request.formData();
   const intent = String(form.get("intent") ?? "setup");
 
+  if (intent === "generate-catalog") {
+    let ws = await getWorkspaceForUser(db, authed.userId);
+    if (!ws) {
+      ws = await createWorkspaceForOwner(db, {
+        id: newWorkspaceId(),
+        name: "My Agency",
+        ownerUserId: authed.userId,
+      });
+    }
+    const scope: TenantScope = { db, workspaceId: ws.id };
+    const [clients, services] = await Promise.all([repo.listClients(scope), repo.listServices(scope)]);
+    if (clients.length > 0 || services.length > 0) throw redirect("/opportunities");
+    try {
+      return {
+        ok: true as const,
+        kind: "catalog-draft" as const,
+        ...(await generateAgencyCatalogDraft(
+          scope,
+          env as unknown as Record<string, unknown>,
+          {
+            website: String(form.get("website") ?? ""),
+            summary: String(form.get("summary") ?? ""),
+          },
+          request.signal,
+        )),
+      };
+    } catch (error) {
+      return {
+        ok: false as const,
+        kind: "catalog-draft" as const,
+        error: error instanceof Error ? error.message : "Catalog generation failed.",
+      };
+    }
+  }
+
   if (intent === "analyze" || intent === "save" || intent === "reread") {
     const ws = await getWorkspaceForUser(db, authed.userId);
     if (!ws) throw redirect("/onboarding");
@@ -392,6 +432,16 @@ export async function action({ request, context }: Route.ActionArgs) {
   const clientProblem = validateClientInput(clientInput);
   if (clientProblem) return { error: clientProblem };
 
+  const reviewedCatalogRaw = String(form.get("reviewedCatalog") ?? "").trim();
+  let reviewedServices: ReturnType<typeof servicesFromReviewedCatalog> | null = null;
+  if (reviewedCatalogRaw) {
+    try {
+      reviewedServices = servicesFromReviewedCatalog(reviewedCatalogRaw);
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : "The reviewed catalog is invalid." };
+    }
+  }
+
   const chosen = STARTER_SERVICES.map((starter) => ({
     starter,
     name: String(form.get(starter.field + "Name") ?? starter.name),
@@ -400,10 +450,10 @@ export async function action({ request, context }: Route.ActionArgs) {
     enabled: form.get(starter.field + "On") === "on",
   })).filter((entry) => entry.enabled);
 
-  if (chosen.length === 0) {
+  if (!reviewedServices && chosen.length === 0) {
     return { error: "Keep at least one service — findings are priced from what you sell." };
   }
-  for (const entry of chosen) {
+  for (const entry of reviewedServices ? [] : chosen) {
     const problem = validateServiceInput({
       name: entry.name,
       priceMin: entry.min,
@@ -444,9 +494,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
   const scope: TenantScope = { db, workspaceId: ws.id };
 
-  for (const entry of chosen) {
-    await repo.upsertService(
-      scope,
+  const catalog = reviewedServices ?? chosen.map((entry) =>
       ServiceSchema.parse({
         id: slug("svc", entry.name),
         name: entry.name.trim(),
@@ -457,7 +505,7 @@ export async function action({ request, context }: Route.ActionArgs) {
         active: true,
       }),
     );
-  }
+  await repo.upsertServicesAtomic(scope, catalog);
 
   const client = ClientSchema.parse({
     id: slug("client", clientInput.name),
@@ -669,6 +717,7 @@ function SetupStage({
   const [starterNames, setStarterNames] = useState<Record<string, string>>(() =>
     Object.fromEntries(STARTER_SERVICES.map((service) => [service.field, service.name])),
   );
+  const [reviewedCatalog, setReviewedCatalog] = useState("");
 
   return (
     <>
@@ -683,9 +732,12 @@ function SetupStage({
 
       <ErrorNotice error={error} />
 
+      <CatalogAssistant deferSave onCatalogChange={setReviewedCatalog} />
+
       {submitting && <ReadingSite domain={normalizeDomain(domain)} stopHref="/opportunities" />}
 
       <Form method="post" hidden={submitting}>
+        <input type="hidden" name="reviewedCatalog" value={reviewedCatalog} />
         {(needsAgencySetup) && (
           <section className="section">
             <div className="section-head">

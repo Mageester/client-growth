@@ -223,6 +223,8 @@ describe("onboarding stage one: read the site, judge nothing", () => {
   it("puts the client read first and collapses starter pricing until it is needed", () => {
     const html = renderSetupMarkup();
 
+    expect(html).toContain("AI catalog assistant");
+    expect(html).toContain("Build my service catalog");
     expect(html).toContain("Review starter pricing");
     expect(html).toContain("starter services with conservative price ranges");
     expect(html).toContain("<details");
@@ -396,6 +398,46 @@ describe("onboarding stage one: read the site, judge nothing", () => {
     // client look analyzed when nothing was assessed.
     expect(await repo.getLatestEvidence(t, clientId)).not.toBeNull();
     expect(await repo.getLatestAnalysisRun(t, clientId)).toBeNull();
+  });
+
+  it("uses a reviewed AI catalog instead of the starter catalog during setup", async () => {
+    vi.stubGlobal("fetch", siteFetch());
+    const reviewedCatalog = JSON.stringify([
+      {
+        name: "Conversion Web Design",
+        description: "A conversion-focused website designed and built from strategy to launch.",
+        priceMin: 3000,
+        priceMax: 7000,
+      },
+      {
+        name: "Local SEO Retainer",
+        description: "Ongoing local search optimization, reporting, and content improvements.",
+        priceMin: 900,
+        priceMax: 1800,
+      },
+    ]);
+    const result = (await call(onboarding.action as never, {
+      request: formReq({ ...SETUP_FIELDS, reviewedCatalog }),
+      context: ctx,
+    })) as Response;
+
+    expect(result.status).toBe(302);
+    const services = await repo.listServices(await workspaceScope());
+    expect(services.map((service) => service.name)).toEqual([
+      "Conversion Web Design",
+      "Local SEO Retainer",
+    ]);
+    expect(services).toHaveLength(2);
+  });
+
+  it("rejects a tampered reviewed catalog before creating setup state", async () => {
+    const result = (await call(onboarding.action as never, {
+      request: formReq({ ...SETUP_FIELDS, reviewedCatalog: '[{"name":"Injected"}]' }),
+      context: ctx,
+    })) as { error?: string };
+
+    expect(result.error).toMatch(/reviewed catalog/i);
+    expect(await getWorkspaceForUser(scope.db, "u_new")).toBeNull();
   });
 
   it("reaches stage two with nothing invented when the site is unreachable", async () => {

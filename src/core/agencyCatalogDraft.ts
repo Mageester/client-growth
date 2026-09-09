@@ -36,6 +36,13 @@ function meaningKey(value: string): string {
     .join(" ");
 }
 
+function isFreeLeadMagnet(item: AgencyCatalogDraftItem): boolean {
+  return (
+    /^free\b/i.test(item.name.trim()) ||
+    /\b(?:complimentary|no-cost)\b/i.test(item.description)
+  );
+}
+
 export function sanitizeCatalogDraft(input: {
   raw: unknown;
   allowedPageUrls: string[];
@@ -47,6 +54,7 @@ export function sanitizeCatalogDraft(input: {
   const result: AgencyCatalogDraftItem[] = [];
 
   for (const row of parsed.services) {
+    if (isFreeLeadMagnet(row)) continue;
     const key = meaningKey(row.name);
     if (!key || seen.has(key)) continue;
     const sourceUrls = [
