@@ -34,7 +34,8 @@ describe("agency catalog assistant orchestration", () => {
     expect(html).toContain("Build my service catalog");
     expect(html).toContain("summary");
     expect(html).toContain("bounded public-page excerpts");
-    expect(html).toContain("Nothing is saved until you review");
+    expect(html).toContain("No services are added to your catalog until you review and save the draft");
+    expect(html).not.toContain("Nothing is saved until you review");
   });
 
   it("does not mistake blank review prices for explicit zero-dollar prices", () => {

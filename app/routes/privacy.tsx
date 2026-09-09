@@ -6,7 +6,10 @@ import { LegalPage } from "../components/legal-page";
  * Every factual claim here is traceable to code:
  *  - what is stored: src/db/schema.ts
  *  - what leaves for the evaluator: src/adapters/evaluator/prompt.ts
+ *  - what leaves for the catalog assistant: app/lib/catalog-assistant.server.ts
  *  - what the crawler requests: src/adapters/evidence/HttpEvidenceProvider.ts
+ *  - what account and invitation email contains: app/lib/resend.server.ts
+ *  - what a monitoring digest contains and when it sends: app/lib/monitorDigest.server.ts
  *  - what an export contains: app/routes/export.workspace.tsx
  * Correct this page when those change. It has not had legal review.
  */
@@ -26,7 +29,7 @@ export function meta() {
 
 export default function Privacy() {
   return (
-    <LegalPage title="Privacy" updated="6 September 2026">
+    <LegalPage title="Privacy" updated="9 September 2026">
       <p>
         Axiom Orbit is used by digital agencies to review the websites of clients they
         already work with. This page says what the service stores, what leaves it, and who
@@ -79,14 +82,18 @@ export default function Privacy() {
         <li>
           <strong>Resend</strong> delivers account email: verification links, password
           resets, and team invitations. It receives the recipient address and message content.
-          For enabled MONITOR workspaces, it also receives the monitoring-digest recipient and
-          content.
+          When Resend is configured and a digest is actually sent for an enabled MONITOR
+          workspace, it also receives the monitoring-digest recipient and content.
         </li>
         <li>
           <strong>DeepSeek candidate evaluation</strong> judges whether a candidate finding is
-          genuinely sellable work. It receives the client&rsquo;s business name and domain, the
-          candidate subject, agency-entered offering names, and the public-page URLs, titles,
-          headings, and navigation labels used in that review.
+          genuinely sellable work. Every review sends the client&rsquo;s business name and domain,
+          the rule and observed detection facts. Depending on the kind of review, it can also
+          receive the candidate subject, agency-entered offering names, public-page URLs, titles,
+          headings, and navigation labels, plus a verification conclusion and reason with
+          rejected nearby matches. For a conversion issue, it can also receive the public page
+          on which it appeared, element text, its link destination or form target, and the
+          observed HTTP result, related pages, and explanatory note.
         </li>
         <li>
           <strong>DeepSeek catalog assistant</strong> is used only when you choose to build a

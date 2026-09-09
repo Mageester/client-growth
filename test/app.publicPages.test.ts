@@ -59,17 +59,26 @@ describe("what the public internet is told about this app", () => {
     }
   });
 
-  it("separates the real provider payloads without claiming agency or public-page data is excluded", () => {
+  it("discloses conditional delivery and the complete evaluator data categories without provider guarantees", () => {
     const html = renderToStaticMarkup(
       createElement(MemoryRouter, null, createElement(Privacy)),
     );
 
     expect(html).toContain("candidate evaluation");
+    expect(html).toContain("9 September 2026");
+    expect(html).toContain("rule and observed detection facts");
     expect(html).toContain("agency-entered offering names");
     expect(html).toContain("public-page URLs, titles, headings, and navigation labels");
+    expect(html).toContain("verification conclusion and reason");
+    expect(html).toContain("rejected nearby matches");
+    expect(html).toContain("page on which it appeared");
+    expect(html).toContain("element text, its link destination or form target");
+    expect(html).toContain("observed HTTP result, related pages, and explanatory note");
+    expect(html).toContain("Depending on the kind of review");
     expect(html).toContain("summary you provide");
     expect(html).toContain("bounded excerpts");
     expect(html).toContain("verification links, password resets, and team invitations");
+    expect(html).toContain("When Resend is configured and a digest is actually sent");
     expect(html).toContain("monitoring-digest recipient and content");
     expect(html).toContain("provider’s own terms");
     expect(html).not.toContain("It does not receive page content, your notes, your catalog");

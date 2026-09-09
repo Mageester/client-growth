@@ -77,7 +77,7 @@ export function CatalogAssistant({
         <div>
           <span className="eyebrow">AI catalog assistant</span>
           <h3 id="catalog-assistant-title">Turn what your agency does into a reviewable catalog</h3>
-          <p>Give Orbit your website, a plain-language summary, or both. Nothing is saved until you review names, descriptions, and prices.</p>
+          <p>Give Orbit your website, a plain-language summary, or both. Suggested services become part of your catalog only after you review and save the draft.</p>
         </div>
         <Icon name="briefcase" size={20} />
       </div>
@@ -96,7 +96,8 @@ export function CatalogAssistant({
         </button>
         <p className="field-hint">
           Building a draft sends the summary you provide and bounded public-page excerpts to the
-          catalog assistant. Nothing is saved until you review it.
+          catalog assistant. No services are added to your catalog until you review and save the
+          draft.
         </p>
       </div>
 
