@@ -296,10 +296,13 @@ export default function Monitor({ loaderData, actionData }: Route.ComponentProps
             <button type="submit" className="btn btn-sm" disabled={busy}>
               Save
             </button>
-            <button type="submit" name="intent" value="send-digest-now" className="btn btn-sm btn-quiet" disabled={busy || !emailConfigured}>
-              Send me this week’s digest
-            </button>
           </div>
+        </Form>
+        <Form method="post" className="monitor-digest-actions">
+          <input type="hidden" name="intent" value="send-digest-now" />
+          <button type="submit" className="btn btn-sm btn-quiet" disabled={busy || !emailConfigured}>
+            Send me this week&apos;s digest
+          </button>
         </Form>
 
         {digestRuns.length > 0 && (

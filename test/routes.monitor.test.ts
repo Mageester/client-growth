@@ -47,6 +47,41 @@ async function call(fn: (a: never) => unknown, args: unknown): Promise<unknown> 
   }
 }
 
+function renderedSubmission(html: string, submitLabel: string): URLSearchParams {
+  const buttonText = (value: string) =>
+    value
+      .replace(/<[^>]+>/g, "")
+      .replaceAll("&#x27;", "'")
+      .replaceAll("&apos;", "'")
+      .replaceAll("&amp;", "&")
+      .trim();
+  const forms = html.match(/<form\b[\s\S]*?<\/form>/g) ?? [];
+  const form = forms.find((candidate) =>
+    [...candidate.matchAll(/<button\b[^>]*>([\s\S]*?)<\/button>/g)].some(
+      (match) => buttonText(match[1]!) === submitLabel,
+    ),
+  );
+  if (!form) throw new Error(`Rendered form for ${submitLabel} was not found`);
+
+  const params = new URLSearchParams();
+  for (const match of form.matchAll(/<input\b[^>]*>/g)) {
+    const tag = match[0];
+    const name = tag.match(/\bname="([^"]*)"/)?.[1];
+    if (!name || /\bdisabled(?:="")?/.test(tag)) continue;
+    params.append(name, tag.match(/\bvalue="([^"]*)"/)?.[1] ?? "");
+  }
+
+  const clicked = [...form.matchAll(/<button\b([^>]*)>([\s\S]*?)<\/button>/g)].find(
+    (match) => buttonText(match[2]!) === submitLabel,
+  );
+  const clickedAttributes = clicked?.[1] ?? "";
+  const clickedName = clickedAttributes.match(/\bname="([^"]*)"/)?.[1];
+  if (clickedName) {
+    params.append(clickedName, clickedAttributes.match(/\bvalue="([^"]*)"/)?.[1] ?? "");
+  }
+  return params;
+}
+
 const offClientA = () =>
   portfolio.clients.find((c) => c.workspaceId === "ws_a" && c.cadence === "off")!;
 const anyClientB = () => portfolio.clients.find((c) => c.workspaceId === "ws_b")!;
@@ -124,6 +159,31 @@ describe("monitor console loader", () => {
     expect(data.clients).toHaveLength(6);
     expect(data.digest.cadence).toBe("weekly");
     expect(typeof data.portfolio.monitored).toBe("number");
+  });
+
+  it("serializes one unambiguous intent from each rendered digest form", async () => {
+    const loaderData = await monitor.loader({
+      request: req(),
+      context: ctxWith({ MONITOR_ENTITLEMENT_MODE: "open", EMAIL_TRANSPORT: "console" }),
+      params: {},
+    } as never);
+    const router = createMemoryRouter(
+      [
+        {
+          path: "/monitor",
+          element: createElement(monitor.default, { loaderData } as never),
+        },
+      ],
+      { initialEntries: ["/monitor"] },
+    );
+    const html = renderToStaticMarkup(createElement(RouterProvider, { router }));
+
+    expect(renderedSubmission(html, "Save").getAll("intent")).toEqual([
+      "save-digest-settings",
+    ]);
+    expect(
+      renderedSubmission(html, "Send me this week's digest").getAll("intent"),
+    ).toEqual(["send-digest-now"]);
   });
 });
 

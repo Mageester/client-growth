@@ -5,6 +5,7 @@ import type { TenantScope } from "@/db/tenant";
 import { getWorkspaceForUser, type Workspace } from "@/db/workspaces";
 import { d1Db } from "./d1.server";
 import { getAuth, type AuthEnv } from "./auth.server";
+import { requestReturnTo } from "./return-to";
 
 export interface SessionUser {
   id: string;
@@ -61,7 +62,9 @@ export async function requireSession(
   context: ContextLike,
 ): Promise<AuthedContext> {
   const authed = await resolver(request, context.cloudflare.env);
-  if (!authed) throw redirect("/login");
+  if (!authed) {
+    throw redirect(`/login?returnTo=${encodeURIComponent(requestReturnTo(request))}`);
+  }
   return authed;
 }
 

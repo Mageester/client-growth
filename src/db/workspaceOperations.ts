@@ -189,10 +189,19 @@ interface HealthTotals {
   evaluatorCalls: number;
 }
 
+export interface AnalysisInvestigationRow {
+  kind: "completed-run" | "failed-start";
+  clientName: string;
+  stage: "Analysis result" | "Evaluation" | "Analysis start";
+  at: string;
+  reason: string;
+}
+
 export async function analysisHealth(t: TenantScope, now = new Date()) {
   const end = now.toISOString();
   const since = new Date(now.getTime() - 7 * 86_400_000).toISOString();
   const priorSince = new Date(now.getTime() - 14 * 86_400_000).toISOString();
+  const staleBefore = new Date(now.getTime() - 10 * 60_000).toISOString();
   const totals = (start: string, until: string) =>
     t.db
       .prepare(
@@ -208,7 +217,7 @@ export async function analysisHealth(t: TenantScope, now = new Date()) {
       .bind(t.workspaceId, start, until)
       .first<HealthTotals>();
 
-  const [current, previous, incomplete, failed, recentErrors] = await Promise.all([
+  const [current, previous, incomplete, failedReservations, recentErrors] = await Promise.all([
     totals(since, end),
     totals(priorSince, since),
     t.db
@@ -231,17 +240,41 @@ export async function analysisHealth(t: TenantScope, now = new Date()) {
       .bind(
         t.workspaceId,
         since,
-        new Date(now.getTime() - 10 * 60_000).toISOString(),
+        staleBefore,
       )
       .first<{ count: number }>(),
     t.db
       .prepare(
-        `SELECT COUNT(*) AS count
-         FROM analysis_limit_reservations
-         WHERE workspace_id = ? AND reserved_at >= ? AND reserved_at < ? AND failed = 1`,
+        `SELECT a.id, COALESCE(c.name, 'Client no longer in workspace') AS clientName,
+                a.reserved_at AS reservedAt, a.finished_at AS finishedAt,
+                r.finished_at AS runFinishedAt, r.summary
+         FROM analysis_limit_reservations a
+         LEFT JOIN clients c
+           ON c.id = a.client_id AND c.workspace_id = a.workspace_id
+         LEFT JOIN analysis_runs r
+           ON r.id = (
+             SELECT matched.id
+             FROM analysis_runs matched
+             WHERE matched.workspace_id = a.workspace_id
+               AND matched.client_id = a.client_id
+               AND matched.started_at = a.reserved_at
+             ORDER BY matched.id DESC
+             LIMIT 1
+           )
+          AND r.workspace_id = a.workspace_id
+         WHERE a.workspace_id = ? AND a.reserved_at >= ? AND a.reserved_at < ?
+           AND a.failed = 1
+         ORDER BY a.reserved_at DESC, a.id DESC`,
       )
-      .bind(t.workspaceId, since, end)
-      .first<{ count: number }>(),
+      .bind(t.workspaceId, since, staleBefore)
+      .all<{
+        id: number;
+        clientName: string;
+        reservedAt: string;
+        finishedAt: string | null;
+        runFinishedAt: string | null;
+        summary: string | null;
+      }>(),
     t.db
       .prepare(
         `SELECT r.id, c.name AS clientName, r.finished_at AS finishedAt,
@@ -275,6 +308,23 @@ export async function analysisHealth(t: TenantScope, now = new Date()) {
     ? `Axiom Orbit could not fully assess ${current!.inconclusive} of ${current!.checks} checks this week. Review client setup and recent check results before relying on this portfolio.`
     : null;
 
+  const failedInvestigations: AnalysisInvestigationRow[] = failedReservations.map((row) => ({
+    kind: "failed-start",
+    clientName: row.clientName,
+    stage: "Analysis start",
+    at: row.runFinishedAt ?? row.finishedAt ?? row.reservedAt,
+    reason: row.summary ?? "The run stopped before a detailed record was created.",
+  }));
+  const completedInvestigations: AnalysisInvestigationRow[] = recentErrors.map((row) => ({
+    kind: "completed-run",
+    clientName: row.clientName,
+    stage: row.evaluatorErrors > 0 ? "Evaluation" : "Analysis result",
+    at: row.finishedAt,
+    reason: row.summary,
+  }));
+  const investigations = [...failedInvestigations, ...completedInvestigations]
+    .sort((left, right) => right.at.localeCompare(left.at));
+
   return {
     since,
     until: end,
@@ -284,7 +334,7 @@ export async function analysisHealth(t: TenantScope, now = new Date()) {
     previousRate,
     alert,
     incompleteStarts: incomplete?.count ?? 0,
-    failedStarts: failed?.count ?? 0,
-    recentErrors,
+    failedStarts: failedInvestigations.length,
+    investigations,
   };
 }

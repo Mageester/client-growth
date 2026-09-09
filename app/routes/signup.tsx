@@ -11,19 +11,9 @@ import { canDeliverEmail } from "../lib/resend.server";
 import { getSession } from "../lib/session.server";
 import { d1Db } from "../lib/d1.server";
 import { pilotRequestHref } from "../lib/pilot-request";
+import { safeReturnTo } from "../lib/return-to";
 import { AxiomCredit, BrandLockup, Icon } from "../components/ui";
 import type { Route } from "./+types/signup";
-
-function safeReturnTo(value: string | null | undefined): string | undefined {
-  const candidate = value?.trim();
-  if (!candidate || !candidate.startsWith("/") || candidate.startsWith("//")) return undefined;
-  try {
-    const parsed = new URL(candidate, "https://orbit.invalid");
-    return `${parsed.pathname}${parsed.search}${parsed.hash}`;
-  } catch {
-    return undefined;
-  }
-}
 
 function invitationTokenFromReturnTo(returnTo: string | undefined): string | undefined {
   const token = returnTo?.startsWith("/invite/") ? returnTo.slice("/invite/".length) : "";

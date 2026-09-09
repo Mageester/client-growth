@@ -20,6 +20,7 @@ import * as oppIndex from "../app/routes/opportunities._index";
 import * as servicesIndex from "../app/routes/services._index";
 import * as settings from "../app/routes/settings";
 import * as changes from "../app/routes/changes";
+import * as reports from "../app/routes/reports.$id";
 
 const migrationsDir = join(dirname(fileURLToPath(import.meta.url)), "..", "migrations");
 
@@ -236,11 +237,32 @@ describe("unauthenticated access to protected routes", () => {
   it("every protected loader redirects to /login when there is no session", async () => {
     asAnon();
     for (const [name, fn] of protectedLoaders) {
-      const res = (await call(fn, { request: req(), params: { id: "x" }, context: ctx })) as Response;
+      const path = name.replace(":id", "x");
+      const res = (await call(fn, {
+        request: req(`http://localhost${path}`),
+        params: { id: "x" },
+        context: ctx,
+      })) as Response;
       expect(res, name).toBeInstanceOf(Response);
       expect(res.status, name).toBe(302);
-      expect(res.headers.get("location"), name).toBe("/login");
+      expect(res.headers.get("location"), name).toBe(
+        `/login?returnTo=${encodeURIComponent(path)}`,
+      );
     }
+  });
+
+  it("preserves a protected report path and query in the login redirect", async () => {
+    asAnon();
+    const res = (await call(reports.loader as never, {
+      request: req("http://localhost/reports/report-1?view=summary"),
+      params: { id: "report-1" },
+      context: ctx,
+    })) as Response;
+    expect(res).toBeInstanceOf(Response);
+    expect(res.status).toBe(302);
+    expect(res.headers.get("location")).toBe(
+      "/login?returnTo=%2Freports%2Freport-1%3Fview%3Dsummary",
+    );
   });
 
   it("protected actions also redirect to /login when unauthenticated", async () => {
@@ -251,6 +273,6 @@ describe("unauthenticated access to protected routes", () => {
       context: ctx,
     })) as Response;
     expect(res.status).toBe(302);
-    expect(res.headers.get("location")).toBe("/login");
+    expect(res.headers.get("location")).toBe("/login?returnTo=%2F");
   });
 });

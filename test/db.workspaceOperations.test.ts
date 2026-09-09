@@ -117,8 +117,36 @@ it("records thrown analysis failures without storing provider secrets or losing 
     expect(row?.failed).toBe(1);
     expect(row?.finished_at).toBeTruthy();
     expect(row).not.toHaveProperty('error');
-    expect((await analysisHealth(scope,new Date(now.getTime()+1000))).failedStarts).toBe(1);
-    expect((await analysisHealth(p.scopeFor('ws_b'),new Date(now.getTime()+1000))).failedStarts).toBe(0);
+    await p.db.prepare(`UPDATE analysis_limit_reservations
+      SET reserved_at = ?, finished_at = ?, day_utc = ?
+      WHERE workspace_id = ?`).bind(
+        '2026-09-04T11:40:00.000Z',
+        '2026-09-04T11:41:00.000Z',
+        '2026-09-04',
+        'ws_a',
+      ).run();
+    await p.db.prepare(`INSERT INTO analysis_limit_reservations
+      (workspace_id, client_id, reserved_at, day_utc, finished_at, failed)
+      VALUES (?, ?, ?, ?, ?, 1)`).bind(
+        'ws_a',
+        client.clientId,
+        '2026-09-04T11:55:00.000Z',
+        '2026-09-04',
+        '2026-09-04T11:56:00.000Z',
+      ).run();
+    const health=await analysisHealth(scope,now);
+    expect(health.failedStarts).toBe(1);
+    expect(health.investigations).toContainEqual({
+      kind:'failed-start',
+      clientName:`Client ${client.clientId}`,
+      stage:'Analysis start',
+      at:'2026-09-04T11:41:00.000Z',
+      reason:'The run stopped before a detailed record was created.',
+    });
+    expect(health.investigations).toHaveLength(1);
+    const otherWorkspace=await analysisHealth(p.scopeFor('ws_b'),now);
+    expect(otherWorkspace.failedStarts).toBe(0);
+    expect(otherWorkspace.investigations).toEqual([]);
   }finally{p.close();}
 });
 
@@ -137,6 +165,14 @@ it("alerts on an elevated inconclusive rate and exposes incomplete starts withou
     expect(health.current).toMatchObject({checks:6,clean:1,findings:0,inconclusive:5,evaluatorErrors:1});
     expect(health.alert).toMatch(/could not fully assess/i);
     expect(health.incompleteStarts).toBe(1);
+    expect(health.investigations).toHaveLength(5);
+    expect(health.investigations).toContainEqual({
+      kind:'completed-run',
+      clientName:`Client ${client.clientId}`,
+      stage:'Evaluation',
+      at:'2026-09-03T10:01:00.000Z',
+      reason:'Measured result',
+    });
     await p.db.prepare(`UPDATE analysis_limit_reservations SET finished_at = '2026-09-04T10:01:00.000Z', failed = 1
       WHERE workspace_id = 'ws_a'`).run();
     const failed=await analysisHealth(p.scopeFor('ws_a'),now);

@@ -74,4 +74,27 @@ describe("login verification callback return path", () => {
       "https://app.example.com/login?verified=success&returnTo=%2Finvite%2Ftoken-123",
     );
   });
+
+  it.each([
+    "https://evil.example",
+    "//evil.example",
+    "/\\evil.example/escape",
+  ])("falls back to the home page after login for unsafe returnTo %s", async (returnTo) => {
+    authApi.signInEmail.mockResolvedValueOnce(
+      new Response(null, {
+        status: 200,
+        headers: { "set-cookie": "session=valid; Path=/; HttpOnly" },
+      }),
+    );
+
+    const response = (await login.action({
+      request: form({
+        email: "recipient@example.com",
+        password: "correct-horse-battery",
+        returnTo,
+      }),
+      context,
+    } as never)) as Response;
+    expect(response.headers.get("location")).toBe("/");
+  });
 });
