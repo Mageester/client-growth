@@ -1,7 +1,10 @@
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { createMemoryRouter, RouterProvider } from "react-router";
 import { describe, expect, it, vi } from "vitest";
 
 import { generateAgencyCatalogDraft } from "../app/lib/catalog-assistant.server";
-import { reviewRowsAreValid } from "../app/components/catalog-assistant";
+import { CatalogAssistant, reviewRowsAreValid } from "../app/components/catalog-assistant";
 import type { AgencyCatalogGenerator } from "@/ports/AgencyCatalogGenerator";
 
 const scope = { db: {} as never, workspaceId: "ws_test" };
@@ -22,6 +25,18 @@ const generator: AgencyCatalogGenerator = {
 };
 
 describe("agency catalog assistant orchestration", () => {
+  it("discloses the summary and bounded public-page excerpts sent for catalog drafting", () => {
+    const router = createMemoryRouter([
+      { path: "/", element: createElement(CatalogAssistant) },
+    ], { initialEntries: ["/"] });
+    const html = renderToStaticMarkup(createElement(RouterProvider, { router }));
+
+    expect(html).toContain("Build my service catalog");
+    expect(html).toContain("summary");
+    expect(html).toContain("bounded public-page excerpts");
+    expect(html).toContain("Nothing is saved until you review");
+  });
+
   it("does not mistake blank review prices for explicit zero-dollar prices", () => {
     expect(reviewRowsAreValid([{ selected: true, name: "Web Design", description: "A complete website for the client.", priceMin: "", priceMax: "" }])).toBe(false);
     expect(reviewRowsAreValid([{ selected: true, name: "Web Design", description: "A complete website for the client.", priceMin: "0", priceMax: "0" }])).toBe(true);

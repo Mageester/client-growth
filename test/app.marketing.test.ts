@@ -286,6 +286,20 @@ describe("Axiom Orbit public product detail", () => {
     );
   });
 
+  it("describes weekly client rechecks and optional configured delivery without promising competitor automation", () => {
+    const landing = renderLanding();
+    const product = renderProduct();
+
+    for (const html of [landing, product]) {
+      expect(html).toContain("weekly client rechecks");
+      expect(html).toContain("optional digest for enrolled workspaces");
+      expect(html).toContain("configured email transport");
+      expect(html).toContain("Competitor comparison is manual and separate");
+      expect(html).not.toContain("scheduled competitor detection");
+      expect(html).not.toContain("Pipeline Engine");
+    }
+  });
+
   it("describes current evidence-backed capability families and deliberate proposal sharing", () => {
     const landing = renderLanding();
     const product = renderProduct();

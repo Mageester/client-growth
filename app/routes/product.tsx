@@ -103,10 +103,8 @@ export default function Product() {
             <div className="marketing-product-hero-copy">
               <h1 id="product-title" data-reveal>Grow the clients you’ve already won.</h1>
               <p>
-                Monitor client sites, understand the evidence, find legitimate work, and prepare the next conversation.
-              </p>
-              <p className="marketing-product-hero-distinction">
-                Pipeline Engine acquires new clients. Orbit helps agencies grow existing accounts.
+                Grow existing accounts with evidence-backed reviews, not a lead-generation or
+                competitor-monitoring promise.
               </p>
               <div className="marketing-product-hero-actions">
                 <Link className="marketing-button marketing-button-primary" to="/signup">
@@ -154,9 +152,9 @@ export default function Product() {
           number="01"
           label="Monitor"
           title="Keep every client in view."
-          copy="Turn on weekly monitoring for a client and Orbit revisits the site, recording what is new, still open, resolved, or inconclusive — so “nothing changed” never means “we couldn’t look.”"
+          copy="Turn on weekly client rechecks for a client and Orbit records what is new, still open, resolved, or inconclusive — so “nothing changed” never means “we couldn’t look.” An optional digest for enrolled workspaces is delivered only through a configured email transport. Competitor comparison is manual and separate."
           availability="Available now · opt-in, per-client weekly monitoring"
-          note="Monitoring is off by default. Results are recorded in the workspace — no email or Slack alerts yet."
+          note="Monitoring is off by default. Digest delivery depends on configured transport; competitor comparison is not part of the scheduled recheck."
           visual={<ProductMonitorVisual />}
         />
 

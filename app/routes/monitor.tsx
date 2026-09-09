@@ -18,6 +18,7 @@ import {
   setMonitorDigestSettings,
 } from "@/db/monitorDigests";
 import { requireTenant } from "../lib/session.server";
+import { pilotRequestHref } from "../lib/pilot-request";
 import { resolveMailTransport } from "../lib/resend.server";
 import { sendDigestNow } from "../lib/monitorDigest.server";
 import { Icon, PageContextMeta, formatRelative, pluralize } from "../components/ui";
@@ -176,9 +177,9 @@ function Upsell({ ownerEmail }: { ownerEmail: string }) {
           <span className="eyebrow">Monitor</span>
           <h1 className="title-page">Never look at a client cold again.</h1>
           <p className="page-statement">
-            MONITOR watches your clients on a schedule and tells you when there is new billable
-            work — a page they still don’t have, a form that broke, something a competitor added —
-            and emails you one weekly digest. It stays quiet when there’s nothing to sell.
+            MONITOR adds weekly client rechecks for enrolled workspaces. An optional digest is
+            delivered only through a configured email transport. Competitor comparison is manual
+            and separate.
           </p>
         </div>
       </header>
@@ -187,10 +188,14 @@ function Upsell({ ownerEmail }: { ownerEmail: string }) {
         <div>
           <b>MONITOR isn’t enabled for this workspace yet.</b>
           <p>
-            It’s a paid feature. Ask us to turn it on for <b>{ownerEmail}</b> and your clients will
-            start being watched automatically — nothing runs until you’re on it.
+            Request a 14-day assisted review for <b>{ownerEmail}</b>. We will review whether
+            MONITOR is a fit across up to ten client sites. We reply within two business days.
+            Nothing is enrolled or scheduled from this request.
           </p>
-          <Link className="btn btn-sm" to="/clients">
+          <a className="btn btn-sm" href={pilotRequestHref()}>
+            Request a 14-day assisted review
+          </a>
+          <Link className="btn btn-sm btn-quiet" to="/clients">
             Back to clients
           </Link>
         </div>

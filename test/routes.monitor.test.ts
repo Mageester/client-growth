@@ -1,3 +1,6 @@
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import * as monitoring from "@/db/monitoring";
@@ -68,6 +71,35 @@ afterEach(() => {
 });
 
 describe("monitor console loader", () => {
+  it("gives a locked workspace the same prefilled pilot handoff without implying automatic enrollment", () => {
+    const router = createMemoryRouter([
+      {
+        path: "/monitor",
+        element: createElement(monitor.default, {
+          loaderData: { entitled: false, ownerEmail: "owner@agency.example" },
+        } as never),
+      },
+    ], { initialEntries: ["/monitor"] });
+    const html = renderToStaticMarkup(createElement(RouterProvider, { router }));
+    const hrefs = [...html.matchAll(/href="(mailto:[^"]+)"/g)].map((match) =>
+      match[1]!.replaceAll("&amp;", "&"),
+    );
+
+    expect(hrefs).toHaveLength(1);
+    const url = new URL(hrefs[0]!);
+    expect(url.protocol).toBe("mailto:");
+    expect(url.pathname).toBe("hello@getaxiom.ca");
+    expect(url.searchParams.get("subject")).toBe("Axiom Orbit agency pilot request");
+    expect(url.searchParams.get("body")).toContain("Agency name:");
+    expect(url.searchParams.get("body")).toContain("Client sites managed:");
+    expect(html).toContain("14-day assisted review");
+    expect(html).toContain("up to ten client sites");
+    expect(html).toContain("within two business days");
+    expect(html).toContain("weekly client rechecks");
+    expect(html).toContain("configured email transport");
+    expect(html).toContain("manual and separate");
+  });
+
   it("shows the upsell when the workspace is not entitled", async () => {
     const data = (await monitor.loader({
       request: req(),

@@ -2,8 +2,12 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { MemoryRouter } from "react-router";
 
 import routes from "../app/routes";
+import Privacy from "../app/routes/privacy";
 
 const root = process.cwd();
 const robots = readFileSync(join(root, "public", "robots.txt"), "utf8");
@@ -53,5 +57,22 @@ describe("what the public internet is told about this app", () => {
       expect(routePaths, loc).toContain(path);
       expect(robots).not.toContain(`Disallow: /${path}`);
     }
+  });
+
+  it("separates the real provider payloads without claiming agency or public-page data is excluded", () => {
+    const html = renderToStaticMarkup(
+      createElement(MemoryRouter, null, createElement(Privacy)),
+    );
+
+    expect(html).toContain("candidate evaluation");
+    expect(html).toContain("agency-entered offering names");
+    expect(html).toContain("public-page URLs, titles, headings, and navigation labels");
+    expect(html).toContain("summary you provide");
+    expect(html).toContain("bounded excerpts");
+    expect(html).toContain("verification links, password resets, and team invitations");
+    expect(html).toContain("monitoring-digest recipient and content");
+    expect(html).toContain("provider’s own terms");
+    expect(html).not.toContain("It does not receive page content, your notes, your catalog");
+    expect(html).not.toContain("provider retention or training guarantees");
   });
 });

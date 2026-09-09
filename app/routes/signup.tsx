@@ -10,6 +10,7 @@ import { getAuth, getTrustedAuthBaseURL } from "../lib/auth.server";
 import { canDeliverEmail } from "../lib/resend.server";
 import { getSession } from "../lib/session.server";
 import { d1Db } from "../lib/d1.server";
+import { pilotRequestHref } from "../lib/pilot-request";
 import { AxiomCredit, BrandLockup, Icon } from "../components/ui";
 import type { Route } from "./+types/signup";
 
@@ -226,6 +227,13 @@ export default function Signup({ loaderData, actionData }: Route.ComponentProps)
             invitation, start from that link so we can keep the invitation and account email
             together.
           </p>
+          <p className="prose">
+            The 14-day assisted review covers up to ten client sites. We reply within two
+            business days.
+          </p>
+          <a className="btn btn-primary btn-lg" href={pilotRequestHref()}>
+            Request a 14-day assisted review
+          </a>
           {showAccessCheck ? (
             <Form method="post">
               {returnTo && <input type="hidden" name="returnTo" value={returnTo} />}
@@ -240,12 +248,12 @@ export default function Signup({ loaderData, actionData }: Route.ComponentProps)
                   required
                 />
               </div>
-              <button type="submit" className="btn btn-primary btn-lg">
+              <button type="submit" className="btn btn-lg">
                 Check pilot access
               </button>
             </Form>
           ) : (
-            <Link className="btn btn-primary btn-lg" to="/login">
+            <Link className="btn btn-lg" to="/login">
               Already invited? Log in
             </Link>
           )}

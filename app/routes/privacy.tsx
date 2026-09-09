@@ -78,22 +78,29 @@ export default function Privacy() {
         </li>
         <li>
           <strong>Resend</strong> delivers account email: verification links, password
-          resets, and team invitations. It receives the recipient address and the message.
+          resets, and team invitations. It receives the recipient address and message content.
+          For enabled MONITOR workspaces, it also receives the monitoring-digest recipient and
+          content.
         </li>
         <li>
-          <strong>DeepSeek</strong> judges whether a candidate finding is genuinely
-          sellable work. It receives only the client&rsquo;s business name, their website
-          domain, and the single subject being judged — for example the words
-          &ldquo;heat pump installation&rdquo;. It does not receive page content, your
-          notes, your catalog, your prices, or anything about you.
+          <strong>DeepSeek candidate evaluation</strong> judges whether a candidate finding is
+          genuinely sellable work. It receives the client&rsquo;s business name and domain, the
+          candidate subject, agency-entered offering names, and the public-page URLs, titles,
+          headings, and navigation labels used in that review.
+        </li>
+        <li>
+          <strong>DeepSeek catalog assistant</strong> is used only when you choose to build a
+          service-catalog draft. It receives the summary you provide and bounded excerpts from
+          public pages you name or let Orbit read. The provider&rsquo;s own terms govern its
+          retention and training practices.
         </li>
       </ul>
 
       <h2>What we do not do</h2>
       <p>
-        We do not sell data, share it with advertisers, or use it to train models. We do
-        not use tracking or advertising cookies; the only cookie the service sets is the
-        one that keeps you signed in. Workspaces are isolated from one another at the
+        We do not sell data, share it with advertisers, or use workspace data to train Axiom
+        Orbit models. We do not use tracking or advertising cookies; the only cookie the service
+        sets is the one that keeps you signed in. Workspaces are isolated from one another at the
         database level — no workspace can read another&rsquo;s data.
       </p>
 

@@ -94,6 +94,10 @@ export function CatalogAssistant({
         <button className="btn btn-primary" type="button" disabled={busy} onClick={() => fetcher.submit({ intent: "generate-catalog", website, summary }, { method: "post" })}>
           <Icon name="briefcase" size={15} /> {busy ? "Building draft…" : "Build my service catalog"}
         </button>
+        <p className="field-hint">
+          Building a draft sends the summary you provide and bounded public-page excerpts to the
+          catalog assistant. Nothing is saved until you review it.
+        </p>
       </div>
 
       {fetcher.data && !fetcher.data.ok && <div className="notice err" role="alert"><Icon name="alert" size={15} /><span>{fetcher.data.error}</span></div>}

@@ -47,7 +47,7 @@ const steps = [
   {
     number: "01",
     title: "Watch",
-    copy: "Choose the clients you want monitored. Each week, Orbit checks their sites and records what changed.",
+    copy: "Choose enrolled clients for weekly client rechecks. An optional digest for enrolled workspaces is delivered only through a configured email transport. Competitor comparison is manual and separate.",
   },
   {
     number: "02",
@@ -72,9 +72,6 @@ export default function Index() {
             </h1>
             <div className="marketing-hero-deck" data-reveal style={{ "--reveal-delay": "110ms" } as CSSProperties}>
               <p>{landingDescription}</p>
-              <p>
-                Pipeline Engine finds new clients. Orbit grows the ones you already have.
-              </p>
             </div>
             <div className="marketing-cta-row" data-reveal style={{ "--reveal-delay": "220ms" } as CSSProperties}>
               <Link className="marketing-button marketing-button-primary" to="/signup">

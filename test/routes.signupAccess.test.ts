@@ -451,4 +451,23 @@ describe("signup admission at the route", () => {
     expect(html).not.toContain("Create account");
   });
 
+  it("gives a closed signup a prefilled agency-pilot handoff without opening an account", () => {
+    const html = renderSignup({ publicSignup: false });
+    const hrefs = [...html.matchAll(/href="(mailto:[^"]+)"/g)].map((match) =>
+      match[1]!.replaceAll("&amp;", "&"),
+    );
+
+    expect(hrefs).toHaveLength(1);
+    const url = new URL(hrefs[0]!);
+    expect(url.protocol).toBe("mailto:");
+    expect(url.pathname).toBe("hello@getaxiom.ca");
+    expect(url.searchParams.get("subject")).toBe("Axiom Orbit agency pilot request");
+    expect(url.searchParams.get("body")).toContain("Agency name:");
+    expect(url.searchParams.get("body")).toContain("Client sites managed:");
+    expect(html).toContain("14-day assisted review");
+    expect(html).toContain("up to ten client sites");
+    expect(html).toContain("within two business days");
+    expect(html).not.toContain('name="workspaceName"');
+  });
+
 });
