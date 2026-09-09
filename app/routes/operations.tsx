@@ -64,7 +64,7 @@ export default function Operations({ loaderData: d }: Route.ComponentProps) {
         <div className="pagehead-copy">
           <span className="eyebrow">Settings</span>
           <h1 className="title-page">Settings</h1>
-          <p className="summary-line">Manage your workspace, services, and integrations.</p>
+          <p className="summary-line">Manage your workspace, service catalog, and analysis health.</p>
         </div>
       </div>
 

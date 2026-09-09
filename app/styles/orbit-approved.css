@@ -3061,6 +3061,35 @@ html[data-theme="light"] .app-frame .entity-mark {
   .app-frame .opportunities-page .signal-client-trigger {
     width: 100%;
   }
+  .app-frame .opportunities-page .pagehead-actions > .menu {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+  .app-frame .opportunities-page .pagehead-actions > .menu > .menu-pop {
+    box-sizing: border-box;
+    width: min(20rem, calc(100vw - 2rem));
+    min-width: 0;
+    max-width: calc(100vw - 2rem);
+  }
+  .app-frame .opportunities-page .menu-item {
+    min-width: 0;
+    min-height: 42px;
+    white-space: normal;
+  }
+  .app-frame .opportunities-page .menu-item > span:not(.menu-item-note) {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .app-frame .opportunities-page .menu-item > :is(svg, .state-dot) {
+    flex-shrink: 0;
+  }
+  .app-frame .opportunities-page .menu-item-note {
+    min-width: 0;
+    white-space: normal;
+    text-align: right;
+  }
   .app-frame .opportunities-page .orbit-select-wrap {
     box-sizing: border-box;
     width: 100%;
@@ -3800,6 +3829,11 @@ html[data-theme="light"] .app-frame .entity-mark {
 }
 
 .client-report-document {
+  --report-theme-soft: #f1f8f3;
+  --report-theme-paper: #fffefa;
+  --report-theme-ink: #18272f;
+  --report-theme-muted: #63747a;
+  --report-theme-line: #dce7e1;
   width: 100%;
   max-width: 900px;
   margin: 0 auto;
@@ -3825,8 +3859,8 @@ html[data-theme="light"] .app-frame .entity-mark {
   grid-template-columns: minmax(0, 1fr) minmax(16rem, 1.25fr);
   gap: 1.5rem 2rem;
   padding: 2rem;
-  border-bottom: 1px solid #dce7e1;
-  background: linear-gradient(135deg, #f1f8f3 0%, #fffefa 72%);
+  border-bottom: 1px solid var(--report-theme-line);
+  background: linear-gradient(135deg, var(--report-theme-soft) 0%, var(--report-theme-paper) 72%);
 }
 
 .client-report-compact-title {
@@ -3835,7 +3869,7 @@ html[data-theme="light"] .app-frame .entity-mark {
 
 .client-report-compact-title h2 {
   margin-top: 0.45rem;
-  color: #18272f;
+  color: var(--report-theme-ink);
   font-family: var(--font-display);
   font-size: clamp(2rem, 4vw, 3rem);
   font-weight: 500;
@@ -3846,7 +3880,7 @@ html[data-theme="light"] .app-frame .entity-mark {
 
 .client-report-compact-title p {
   margin-top: 0.5rem;
-  color: #63747a;
+  color: var(--report-theme-muted);
 }
 
 .client-report-compact-header .client-report-cover-meta,

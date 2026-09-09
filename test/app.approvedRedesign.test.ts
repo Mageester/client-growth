@@ -469,6 +469,8 @@ describe("approved page anatomy", () => {
     );
     expect(operationsHtml).toContain('href="/export/workspace"');
     expect(operationsHtml).toContain("Export workspace data");
+    expect(operationsHtml).toContain("Manage your workspace, service catalog, and analysis health.");
+    expect(operationsHtml).not.toContain("integrations");
     expect(operationsHtml).toContain(`<time dateTime="${at}">${formatDate(at, true)}</time>`);
   });
 

@@ -122,6 +122,11 @@ describe("mobile viewport safety", () => {
     const labelRule = /\.app-frame \.signal-client-trigger > span:not\(\.scope-count\)\s*\{([\s\S]*?)\}/.exec(css)?.[1] ?? "";
     const iconRule = /\.app-frame \.signal-client-trigger > svg\s*\{([\s\S]*?)\}/.exec(css)?.[1] ?? "";
     const phoneRules = css.slice(css.lastIndexOf("@media (max-width: 700px)"));
+    const menuRule = /\.app-frame \.opportunities-page \.pagehead-actions > \.menu\s*\{([\s\S]*?)\}/.exec(phoneRules)?.[1] ?? "";
+    const popoverRule = /\.app-frame \.opportunities-page \.pagehead-actions > \.menu > \.menu-pop\s*\{([\s\S]*?)\}/.exec(phoneRules)?.[1] ?? "";
+    const itemRule = /\.app-frame \.opportunities-page \.menu-item\s*\{([\s\S]*?)\}/.exec(phoneRules)?.[1] ?? "";
+    const itemTextRule = /\.app-frame \.opportunities-page \.menu-item > span:not\(\.menu-item-note\)\s*\{([\s\S]*?)\}/.exec(phoneRules)?.[1] ?? "";
+    const itemIconRule = /\.app-frame \.opportunities-page \.menu-item > :is\(svg, \.state-dot\)\s*\{([\s\S]*?)\}/.exec(phoneRules)?.[1] ?? "";
 
     expect(triggerRule).toMatch(/min-width:\s*0/);
     expect(triggerRule).toMatch(/max-width:\s*100%/);
@@ -131,9 +136,17 @@ describe("mobile viewport safety", () => {
     expect(phoneRules).toMatch(/\.app-frame \.opportunities-page \.pagehead-actions\s*\{[\s\S]*max-width:\s*100%/);
     expect(phoneRules).toMatch(/\.app-frame \.opportunities-page \.orbit-select-wrap\s*\{[\s\S]*max-width:\s*100%/);
     expect(phoneRules).toMatch(/\.app-frame \.settings-nav\s*\{[\s\S]*max-width:\s*100%/);
+    expect(menuRule).toMatch(/min-width:\s*0/);
+    expect(menuRule).toMatch(/max-width:\s*100%/);
+    expect(popoverRule).toMatch(/max-width:\s*calc\(100vw - 2rem\)/);
+    expect(itemRule).toMatch(/min-height:\s*42px/);
+    expect(itemRule).toMatch(/white-space:\s*normal/);
+    expect(itemTextRule).toMatch(/min-width:\s*0/);
+    expect(itemTextRule).toMatch(/overflow-wrap:\s*anywhere/);
+    expect(itemIconRule).toMatch(/flex-shrink:\s*0/);
   });
 
-  it("formats the visible cooldown date while preserving its machine-readable instant", () => {
+  it("formats the production cooldown reason once while preserving its machine-readable instant", () => {
     const retryAt = "2026-09-04T12:05:00.000Z";
     const loaderData = {
       groups: [
@@ -164,7 +177,12 @@ describe("mobile viewport safety", () => {
                   ok: false,
                   clientId: "client_a",
                   error: `This client was analyzed recently. Try again after ${retryAt}.`,
-                  limitation: { code: "client-cooldown", reason: "This client was analyzed recently.", retryAt, retryAfterMs: 300_000 },
+                  limitation: {
+                    code: "client-cooldown",
+                    reason: `This client was analyzed recently. Try again after ${retryAt}.`,
+                    retryAt,
+                    retryAfterMs: 300_000,
+                  },
                 },
               } as never),
             }],
@@ -177,6 +195,9 @@ describe("mobile viewport safety", () => {
     const visibleDate = /<time dateTime="2026-09-04T12:05:00.000Z">([^<]+)<\/time>/.exec(html)?.[1];
     expect(visibleDate).toBeTruthy();
     expect(visibleDate).not.toBe(retryAt);
+    expect(html).toContain("This client was analyzed recently.");
+    expect(html).not.toContain(`Try again after ${retryAt}`);
+    expect(html.match(/Try again after/g)).toHaveLength(1);
   });
 
   it("keeps finding identity readable when rows get narrow", () => {

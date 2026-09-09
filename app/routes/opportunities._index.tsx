@@ -175,6 +175,13 @@ export function healthSectionDescription(count: number, filter: FeedFilter): str
   return `${count} ${pluralize(count, "check", "checks")} worth fixing — titles, headings, descriptions and links. Supporting work rather than the reason to call.`;
 }
 
+function limitationReasonWithoutRetry(reason: string, retryAt: string) {
+  const retrySuffix = `Try again after ${retryAt}.`;
+  return reason.endsWith(retrySuffix)
+    ? reason.slice(0, -retrySuffix.length).trimEnd()
+    : reason;
+}
+
 function ProjectSection({
   project,
   hrefFor,
@@ -483,7 +490,10 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
           <span>
             {actionData.limitation?.retryAt ? (
               <>
-                {actionData.limitation.reason} Try again after {" "}
+                {limitationReasonWithoutRetry(
+                  actionData.limitation.reason,
+                  actionData.limitation.retryAt,
+                )} Try again after {" "}
                 <time dateTime={actionData.limitation.retryAt}>
                   {formatDate(actionData.limitation.retryAt, true)}
                 </time>.
