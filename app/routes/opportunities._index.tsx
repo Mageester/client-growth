@@ -40,10 +40,8 @@ import {
 } from "../components/ui";
 import { AnalysisAbortedError, runAnalysis } from "../lib/analysis.server";
 import { isContactPathOpportunity } from "../lib/actionCenter";
-import {
-  analysisAdmissionReason as serverAnalysisAdmissionReason,
-  analysisReadinessForClient,
-} from "../lib/analysis-readiness.server";
+import { analysisAdmissionReason } from "../lib/analysis-readiness";
+import { analysisReadinessForClient } from "../lib/analysis-readiness.server";
 import { requireTenant } from "../lib/session.server";
 import type { Route } from "./+types/opportunities._index";
 
@@ -126,7 +124,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   });
   const canAnalyze = readiness.catalog.matched > 0 && readiness.readyCount > 0;
   if (!canAnalyze) {
-    return { ok: false as const, clientId, error: serverAnalysisAdmissionReason(readiness) };
+    return { ok: false as const, clientId, error: analysisAdmissionReason(readiness) };
   }
   try {
     const result = await runAnalysis(t.scope, context.cloudflare.env as never, clientId, {
@@ -175,20 +173,6 @@ export function healthSectionDescription(count: number, filter: FeedFilter): str
     return `${count} ${pluralize(count, "health finding", "health findings")} in this view. Closed items remain here for history.`;
   }
   return `${count} ${pluralize(count, "check", "checks")} worth fixing — titles, headings, descriptions and links. Supporting work rather than the reason to call.`;
-}
-
-/** Keeps the client bundle independent from the server-only readiness builder. */
-function analysisAdmissionReasonForView(readiness: Group["readiness"]): string {
-  const matchedRuleIds = new Set(
-    readiness.catalog.rules
-      .filter((rule) => rule.serviceId !== null)
-      .map((rule) => rule.ruleId),
-  );
-  return (
-    readiness.rules.find(
-      (rule) => matchedRuleIds.has(rule.ruleId) && rule.state !== "ready",
-    ) ?? readiness.rules.find((rule) => rule.state !== "ready")
-  )?.reason ?? "No ready analysis rule is available for this client yet.";
 }
 
 function ProjectSection({
@@ -785,7 +769,7 @@ function AnalyzeControl({
           className="btn analyze-control"
           type="submit"
           disabled={busy || !canAnalyze}
-          title={canAnalyze ? undefined : analysisAdmissionReasonForView(selected.readiness)}
+          title={canAnalyze ? undefined : analysisAdmissionReason(selected.readiness)}
         >
           <Icon name="refresh" size={15} className={running ? "spin" : undefined} />
           <span className="analyze-label">
@@ -820,7 +804,7 @@ function AnalyzeControl({
             title={
               group.readiness.catalog.matched > 0 && group.readiness.readyCount > 0
                 ? undefined
-                : analysisAdmissionReasonForView(group.readiness)
+                : analysisAdmissionReason(group.readiness)
             }
           >
             <StateDot state={group.state} />

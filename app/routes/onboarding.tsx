@@ -38,11 +38,8 @@ import {
   generateAgencyCatalogDraft,
   servicesFromReviewedCatalog,
 } from "../lib/catalog-assistant.server";
-import {
-  analysisAdmissionBlocker,
-  analysisAdmissionReason,
-  analysisReadinessForClient,
-} from "../lib/analysis-readiness.server";
+import { analysisAdmissionBlocker, analysisAdmissionReason } from "../lib/analysis-readiness";
+import { analysisReadinessForClient } from "../lib/analysis-readiness.server";
 
 export function meta() {
   return [{ title: "Get started · Axiom Orbit" }];

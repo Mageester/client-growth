@@ -42,11 +42,8 @@ import {
   CompetitorError,
 } from "@/db/competitors";
 import { compareWithCompetitors } from "../lib/competitors.server";
-import {
-  analysisAdmissionBlocker,
-  analysisAdmissionReason,
-  analysisReadinessForClient,
-} from "../lib/analysis-readiness.server";
+import { analysisAdmissionBlocker, analysisAdmissionReason } from "../lib/analysis-readiness";
+import { analysisReadinessForClient } from "../lib/analysis-readiness.server";
 import * as repo from "@/db/repositories";
 import {
   AnalysisAbortedError,
