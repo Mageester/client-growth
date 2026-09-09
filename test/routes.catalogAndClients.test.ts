@@ -30,7 +30,18 @@ function sqlDbOver(db: Database.Database) {
     first: async () => db.prepare(sql).get(...(bound as never[])) ?? null,
     run: async () => ({ rowsAffected: db.prepare(sql).run(...(bound as never[])).changes }),
   });
-  return { prepare: (sql: string) => stmt(sql, []), exec: async (s: string) => void db.exec(s) };
+  return {
+    prepare: (sql: string) => stmt(sql, []),
+    exec: async (s: string) => void db.exec(s),
+    batch: async (statements: Array<{ sql: string; params?: unknown[] }>) => {
+      const run = db.transaction(() =>
+        statements.map((statement) => ({
+          rowsAffected: db.prepare(statement.sql).run(...((statement.params ?? []) as never[])).changes,
+        })),
+      );
+      return run();
+    },
+  };
 }
 
 function formReq(fields: Record<string, string | string[]>) {
@@ -91,6 +102,38 @@ const saveService = (fields: Record<string, string | string[]>) =>
   });
 
 describe("service catalog", () => {
+  it("refuses AI generation when the real provider is not configured", async () => {
+    const result = (await call(servicesIndex.action as never, {
+      request: formReq({ intent: "generate-catalog", summary: "We design websites." }),
+      context: ctx,
+    })) as { ok: boolean; error?: string };
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatch(/not available/i);
+    expect(await repo.listServices(scope)).toEqual([]);
+  });
+
+  it("strictly validates and atomically saves a reviewed AI catalog", async () => {
+    const bad = (await call(servicesIndex.action as never, {
+      request: formReq({ intent: "save-generated-catalog", catalog: "not-json" }),
+      context: ctx,
+    })) as { ok: boolean; error?: string };
+    expect(bad.ok).toBe(false);
+    expect(await repo.listServices(scope)).toEqual([]);
+
+    const catalog = JSON.stringify([
+      { name: "Web Design", description: "A complete website designed and built for clients.", priceMin: 2000, priceMax: 5000 },
+      { name: "SEO Retainer", description: "Ongoing search optimization and content improvements.", priceMin: 800, priceMax: 1500 },
+    ]);
+    const saved = (await call(servicesIndex.action as never, {
+      request: formReq({ intent: "save-generated-catalog", catalog }),
+      context: ctx,
+    })) as { ok: boolean };
+    expect(saved.ok).toBe(true);
+    expect((await repo.listServices(scope)).map((service) => service.name)).toEqual([
+      "SEO Retainer",
+      "Web Design",
+    ]);
+  });
   it("creates a service connected to the kind of gap it answers", async () => {
     const res = (await saveService({
       name: "Service Landing Page",

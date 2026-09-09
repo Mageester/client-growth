@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Form, useNavigation } from "react-router";
+import { z } from "zod";
 
 import type { Service } from "@/core/schema";
 import { RULE_SERVICE_LINKS } from "@/core/rules/registry";
@@ -21,6 +22,8 @@ import { GlyphMark, markForTags } from "../components/entity-mark";
 import { requireTenant } from "../lib/session.server";
 import { SettingsNavigation } from "../components/settings-navigation";
 import { validateServiceInput } from "../lib/validation";
+import { generateAgencyCatalogDraft } from "../lib/catalog-assistant.server";
+import { CatalogAssistant } from "../components/catalog-assistant";
 import type { Route } from "./+types/services._index";
 
 export function meta() {
@@ -68,6 +71,69 @@ export async function action({ request, context }: Route.ActionArgs) {
   const t = await requireTenant(request, context);
   const form = await request.formData();
   const intent = String(form.get("intent") ?? "");
+
+  if (intent === "generate-catalog") {
+    try {
+      const generated = await generateAgencyCatalogDraft(
+        t.scope,
+        context.cloudflare.env as unknown as Record<string, unknown>,
+        {
+          website: String(form.get("website") ?? ""),
+          summary: String(form.get("summary") ?? ""),
+        },
+        request.signal,
+      );
+      return { ok: true as const, kind: "catalog-draft" as const, ...generated };
+    } catch (error) {
+      return {
+        ok: false as const,
+        kind: "catalog-draft" as const,
+        error: error instanceof Error ? error.message : "Catalog generation failed.",
+      };
+    }
+  }
+
+  if (intent === "save-generated-catalog") {
+    const ReviewedCatalogSchema = z
+      .array(
+        z
+          .object({
+            name: z.string().trim().min(2).max(80),
+            description: z.string().trim().min(10).max(500),
+            priceMin: z.number().nonnegative(),
+            priceMax: z.number().nonnegative(),
+          })
+          .strict()
+          .refine((service) => service.priceMax >= service.priceMin, {
+            message: "The top of every price range must be at least its starting price.",
+          }),
+      )
+      .min(1)
+      .max(30);
+    try {
+      const reviewed = ReviewedCatalogSchema.parse(JSON.parse(String(form.get("catalog") ?? "")));
+      const services = reviewed.map((service) =>
+        ServiceSchema.parse({
+          id: `svc-${crypto.randomUUID()}`,
+          ...service,
+          tags: suggestServiceTags(service).map((suggestion) => suggestion.tag),
+          active: true,
+        }),
+      );
+      await repo.upsertServicesAtomic(t.scope, services);
+      return {
+        ok: true as const,
+        kind: "catalog-save" as const,
+        message: `${services.length} ${pluralize(services.length, "service", "services")} added to your catalog.`,
+      };
+    } catch (error) {
+      return {
+        ok: false as const,
+        kind: "catalog-save" as const,
+        error: error instanceof Error ? error.message : "The reviewed catalog was invalid.",
+      };
+    }
+  }
 
   if (intent === "toggle-active") {
     const id = String(form.get("id") ?? "");
@@ -184,6 +250,8 @@ export default function ServicesIndex({ loaderData, actionData }: Route.Componen
               </button>
             )}
           </div>
+
+          <CatalogAssistant />
 
       {actionData?.ok && (
         <div className="notice ok" role="status">

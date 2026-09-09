@@ -148,5 +148,17 @@ export function d1LikeOver(raw: Database.Database): unknown {
     exec: async (sql: string) => {
       raw.exec(sql);
     },
+    batch: async (statements: Array<{ run: () => Promise<unknown> }>) => {
+      raw.exec("BEGIN");
+      try {
+        const results = [];
+        for (const statement of statements) results.push(await statement.run());
+        raw.exec("COMMIT");
+        return results;
+      } catch (error) {
+        raw.exec("ROLLBACK");
+        throw error;
+      }
+    },
   };
 }
