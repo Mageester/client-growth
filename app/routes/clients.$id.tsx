@@ -31,6 +31,7 @@ import {
   type MonitoringState,
 } from "@/core/monitoring";
 import * as monitoringRepo from "@/db/monitoring";
+import { listClientReportSummaries } from "@/db/clientReports";
 import { isWorkspaceEntitledToMonitor } from "@/core/entitlements";
 import { parseJobValue } from "@/core/clientValue";
 import { MAX_COMPETITORS_PER_CLIENT } from "@/core/competitorGaps";
@@ -146,7 +147,7 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
     context.cloudflare.env as unknown as Record<string, unknown>,
     t.user.email,
   );
-  const [services, coverage, opportunities, runs, monitoring, evidence, competitors] =
+  const [services, coverage, opportunities, runs, monitoring, evidence, competitors, reports] =
     await Promise.all([
       repo.listServices(t.scope),
       repo.listCoverage(t.scope, client.id),
@@ -155,6 +156,7 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
       monitoringRepo.getMonitoring(t.scope, client.id),
       repo.getLatestEvidence(t.scope, client.id),
       listCompetitors(t.scope, client.id),
+      listClientReportSummaries(t.scope, client.id),
     ]);
   const externalClaims = externalMismatchEnabled
     ? await repo.listExternalBusinessClaims(t.scope, client.id)
@@ -194,6 +196,7 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
     readiness,
     suggestions,
     competitors,
+    reports,
     externalMismatchEnabled,
     externalClaims: resolveCurrentExternalClaims(externalClaims, new Date()),
     maxCompetitors: MAX_COMPETITORS_PER_CLIENT,
@@ -659,6 +662,7 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
     externalMismatchEnabled = false,
     externalClaims = [],
     websiteCoverage = null,
+    reports = [],
   } = loaderData;
   const navigation = useNavigation();
   const intent = navigation.formData?.get("intent");
@@ -870,6 +874,46 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
           limitation={latest.limitation}
         />
       )}
+
+      <section className="section">
+        <div className="section-head">
+          <div>
+            <h2 className="title-section">Saved reports</h2>
+            <p>Fixed client-ready snapshots from the opportunities you selected.</p>
+          </div>
+        </div>
+        {reports.length === 0 ? (
+          <p className="faint">No reports saved yet.</p>
+        ) : (
+          <ul className="records">
+            {reports.map((report) => (
+              <li key={report.reportId}>
+                <Link className="record" to={`/reports/${encodeURIComponent(report.reportId)}`}>
+                  <span className="record-main">
+                    <span className="record-name">Private preview · {formatDate(report.generatedAt)}</span>
+                    <span className="record-meta">
+                      <span>{report.recommendedProjectCount} recommended {pluralize(report.recommendedProjectCount, "project", "projects")}</span>
+                      <span className="dot-sep">·</span>
+                      <span>{report.supportingProjectCount} supporting {pluralize(report.supportingProjectCount, "project", "projects")}</span>
+                    </span>
+                  </span>
+                  <span className="record-end">
+                    <span className="record-stat wide">
+                      <b className="num">{report.activeShareCount === 0 ? "Private" : `${report.activeShareCount} active`}</b>
+                      <span>
+                        {report.nearestActiveShareExpiresAt
+                          ? `expires ${formatDate(report.nearestActiveShareExpiresAt)}`
+                          : "no active links"}
+                      </span>
+                    </span>
+                    <Icon name="chevron-right" size={15} className="record-chevron" />
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <section className="section">
         <div className="section-head">

@@ -8,6 +8,8 @@ import {
   createClientReportShare,
   getClientReportById,
   getClientReportShareByToken,
+  listActiveClientReportShares,
+  listClientReportSummaries,
   revokeClientReportShares,
 } from "@/db/clientReports";
 import { nodeSqliteDb } from "@/db/nodeSqlite";
@@ -184,6 +186,92 @@ describe("client report persistence", () => {
           snapshot,
         }),
       ).rejects.toThrow(/eligible|inconclusive/i);
+    } finally {
+      db.close();
+    }
+  });
+
+  it("lists only this tenant's saved reports and their active share metadata", async () => {
+    const { db, scopeA, scopeB, snapshot } = await fixture();
+    try {
+      const olderReport = await createClientReport(scopeA, {
+        clientId: clientA.id,
+        createdByUserId: "owner_a",
+        snapshot: {
+          ...snapshot,
+          public: { ...snapshot.public, generatedAt: "2026-09-05T09:00:00.000Z" },
+        },
+      });
+      const newerReport = await createClientReport(scopeA, {
+        clientId: clientA.id,
+        createdByUserId: "owner_a",
+        snapshot: {
+          ...snapshot,
+          public: { ...snapshot.public, generatedAt: "2026-09-06T10:00:00.000Z" },
+        },
+      });
+      const activeShare = await createClientReportShare(scopeA, newerReport.reportId, {
+        actingUserId: "owner_a",
+        now: new Date("2026-09-06T10:00:00.000Z"),
+      });
+      await createClientReportShare(scopeA, newerReport.reportId, {
+        actingUserId: "owner_a",
+        now: new Date("2026-08-01T10:00:00.000Z"),
+      });
+      const revokedShare = await createClientReportShare(scopeA, olderReport.reportId, {
+        actingUserId: "owner_a",
+        now: new Date("2026-09-06T08:00:00.000Z"),
+      });
+      await revokeClientReportShares(scopeA, olderReport.reportId, {
+        actingUserId: "owner_a",
+        now: new Date("2026-09-06T09:00:00.000Z"),
+      });
+
+      const summaries = await listClientReportSummaries(
+        scopeA,
+        clientA.id,
+        new Date("2026-09-07T14:00:00.000Z"),
+      );
+      const activeShares = await listActiveClientReportShares(
+        scopeA,
+        newerReport.reportId,
+        new Date("2026-09-07T14:00:00.000Z"),
+      );
+
+      expect(summaries.map((report) => report.reportId)).toEqual([
+        newerReport.reportId,
+        olderReport.reportId,
+      ]);
+      expect(summaries).toEqual([
+        expect.objectContaining({
+          reportId: newerReport.reportId,
+          clientId: clientA.id,
+          generatedAt: "2026-09-06T10:00:00.000Z",
+          recommendedProjectCount: 1,
+          supportingProjectCount: 0,
+          activeShareCount: 1,
+          nearestActiveShareExpiresAt: "2026-10-06T10:00:00.000Z",
+        }),
+        expect.objectContaining({
+          reportId: olderReport.reportId,
+          activeShareCount: 0,
+          nearestActiveShareExpiresAt: null,
+        }),
+      ]);
+      expect(activeShares.map((share) => share.shareId)).toEqual([activeShare.shareId]);
+      expect(activeShares[0]).toMatchObject({
+        createdAt: "2026-09-06T10:00:00.000Z",
+        expiresAt: "2026-10-06T10:00:00.000Z",
+      });
+      expect(JSON.stringify(activeShares)).not.toContain(activeShare.token);
+      expect(revokedShare.token).not.toContain(revokedShare.shareId);
+
+      expect(
+        await listClientReportSummaries(scopeB, clientA.id, new Date("2026-09-07T14:00:00.000Z")),
+      ).toEqual([]);
+      expect(
+        await listActiveClientReportShares(scopeB, newerReport.reportId, new Date("2026-09-07T14:00:00.000Z")),
+      ).toEqual([]);
     } finally {
       db.close();
     }

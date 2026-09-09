@@ -8,6 +8,7 @@ import {
   createClientReportShare,
   getClientReportById,
   isClientReportError,
+  listActiveClientReportShares,
   revokeClientReportShares,
 } from "@/db/clientReports";
 import { getTrustedAuthBaseURL } from "../lib/auth.server";
@@ -20,10 +21,14 @@ export function meta({ data }: Route.MetaArgs) {
 
 export async function loader({ params, request, context }: Route.LoaderArgs) {
   const t = await requireTenant(request, context);
-  const report = await getClientReportById(t.scope, params.id);
+  const [report, activeShares] = await Promise.all([
+    getClientReportById(t.scope, params.id),
+    listActiveClientReportShares(t.scope, params.id),
+  ]);
   if (!report) throw new Response("Report not found", { status: 404 });
   return {
     report,
+    activeShares,
     canManageShares: t.userId === t.workspace.ownerUserId,
   };
 }
@@ -60,7 +65,7 @@ export async function action({ params, request, context }: Route.ActionArgs) {
 }
 
 export default function ClientReportPreview({ loaderData, actionData }: Route.ComponentProps) {
-  const { report, canManageShares } = loaderData;
+  const { report, activeShares, canManageShares } = loaderData;
   const [copied, setCopied] = useState(false);
   const shareUrl = actionData && "shareUrl" in actionData ? actionData.shareUrl : null;
   const shareExpiresAt = actionData && "expiresAt" in actionData ? actionData.expiresAt : null;
@@ -87,7 +92,9 @@ export default function ClientReportPreview({ loaderData, actionData }: Route.Co
           {canManageShares && (
             <Form method="post">
               <input type="hidden" name="intent" value="create-share" />
-              <button type="submit" className="btn btn-primary">Create secure share link</button>
+              <button type="submit" className="btn btn-primary">
+                {activeShares.length > 0 ? "Create replacement link" : "Create secure share link"}
+              </button>
             </Form>
           )}
         </div>
@@ -98,6 +105,23 @@ export default function ClientReportPreview({ loaderData, actionData }: Route.Co
       )}
       {actionData && actionData.ok && "message" in actionData && (
         <div className="notice ok" role="status"><Icon name="check" size={15} />{actionData.message}</div>
+      )}
+      {activeShares.length > 0 && (
+        <section className="client-report-share-callout" aria-label="Active report share links">
+          <div>
+            <span className="eyebrow">Active share links</span>
+            <h2>{activeShares.length} active {activeShares.length === 1 ? "link" : "links"}</h2>
+            <p>
+              The next link expires {new Date(activeShares[activeShares.length - 1]!.expiresAt).toLocaleDateString()}.
+            </p>
+          </div>
+          {canManageShares && (
+            <Form method="post">
+              <input type="hidden" name="intent" value="revoke-shares" />
+              <button type="submit" className="btn btn-quiet">Revoke active links</button>
+            </Form>
+          )}
+        </section>
       )}
       {shareUrl && (
         <section className="client-report-share-callout" aria-label="Secure report link">
@@ -111,12 +135,6 @@ export default function ClientReportPreview({ loaderData, actionData }: Route.Co
             <button type="button" className="btn" onClick={copyShare}>{copied ? "Copied" : "Copy link"}</button>
           </div>
           {shareExpiresAt && <p className="client-report-share-expiry">Expires {new Date(shareExpiresAt).toLocaleDateString()}</p>}
-          {canManageShares && (
-            <Form method="post">
-              <input type="hidden" name="intent" value="revoke-shares" />
-              <button type="submit" className="btn btn-quiet">Revoke active links</button>
-            </Form>
-          )}
         </section>
       )}
 

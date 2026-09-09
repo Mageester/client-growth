@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { createMemoryRouter, RouterProvider } from "react-router";
 
 import Database from "better-sqlite3";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -17,6 +18,7 @@ import { __setSessionResolver } from "../app/lib/session.server";
 import { d1LikeOver } from "./helpers/testAuth";
 
 import * as reportBuilder from "../app/routes/clients.$id.report";
+import * as clientDetail from "../app/routes/clients.$id";
 import * as reportPreview from "../app/routes/reports.$id";
 import * as reportShare from "../app/routes/report.share";
 
@@ -79,6 +81,22 @@ function call(fn: (args: never) => unknown, args: unknown): Promise<unknown> {
     if (error instanceof Response) return error;
     throw error;
   });
+}
+
+function renderReport(loaderData: unknown) {
+  const router = createMemoryRouter(
+    [{ path: "*", element: createElement(reportPreview.default, { loaderData, actionData: undefined } as never) }],
+    { initialEntries: ["/reports/report_fixture"] },
+  );
+  return renderToStaticMarkup(createElement(RouterProvider, { router }));
+}
+
+function renderClient(loaderData: unknown) {
+  const router = createMemoryRouter(
+    [{ path: "*", element: createElement(clientDetail.default, { loaderData, actionData: undefined } as never) }],
+    { initialEntries: ["/clients/cli_a"] },
+  );
+  return renderToStaticMarkup(createElement(RouterProvider, { router }));
 }
 
 const client = ClientSchema.parse({
@@ -209,6 +227,54 @@ afterEach(() => {
 });
 
 describe("client-facing report routes", () => {
+  it("retains share controls after reload and removes anonymous access after revocation", async () => {
+    const builder = (await reportBuilder.loader({
+      request: new Request("http://localhost/clients/cli_a/report"),
+      params: { id: "cli_a" },
+      context,
+    } as never)) as Awaited<ReturnType<typeof reportBuilder.loader>>;
+    const key = builder.candidates.defaultSelectedKeys[0]!;
+    const generated = (await call(reportBuilder.action, {
+      request: formReq({ intent: "generate", selectedProject: key, orderedProject: key }),
+      params: { id: "cli_a" },
+      context,
+    })) as Response;
+    const reportId = generated.headers.get("Location")!.split("/").at(-1)!;
+
+    const createdShare = (await call(reportPreview.action, {
+      request: formReq({ intent: "create-share" }),
+      params: { id: reportId },
+      context,
+    })) as { ok: boolean; shareUrl?: string };
+    expect(createdShare.ok).toBe(true);
+    const reloaded = (await reportPreview.loader({
+      request: new Request(`http://localhost/reports/${reportId}`),
+      params: { id: reportId },
+      context,
+    } as never)) as Awaited<ReturnType<typeof reportPreview.loader>>;
+    expect(reloaded.activeShares).toHaveLength(1);
+    expect(renderReport(reloaded)).toContain("Revoke active links");
+
+    const clientLoaderData = await clientDetail.loader({
+      request: new Request("http://localhost/clients/cli_a"),
+      params: { id: "cli_a" },
+      context,
+    } as never);
+    expect(renderClient(clientLoaderData)).toContain(`/reports/${reportId}`);
+
+    const token = new URL(createdShare.shareUrl!).searchParams.get("token")!;
+    await reportPreview.action({
+      request: formReq({ intent: "revoke-shares" }),
+      params: { id: reportId },
+      context,
+    } as never);
+    const anonymous = (await call(reportShare.loader, {
+      request: new Request(`https://orbit.example/report/share?token=${encodeURIComponent(token)}`),
+      context,
+    })) as Response;
+    expect(anonymous.status).toBe(404);
+  });
+
   it("previews deterministic selections, persists a snapshot, and lets the owner create a share", async () => {
     const builder = (await reportBuilder.loader({
       request: new Request("http://localhost/clients/cli_a/report"),

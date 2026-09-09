@@ -40,6 +40,22 @@ export interface ClientReportSharePublic {
   snapshot: ClientReportPublicSnapshot;
 }
 
+export interface ClientReportSummary {
+  reportId: string;
+  clientId: string;
+  generatedAt: string;
+  recommendedProjectCount: number;
+  supportingProjectCount: number;
+  activeShareCount: number;
+  nearestActiveShareExpiresAt: string | null;
+}
+
+export interface ClientReportShareMetadata {
+  shareId: string;
+  createdAt: string;
+  expiresAt: string;
+}
+
 export type ClientReportErrorCode =
   | "not-found"
   | "not-owner"
@@ -75,6 +91,21 @@ interface ClientReportShareRow {
   expires_at: string;
   revoked_at: string | null;
   snapshot: string;
+}
+
+interface ClientReportSummaryRow {
+  id: string;
+  client_id: string;
+  generated_at: string;
+  snapshot: string;
+  active_share_count: number;
+  nearest_active_share_expires_at: string | null;
+}
+
+interface ClientReportShareMetadataRow {
+  id: string;
+  created_at: string;
+  expires_at: string;
 }
 
 interface WorkspaceOwnerRow {
@@ -415,6 +446,68 @@ export async function getClientReportById(
     .bind(reportId, t.workspaceId)
     .first<ClientReportRow>();
   return row ? toRecord(row) : null;
+}
+
+export async function listClientReportSummaries(
+  t: TenantScope,
+  clientId: string,
+  now = new Date(),
+): Promise<ClientReportSummary[]> {
+  const nowMs = assertValidDate(now);
+  const rows = await t.db
+    .prepare(
+      `SELECT r.id, r.client_id, r.generated_at, r.snapshot,
+              COUNT(s.id) AS active_share_count,
+              MIN(s.expires_at) AS nearest_active_share_expires_at
+       FROM client_report_snapshots r
+       LEFT JOIN client_report_shares s
+         ON s.workspace_id = r.workspace_id
+        AND s.report_id = r.id
+        AND s.revoked_at IS NULL
+        AND s.expires_at > ?
+       WHERE r.workspace_id = ? AND r.client_id = ?
+       GROUP BY r.id, r.client_id, r.generated_at, r.snapshot
+       ORDER BY r.generated_at DESC, r.id DESC`,
+    )
+    .bind(new Date(nowMs).toISOString(), t.workspaceId, clientId)
+    .all<ClientReportSummaryRow>();
+
+  return rows.flatMap((row) => {
+    const snapshot = parseStoredSnapshot(row.snapshot);
+    if (!snapshot) return [];
+    return [{
+      reportId: row.id,
+      clientId: row.client_id,
+      generatedAt: row.generated_at,
+      recommendedProjectCount: snapshot.public.recommendedProjects.length,
+      supportingProjectCount: snapshot.public.supportingProjects.length,
+      activeShareCount: Number(row.active_share_count),
+      nearestActiveShareExpiresAt: row.nearest_active_share_expires_at,
+    }];
+  });
+}
+
+export async function listActiveClientReportShares(
+  t: TenantScope,
+  reportId: string,
+  now = new Date(),
+): Promise<ClientReportShareMetadata[]> {
+  const nowMs = assertValidDate(now);
+  const rows = await t.db
+    .prepare(
+      `SELECT id, created_at, expires_at
+       FROM client_report_shares
+       WHERE workspace_id = ? AND report_id = ?
+         AND revoked_at IS NULL AND expires_at > ?
+       ORDER BY created_at DESC, id DESC`,
+    )
+    .bind(t.workspaceId, reportId, new Date(nowMs).toISOString())
+    .all<ClientReportShareMetadataRow>();
+  return rows.map((row) => ({
+    shareId: row.id,
+    createdAt: row.created_at,
+    expiresAt: row.expires_at,
+  }));
 }
 
 export async function createClientReportShare(
