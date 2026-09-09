@@ -158,6 +158,21 @@ function deadFetch(): typeof fetch {
   }) as unknown as typeof fetch;
 }
 
+function noServicePagesFetch(): typeof fetch {
+  const page = (title: string, links = "") => `<!doctype html><html><head><title>${title}</title></head>
+    <body><h1>${title}</h1>${links}<p>${"Northwind Heating has served the community for many years. ".repeat(24)}</p></body></html>`;
+  return vi.fn(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.endsWith("/sitemap.xml") || url.endsWith("/robots.txt")) return new Response("", { status: 404 });
+    if (url.endsWith("/about")) return new Response(page("About Northwind"), { status: 200 });
+    if (url.endsWith("/contact")) return new Response(page("Contact Northwind"), { status: 200 });
+    return new Response(
+      page("Northwind Heating", '<nav><a href="/about">About</a><a href="/contact">Contact</a></nav>'),
+      { status: 200 },
+    );
+  }) as unknown as typeof fetch;
+}
+
 const SETUP_FIELDS = {
   workspaceName: "Axiom Web",
   landingOn: "on",
@@ -525,6 +540,77 @@ describe("onboarding stage one: read the site, judge nothing", () => {
 });
 
 describe("onboarding stage two: the agency confirms", () => {
+  it("keeps Analyze available when an exhaustive readable site has no service pages", async () => {
+    const { t, clientId } = await reachStageTwo();
+    const current = await repo.getLatestEvidence(t, clientId);
+    expect(current).not.toBeNull();
+    await repo.saveEvidence(
+      t,
+      EvidenceBundleSchema.parse({
+        ...current,
+        capturedAt: "2026-09-09T00:00:00.000Z",
+        site: {
+          ...current!.site,
+          pages: [
+            { url: "https://northwind.example/", status: 200, title: "Northwind", headings: ["Northwind"], wordCount: 130 },
+            { url: "https://northwind.example/about", status: 200, title: "About", headings: ["About"], wordCount: 120 },
+            { url: "https://northwind.example/contact", status: 200, title: "Contact", headings: ["Contact"], wordCount: 110 },
+          ],
+          nav: ["About", "Contact"],
+          links: [],
+          sitemapUrls: [],
+          crawlExhaustive: true,
+        },
+        networkEvents: [],
+      }),
+    );
+
+    const data = await call(onboarding.loader as never, {
+      request: new Request("http://localhost/onboarding?client=" + clientId),
+      context: ctx,
+    });
+    const renderedClientHtml = renderConfirmMarkup(data as never);
+
+    expect(renderedClientHtml).toContain("Analyze Northwind Heating");
+    expect(renderedClientHtml).not.toContain("disabled");
+  });
+
+  it("does not reject an onboarding Analyze post for exhaustive readable no-service evidence", async () => {
+    const { t, clientId } = await reachStageTwo();
+    const current = await repo.getLatestEvidence(t, clientId);
+    expect(current).not.toBeNull();
+    await repo.saveEvidence(
+      t,
+      EvidenceBundleSchema.parse({
+        ...current,
+        capturedAt: "2026-09-09T00:00:00.000Z",
+        site: {
+          ...current!.site,
+          pages: [
+            { url: "https://northwind.example/", status: 200, title: "Northwind", headings: ["Northwind"], wordCount: 130 },
+            { url: "https://northwind.example/about", status: 200, title: "About", headings: ["About"], wordCount: 120 },
+            { url: "https://northwind.example/contact", status: 200, title: "Contact", headings: ["Contact"], wordCount: 110 },
+          ],
+          nav: ["About", "Contact"],
+          links: [],
+          sitemapUrls: [],
+          crawlExhaustive: true,
+        },
+        networkEvents: [],
+      }),
+    );
+    vi.stubGlobal("fetch", noServicePagesFetch());
+
+    const result = (await call(onboarding.action as never, {
+      request: formReq({ intent: "analyze", clientId, offering: ["Heat Pump Installation"] }),
+      context: ctx,
+    })) as Response;
+
+    expect(result.status).toBe(302);
+    expect(result.headers.get("location")).toBe("/opportunities?client=" + clientId);
+    expect(await repo.getLatestAnalysisRun(t, clientId)).not.toBeNull();
+  });
+
   it("makes a blocked read a save-context state with no normal Analyze CTA", () => {
     const html = renderConfirmMarkup({
       stage: "confirm",
@@ -764,7 +850,7 @@ describe("onboarding stage two: the agency confirms", () => {
       context: ctx,
     })) as { error?: string };
 
-    expect(crafted.error).toMatch(/cannot check this site for missing service pages/i);
+    expect(crafted.error).toMatch(/could not read any page|crawler/i);
     expect((await repo.getClient(t, clientId))?.offerings).toEqual([
       "Heat Pump Installation",
       "Boiler Repair",

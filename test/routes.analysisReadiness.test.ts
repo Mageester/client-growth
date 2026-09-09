@@ -52,6 +52,21 @@ function formReq(fields: Record<string, string>) {
   });
 }
 
+function noServicePagesFetch(): typeof fetch {
+  const page = (title: string, links = "") => `<!doctype html><html><head><title>${title}</title></head>
+    <body><h1>${title}</h1>${links}<p>${"Meridian Dental has served the community for many years. ".repeat(24)}</p></body></html>`;
+  return vi.fn(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.endsWith("/sitemap.xml") || url.endsWith("/robots.txt")) return new Response("", { status: 404 });
+    if (url.endsWith("/about")) return new Response(page("About Meridian"), { status: 200 });
+    if (url.endsWith("/contact")) return new Response(page("Contact Meridian"), { status: 200 });
+    return new Response(
+      page("Meridian Dental", '<nav><a href="/about">About</a><a href="/contact">Contact</a></nav>'),
+      { status: 200 },
+    );
+  }) as unknown as typeof fetch;
+}
+
 const CLIENT_ID = "client-meridian";
 
 async function addClient(offerings: string[]) {
@@ -159,6 +174,72 @@ afterEach(() => {
 });
 
 describe("pre-analysis readiness", () => {
+  it("keeps Analyze site enabled for exhaustive readable evidence with no service pages", async () => {
+    await addClient(["dental implants"]);
+    await addService(["service-pages-build"]);
+    await repo.saveEvidence(
+      scope,
+      EvidenceBundleSchema.parse({
+        clientId: CLIENT_ID,
+        source: "fixture",
+        capturedAt: "2026-09-09T00:00:00.000Z",
+        site: {
+          pages: [
+            { url: "https://meridiandental.invalid/", status: 200, title: "Meridian", headings: ["Meridian"], wordCount: 130 },
+            { url: "https://meridiandental.invalid/about", status: 200, title: "About", headings: ["About"], wordCount: 120 },
+            { url: "https://meridiandental.invalid/contact", status: 200, title: "Contact", headings: ["Contact"], wordCount: 110 },
+          ],
+          nav: ["About", "Contact"],
+          links: [],
+          sitemapUrls: [],
+          crawlExhaustive: true,
+        },
+        networkEvents: [],
+      }),
+    );
+
+    const data = await clientDetail.loader({
+      params: { id: CLIENT_ID },
+      request: new Request("http://localhost/clients/" + CLIENT_ID),
+      context: ctx,
+    } as never);
+    const renderedClientHtml = renderClientMarkup(data);
+
+    expect(renderedClientHtml).toContain("Analyze site");
+    expect(renderedClientHtml).not.toContain("disabled");
+  });
+
+  it("does not reject a real Analyze site post for exhaustive readable no-service evidence", async () => {
+    await addClient(["dental implants"]);
+    await addService(["service-pages-build"]);
+    await repo.saveEvidence(
+      scope,
+      EvidenceBundleSchema.parse({
+        clientId: CLIENT_ID,
+        source: "fixture",
+        capturedAt: "2026-09-09T00:00:00.000Z",
+        site: {
+          pages: [
+            { url: "https://meridiandental.invalid/", status: 200, title: "Meridian", headings: ["Meridian"], wordCount: 130 },
+            { url: "https://meridiandental.invalid/about", status: 200, title: "About", headings: ["About"], wordCount: 120 },
+            { url: "https://meridiandental.invalid/contact", status: 200, title: "Contact", headings: ["Contact"], wordCount: 110 },
+          ],
+          nav: ["About", "Contact"],
+          links: [],
+          sitemapUrls: [],
+          crawlExhaustive: true,
+        },
+        networkEvents: [],
+      }),
+    );
+    vi.stubGlobal("fetch", noServicePagesFetch());
+
+    const result = await analyze();
+
+    expect(result.ok).toBe(true);
+    expect(await repo.listAnalysisRuns(scope, CLIENT_ID, 5)).toHaveLength(1);
+  });
+
   it("refuses the Opportunities analyze action before crawl or cooldown when the catalog cannot produce a finding", async () => {
     await addClient(["hair extensions", "balayage"]);
     const fetchSpy = vi.fn(async () => {
@@ -185,7 +266,7 @@ describe("pre-analysis readiness", () => {
     const result = await analyze();
 
     expect(result.ok).toBe(false);
-    expect(result.error).toMatch(/no active service is offered/i);
+    expect(result.error).toMatch(/no active service in your catalog/i);
     // Nothing was crawled and nothing was recorded, so the client page cannot
     // later present this as a run that happened.
     expect(await repo.listAnalysisRuns(scope, CLIENT_ID, 5)).toHaveLength(0);
@@ -324,7 +405,7 @@ describe("pre-analysis readiness", () => {
     const result = await analyze();
 
     expect(result.ok).toBe(false);
-    expect(result.error).toMatch(/cannot check this site for missing service pages/i);
+    expect(result.error).toMatch(/could not read any page|crawler/i);
     expect(await repo.listAnalysisRuns(scope, CLIENT_ID, 5)).toHaveLength(0);
   });
 

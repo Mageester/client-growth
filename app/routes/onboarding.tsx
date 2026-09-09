@@ -38,6 +38,7 @@ import {
   generateAgencyCatalogDraft,
   servicesFromReviewedCatalog,
 } from "../lib/catalog-assistant.server";
+import { analysisReadinessForClient } from "../lib/analysis-readiness.server";
 
 export function meta() {
   return [{ title: "Get started · Axiom Orbit" }];
@@ -220,7 +221,10 @@ export async function loader({ request, context }: Route.LoaderArgs) {
         if (await repo.getLatestAnalysisRun(scope, client.id)) {
           throw redirect("/opportunities?client=" + client.id);
         }
-        const evidence = await repo.getLatestEvidence(scope, client.id);
+        const [evidence, catalog] = await Promise.all([
+          repo.getLatestEvidence(scope, client.id),
+          repo.listServices(scope),
+        ]);
         const readablePages = evidence
           ? evidence.site.pages.filter(
               (page) => page.status >= 200 && page.status < 300 && page.wordCount > 0,
@@ -267,6 +271,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
               : null,
           suggestions,
           coverage,
+          readiness: analysisReadinessForClient({ client, catalog, evidence }),
         };
       }
     }
@@ -389,21 +394,19 @@ export async function action({ request, context }: Route.ActionArgs) {
 
     if (intent === "save") return redirect("/clients/" + client.id);
 
-    // A stale or hand-crafted confirmation post must not turn manual context
-    // into website evidence. If the stored crawl is known to be insufficient,
-    // save the profile but refuse to run the service-gap analysis.
     const latestEvidence = await repo.getLatestEvidence(scope, client.id);
-    if (latestEvidence) {
-      const coverage = assessServiceCoverage({
-        client: savedClient,
-        evidence: latestEvidence,
-      });
-      if (!coverage.analyzable) {
-        return {
-          error:
-            "Orbit cannot check this site for missing service pages until enough of the website can be read. The client context was saved; try reading it again first.",
-        };
-      }
+    const readiness = analysisReadinessForClient({
+      client: savedClient,
+      catalog: await repo.listServices(scope),
+      evidence: latestEvidence,
+    });
+    const canAnalyze = readiness.catalog.matched > 0 && readiness.readyCount > 0;
+    if (!canAnalyze) {
+      return {
+        error:
+          readiness.rules.find((rule) => rule.state !== "ready")?.reason ??
+          "No ready analysis rule is available for this client yet.",
+      };
     }
 
     // The first analysis is the point of onboarding, so its result must not be
@@ -876,7 +879,7 @@ function ConfirmStage({
   // 20-second wait.
   const submitting = navigation.state !== "idle" && navigation.formMethod === "POST";
   const client = loaderData.client;
-  const { crawl, crawlFailure, suggestions, readFailed, coverage } = loaderData;
+  const { crawl, crawlFailure, suggestions, readFailed, coverage, readiness } = loaderData;
 
   const [checked, setChecked] = useState<Record<string, boolean>>(() =>
     Object.fromEntries([
@@ -913,8 +916,16 @@ function ConfirmStage({
   ]);
   const warnings = offeringWarnings(confirmed);
   const unreadable = readFailed || !crawl || crawl.readablePages === 0;
-  const coverageBlocked = !coverage?.analyzable;
-  const analysisAvailable = !unreadable && !coverageBlocked;
+  // Older static render fixtures do not cross the loader boundary. The live
+  // route always supplies readiness; this fallback only preserves those view
+  // fixtures while retaining their legacy coverage semantics.
+  const legacyCoverage = coverage as { analyzable: boolean } | null;
+  const admission = readiness ?? {
+    catalog: { matched: legacyCoverage?.analyzable ? 1 : 0 },
+    readyCount: legacyCoverage?.analyzable ? 1 : 0,
+  };
+  const coverageBlocked = admission.readyCount === 0;
+  const analysisAvailable = admission.catalog.matched > 0 && admission.readyCount > 0;
 
   return (
     <>

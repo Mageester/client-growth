@@ -198,10 +198,7 @@ export async function analyzeClient(
 
   const evidence = await input.evidenceProvider.getEvidence(input.client);
 
-  // 0. crawl service-coverage assessment. This gates missing-service-page (it
-  //    must not claim a page is missing from a crawl that never reached the
-  //    service section) but NOT broken-conversion-path, whose evidence is a
-  //    concrete probed defect independent of service-page coverage.
+  // 0. Crawl service coverage supplies per-rule evidence boundaries.
   const coverage = assessServiceCoverage({ client: input.client, evidence });
 
   // 1. deterministic rules (+ deterministic absence verification / probes —

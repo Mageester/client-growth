@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import { assessAnalysisReadiness } from "@/core/analysisReadiness";
+import { analysisReadinessForClient } from "../app/lib/analysis-readiness.server";
 import { RULE_SERVICE_LINKS } from "@/core/rules/registry";
-import { ServiceSchema, type Service } from "@/core/schema";
+import { ClientSchema, EvidenceBundleSchema, ServiceSchema, type Service } from "@/core/schema";
 
 /**
  * Readiness is per rule, and that is the whole point of it.
@@ -37,6 +38,57 @@ const ruleOf = (
 ) => readiness.rules.find((r) => r.ruleId === ruleId)!;
 
 describe("per-rule readiness", () => {
+  it("admits an exhaustive readable site with no service pages through its ready absence rule", () => {
+    const readiness = analysisReadinessForClient({
+      client: ClientSchema.parse({
+        id: "client-no-service-pages",
+        name: "Northwind Heating",
+        domain: "northwind.example",
+        offerings: ["Heat pump installation"],
+        notes: "",
+      }),
+      catalog: [service("service-pages-build")],
+      evidence: EvidenceBundleSchema.parse({
+        clientId: "client-no-service-pages",
+        source: "fixture",
+        capturedAt: "2026-09-09T00:00:00.000Z",
+        site: {
+          pages: [
+            {
+              url: "https://northwind.example/",
+              status: 200,
+              title: "Northwind Heating",
+              headings: ["Northwind Heating"],
+              wordCount: 140,
+            },
+            {
+              url: "https://northwind.example/about",
+              status: 200,
+              title: "About Northwind",
+              headings: ["About us"],
+              wordCount: 130,
+            },
+            {
+              url: "https://northwind.example/contact",
+              status: 200,
+              title: "Contact Northwind",
+              headings: ["Contact"],
+              wordCount: 120,
+            },
+          ],
+          nav: ["About", "Contact"],
+          links: [],
+          sitemapUrls: [],
+          crawlExhaustive: true,
+        },
+        networkEvents: [],
+      }),
+    });
+
+    expect(readiness.readyCount).toBeGreaterThan(0);
+    expect(readiness.rules.find((rule) => rule.ruleId === "no-service-pages")?.state).toBe("ready");
+  });
+
   it("is ready when the catalog matches, offerings exist, and the last crawl reached the services", () => {
     const readiness = assessAnalysisReadiness({
       catalog: fullCatalog,

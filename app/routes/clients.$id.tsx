@@ -11,8 +11,7 @@ import {
   resolveCurrentExternalClaims,
   type ExternalBusinessClaim,
 } from "@/core/externalBusinessEvidence";
-import { assessCatalogCoverage } from "@/core/rules/registry";
-import { assessAnalysisReadiness, type ReadinessState } from "@/core/analysisReadiness";
+import { type ReadinessState } from "@/core/analysisReadiness";
 import { assessServiceCoverage } from "@/core/absenceVerification";
 import { suggestOfferings, type SuggestedOffering } from "@/core/offeringSuggestions";
 import { isExternalBusinessMismatchEnabled } from "@/config/env";
@@ -42,6 +41,7 @@ import {
   CompetitorError,
 } from "@/db/competitors";
 import { compareWithCompetitors } from "../lib/competitors.server";
+import { analysisReadinessForClient } from "../lib/analysis-readiness.server";
 import * as repo from "@/db/repositories";
 import {
   AnalysisAbortedError,
@@ -169,23 +169,8 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
       ? summarizeEvidenceFailure(evidence)
       : null;
 
-  // Readiness is per rule, and it is worked out from what the LAST crawl
-  // actually managed rather than from the client's offering count alone. That
-  // is what lets the page tell "your setup is thin" apart from "we could not
-  // read this site" — two sentences that need two different reactions.
   const crawlCoverage = evidence ? assessServiceCoverage({ client, evidence }) : null;
-  const readiness = assessAnalysisReadiness({
-    catalog: services,
-    offerings: client.offerings.length,
-    lastCrawl: evidence
-      ? {
-          analyzable: crawlCoverage?.analyzable ?? false,
-          limitation: crawlCoverage?.limitation ?? null,
-          readablePages,
-          suggestedOfferings: suggestions.length,
-        }
-      : undefined,
-  });
+  const readiness = analysisReadinessForClient({ client, catalog: services, evidence });
 
   return {
     client,
@@ -593,25 +578,22 @@ export async function action({ params, request, context }: Route.ActionArgs) {
   }
 
   if (intent === "analyze") {
-    // The button is disabled for this, but a form post must not be able to
-    // start a run that provably cannot check anything.
-    if (assessCatalogCoverage(await repo.listServices(t.scope)).matched === 0) {
+    const [catalog, latestEvidence] = await Promise.all([
+      repo.listServices(t.scope),
+      repo.getLatestEvidence(t.scope, existing.id),
+    ]);
+    const readiness = analysisReadinessForClient({
+      client: existing,
+      catalog,
+      evidence: latestEvidence,
+    });
+    const canAnalyze = readiness.catalog.matched > 0 && readiness.readyCount > 0;
+    if (!canAnalyze) {
+      const reason = readiness.rules.find((rule) => rule.state !== "ready")?.reason;
       return {
         ok: false as const,
-        error:
-          "No active service is offered for a kind of website gap, so an analysis could not check anything. Set that up in your catalog first.",
+        error: reason ?? "No ready analysis rule is available for this client yet.",
       };
-    }
-    const latestEvidence = await repo.getLatestEvidence(t.scope, existing.id);
-    if (latestEvidence) {
-      const coverage = assessServiceCoverage({ client: existing, evidence: latestEvidence });
-      if (!coverage.analyzable) {
-        return {
-          ok: false as const,
-          error:
-            "Orbit cannot check this site for missing service pages until enough of the website can be read. Save the client context and try reading it again first.",
-        };
-      }
     }
     try {
       const result = await runAnalysis(t.scope, context.cloudflare.env as never, existing.id, {
@@ -700,9 +682,9 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
   // A run is worth starting when ANY rule can produce a finding. Blocking it
   // because one rule of several is limited would refuse to look for a broken
   // checkout on a client whose offerings list happens to be short.
-  const coverageBlocked = websiteCoverage !== null && !websiteCoverage.analyzable;
-  const canAnalyze =
-    readiness.catalog.matched > 0 && (websiteCoverage === null || websiteCoverage.analyzable);
+  const coverageBlocked =
+    readiness.readyCount === 0 && websiteCoverage !== null && !websiteCoverage.analyzable;
+  const canAnalyze = readiness.catalog.matched > 0 && readiness.readyCount > 0;
   const latest = runs[0] ?? null;
   const open = opportunities.filter(isOpen).sort(byPotentialValue);
   const closed = opportunities.filter((opp) => !isOpen(opp)).sort(byPotentialValue);
@@ -820,6 +802,7 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
         crawlFailure={loaderData.crawlFailure}
         suggestionCount={suggestions.length}
         coverage={websiteCoverage}
+        readiness={readiness}
         busy={busy}
       />
       <SuggestedServices
@@ -1627,6 +1610,7 @@ function ReadSiteForOfferings({
   crawlFailure,
   suggestionCount,
   coverage,
+  readiness,
   busy,
 }: {
   client: Client;
@@ -1634,9 +1618,10 @@ function ReadSiteForOfferings({
   crawlFailure: EvidenceFailureSummary | null;
   suggestionCount: number;
   coverage: WebsiteCoverageView | null;
+  readiness: AnalysisReadinessView;
   busy: boolean;
 }) {
-  const coverageBlocked = coverage !== null && !coverage.analyzable;
+  const coverageBlocked = readiness.readyCount === 0;
   // Once suggestions are on screen, SuggestedServices is the thing to look at
   // and this would be a second button saying the same thing.
   if (!coverageBlocked && suggestionCount > 0) return null;
@@ -1657,7 +1642,7 @@ function ReadSiteForOfferings({
           ) : coverageBlocked ? (
             <>
               <strong>
-                {coverage.limitation === "site-too-thin"
+                {coverage?.limitation === "site-too-thin"
                   ? "The whole site was read, but no service pages were found."
                   : "The last read did not reach enough of the site's service structure."}
               </strong>{" "}
