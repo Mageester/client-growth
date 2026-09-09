@@ -17,11 +17,10 @@ import * as reportBuilder from "../app/routes/clients.$id.report";
 import { __setSessionResolver } from "../app/lib/session.server";
 
 const migrationsDir = join(dirname(fileURLToPath(import.meta.url)), "..", "migrations");
-const PRODUCTION_SCHEMA_LAST_MIGRATION = "0022_sales_funnel.sql";
 
-function applyProductionSchemaThrough0022(raw: Database.Database): void {
+function applyProductionSchema(raw: Database.Database): void {
   for (const migration of readdirSync(migrationsDir)
-    .filter((file) => file.endsWith(".sql") && file <= PRODUCTION_SCHEMA_LAST_MIGRATION)
+    .filter((file) => file.endsWith(".sql"))
     .sort()) {
     raw.exec(readFileSync(join(migrationsDir, migration), "utf8"));
   }
@@ -134,7 +133,7 @@ let env: Record<string, unknown>;
 beforeEach(async () => {
   raw = new Database(":memory:");
   raw.pragma("foreign_keys = ON");
-  applyProductionSchemaThrough0022(raw);
+  applyProductionSchema(raw);
   statements = [];
   const db = recordingSqlDb(raw, statements);
   scope = { db, workspaceId: "ws_a" };
