@@ -540,6 +540,23 @@ describe("onboarding stage one: read the site, judge nothing", () => {
 });
 
 describe("onboarding stage two: the agency confirms", () => {
+  it("renders catalog-zero readiness as catalog setup rather than an unreadable site", async () => {
+    const { t, clientId } = await reachStageTwo();
+    for (const service of await repo.listServices(t)) {
+      await repo.setServiceActive(t, service.id, false);
+    }
+
+    const data = await call(onboarding.loader as never, {
+      request: new Request("http://localhost/onboarding?client=" + clientId),
+      context: ctx,
+    });
+    const html = renderConfirmMarkup(data as never);
+
+    expect(html).toContain("Finish your service catalog");
+    expect(html).toContain("Add an active service for a website gap before analyzing");
+    expect(html).not.toContain("We couldn&#x27;t read Northwind Heating yet");
+  });
+
   it("keeps Analyze available when an exhaustive readable site has no service pages", async () => {
     const { t, clientId } = await reachStageTwo();
     const current = await repo.getLatestEvidence(t, clientId);

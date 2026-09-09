@@ -8,7 +8,6 @@ import {
   type ProjectView,
 } from "@/core/projectPackaging";
 import { tierForRule } from "@/core/rules/registry";
-import { assessCatalogCoverage } from "@/core/rules/registry";
 import { byEvidencedValue, computeWinRates, winRatesFromRanked } from "@/core/winRates";
 import { changeHeadline, type MonitoringOutcome } from "@/core/monitoring";
 import { isAnalysisLimitExceeded } from "@/db/analysisLimits";
@@ -39,6 +38,10 @@ import {
   pluralize,
 } from "../components/ui";
 import { AnalysisAbortedError, runAnalysis } from "../lib/analysis.server";
+import {
+  analysisAdmissionReason,
+  analysisReadinessForClient,
+} from "../lib/analysis-readiness.server";
 import { requireTenant } from "../lib/session.server";
 import type { Route } from "./+types/opportunities._index";
 
@@ -60,6 +63,11 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       monitoringRepo.scheduledRunHealth(t.scope, { since }),
     ]);
   const serviceName = Object.fromEntries(services.map((s) => [s.id, s.name]));
+  const evidenceByClient = new Map(
+    await Promise.all(
+      clients.map(async (client) => [client.id, await repo.getLatestEvidence(t.scope, client.id)] as const),
+    ),
+  );
   const groups = clients.map((client) => {
     const opportunities = oppsByClient.get(client.id) ?? [];
     const totals = totalsFor(opportunities);
@@ -71,6 +79,11 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       run,
       monitoring: monitoringByClient.get(client.id) ?? monitoringRepo.MONITORING_OFF,
       state: clientState({ outcome: run?.outcome ?? null, openCount: totals.open }),
+      readiness: analysisReadinessForClient({
+        client,
+        catalog: services,
+        evidence: evidenceByClient.get(client.id) ?? null,
+      }),
     };
   });
 
@@ -83,7 +96,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   return {
     groups,
     serviceName,
-    catalogMatched: assessCatalogCoverage(services).matched,
+    catalogMatched: groups[0]?.readiness.catalog.matched ?? 0,
     winRates: winRates.ranked,
     monitoring: {
       ...portfolio,
@@ -99,6 +112,20 @@ export async function action({ request, context }: Route.ActionArgs) {
   const form = await request.formData();
   const clientId = String(form.get("clientId") ?? "");
   if (!clientId) return { ok: false as const, error: "Pick a client to analyze." };
+  const [client, catalog] = await Promise.all([
+    repo.getClient(t.scope, clientId),
+    repo.listServices(t.scope),
+  ]);
+  if (!client) return { ok: false as const, error: "Client not found." };
+  const readiness = analysisReadinessForClient({
+    client,
+    catalog,
+    evidence: await repo.getLatestEvidence(t.scope, client.id),
+  });
+  const canAnalyze = readiness.catalog.matched > 0 && readiness.readyCount > 0;
+  if (!canAnalyze) {
+    return { ok: false as const, clientId, error: analysisAdmissionReason(readiness) };
+  }
   try {
     const result = await runAnalysis(t.scope, context.cloudflare.env as never, clientId, {
       signal: request.signal,
@@ -708,10 +735,17 @@ function AnalyzeControl({
   const busy = analyzingId !== null;
   if (selected) {
     const running = analyzingId === selected.client.id;
+    const canAnalyze =
+      selected.readiness.catalog.matched > 0 && selected.readiness.readyCount > 0;
     return (
       <Form method="post">
         <input type="hidden" name="clientId" value={selected.client.id} />
-        <button className="btn analyze-control" type="submit" disabled={busy}>
+        <button
+          className="btn analyze-control"
+          type="submit"
+          disabled={busy || !canAnalyze}
+          title={canAnalyze ? undefined : analysisAdmissionReason(selected.readiness)}
+        >
           <Icon name="refresh" size={15} className={running ? "spin" : undefined} />
           <span className="analyze-label">
             {running ? "Reading the site…" : selected.run ? "Re-analyze" : "Analyze site"}
@@ -737,7 +771,17 @@ function AnalyzeControl({
       {groups.map((group) => (
         <Form method="post" className="menu-form" key={group.client.id}>
           <input type="hidden" name="clientId" value={group.client.id} />
-          <button className="menu-item" type="submit" role="menuitem" disabled={busy}>
+          <button
+            className="menu-item"
+            type="submit"
+            role="menuitem"
+            disabled={busy || !(group.readiness.catalog.matched > 0 && group.readiness.readyCount > 0)}
+            title={
+              group.readiness.catalog.matched > 0 && group.readiness.readyCount > 0
+                ? undefined
+                : analysisAdmissionReason(group.readiness)
+            }
+          >
             <StateDot state={group.state} />
             <span>{group.client.name}</span>
             <span className="menu-item-note">

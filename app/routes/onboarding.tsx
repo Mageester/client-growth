@@ -38,7 +38,11 @@ import {
   generateAgencyCatalogDraft,
   servicesFromReviewedCatalog,
 } from "../lib/catalog-assistant.server";
-import { analysisReadinessForClient } from "../lib/analysis-readiness.server";
+import {
+  analysisAdmissionBlocker,
+  analysisAdmissionReason,
+  analysisReadinessForClient,
+} from "../lib/analysis-readiness.server";
 
 export function meta() {
   return [{ title: "Get started · Axiom Orbit" }];
@@ -403,9 +407,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     const canAnalyze = readiness.catalog.matched > 0 && readiness.readyCount > 0;
     if (!canAnalyze) {
       return {
-        error:
-          readiness.rules.find((rule) => rule.state !== "ready")?.reason ??
-          "No ready analysis rule is available for this client yet.",
+        error: analysisAdmissionReason(readiness),
       };
     }
 
@@ -924,16 +926,31 @@ function ConfirmStage({
     catalog: { matched: legacyCoverage?.analyzable ? 1 : 0 },
     readyCount: legacyCoverage?.analyzable ? 1 : 0,
   };
-  const coverageBlocked = admission.readyCount === 0;
+  const blocker = readiness ? analysisAdmissionBlocker(readiness) : undefined;
+  const catalogBlocked = readiness?.catalog.matched === 0;
+  const setupBlocked = blocker?.state === "needs_client_setup";
+  const coverageBlocked = readiness
+    ? blocker?.state === "site_coverage_limited"
+    : !legacyCoverage?.analyzable;
   const analysisAvailable = admission.catalog.matched > 0 && admission.readyCount > 0;
 
   return (
     <>
       <h1 className="title-lg onboarding-title">
-        {analysisAvailable ? `What ${client.name} sells` : `We couldn't read ${client.name} yet`}
+        {analysisAvailable
+          ? `What ${client.name} sells`
+          : catalogBlocked
+            ? "Finish your service catalog"
+            : setupBlocked
+              ? `Confirm what ${client.name} sells`
+              : `We couldn't read ${client.name} yet`}
       </h1>
       <p className="prose onboarding-lede">
-        {!analysisAvailable && unreadable ? (
+        {!analysisAvailable && catalogBlocked ? (
+          <>Add an active service for a website gap before analyzing this client.</>
+        ) : !analysisAvailable && setupBlocked ? (
+          <>Confirm the services this client sells before analyzing the site against them.</>
+        ) : !analysisAvailable && unreadable ? (
           crawl && crawl.fetchedPages > 0 ? (
             <>
               {crawl.fetchedPages} {crawl.fetchedPages === 1 ? "page was" : "pages were"} fetched from{" "}
@@ -979,7 +996,11 @@ function ConfirmStage({
         <div className="notice" role="status">
           <Icon name="alert" size={15} />
           <div>
-            {crawlFailure ? (
+            {catalogBlocked ? (
+              <p>Add an active service for a website gap before analyzing. Reading the site again cannot fix the catalog.</p>
+            ) : setupBlocked ? (
+              <p>Confirm the services this client sells. These entries are client context, not website evidence.</p>
+            ) : crawlFailure ? (
               <>
                 <p><strong>{crawlFailure.title}</strong></p>
                 <p>{crawlFailure.detail}</p>
@@ -993,14 +1014,16 @@ function ConfirmStage({
                     : "Orbit could not read a usable page from this site. You can save what you know about the client, but analysis remains unavailable until there is sufficient readable evidence."}
               </p>
             )}
-            <Form method="post" className="suggested-actions">
-              <input type="hidden" name="intent" value="reread" />
-              <input type="hidden" name="clientId" value={client.id} />
-              <button className="btn" type="submit" disabled={submitting}>
-                <Icon name="refresh" size={15} />
-                Try reading it again
-              </button>
-            </Form>
+            {!catalogBlocked && !setupBlocked && (
+              <Form method="post" className="suggested-actions">
+                <input type="hidden" name="intent" value="reread" />
+                <input type="hidden" name="clientId" value={client.id} />
+                <button className="btn" type="submit" disabled={submitting}>
+                  <Icon name="refresh" size={15} />
+                  Try reading it again
+                </button>
+              </Form>
+            )}
           </div>
         </div>
       )}
@@ -1180,7 +1203,11 @@ function ConfirmStage({
               </button>
               <span className="faint form-actions-note" aria-live="polite">
                 {!analysisAvailable
-                  ? "Orbit can save this client, but it cannot check the site for missing service pages until enough of the website can be read."
+                  ? catalogBlocked
+                    ? "Add a catalog service before analyzing this client."
+                    : setupBlocked
+                      ? "Confirm what this client sells before analyzing the site against it."
+                      : "Orbit can save this client, but it cannot check the site for missing service pages until enough of the website can be read."
                   : confirmed.length >= MIN_OFFERINGS_FOR_A_FINDING
                   ? confirmed.length +
                     " confirmed. Each one is checked against the site."

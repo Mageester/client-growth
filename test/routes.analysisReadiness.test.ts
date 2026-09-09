@@ -174,6 +174,78 @@ afterEach(() => {
 });
 
 describe("pre-analysis readiness", () => {
+  it("rejects the Opportunities action before crawl when every matched rule is unready", async () => {
+    await addClient([]);
+    await addService(["service-pages-build"]);
+    const fetchSpy = vi.fn(async () => {
+      throw new Error("network must not be reached");
+    });
+    vi.stubGlobal("fetch", fetchSpy);
+
+    const opportunities = await import("../app/routes/opportunities._index");
+    const result = (await opportunities.action({
+      request: formReq({ clientId: CLIENT_ID }),
+      context: ctx,
+    } as never)) as { ok: boolean; error?: string };
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatch(/no offerings recorded/i);
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(await repo.listAnalysisRuns(scope, CLIENT_ID, 5)).toHaveLength(0);
+    expect(raw.prepare("SELECT COUNT(*) AS count FROM analysis_limit_reservations").get()).toEqual({ count: 0 });
+  });
+
+  it("uses the matched rule's crawler limitation instead of an unmatched catalog warning", async () => {
+    await addClient(["dental implants"]);
+    await addService(["service-pages-build"]);
+    await repo.saveEvidence(
+      scope,
+      EvidenceBundleSchema.parse({
+        clientId: CLIENT_ID,
+        source: "http",
+        capturedAt: "2026-09-09T00:00:00.000Z",
+        site: { pages: [], nav: [], links: [], sitemapUrls: [], crawlExhaustive: false },
+        networkEvents: [
+          {
+            url: "https://meridiandental.invalid/",
+            outcome: "inconclusive",
+            reason: "request timeout",
+            code: "timeout",
+            stage: "page",
+          },
+        ],
+      }),
+    );
+
+    const result = await analyze();
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatch(/could not read any page|crawler/i);
+    expect(result.error).not.toMatch(/no active service in your catalog/i);
+  });
+
+  it("keeps catalog and client-setup zero-readiness states distinct from unreadable coverage", async () => {
+    await addClient(["dental implants"]);
+    const catalogHtml = renderClientMarkup(await loadClient());
+    expect(catalogHtml).toMatch(/no active service.*catalog/i);
+    expect(catalogHtml).not.toContain("The last read did not reach enough");
+
+    await addService(["service-pages-build"]);
+    await repo.upsertClient(
+      scope,
+      ClientSchema.parse({
+        id: CLIENT_ID,
+        name: "Meridian Dental",
+        domain: "meridiandental.invalid",
+        offerings: [],
+        notes: "",
+      }),
+    );
+    const setupHtml = renderClientMarkup(await loadClient());
+    expect(setupHtml).toContain("Nothing is recorded for Meridian Dental yet");
+    expect(setupHtml).not.toContain("The last read did not reach enough");
+  });
+
   it("keeps Analyze site enabled for exhaustive readable evidence with no service pages", async () => {
     await addClient(["dental implants"]);
     await addService(["service-pages-build"]);
@@ -254,7 +326,7 @@ describe("pre-analysis readiness", () => {
     } as never)) as { ok: boolean; error?: string };
 
     expect(result.ok).toBe(false);
-    expect(result.error).toMatch(/no active service is offered/i);
+    expect(result.error).toMatch(/no active service.*catalog/i);
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(await repo.listAnalysisRuns(scope, CLIENT_ID, 5)).toHaveLength(0);
     expect(raw.prepare("SELECT COUNT(*) AS count FROM analysis_limit_reservations").get()).toEqual({ count: 0 });
@@ -376,7 +448,7 @@ describe("pre-analysis readiness", () => {
 
     expect(html).toContain("Know what they offer?");
     expect(html).toContain("Try reading it again");
-    expect(html).toContain("The site has not provided enough readable evidence for analysis yet");
+    expect(html).toMatch(/last run could not read any page|limit of the crawler/i);
     expect(html).toMatch(/<button[^>]*disabled[^>]*>.*Analyze site/s);
   });
 

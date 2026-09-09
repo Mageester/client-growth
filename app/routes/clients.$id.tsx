@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { Form, Link, redirect, useNavigation } from "react-router";
 
-import { ClientSchema, type Client } from "@/core/schema";
+import { ClientSchema, type Client, type RuleId } from "@/core/schema";
 import {
   confirmExternalBusinessProfileClaims,
   importGoogleBusinessProfileServiceList,
@@ -41,7 +41,11 @@ import {
   CompetitorError,
 } from "@/db/competitors";
 import { compareWithCompetitors } from "../lib/competitors.server";
-import { analysisReadinessForClient } from "../lib/analysis-readiness.server";
+import {
+  analysisAdmissionBlocker,
+  analysisAdmissionReason,
+  analysisReadinessForClient,
+} from "../lib/analysis-readiness.server";
 import * as repo from "@/db/repositories";
 import {
   AnalysisAbortedError,
@@ -80,13 +84,18 @@ import type { Route } from "./+types/clients.$id";
 type AnalysisReadinessView = {
   state: ReadinessState;
   rules: Array<{
-    ruleId: string;
+    ruleId: RuleId;
     label: string;
     state: ReadinessState;
     reason: string;
     actionable: boolean;
   }>;
-  catalog: { matched: number; total: number; unmatchedLabels: string[] };
+  catalog: {
+    matched: number;
+    total: number;
+    unmatchedLabels: string[];
+    rules: Array<{ ruleId: RuleId; serviceId: string | null }>;
+  };
   readyCount: number;
   total: number;
 };
@@ -589,10 +598,9 @@ export async function action({ params, request, context }: Route.ActionArgs) {
     });
     const canAnalyze = readiness.catalog.matched > 0 && readiness.readyCount > 0;
     if (!canAnalyze) {
-      const reason = readiness.rules.find((rule) => rule.state !== "ready")?.reason;
       return {
         ok: false as const,
-        error: reason ?? "No ready analysis rule is available for this client yet.",
+        error: analysisAdmissionReason(readiness),
       };
     }
     try {
@@ -682,8 +690,8 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
   // A run is worth starting when ANY rule can produce a finding. Blocking it
   // because one rule of several is limited would refuse to look for a broken
   // checkout on a client whose offerings list happens to be short.
-  const coverageBlocked =
-    readiness.readyCount === 0 && websiteCoverage !== null && !websiteCoverage.analyzable;
+  const readinessBlocker = analysisAdmissionBlocker(readiness);
+  const coverageBlocked = readinessBlocker?.state === "site_coverage_limited";
   const canAnalyze = readiness.catalog.matched > 0 && readiness.readyCount > 0;
   const latest = runs[0] ?? null;
   const open = opportunities.filter(isOpen).sort(byPotentialValue);
@@ -743,9 +751,7 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
                 title={
                   canAnalyze
                     ? undefined
-                    : coverageBlocked
-                      ? "The site has not provided enough readable evidence for analysis yet. Save client context or try reading it again."
-                      : "Add a service that is offered for a website gap before analyzing."
+                    : analysisAdmissionReason(readiness)
                 }
               >
                 <Icon name="refresh" size={15} className={analyzing ? "spin" : undefined} />
@@ -1621,7 +1627,7 @@ function ReadSiteForOfferings({
   readiness: AnalysisReadinessView;
   busy: boolean;
 }) {
-  const coverageBlocked = readiness.readyCount === 0;
+  const coverageBlocked = analysisAdmissionBlocker(readiness)?.state === "site_coverage_limited";
   // Once suggestions are on screen, SuggestedServices is the thing to look at
   // and this would be a second button saying the same thing.
   if (!coverageBlocked && suggestionCount > 0) return null;
