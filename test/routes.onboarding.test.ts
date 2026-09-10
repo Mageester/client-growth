@@ -1,8 +1,6 @@
-import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { tmpdir } from "node:os";
 
 import Database from "better-sqlite3";
 import { createElement } from "react";
@@ -249,30 +247,31 @@ describe("onboarding stage one: read the site, judge nothing", () => {
     expect(html).toMatch(/analysis runs after you confirm/i);
   });
 
-  it("keeps the bare onboarding starter card styled in the generated harness", () => {
-    const output = mkdtempSync(join(tmpdir(), "axiom-orbit-onboarding-harness-"));
+  /**
+   * The bare harness screens are wrapped by the harness, not by root.tsx, so
+   * their styling depends on the stylesheet's scoping selector matching that
+   * wrapper. If the two drift apart the screen silently renders unstyled, and
+   * a design review is then conducted against a page the product never shows.
+   *
+   * This asks the harness for one page instead of spawning `tsx` to write all
+   * nineteen. The old version cost ~4s of a 5s budget for a single page's
+   * markup and failed the release gate on a loaded machine; `renderHarnessPage`
+   * is the same function the CLI writes from, so the string asserted here is
+   * byte-for-byte what lands on disk. Every assertion is unchanged.
+   */
+  it("keeps the bare onboarding starter card styled in the generated harness", async () => {
+    const { renderHarnessPage } = await import("../scripts/design-harness");
+    const html = renderHarnessPage("onboarding-setup");
+    const style = html.match(/<style>([\s\S]*?)<\/style>/)?.[1] ?? "";
 
-    try {
-      execFileSync(
-        process.execPath,
-        [join("node_modules", "tsx", "dist", "cli.mjs"), "scripts/design-harness.tsx", output],
-        { cwd: process.cwd(), stdio: "pipe" },
-      );
-
-      const html = readFileSync(join(output, "onboarding-setup.html"), "utf8");
-      const style = html.match(/<style>([\s\S]*?)<\/style>/)?.[1] ?? "";
-
-      expect(html).toContain('<main class="detail onboarding">');
-      expect(html).toContain('<details class="starter-pricing">');
-      expect(style).toMatch(
-        /:is\(\.onboarding, \.app-frame \.onboarding\) \.starter-pricing\s*\{/,
-      );
-      expect(style).toMatch(
-        /:is\(\.onboarding, \.app-frame \.onboarding\) \.starter-pricing-body \.starter-list\s*\{/,
-      );
-    } finally {
-      rmSync(output, { recursive: true, force: true });
-    }
+    expect(html).toContain('<main class="detail onboarding">');
+    expect(html).toContain('<details class="starter-pricing">');
+    expect(style).toMatch(
+      /:is\(\.onboarding, \.app-frame \.onboarding\) \.starter-pricing\s*\{/,
+    );
+    expect(style).toMatch(
+      /:is\(\.onboarding, \.app-frame \.onboarding\) \.starter-pricing-body \.starter-list\s*\{/,
+    );
   });
 
   it("names every starter price control and keeps it inside the closed setup form", () => {

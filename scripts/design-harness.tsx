@@ -13,7 +13,8 @@ import { createElement as h, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import type { Client, Opportunity, Service } from "../src/core/schema";
 import { OpportunitySignalRow, OpportunityInspector } from "../app/components/signal-desk";
@@ -38,8 +39,6 @@ import ProposalShare from "../app/routes/proposal.share";
 import { assessAnalysisReadiness } from "@/core/analysisReadiness";
 import { TOUR_STEPS } from "../app/components/tour";
 import { Icon } from "../app/components/ui";
-
-const outDir = process.argv[2] ?? ".design-harness";
 
 // --- fixtures ---------------------------------------------------------------
 
@@ -906,60 +905,94 @@ const FONT_HREF =
   "&family=JetBrains+Mono:wght@400;500" +
   "&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap";
 
-mkdirSync(outDir, { recursive: true });
+/** Every screen this harness can render, in emit order. */
+export const HARNESS_SCREEN_NAMES = Object.keys(screens);
 
-for (const [name, screen] of Object.entries(screens)) {
+/**
+ * One harness page, as the exact HTML string the CLI writes to disk.
+ *
+ * Exported so a test can assert on a single screen without spawning `tsx` and
+ * re-rendering all twenty-five. Two tests were doing exactly that, each paying
+ * about four seconds of a five-second budget to inspect one page's markup; on a
+ * loaded machine that crossed the timeout and failed the release gate for
+ * reasons that had nothing to do with the product. `writeHarness` below is the
+ * only writer and it calls this function, so what a test asserts is byte-for-
+ * byte what lands on disk.
+ */
+export function renderHarnessPage(name: string): string {
+  const screen = screens[name];
+  if (!screen) {
+    throw new Error(
+      `unknown harness screen: ${name}. Known screens: ${HARNESS_SCREEN_NAMES.join(", ")}`,
+    );
+  }
+
   const router = createMemoryRouter(
     [
       {
         path: "/",
         // root.tsx drops the app nav on /onboarding, so the bare screens are
         // wrapped the way it wraps them: the public topbar and content column.
-        element: screen.standalone ? screen.node : screen.bare
-          ? h(
-              "div",
-              null,
-              h(
-                "header",
-                { className: "topbar public-topbar" },
+        element: screen.standalone
+          ? screen.node
+          : screen.bare
+            ? h(
+                "div",
+                null,
                 h(
-                  "div",
-                  { className: "topbar-inner" },
+                  "header",
+                  { className: "topbar public-topbar" },
                   h(
-                    "a",
-                    { className: "brand", href: "#" },
-                    h("span", { className: "brand-word" }, "Axiom Orbit"),
+                    "div",
+                    { className: "topbar-inner" },
+                    h(
+                      "a",
+                      { className: "brand", href: "#" },
+                      h("span", { className: "brand-word" }, "Axiom Orbit"),
+                    ),
                   ),
                 ),
-              ),
-              h("main", { className: "content public-content" }, screen.node),
-            )
-          : h(Shell, { active: screen.nav, children: screen.node }),
+                h("main", { className: "content public-content" }, screen.node),
+              )
+            : h(Shell, { active: screen.nav, children: screen.node }),
       },
     ],
     { initialEntries: ["/"] },
   );
   const body = renderToStaticMarkup(h(RouterProvider, { router }));
-  writeFileSync(
-    join(outDir, name + ".html"),
-    [
-      "<!doctype html>",
-      '<html lang="en" data-theme="dark"><head><meta charset="utf-8">',
-      '<meta name="viewport" content="width=device-width,initial-scale=1">',
-      '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>',
-      '<link rel="stylesheet" href="' + FONT_HREF + '">',
-      "<title>" + name + " · design harness</title>",
-      "<style>" + css +
-        ".design-harness-viewport{width:1586px;height:992px;overflow:hidden}.design-harness-viewport>.app-frame{width:1586px;height:992px;min-height:992px}.design-harness-viewport .work-surface{min-height:992px}" +
-        "@media (max-width:1585px){.design-harness-viewport,.design-harness-viewport>.app-frame{width:auto;height:auto;min-height:0;overflow:visible}.design-harness-viewport .work-surface{min-height:0}}" +
-        "</style></head>",
-      '<body><div class="design-harness-viewport">' + body + "</div>",
-      // A dialog only paints in the top layer once showModal() is called, so the
-      // harness opens it the way the app does rather than reviewing the
-      // in-flow fallback.
-      "<script>document.querySelectorAll('dialog[open]').forEach(function(d){d.close();d.showModal();});</script>",
-      "</body></html>",
-    ].join("\n"),
-  );
-  console.log("wrote " + join(outDir, name + ".html"));
+
+  return [
+    "<!doctype html>",
+    '<html lang="en" data-theme="dark"><head><meta charset="utf-8">',
+    '<meta name="viewport" content="width=device-width,initial-scale=1">',
+    '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>',
+    '<link rel="stylesheet" href="' + FONT_HREF + '">',
+    "<title>" + name + " · design harness</title>",
+    "<style>" + css +
+      ".design-harness-viewport{width:1586px;height:992px;overflow:hidden}.design-harness-viewport>.app-frame{width:1586px;height:992px;min-height:992px}.design-harness-viewport .work-surface{min-height:992px}" +
+      "@media (max-width:1585px){.design-harness-viewport,.design-harness-viewport>.app-frame{width:auto;height:auto;min-height:0;overflow:visible}.design-harness-viewport .work-surface{min-height:0}}" +
+      "</style></head>",
+    '<body><div class="design-harness-viewport">' + body + "</div>",
+    // A dialog only paints in the top layer once showModal() is called, so the
+    // harness opens it the way the app does rather than reviewing the
+    // in-flow fallback.
+    "<script>document.querySelectorAll('dialog[open]').forEach(function(d){d.close();d.showModal();});</script>",
+    "</body></html>",
+  ].join("\n");
+}
+
+/** Write every screen. Only runs when this file is the process entry point. */
+export function writeHarness(outDir: string): void {
+  mkdirSync(outDir, { recursive: true });
+  for (const name of HARNESS_SCREEN_NAMES) {
+    writeFileSync(join(outDir, name + ".html"), renderHarnessPage(name));
+    console.log("wrote " + join(outDir, name + ".html"));
+  }
+}
+
+// Importing this module must not read argv or touch the filesystem: a test that
+// wants one page calls renderHarnessPage directly.
+const entry = process.argv[1];
+if (entry && resolve(entry) === resolve(fileURLToPath(import.meta.url))) {
+  writeHarness(process.argv[2] ?? ".design-harness");
 }
