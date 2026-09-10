@@ -2268,6 +2268,48 @@ a.record:hover .record-name {
   margin-top: 0.25rem;
 }
 
+/* The pilot request on a closed signup page. Given the weight of a primary
+   action because, for an uninvited visitor, it is the only one on the page. */
+.auth-pilot-request {
+  margin-top: 1.5rem;
+  padding: 1.15rem 1.15rem 1.25rem;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.auth-pilot-request h2 {
+  margin: 0 0 0.4rem;
+  font-size: 1rem;
+  font-weight: 620;
+  letter-spacing: -0.02em;
+}
+
+.auth-pilot-request p {
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+
+.auth-pilot-request .btn {
+  width: 100%;
+  margin-top: 0.9rem;
+}
+
+.auth-pilot-note {
+  margin-top: 0.6rem;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  text-align: center;
+}
+
+/* The catalog assistant's disclosure sits with its button, so it spans the
+   input grid rather than sitting in one column beside a field. */
+.catalog-assistant-disclosure {
+  grid-column: 1 / -1;
+  margin-top: 0.5rem;
+  max-width: 62ch;
+}
+
 .auth-foot {
   margin-top: 1.5rem;
   padding-top: 1.15rem;

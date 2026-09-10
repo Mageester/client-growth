@@ -1,7 +1,10 @@
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { createMemoryRouter, RouterProvider } from "react-router";
 import { describe, expect, it, vi } from "vitest";
 
 import { generateAgencyCatalogDraft } from "../app/lib/catalog-assistant.server";
-import { reviewRowsAreValid } from "../app/components/catalog-assistant";
+import { CatalogAssistant, reviewRowsAreValid } from "../app/components/catalog-assistant";
 import type { AgencyCatalogGenerator } from "@/ports/AgencyCatalogGenerator";
 
 const scope = { db: {} as never, workspaceId: "ws_test" };
@@ -83,5 +86,35 @@ describe("agency catalog assistant orchestration", () => {
     expect(result).toMatchObject({ pageCount: 1, sourceCount: 1, drafts: [{ name: "Web Design" }] });
     expect(reserve).toHaveBeenCalledTimes(1);
     expect(listServices).toHaveBeenCalledTimes(1);
+  });
+});
+
+/**
+ * The same disclosure has to be where the button is.
+ *
+ * A privacy page nobody has opened does not inform the click that sends an
+ * agency's summary and public pages to a third-party model.
+ */
+describe("the catalog assistant discloses its transfer beside its action", () => {
+  // useFetcher needs a data router, so the assistant is rendered inside one.
+  const html = renderToStaticMarkup(
+    createElement(RouterProvider, {
+      router: createMemoryRouter(
+        [{ path: "/", element: createElement(CatalogAssistant) }],
+        { initialEntries: ["/"] },
+      ),
+    }),
+  );
+
+  it("names the summary, the public pages, and the provider next to the button", () => {
+    const button = html.indexOf("Build my service catalog");
+    expect(button).toBeGreaterThan(-1);
+    expect(html).toMatch(/DeepSeek/);
+    expect(html).toMatch(/headings/i);
+    expect(html).toMatch(/excerpt/i);
+  });
+
+  it("keeps review-before-save and agency-set prices mandatory in the copy", () => {
+    expect(html).toMatch(/Nothing is saved until you review/i);
   });
 });

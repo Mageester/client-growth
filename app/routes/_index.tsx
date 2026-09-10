@@ -73,7 +73,9 @@ export default function Index() {
             <div className="marketing-hero-deck" data-reveal style={{ "--reveal-delay": "110ms" } as CSSProperties}>
               <p>{landingDescription}</p>
               <p>
-                Pipeline Engine finds new clients. Orbit grows the ones you already have.
+                The work is in the accounts you already have. Orbit reads each client&rsquo;s
+                site, matches what it finds against the services you actually sell, and leaves
+                the decision to you.
               </p>
             </div>
             <div className="marketing-cta-row" data-reveal style={{ "--reveal-delay": "220ms" } as CSSProperties}>

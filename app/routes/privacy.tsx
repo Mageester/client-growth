@@ -77,17 +77,54 @@ export default function Privacy() {
           described above lives there.
         </li>
         <li>
-          <strong>Resend</strong> delivers account email: verification links, password
-          resets, and team invitations. It receives the recipient address and the message.
+          <strong>Resend</strong> delivers email. It receives the recipient address and the
+          message.
         </li>
         <li>
-          <strong>DeepSeek</strong> judges whether a candidate finding is genuinely
-          sellable work. It receives only the client&rsquo;s business name, their website
-          domain, and the single subject being judged — for example the words
-          &ldquo;heat pump installation&rdquo;. It does not receive page content, your
-          notes, your catalog, your prices, or anything about you.
+          <strong>DeepSeek</strong> is the AI provider. Two separate features send it data,
+          and they send different things; the inventory below says exactly what each one
+          sends.
         </li>
       </ul>
+
+      <h2>What leaves the service, feature by feature</h2>
+      <p>
+        This list is per feature on purpose. An earlier version of this page described one
+        feature&rsquo;s narrow transfer as though it covered the provider, which was not
+        true of the catalog assistant &mdash; and that feature sends data about your agency,
+        not about a client.
+      </p>
+      <ul>
+        <li>
+          <strong>Candidate evaluation</strong> (DeepSeek). When an analysis judges whether
+          a candidate finding is genuinely sellable work, it sends the client&rsquo;s
+          business name, their website domain, the single subject being judged &mdash; for
+          example the words &ldquo;heat pump installation&rdquo; &mdash; and the bounded
+          supporting evidence needed to judge it. It does not send your notes, your catalog,
+          or your prices.
+        </li>
+        <li>
+          <strong>AI catalog assistant</strong> (DeepSeek). When you ask it to draft your
+          service catalog, it sends the summary you write and, if you give it your agency
+          website, the URL, page title, headings and short text excerpts of the public pages
+          it read there. This is information about your agency. Nothing it proposes is
+          saved until you review the names, descriptions and prices.
+        </li>
+        <li>
+          <strong>Account email</strong> (Resend). Verification links, password resets and
+          team invitations: the recipient address and the account or recovery content of the
+          message.
+        </li>
+        <li>
+          <strong>Monitoring digest</strong> (Resend). Where monitoring is enabled and email
+          delivery is configured: the recipient address you set, and a summary of what
+          changed across the clients in your portfolio.
+        </li>
+      </ul>
+      <p>
+        What a provider does with what it receives is governed by that provider&rsquo;s own
+        terms, which we cannot observe from here and therefore do not restate as a promise.
+      </p>
 
       <h2>What we do not do</h2>
       <p>

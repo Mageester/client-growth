@@ -1,3 +1,6 @@
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import * as monitoring from "@/db/monitoring";
@@ -160,5 +163,60 @@ describe("monitor console actions", () => {
       params: {},
     })) as { ok: boolean; message?: string };
     expect(result.ok).toBe(true);
+  });
+});
+
+/**
+ * The locked Monitor screen, and what it is honest about.
+ *
+ * The audit found three problems in one panel. It told the agency to "ask us to
+ * turn it on" with no way to ask. It promised that Orbit notices "something a
+ * competitor added" — competitor comparison is real, but it is a manual,
+ * user-started comparison, not a scheduled watch, and nothing schedules it. And
+ * it promised an emailed digest without saying that delivery depends on a mail
+ * transport this environment may not have configured.
+ *
+ * Entitlement stays operator-enabled. Nothing here opens it.
+ */
+describe("the locked Monitor screen", () => {
+  const renderLocked = () =>
+    renderToStaticMarkup(
+      createElement(RouterProvider, {
+        router: createMemoryRouter(
+          [
+            {
+              path: "*",
+              element: createElement(monitor.default, {
+                loaderData: { entitled: false, ownerEmail: "owner@agency.example" },
+              } as never),
+            },
+          ],
+          { initialEntries: ["/monitor"] },
+        ),
+      }),
+    );
+
+  it("gives the same real pilot action the closed signup page gives", () => {
+    const html = renderLocked();
+    const match = html.match(/href="(mailto:[^"]+)"/);
+    expect(match).not.toBeNull();
+    const url = new URL(match![1]!.replace(/&amp;/g, "&"));
+
+    expect(url.pathname).toBe("hello@getaxiom.ca");
+    expect(url.searchParams.get("subject")).toBe("Axiom Orbit agency pilot request");
+  });
+
+  it("does not claim a scheduled competitor watch it does not run", () => {
+    const html = renderLocked();
+
+    expect(html).not.toMatch(/competitor added|competitors? change|watch(?:es|ing)? competitors/i);
+    expect(html).toMatch(/weekly recheck|weekly client recheck|rechecks each client/i);
+  });
+
+  it("says who turns it on, and that the digest needs configured email", () => {
+    const html = renderLocked();
+
+    expect(html).toMatch(/Axiom enables it|enabled by Axiom|we enable it/i);
+    expect(html).toMatch(/where email delivery is configured/i);
   });
 });

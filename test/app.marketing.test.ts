@@ -319,3 +319,24 @@ describe("Axiom Orbit public product detail", () => {
     );
   });
 });
+
+/**
+ * The public pages have to agree with the locked screen and with the code.
+ *
+ * The audit also found the parent brand competing for the first impression:
+ * "Pipeline Engine finds new clients" sat beside Orbit's own promise, so the
+ * first thing a visitor read on an Orbit page was a different product.
+ */
+describe("public capability claims match what runs", () => {
+  it("keeps the parent brand out of the first impression", () => {
+    const html = renderLanding();
+    expect(html).not.toContain("Pipeline Engine finds new clients");
+  });
+
+  it("describes monitoring as weekly rechecks with a transport-dependent digest", () => {
+    const html = renderProduct();
+    expect(html).not.toMatch(/competitor(?:s)?\s+(?:added|change[sd]?)\s+(?:is|are)?\s*detected/i);
+    expect(html).toMatch(/weekly recheck/i);
+    expect(html).toMatch(/where email delivery is configured/i);
+  });
+});

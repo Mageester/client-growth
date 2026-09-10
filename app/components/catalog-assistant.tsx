@@ -94,6 +94,15 @@ export function CatalogAssistant({
         <button className="btn btn-primary" type="button" disabled={busy} onClick={() => fetcher.submit({ intent: "generate-catalog", website, summary }, { method: "post" })}>
           <Icon name="briefcase" size={15} /> {busy ? "Building draft…" : "Build my service catalog"}
         </button>
+        {/* The transfer is disclosed where the click is. A privacy page nobody
+            has opened does not inform the action that sends an agency's own
+            summary and public pages to a third-party model. */}
+        <p className="field-hint catalog-assistant-disclosure">
+          This sends the summary you write and, if you give a website, the URL, title, headings and
+          short text excerpts of the public pages Orbit reads there to <b>DeepSeek</b>, the AI
+          provider, to draft the list. Nothing is saved until you review it, and you set every
+          price.
+        </p>
       </div>
 
       {fetcher.data && !fetcher.data.ok && <div className="notice err" role="alert"><Icon name="alert" size={15} /><span>{fetcher.data.error}</span></div>}

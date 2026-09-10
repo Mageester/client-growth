@@ -106,7 +106,7 @@ export default function Product() {
                 Monitor client sites, understand the evidence, find legitimate work, and prepare the next conversation.
               </p>
               <p className="marketing-product-hero-distinction">
-                Pipeline Engine acquires new clients. Orbit helps agencies grow existing accounts.
+                Orbit is for the accounts an agency already manages, not for finding new ones.
               </p>
               <div className="marketing-product-hero-actions">
                 <Link className="marketing-button marketing-button-primary" to="/signup">
@@ -154,9 +154,9 @@ export default function Product() {
           number="01"
           label="Monitor"
           title="Keep every client in view."
-          copy="Turn on weekly monitoring for a client and Orbit revisits the site, recording what is new, still open, resolved, or inconclusive — so “nothing changed” never means “we couldn’t look.”"
+          copy="Turn on weekly monitoring for a client and Orbit rechecks the site, recording what is new, still open, resolved, or inconclusive — so “nothing changed” never means “we couldn’t look.”"
           availability="Available now · opt-in, per-client weekly monitoring"
-          note="Monitoring is off by default. Results are recorded in the workspace — no email or Slack alerts yet."
+          note="A weekly recheck is enabled per workspace by Axiom and is off by default. Results are recorded in the workspace; where email delivery is configured it can also send one weekly digest. Comparing a client against named competitors is a separate check you start yourself — nothing crawls competitors on a schedule."
           visual={<ProductMonitorVisual />}
         />
 

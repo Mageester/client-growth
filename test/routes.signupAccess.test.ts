@@ -452,3 +452,60 @@ describe("signup admission at the route", () => {
   });
 
 });
+
+/**
+ * A closed door with no bell is not a pilot; it is a dead end.
+ *
+ * The audit walked the advertised path — home, "Request pilot access", signup —
+ * and arrived at a page whose only action was "Already invited? Log in". A
+ * visitor who is not invited, which is the entire audience of that CTA, had no
+ * way to ask. So the closed page now carries one real action: a mailto that
+ * Axiom controls, prefilled with the four things a reply needs.
+ *
+ * Deliberately not built: a lead form. A public write endpoint means a lead
+ * table, a spam surface, and a rate limiter, to replace an email we would read
+ * by hand either way. Invitation-only admission is unchanged.
+ */
+describe("the closed signup page can actually be acted on", () => {
+  const pilotLink = (html: string): URL => {
+    const match = html.match(/href="(mailto:[^"]+)"/);
+    expect(match, "the closed signup page renders a mailto pilot action").not.toBeNull();
+    // React escapes & in attributes; the URL parser needs it back.
+    return new URL(match![1]!.replace(/&amp;/g, "&"));
+  };
+
+  it("offers a prefilled pilot request to an address Axiom controls", () => {
+    const html = renderSignup({ publicSignup: false });
+    const url = pilotLink(html);
+
+    expect(url.protocol).toBe("mailto:");
+    expect(url.pathname).toBe("hello@getaxiom.ca");
+    expect(url.searchParams.get("subject")).toBe("Axiom Orbit agency pilot request");
+    const body = url.searchParams.get("body") ?? "";
+    expect(body).toContain("Agency name:");
+    expect(body).toContain("Client sites managed:");
+    expect(body).toContain("Current client-review process:");
+    expect(body).toContain("What you want the review to help with:");
+  });
+
+  it("states the offer, the audience, and when a reply arrives", () => {
+    const html = renderSignup({ publicSignup: false });
+
+    expect(html).toContain("14-day assisted review");
+    expect(html).toContain("up to ten client sites");
+    expect(html).toContain("within two business days");
+    // No price is published until Axiom knows the human effort fits one.
+    expect(html).not.toMatch(/\$\d/);
+  });
+
+  it("leaves invitation-only admission and the account form exactly as they were", () => {
+    const closed = renderSignup({ publicSignup: false });
+    expect(closed).not.toContain('name="workspaceName"');
+    expect(closed).toContain("Already invited? Log in");
+
+    // An open or invited door is a different page, and gains no mail action.
+    const open = renderSignup({ publicSignup: true });
+    expect(open).toContain('name="workspaceName"');
+    expect(open).not.toContain("mailto:hello@getaxiom.ca");
+  });
+});

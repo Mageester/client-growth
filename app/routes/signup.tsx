@@ -11,6 +11,7 @@ import { canDeliverEmail } from "../lib/resend.server";
 import { getSession } from "../lib/session.server";
 import { d1Db } from "../lib/d1.server";
 import { AxiomCredit, BrandLockup, Icon } from "../components/ui";
+import { PILOT_OFFER, pilotRequestHref } from "../lib/pilot-request";
 import type { Route } from "./+types/signup";
 
 function safeReturnTo(value: string | null | undefined): string | undefined {
@@ -226,6 +227,24 @@ export default function Signup({ loaderData, actionData }: Route.ComponentProps)
             invitation, start from that link so we can keep the invitation and account email
             together.
           </p>
+          {/* The bell on the door. Everyone reading this page is, by
+              definition, not invited yet; before this there was nothing here
+              for them to do but leave. */}
+          <section className="auth-pilot-request">
+            <h2>Ask for a pilot</h2>
+            <p className="prose">
+              Axiom runs a <strong>{PILOT_OFFER.scope}</strong> of {PILOT_OFFER.limit} for agencies
+              that already look after those accounts. We read each site, propose work matched to
+              your own services and prices, and you decide what is worth raising with the client.
+              Every recommendation is reviewed by a person before it reaches one.
+            </p>
+            <a className="btn btn-primary btn-lg" href={pilotRequestHref()}>
+              Request an agency pilot
+            </a>
+            <p className="faint auth-pilot-note">
+              Opens your email app with the details we need. We reply {PILOT_OFFER.responseTime}.
+            </p>
+          </section>
           {showAccessCheck ? (
             <Form method="post">
               {returnTo && <input type="hidden" name="returnTo" value={returnTo} />}

@@ -17,6 +17,7 @@ import {
   listMonitorDigestRuns,
   setMonitorDigestSettings,
 } from "@/db/monitorDigests";
+import { PILOT_OFFER, pilotRequestHref } from "../lib/pilot-request";
 import { requireTenant } from "../lib/session.server";
 import { resolveMailTransport } from "../lib/resend.server";
 import { sendDigestNow } from "../lib/monitorDigest.server";
@@ -168,6 +169,19 @@ export async function action({ request, context }: Route.ActionArgs) {
 
 // ---------------------------------------------------------------------------
 
+/**
+ * The gate, described as what it is.
+ *
+ * Three things the audit found wrong here. It said "ask us to turn it on" and
+ * gave nothing to ask with. It promised Orbit would notice "something a
+ * competitor added" — competitor comparison exists, but it is a comparison the
+ * agency starts, against competitors the agency names; nothing schedules it,
+ * and describing it as a watch sells a feature that does not run. And it
+ * promised an emailed digest without saying delivery needs a configured mail
+ * transport, which some environments do not have.
+ *
+ * Entitlement stays operator-enabled. This screen asks; it does not open.
+ */
 function Upsell({ ownerEmail }: { ownerEmail: string }) {
   return (
     <main className="home-page">
@@ -176,23 +190,34 @@ function Upsell({ ownerEmail }: { ownerEmail: string }) {
           <span className="eyebrow">Monitor</span>
           <h1 className="title-page">Never look at a client cold again.</h1>
           <p className="page-statement">
-            MONITOR watches your clients on a schedule and tells you when there is new billable
-            work — a page they still don’t have, a form that broke, something a competitor added —
-            and emails you one weekly digest. It stays quiet when there’s nothing to sell.
+            Monitoring rechecks each client site on a weekly schedule and records what is new,
+            still open, resolved, or inconclusive — so “nothing changed” never quietly means “we
+            couldn’t look”. Where email delivery is configured, it can also send one weekly digest
+            of what those rechecks found.
           </p>
         </div>
       </header>
       <section className="home-clear">
         <Icon name="refresh" size={22} />
         <div>
-          <b>MONITOR isn’t enabled for this workspace yet.</b>
+          <b>Monitoring isn’t enabled for this workspace yet.</b>
           <p>
-            It’s a paid feature. Ask us to turn it on for <b>{ownerEmail}</b> and your clients will
-            start being watched automatically — nothing runs until you’re on it.
+            Axiom enables it per workspace once the scope is agreed, so nothing recurring starts
+            without you. Ask for it against <b>{ownerEmail}</b> and we will reply{" "}
+            {PILOT_OFFER.responseTime}.
           </p>
-          <Link className="btn btn-sm" to="/clients">
-            Back to clients
-          </Link>
+          <p className="faint">
+            Comparing a client against named competitors is a separate check you run yourself.
+            Orbit does not crawl competitors on a schedule.
+          </p>
+          <div className="form-actions">
+            <a className="btn btn-primary btn-sm" href={pilotRequestHref()}>
+              Ask Axiom to enable monitoring
+            </a>
+            <Link className="btn btn-sm" to="/clients">
+              Back to clients
+            </Link>
+          </div>
         </div>
       </section>
     </main>
