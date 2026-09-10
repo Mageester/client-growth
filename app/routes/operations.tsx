@@ -151,16 +151,19 @@ export default function Operations({ loaderData: d }: Route.ComponentProps) {
             <h2 className="title-section">Checks to investigate</h2>
             {d.recentErrors.length === 0 ? (
               <p className="prose">
-                No recorded inconclusive checks or evaluation errors in this window. This is not a
-                claim that every client was checked.
+                No recorded inconclusive checks, evaluation errors, or failed starts in this
+                window. This is not a claim that every client was checked.
               </p>
             ) : (
               <ul className="weekly-list">
                 {d.recentErrors.map((r) => (
                   <li key={r.id}>
-                    <b>{r.clientName}</b> · {formatDate(r.finishedAt)}
-                    <p>{r.summary}</p>
-                    <p className="faint">{r.evaluatorErrors} evaluation errors</p>
+                    <b>{r.clientName}</b> · {r.stage} ·{" "}
+                    <time dateTime={r.at}>{formatDate(r.at, true)}</time>
+                    <p>{r.reason}</p>
+                    {r.evaluatorErrors > 0 && (
+                      <p className="faint">{r.evaluatorErrors} evaluation errors</p>
+                    )}
                   </li>
                 ))}
               </ul>

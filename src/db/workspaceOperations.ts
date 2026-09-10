@@ -180,6 +180,81 @@ export async function workspaceExport(
   };
 }
 
+interface CompletedRunRow {
+  id: number;
+  clientName: string;
+  finishedAt: string;
+  outcome: string;
+  summary: string;
+  evaluatorErrors: number;
+}
+
+interface FailedStartRow {
+  id: number;
+  clientId: string;
+  clientName: string | null;
+  reservedAt: string;
+  finishedAt: string | null;
+}
+
+/**
+ * One row an operator can act on, whichever way the check went wrong.
+ *
+ * `kind` is what separates "we ran and could not conclude" from "we never got
+ * far enough to record anything" — two very different investigations that were
+ * previously one number and one incomplete list.
+ */
+export interface AnalysisInvestigationRow {
+  id: string;
+  kind: "completed-run" | "failed-start";
+  clientName: string;
+  /** How far the check got before it stopped. */
+  stage: string;
+  at: string;
+  /** A stored, safe explanation — never a raw provider exception or payload. */
+  reason: string;
+  evaluatorErrors: number;
+}
+
+/**
+ * What we say when nothing was recorded.
+ *
+ * Not a guess at a cause. A reservation that failed before its run existed
+ * leaves no evidence of why, and inventing one — "the site was unreachable",
+ * "the provider timed out" — would send an operator to fix something that may
+ * be fine.
+ */
+const NO_DETAIL_REASON = "The run stopped before a detailed record was created.";
+
+function investigationRows(
+  completed: CompletedRunRow[],
+  failedStarts: FailedStartRow[],
+): AnalysisInvestigationRow[] {
+  const rows: AnalysisInvestigationRow[] = [
+    ...completed.map((run) => ({
+      id: `run-${run.id}`,
+      kind: "completed-run" as const,
+      clientName: run.clientName,
+      stage: run.outcome === "inconclusive" ? "Completed, inconclusive" : "Completed with errors",
+      at: run.finishedAt,
+      reason: run.summary,
+      evaluatorErrors: run.evaluatorErrors,
+    })),
+    ...failedStarts.map((start) => ({
+      id: `start-${start.id}`,
+      kind: "failed-start" as const,
+      // A reservation can outlive the client it was made for; naming the id is
+      // still more use to an operator than an empty cell.
+      clientName: start.clientName ?? start.clientId,
+      stage: "Failed before completing",
+      at: start.finishedAt ?? start.reservedAt,
+      reason: NO_DETAIL_REASON,
+      evaluatorErrors: 0,
+    })),
+  ];
+  return rows.sort((a, b) => b.at.localeCompare(a.at) || a.id.localeCompare(b.id));
+}
+
 interface HealthTotals {
   checks: number;
   clean: number;
@@ -208,7 +283,7 @@ export async function analysisHealth(t: TenantScope, now = new Date()) {
       .bind(t.workspaceId, start, until)
       .first<HealthTotals>();
 
-  const [current, previous, incomplete, failed, recentErrors] = await Promise.all([
+  const [current, previous, incomplete, completedRuns, failedStartRows] = await Promise.all([
     totals(since, end),
     totals(priorSince, since),
     t.db
@@ -236,14 +311,6 @@ export async function analysisHealth(t: TenantScope, now = new Date()) {
       .first<{ count: number }>(),
     t.db
       .prepare(
-        `SELECT COUNT(*) AS count
-         FROM analysis_limit_reservations
-         WHERE workspace_id = ? AND reserved_at >= ? AND reserved_at < ? AND failed = 1`,
-      )
-      .bind(t.workspaceId, since, end)
-      .first<{ count: number }>(),
-    t.db
-      .prepare(
         `SELECT r.id, c.name AS clientName, r.finished_at AS finishedAt,
                 r.outcome, r.summary, r.evaluator_errors AS evaluatorErrors
          FROM analysis_runs r
@@ -254,14 +321,26 @@ export async function analysisHealth(t: TenantScope, now = new Date()) {
          LIMIT 30`,
       )
       .bind(t.workspaceId, since, end)
-      .all<{
-        id: number;
-        clientName: string;
-        finishedAt: string;
-        outcome: string;
-        summary: string;
-        evaluatorErrors: number;
-      }>(),
+      .all<CompletedRunRow>(),
+    // The failures the headline count is made of. Previously this was a bare
+    // COUNT(*) and the list beside it came from analysis_runs, so a start that
+    // failed before recording a run showed up as a number with nothing to
+    // investigate. Rows and count now come from the same query.
+    //
+    // The join to clients is workspace-constrained on both columns, so a client
+    // id that happens to collide across agencies cannot name the wrong client.
+    t.db
+      .prepare(
+        `SELECT a.id, a.client_id AS clientId, c.name AS clientName,
+                a.reserved_at AS reservedAt, a.finished_at AS finishedAt
+         FROM analysis_limit_reservations a
+         LEFT JOIN clients c ON c.id = a.client_id AND c.workspace_id = a.workspace_id
+         WHERE a.workspace_id = ? AND a.reserved_at >= ? AND a.reserved_at < ? AND a.failed = 1
+         ORDER BY a.reserved_at DESC, a.id DESC
+         LIMIT 30`,
+      )
+      .bind(t.workspaceId, since, end)
+      .all<FailedStartRow>(),
   ]);
 
   const rate = current!.checks ? current!.inconclusive / current!.checks : null;
@@ -284,7 +363,7 @@ export async function analysisHealth(t: TenantScope, now = new Date()) {
     previousRate,
     alert,
     incompleteStarts: incomplete?.count ?? 0,
-    failedStarts: failed?.count ?? 0,
-    recentErrors,
+    failedStarts: failedStartRows.length,
+    recentErrors: investigationRows(completedRuns, failedStartRows),
   };
 }

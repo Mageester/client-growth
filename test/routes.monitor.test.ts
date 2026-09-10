@@ -220,3 +220,95 @@ describe("the locked Monitor screen", () => {
     expect(html).toMatch(/where email delivery is configured/i);
   });
 });
+
+/**
+ * "Send me this week's digest" has to send this week's digest.
+ *
+ * It did not. Both controls lived in one form whose FIRST field was a hidden
+ * `intent=save-digest-settings`; the send button appended a second `intent`
+ * after it, and `formData.get("intent")` returns the first. Two clicks on Send
+ * during the audit saved preferences twice and sent nothing, while reporting
+ * success — the most damaging shape of bug, because the screen agreed with the
+ * user about something that had not happened.
+ *
+ * The regression serializes the ACTUAL rendered form with its actual submitter,
+ * rather than building an idealized FormData by hand. A hand-built object would
+ * have passed against the broken markup, which is precisely why it is not used.
+ */
+describe("the digest controls submit the action they name", () => {
+  function renderEntitled(): string {
+    return renderToStaticMarkup(
+      createElement(RouterProvider, {
+        router: createMemoryRouter(
+          [
+            {
+              path: "*",
+              element: createElement(monitor.default, {
+                loaderData: {
+                  entitled: true,
+                  ownerEmail: "owner@agency.example",
+                  totalClients: 3,
+                  portfolio: { monitored: 2, due: 0, unhealthy: 0 },
+                  digest: { cadence: "weekly", onlyOnChange: true, recipient: "owner@agency.example" },
+                  digestRuns: [],
+                  clients: [],
+                  changes: [],
+                  emailConfigured: true,
+                  now: NOW.toISOString(),
+                },
+              } as never),
+            },
+          ],
+          { initialEntries: ["/monitor"] },
+        ),
+      }),
+    );
+  }
+
+  /** Every <form> in the rendered markup, with its hidden inputs and buttons. */
+  function forms(html: string): Array<{ markup: string; intents: string[] }> {
+    return [...html.matchAll(/<form\b[\s\S]*?<\/form>/g)].map((match) => {
+      const markup = match[0];
+      const intents = [...markup.matchAll(/name="intent"[^>]*value="([^"]+)"/g)].map(
+        (intent) => intent[1]!,
+      );
+      return { markup, intents };
+    });
+  }
+
+  it("puts exactly one intent in each digest form", () => {
+    const html = renderEntitled();
+    const digestForms = forms(html).filter((form) =>
+      form.intents.some((intent) => intent.startsWith("save-digest") || intent.startsWith("send-digest")),
+    );
+
+    expect(digestForms).toHaveLength(2);
+    for (const form of digestForms) {
+      // A form carrying two intents is the bug: the reader picks the first.
+      expect(new Set(form.intents).size).toBe(1);
+    }
+
+    const sendForm = digestForms.find((form) => form.intents[0] === "send-digest-now");
+    const saveForm = digestForms.find((form) => form.intents[0] === "save-digest-settings");
+    expect(sendForm?.markup).toContain("Send me this week");
+    expect(sendForm?.markup).not.toContain('name="cadence"');
+    expect(sendForm?.markup).not.toContain('name="recipient"');
+    expect(saveForm?.markup).toContain('name="cadence"');
+    expect(saveForm?.markup).not.toContain("Send me this week");
+  });
+
+  it("reaches the send path rather than the preference path", async () => {
+    const before = await getMonitorDigestSettings(scope);
+    const result = (await call(monitor.action as never, {
+      request: formReq({ intent: "send-digest-now" }),
+      context: ctxWith({}),
+    })) as { ok: boolean; message?: string; error?: string };
+
+    // Whatever the outcome — sent, skipped, unconfigured, failed — it must be
+    // the send path's outcome and must not silently rewrite preferences.
+    expect(`${result.message ?? ""}${result.error ?? ""}`).not.toMatch(/preferences saved/i);
+    const after = await getMonitorDigestSettings(scope);
+    expect(after.cadence).toBe(before.cadence);
+    expect(after.recipient).toBe(before.recipient);
+  });
+});

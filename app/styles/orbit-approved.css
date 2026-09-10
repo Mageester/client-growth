@@ -5821,3 +5821,9 @@ body:has(.client-report-document.is-public) {
     width: 100%;
   }
 }
+
+/* The send control is its own form, so it needs its own spacing rather than
+   inheriting the preference form's grid. */
+.monitor-digest-send {
+  margin-top: 0.65rem;
+}

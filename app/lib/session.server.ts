@@ -1,5 +1,7 @@
 import { redirect } from "react-router";
 
+import { requestReturnTo } from "./return-to";
+
 import type { SqlDb } from "@/db/sql";
 import type { TenantScope } from "@/db/tenant";
 import { getWorkspaceForUser, type Workspace } from "@/db/workspaces";
@@ -55,13 +57,26 @@ export async function getSession(
   return resolver(request, context.cloudflare.env);
 }
 
-/** Signed-in user or a redirect to /login. */
+/**
+ * Signed-in user, or a redirect to /login that remembers where they were going.
+ *
+ * The destination matters. The audit opened a private report deep link while
+ * signed out, was sent to a bare `/login`, signed in, and landed on Home — with
+ * the report reachable again only by finding it. Carrying the path here is what
+ * makes signing back in resume the work instead of restarting it.
+ *
+ * Login remains the final sanitizer before it navigates anywhere: this encodes
+ * a path this server itself produced, and `safeReturnTo` re-checks whatever
+ * comes back through the query string.
+ */
 export async function requireSession(
   request: Request,
   context: ContextLike,
 ): Promise<AuthedContext> {
   const authed = await resolver(request, context.cloudflare.env);
-  if (!authed) throw redirect("/login");
+  if (!authed) {
+    throw redirect(`/login?returnTo=${encodeURIComponent(requestReturnTo(request))}`);
+  }
   return authed;
 }
 

@@ -316,10 +316,19 @@ export default function Monitor({ loaderData, actionData }: Route.ComponentProps
             <button type="submit" className="btn btn-sm" disabled={busy}>
               Save
             </button>
-            <button type="submit" name="intent" value="send-digest-now" className="btn btn-sm btn-quiet" disabled={busy || !emailConfigured}>
-              Send me this week’s digest
-            </button>
           </div>
+        </Form>
+
+        {/* A separate form, because a form carries exactly one intent.
+            Both controls used to live above: the hidden save intent came first
+            in the field order, the send button appended a second one, and
+            `formData.get("intent")` returns the first. Pressing Send saved
+            preferences and reported success. */}
+        <Form method="post" className="monitor-digest-send">
+          <input type="hidden" name="intent" value="send-digest-now" />
+          <button type="submit" className="btn btn-sm btn-quiet" disabled={busy || !emailConfigured}>
+            Send me this week’s digest
+          </button>
         </Form>
 
         {digestRuns.length > 0 && (

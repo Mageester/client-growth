@@ -2,6 +2,7 @@ import { Form, Link, redirect } from "react-router";
 
 import { getAuth, getTrustedAuthBaseURL } from "../lib/auth.server";
 import { canDeliverEmail } from "../lib/resend.server";
+import { safeReturnTo } from "../lib/return-to";
 import { getSession } from "../lib/session.server";
 import { AxiomCredit, BrandLockup, Icon } from "../components/ui";
 import type { Route } from "./+types/login";
@@ -9,17 +10,6 @@ import type { Route } from "./+types/login";
 const VERIFICATION_CALLBACK_PATH = "/login?verified=success";
 const VERIFICATION_REQUIRED_ERROR = "Verify your email before logging in.";
 const VERIFICATION_RESEND_ERROR = "We couldn’t send a verification email. Please try again later.";
-
-function safeReturnTo(value: string | null | undefined): string | undefined {
-  const candidate = value?.trim();
-  if (!candidate || !candidate.startsWith("/") || candidate.startsWith("//")) return undefined;
-  try {
-    const parsed = new URL(candidate, "https://orbit.invalid");
-    return `${parsed.pathname}${parsed.search}${parsed.hash}`;
-  } catch {
-    return undefined;
-  }
-}
 
 function verificationCallbackURL(baseURL: string, returnTo?: string): string {
   const callbackURL = new URL(VERIFICATION_CALLBACK_PATH, baseURL);

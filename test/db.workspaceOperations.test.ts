@@ -146,3 +146,98 @@ it("alerts on an elevated inconclusive rate and exposes incomplete starts withou
     expect((await analysisHealth(p.scopeFor('ws_b'),now)).alert).toBeNull();
   }finally{p.close();}
 });
+
+/**
+ * A failure in the headline count has to have a row underneath it.
+ *
+ * Operations counted failed analysis starts from `analysis_limit_reservations`
+ * and listed "checks to investigate" from `analysis_runs`. A run that failed
+ * before it recorded anything therefore appeared as a number with nothing to
+ * investigate — the operator is told something broke and given no way to find
+ * out what. Two queries, two boundaries, one contradiction.
+ *
+ * Counts and rows now come from the same boundary. Where no safe stored reason
+ * exists the row says so; it does not guess a cause, and it never surfaces a
+ * raw provider exception or payload.
+ */
+it("gives every counted analysis failure a matching investigation row", async () => {
+  const now = new Date("2026-09-08T12:00:00.000Z");
+  const p = await buildPortfolio({ workspaces: 2, perWorkspace: 2, now });
+  try {
+    const scope = p.scopeFor("ws_a");
+    const mine = p.clients.find((entry) => entry.workspaceId === "ws_a")!;
+    const theirs = p.clients.find((entry) => entry.workspaceId === "ws_b")!;
+    const failedAt = new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString();
+
+    // A start that was reserved, failed, and never became a run: the exact
+    // shape the count reported and the list could not explain.
+    for (const [workspaceId, clientId] of [
+      ["ws_a", mine.clientId],
+      ["ws_b", theirs.clientId],
+    ] as const) {
+      await p.db
+        .prepare(
+          `INSERT INTO analysis_limit_reservations
+             (workspace_id, client_id, reserved_at, day_utc, finished_at, failed)
+           VALUES (?, ?, ?, ?, ?, 1)`,
+        )
+        .bind(workspaceId, clientId, failedAt, failedAt.slice(0, 10), failedAt)
+        .run();
+    }
+
+    const health = await analysisHealth(scope, now);
+
+    expect(health.failedStarts).toBe(1);
+    const failures = health.recentErrors.filter((row) => row.kind === "failed-start");
+    expect(failures).toHaveLength(1);
+    expect(failures[0]?.clientName).toBe(`Client ${mine.clientId}`);
+    expect(failures[0]?.at).toBe(failedAt);
+    expect(failures[0]?.stage).toBeTruthy();
+    // No cause is invented for a run that stopped before recording one.
+    expect(failures[0]?.reason).toBe("The run stopped before a detailed record was created.");
+
+    // The other agency's failure stays in the other agency.
+    expect(health.recentErrors.some((row) => row.clientName.includes(theirs.clientId))).toBe(false);
+  } finally {
+    p.close();
+  }
+});
+
+it("keeps a completed inconclusive run in the same list, with its stored summary", async () => {
+  const now = new Date("2026-09-08T12:00:00.000Z");
+  const p = await buildPortfolio({ workspaces: 1, perWorkspace: 1, now });
+  try {
+    const scope = p.scopeFor("ws_a");
+    const client = p.clients.find((entry) => entry.workspaceId === "ws_a")!;
+    const at = new Date(now.getTime() - 3 * 60 * 60 * 1000).toISOString();
+    await repo.recordAnalysisRun(scope, {
+      clientId: client.clientId,
+      startedAt: at,
+      finishedAt: at,
+      source: "http",
+      outcome: "inconclusive",
+      summary: "The site could not be read far enough to check anything.",
+      limitation: "coverage",
+      pagesRead: 0,
+      pagesFetched: 1,
+      blockedEvents: 1,
+      inconclusiveEvents: 0,
+      surfaced: 0,
+      stats: {},
+      trigger: "manual",
+      newCount: 0,
+      resolvedCount: 0,
+      evaluatorCalls: 0,
+      evaluatorRejections: 0,
+      evaluatorErrors: 0,
+    });
+
+    const health = await analysisHealth(scope, now);
+    const completed = health.recentErrors.find((row) => row.kind === "completed-run");
+
+    expect(completed?.reason).toBe("The site could not be read far enough to check anything.");
+    expect(completed?.at).toBe(at);
+  } finally {
+    p.close();
+  }
+});
