@@ -12,6 +12,10 @@ import { __setSessionResolver } from "../app/lib/session.server";
 import { d1LikeOver } from "./helpers/testAuth";
 import * as inviteRoute from "../app/routes/invite.$token";
 import * as settings from "../app/routes/settings";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { createMemoryRouter, RouterProvider } from "react-router";
+import { formatDate } from "../app/components/ui";
 
 const migrationsDir = join(dirname(fileURLToPath(import.meta.url)), "..", "migrations");
 
@@ -261,4 +265,62 @@ describe("team invitation acceptance route", () => {
       `/login?returnTo=%2Finvite%2F${invitation.token}`,
     );
   });
+});
+
+/**
+ * A date a person reads should be written the way people write dates.
+ *
+ * Pending invitations rendered a raw ISO timestamp — "expires
+ * 2026-10-07T14:00:00.000Z" — in a sentence aimed at an agency owner. The
+ * machine-readable value stays, in the `dateTime` attribute where machines
+ * look for it; the text becomes the locale-formatted date the rest of the app
+ * already uses.
+ */
+it("writes invitation expiry as a date, keeping the machine value in the attribute", () => {
+  const expiresAt = "2026-10-07T14:00:00.000Z";
+  const html = renderToStaticMarkup(
+    createElement(RouterProvider, {
+      router: createMemoryRouter(
+        [
+          {
+            path: "*",
+            element: createElement(settings.default, {
+              loaderData: {
+                workspaceName: "Axiom North",
+                agencyName: "Axiom North",
+                logo: null,
+                reportTheme: "editorial",
+                email: "owner@axiom.example",
+                isOwner: true,
+                members: [],
+                invitations: [
+                  {
+                    id: "inv_1",
+                    email: "colleague@axiom.example",
+                    role: "member",
+                    expiresAt,
+                  },
+                ],
+                monitorEntitled: false,
+                monitoring: {
+                  monitored: 0,
+                  due: 0,
+                  checks: 0,
+                  unhealthy: 0,
+                  newFindings: 0,
+                  resolvedFindings: 0,
+                },
+              },
+              actionData: undefined,
+            } as never),
+          },
+        ],
+        { initialEntries: ["/settings"] },
+      ),
+    }),
+  );
+
+  expect(html).toContain(`<time dateTime="${expiresAt}"`);
+  expect(html).toContain(formatDate(expiresAt));
+  expect(html).not.toMatch(/expires\s*2026-10-07T14:00:00\.000Z/);
 });

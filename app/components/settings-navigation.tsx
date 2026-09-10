@@ -5,9 +5,16 @@ import { Icon, type IconName } from "./ui";
 
 /**
  * The secondary navigation for everything that is configuration rather than
- * work: the workspace, the service catalog, monitoring, the team, billing, and
- * the reliability of the checks themselves. Keeping these here is what lets the
- * primary sidebar stay at four destinations.
+ * work. Keeping these here is what lets the primary sidebar stay at four
+ * destinations.
+ *
+ * Every label names the place it actually goes. Two did not: "Billing · Plans
+ * and payments" scrolled to the account-email section of a product that has no
+ * billing and no schema for it, and "Integrations · Connected tools" scrolled
+ * to monitoring, where there are no connected tools. An owner who clicks
+ * Billing to check what they are paying and lands on their email address
+ * learns the navigation is decorative — and stops trusting the entries that
+ * were telling the truth.
  *
  * Three of these are sections of the Settings page rather than separate routes.
  * The highlight follows the section actually on screen, so it never claims you
@@ -37,24 +44,24 @@ const SETTINGS_LINKS: Array<{
   {
     key: "monitoring",
     to: "/settings#monitoring",
-    label: "Integrations",
-    description: "Connected tools",
-    icon: "link",
+    label: "Monitoring",
+    description: "Automated client rechecks",
+    icon: "refresh",
     section: "monitoring",
   },
   {
     key: "services",
     to: "/services",
     label: "Services",
-    description: "Manage service offerings",
+    description: "Agency service catalog",
     icon: "briefcase",
     page: "services",
   },
   {
     key: "health",
     to: "/operations",
-    label: "Check health",
-    description: "Analysis reliability",
+    label: "Data and health",
+    description: "Export and analysis reliability",
     icon: "shield",
     page: "health",
   },
@@ -69,9 +76,9 @@ const SETTINGS_LINKS: Array<{
   {
     key: "account",
     to: "/settings#account",
-    label: "Billing",
-    description: "Plans and payments",
-    icon: "document",
+    label: "Account",
+    description: "Email and account access",
+    icon: "settings",
     section: "account",
   },
 ];

@@ -8,7 +8,7 @@ import {
 import { d1Db } from "../lib/d1.server";
 import { getSession } from "../lib/session.server";
 import type { AuthEnv } from "../lib/auth.server";
-import { AxiomCredit, BrandLockup, Icon } from "../components/ui";
+import { AxiomCredit, BrandLockup, Icon, formatDate } from "../components/ui";
 
 interface InviteContext {
   cloudflare: { env: AuthEnv };
@@ -159,7 +159,10 @@ export default function TeamInvitation({ loaderData, actionData }: {
           <p className="auth-sub">
             {invitation.workspaceName} invited {invitation.invitedEmail} to join as a {invitation.role}.
           </p>
-          <p className="prose">This invitation expires on {invitation.expiresAt}.</p>
+          <p className="prose">
+            This invitation expires on{" "}
+            <time dateTime={invitation.expiresAt}>{formatDate(invitation.expiresAt)}</time>.
+          </p>
           {!loaderData.signedIn ? (
             <>
               <p className="prose">Log in with the invited email address to accept it.</p>

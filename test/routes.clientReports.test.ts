@@ -21,6 +21,7 @@ import * as reportBuilder from "../app/routes/clients.$id.report";
 import * as reportPreview from "../app/routes/reports.$id";
 import * as reportShare from "../app/routes/report.share";
 import * as clientDetail from "../app/routes/clients.$id";
+import { ClientReportDocument } from "../app/components/client-report";
 import { listClientReportSummaries } from "@/db/clientReports";
 
 const migrationsDir = join(dirname(fileURLToPath(import.meta.url)), "..", "migrations");
@@ -485,5 +486,62 @@ describe("a saved report survives leaving the page", () => {
     );
     expect(foreign).toEqual([]);
     expect(reportId).toMatch(/^report_/);
+  });
+});
+
+/**
+ * A one-fix report should not open with a full cover page.
+ *
+ * The document treatment was designed for a multi-project review and is right
+ * for one. Applied to a single supporting repair it postpones the only fact in
+ * the document behind a cover, an executive summary and an at-a-glance panel —
+ * on a laptop the recommendation itself is below the fold of a page that has
+ * nothing else in it.
+ *
+ * Density is derived from the content, not chosen: no new theme, no stored
+ * preference, no second design system.
+ */
+describe("report density follows the report's content", () => {
+  it("uses the compact treatment for a health-only report", async () => {
+    const builder = (await reportBuilder.loader({
+      request: new Request("http://localhost/clients/cli_a/report"),
+      params: { id: "cli_a" },
+      context,
+    } as never)) as Awaited<ReturnType<typeof reportBuilder.loader>>;
+    const health = builder.candidates.health[0]!.key;
+    const generated = (await call(reportBuilder.action, {
+      request: formReq({ intent: "generate", selectedProject: health, orderedProject: health }),
+      params: { id: "cli_a" },
+      context,
+    })) as Response;
+    const reportId = generated.headers.get("Location")!.split("/").at(-1)!;
+
+    const preview = (await reportPreview.loader({
+      request: new Request(`http://localhost/reports/${reportId}`),
+      params: { id: reportId },
+      context,
+    } as never)) as Awaited<ReturnType<typeof reportPreview.loader>>;
+
+    expect(preview.report.snapshot.public.recommendedProjects).toHaveLength(0);
+    const html = renderToStaticMarkup(
+      createElement(ClientReportDocument, { snapshot: preview.report.snapshot.public }),
+    );
+    expect(html).toContain('data-report-density="compact"');
+    expect(html).not.toContain("client-report-cover-title");
+  });
+
+  it("keeps the full cover for a multi-project review", async () => {
+    const reportId = await generateReport();
+    const preview = (await reportPreview.loader({
+      request: new Request(`http://localhost/reports/${reportId}`),
+      params: { id: reportId },
+      context,
+    } as never)) as Awaited<ReturnType<typeof reportPreview.loader>>;
+
+    const html = renderToStaticMarkup(
+      createElement(ClientReportDocument, { snapshot: preview.report.snapshot.public }),
+    );
+    expect(html).toContain('data-report-density="full"');
+    expect(html).toContain("client-report-cover-title");
   });
 });

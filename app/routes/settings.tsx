@@ -21,7 +21,7 @@ import {
   getResendConfig,
 } from "../lib/resend.server";
 import { getTrustedAuthBaseURL } from "../lib/auth.server";
-import { AxiomCredit, Icon, PageContextMeta, pluralize } from "../components/ui";
+import { AxiomCredit, Icon, PageContextMeta, formatDate, pluralize } from "../components/ui";
 import { requireTenant } from "../lib/session.server";
 import { SettingsNavigation } from "../components/settings-navigation";
 import type { Route } from "./+types/settings";
@@ -229,18 +229,25 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
             />
           </div>
           <div className="field">
-            <label htmlFor="workspaceLogo">Proposal logo</label>
+            <label htmlFor="workspaceLogo">Optional HTTPS logo URL</label>
             <input
               id="workspaceLogo"
               name="logo"
               type="text"
               inputMode="url"
               defaultValue={loaderData.logo ?? ""}
-              placeholder="data:image/png;base64,… or https://…"
+              placeholder="https://youragency.com/logo.png"
               aria-describedby="workspaceLogoHelp"
             />
             <p id="workspaceLogoHelp" className="field-help">
-              Optional PNG or JPEG. A small inline data URL is safest; public logos must use HTTPS.
+              A public PNG or JPEG served over HTTPS, shown on proposals and client reports. Leave
+              it empty to use the agency name alone. Orbit does not host images; there is no upload.
+              {/* Data URLs still work for anyone already using one, but pasting
+                  base64 is not a sensible instruction to give a business. */}
+              {" "}
+              <span className="faint">
+                An inline <code>data:image/png;base64,…</code> URL is also accepted.
+              </span>
             </p>
           </div>
           <fieldset className="report-theme-settings">
@@ -333,7 +340,10 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
                     <div className="kv-row" key={invitation.id}>
                       <dt>{invitation.invitedEmail}</dt>
                       <dd>
-                        {invitation.role} · expires {invitation.expiresAt}{" "}
+                        {invitation.role} · expires{" "}
+                        <time dateTime={invitation.expiresAt}>
+                          {formatDate(invitation.expiresAt)}
+                        </time>{" "}
                         <Form method="post" style={{ display: "inline" }}>
                           <input type="hidden" name="intent" value="revoke-invitation" />
                           <input type="hidden" name="invitationId" value={invitation.id} />

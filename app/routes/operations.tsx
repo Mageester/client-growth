@@ -4,7 +4,7 @@ import { analysisHealth } from "@/db/workspaceOperations";
 import * as repo from "@/db/repositories";
 import { RULE_SERVICE_LINKS } from "@/core/rules/registry";
 import { computeWinRates } from "@/core/winRates";
-import { formatCurrencyRange, formatDate, PageContextMeta, pluralize } from "../components/ui";
+import { formatCurrencyRange, formatDate, Icon, PageContextMeta, pluralize } from "../components/ui";
 import { SettingsNavigation } from "../components/settings-navigation";
 import { resolveMailTransport } from "../lib/resend.server";
 import { requireTenant } from "../lib/session.server";
@@ -213,13 +213,27 @@ export default function Operations({ loaderData: d }: Route.ComponentProps) {
             )}
           </section>
 
+          {/* Data and health is where the Settings navigation now says export
+              lives, so the action is named plainly rather than sharing a row of
+              navigation buttons with nothing to distinguish it. */}
+          <section className="section">
+            <h2 className="title-section">Export your workspace data</h2>
+            <p className="prose">
+              A JSON file of your clients, services, findings, decisions and analysis history.
+              Authentication records and secret values are excluded.
+            </p>
+            <div className="form-actions">
+              <a className="btn btn-primary" href="/export/workspace" download>
+                <Icon name="document" size={15} />
+                Download workspace export
+              </a>
+            </div>
+          </section>
+
           <div className="form-actions">
             <Link className="btn" to="/clients">
               Review clients
             </Link>
-            <a className="btn" href="/export/workspace" download>
-              Export workspace data
-            </a>
             <Link className="btn" to="/changes">
               This week
             </Link>

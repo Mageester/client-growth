@@ -3382,6 +3382,66 @@ html[data-theme="light"] .app-frame .entity-mark {
     width: 100%;
     box-sizing: border-box;
   }
+
+  /* Compact widths: nothing may push the page sideways.
+   *
+   * Measured at 355x767 with a long client name selected, the opportunities
+   * page scrolled to 323px inside a 300px column and the compact nav to 209px
+   * inside 200px. The cause was a fixed `min-width: 156px` on the client
+   * trigger inside a flex row with no permission to shrink: the trigger held
+   * its width, the row grew, and the document scrolled sideways.
+   *
+   * The label absorbs the loss — it already truncates — while the icon and the
+   * count keep their size, so the control stays visible, focusable and
+   * labelled at every width. */
+
+  .app-frame,
+  .app-frame .page-enter,
+  .app-frame .opportunities-page,
+  .app-frame .pagehead,
+  .app-frame .pagehead-actions,
+  .app-frame .signal-toolbar,
+  .app-frame .signal-toolbar-actions {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .app-frame .pagehead-actions,
+  .app-frame .signal-toolbar-actions {
+    flex-wrap: wrap;
+  }
+
+  .app-frame .signal-client-trigger {
+    /* Overrides the desktop floor. A control that cannot shrink in a row that
+       cannot grow is what put the scrollbar on the document. */
+    min-width: 0;
+    max-width: 100%;
+    flex: 1 1 auto;
+  }
+
+  .app-frame .signal-client-trigger > span:not(.scope-count) {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* The affordance that says this is a menu must not be what gets truncated. */
+  .app-frame .signal-client-trigger > svg,
+  .app-frame .signal-client-trigger .scope-count {
+    flex: 0 0 auto;
+  }
+
+  /* The compact nav scrolls itself rather than widening the page. */
+  .app-frame .app-nav-compact {
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .app-frame .app-nav-compact::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -5850,4 +5910,39 @@ body:has(.client-report-document.is-public) {
 
 .onboarding-optional > .prose {
   margin-bottom: 1rem;
+}
+
+
+
+/* Repeated explanatory chrome is compressed, not deleted, so the first real
+   recommendation is reachable sooner at 1280x800 and 390x844. */
+@media (max-width: 1280px) {
+  .app-frame .project-card + .project-card {
+    margin-top: 14px;
+  }
+
+  .app-frame .project-summary {
+    margin-top: 4px;
+  }
+
+  .app-frame .signal-toolbar {
+    row-gap: 8px;
+  }
+}
+
+/* A compact report leads with the recommendation, not with a cover page. */
+.client-report-document[data-report-density="compact"] .client-report-cover {
+  padding-block: 1.5rem;
+}
+
+.client-report-cover-compact h2 {
+  margin: 0.15rem 0 0.1rem;
+  font-size: 1.35rem;
+  letter-spacing: -0.02em;
+}
+
+.client-report-cover-compact p {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: 0.8rem;
 }

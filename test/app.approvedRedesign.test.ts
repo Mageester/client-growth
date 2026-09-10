@@ -1,6 +1,6 @@
 import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { createMemoryRouter, RouterProvider } from "react-router";
+import { createMemoryRouter, MemoryRouter, RouterProvider } from "react-router";
 import { describe, expect, it } from "vitest";
 
 import { AppNavigation } from "../app/root";
@@ -11,6 +11,7 @@ import Onboarding from "../app/routes/onboarding";
 import ServicesIndex from "../app/routes/services._index";
 import { OpportunityQueue } from "../app/components/signal-desk";
 import { PageContextMeta } from "../app/components/ui";
+import { SettingsNavigation } from "../app/components/settings-navigation";
 
 function render(node: ReactNode, initialEntry = "/") {
   const router = createMemoryRouter([{ path: "*", element: node }], {
@@ -373,12 +374,12 @@ describe("approved page anatomy", () => {
       "/services",
     );
 
-    for (const label of ["General", "Integrations", "Services", "Team", "Billing"]) {
+    for (const label of ["General", "Monitoring", "Services", "Team", "Account"]) {
       expect(html).toContain(label);
     }
-    // Check health is a Settings section too, which is what lets the primary
+    // Data and health is a Settings section too, which is what lets the primary
     // sidebar stay at four destinations.
-    expect(html).toContain("Check health");
+    expect(html).toContain("Data and health");
     expect(html).toContain("Manage the services you offer to clients.");
   });
 });
@@ -418,5 +419,49 @@ describe("approved interaction model", () => {
 
     expect(html).toContain("<button");
     expect(html).toContain("aria-label=\"Switch to light appearance\"");
+  });
+});
+
+/**
+ * Settings labels have to name real destinations.
+ *
+ * "Billing" scrolled to the account-email section; there is no billing in this
+ * product, and its schema has none. "Integrations · Connected tools" scrolled
+ * to monitoring, and there are no connected tools. An agency owner clicking
+ * Billing to check what they are paying, landing on their email address, learns
+ * that the navigation is decorative — and then does not trust the parts of it
+ * that are not.
+ */
+describe("settings navigation names what is actually there", () => {
+  const html = renderToStaticMarkup(
+    createElement(MemoryRouter, null, createElement(SettingsNavigation, { active: "general" })),
+  );
+  const labels = [...html.matchAll(/<b>([^<]+)<\/b>/g)].map((match) => match[1]);
+  const descriptions = [...html.matchAll(/<small>([^<]+)<\/small>/g)].map((match) => match[1]);
+
+  it("lists exactly the six areas this product has", () => {
+    expect(labels).toEqual([
+      "General",
+      "Monitoring",
+      "Services",
+      "Data and health",
+      "Team",
+      "Account",
+    ]);
+    expect(descriptions).toEqual([
+      "Workspace settings",
+      "Automated client rechecks",
+      "Agency service catalog",
+      "Export and analysis reliability",
+      "Users and permissions",
+      "Email and account access",
+    ]);
+  });
+
+  it("does not advertise areas that do not exist", () => {
+    expect(html).not.toContain("Billing");
+    expect(html).not.toContain("Integrations");
+    expect(html).not.toContain("Plans and payments");
+    expect(html).not.toContain("Connected tools");
   });
 });

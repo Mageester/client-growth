@@ -174,10 +174,21 @@ export function ClientReportDocument({
   const summary = snapshot.executiveSummary;
   const evidenceDate = snapshot.evidenceReviewedAt;
 
+  // Derived from the content, not chosen. The document treatment was designed
+  // for a multi-project review and is right for one; applied to a single
+  // supporting repair it postpones the only fact in the document behind a
+  // cover, a summary and an at-a-glance panel. This is not a theme — there is
+  // no second design system and nothing is stored.
+  const reportDensity =
+    snapshot.recommendedProjects.length === 0 && snapshot.supportingProjects.length <= 1
+      ? "compact"
+      : "full";
+
   return (
     <article
       className={`client-report-document${publicView ? " is-public" : ""}`}
       data-report-theme={snapshot.agency.theme}
+      data-report-density={reportDensity}
     >
       <section className="client-report-cover">
         <div className="client-report-brand">
@@ -187,16 +198,30 @@ export function ClientReportDocument({
             <h1>{snapshot.agency.name}</h1>
           </div>
         </div>
-        <div className="client-report-cover-title">
-          <span className="client-report-eyebrow">Client growth review</span>
-          <h2>{snapshot.client.name}</h2>
-          <p>{snapshot.client.domain}</p>
-        </div>
-        <dl className="client-report-cover-meta">
-          <div><dt>Prepared by</dt><dd>{snapshot.preparedBy}</dd></div>
-          <div><dt>Prepared</dt><dd><time dateTime={snapshot.generatedAt}>{formatDate(snapshot.generatedAt)}</time></dd></div>
-          <div><dt>Evidence reviewed</dt><dd>{evidenceDate ? <time dateTime={evidenceDate}>{formatDate(evidenceDate)}</time> : "Not recorded"}</dd></div>
-        </dl>
+        {reportDensity === "compact" ? (
+          <div className="client-report-cover-compact">
+            <span className="client-report-eyebrow">Website review</span>
+            <h2>{snapshot.client.name}</h2>
+            <p>
+              {snapshot.client.domain} ·{" "}
+              <time dateTime={snapshot.generatedAt}>{formatDate(snapshot.generatedAt)}</time> ·
+              prepared by {snapshot.preparedBy}
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="client-report-cover-title">
+              <span className="client-report-eyebrow">Client growth review</span>
+              <h2>{snapshot.client.name}</h2>
+              <p>{snapshot.client.domain}</p>
+            </div>
+            <dl className="client-report-cover-meta">
+              <div><dt>Prepared by</dt><dd>{snapshot.preparedBy}</dd></div>
+              <div><dt>Prepared</dt><dd><time dateTime={snapshot.generatedAt}>{formatDate(snapshot.generatedAt)}</time></dd></div>
+              <div><dt>Evidence reviewed</dt><dd>{evidenceDate ? <time dateTime={evidenceDate}>{formatDate(evidenceDate)}</time> : "Not recorded"}</dd></div>
+            </dl>
+          </>
+        )}
         <p className="client-report-notice">{snapshot.notice}</p>
       </section>
 

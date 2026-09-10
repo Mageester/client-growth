@@ -352,3 +352,32 @@ describe("money formatting", () => {
     expect(formatCurrencyRange(900, 1800)).toBe("$900 – $1,800");
   });
 });
+
+/**
+ * A CSS behaviour guard, not a layout measurement.
+ *
+ * The real proof that nothing overflows at 355px is a browser measuring it, and
+ * that belongs in acceptance. What a unit test can hold is the rule that was
+ * missing: the client trigger carried a fixed `min-width: 156px` into a flex
+ * row that could not grow, so the control kept its width and the document
+ * scrolled sideways instead.
+ */
+describe("compact widths keep the client control inside the page", () => {
+  const css = readFileSync(new URL("../app/styles/orbit-approved.css", import.meta.url), "utf8");
+  const compact = css.slice(css.indexOf("@media (max-width: 700px)"));
+
+  it("lets the selected-client trigger shrink instead of widening the page", () => {
+    expect(compact).toMatch(/\.signal-client-trigger\s*\{[^}]*min-width:\s*0/);
+    expect(compact).toMatch(/\.signal-client-trigger\s*\{[^}]*max-width:\s*100%/);
+  });
+
+  it("truncates the label rather than the menu affordance", () => {
+    expect(compact).toMatch(/\.signal-client-trigger > span:not\(\.scope-count\)\s*\{[^}]*text-overflow:\s*ellipsis/);
+    expect(compact).toMatch(/\.signal-client-trigger > svg[^{]*\{[^}]*flex:\s*0 0 auto/);
+  });
+
+  it("bounds the containers the trigger sits inside", () => {
+    expect(compact).toMatch(/\.pagehead-actions[^{]*\{[^}]*max-width:\s*100%/s);
+    expect(compact).toMatch(/\.app-nav-compact\s*\{[^}]*overflow-x:\s*auto/);
+  });
+});
