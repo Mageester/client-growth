@@ -11,9 +11,13 @@ import {
   resolveCurrentExternalClaims,
   type ExternalBusinessClaim,
 } from "@/core/externalBusinessEvidence";
-import { assessCatalogCoverage } from "@/core/rules/registry";
-import { assessAnalysisReadiness, type ReadinessState } from "@/core/analysisReadiness";
+import {
+  analysisAdmissionRefusal,
+  canRunAnalysis,
+  type ReadinessState,
+} from "@/core/analysisReadiness";
 import { assessServiceCoverage } from "@/core/absenceVerification";
+import { analysisReadinessForClient } from "../lib/analysis-readiness.server";
 import { suggestOfferings, type SuggestedOffering } from "@/core/offeringSuggestions";
 import { isExternalBusinessMismatchEnabled } from "@/config/env";
 import {
@@ -173,19 +177,11 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
   // actually managed rather than from the client's offering count alone. That
   // is what lets the page tell "your setup is thin" apart from "we could not
   // read this site" — two sentences that need two different reactions.
+  //
+  // It is built by the shared builder, which is also what the action admits on,
+  // so a disabled button and a refused POST can never give different reasons.
   const crawlCoverage = evidence ? assessServiceCoverage({ client, evidence }) : null;
-  const readiness = assessAnalysisReadiness({
-    catalog: services,
-    offerings: client.offerings.length,
-    lastCrawl: evidence
-      ? {
-          analyzable: crawlCoverage?.analyzable ?? false,
-          limitation: crawlCoverage?.limitation ?? null,
-          readablePages,
-          suggestedOfferings: suggestions.length,
-        }
-      : undefined,
-  });
+  const readiness = analysisReadinessForClient({ client, catalog: services, evidence });
 
   return {
     client,
@@ -594,25 +590,21 @@ export async function action({ params, request, context }: Route.ActionArgs) {
 
   if (intent === "analyze") {
     // The button is disabled for this, but a form post must not be able to
-    // start a run that provably cannot check anything.
-    if (assessCatalogCoverage(await repo.listServices(t.scope)).matched === 0) {
-      return {
-        ok: false as const,
-        error:
-          "No active service is offered for a kind of website gap, so an analysis could not check anything. Set that up in your catalog first.",
-      };
-    }
-    const latestEvidence = await repo.getLatestEvidence(t.scope, existing.id);
-    if (latestEvidence) {
-      const coverage = assessServiceCoverage({ client: existing, evidence: latestEvidence });
-      if (!coverage.analyzable) {
-        return {
-          ok: false as const,
-          error:
-            "Orbit cannot check this site for missing service pages until enough of the website can be read. Save the client context and try reading it again first.",
-        };
-      }
-    }
+    // start a run that provably cannot check anything. Readiness is recomputed
+    // here from the CURRENT catalog and the latest stored evidence, so a stale
+    // page cannot smuggle in a run the workspace is no longer set up for.
+    //
+    // It admits whenever one catalog-backed rule is ready. A rule that cannot
+    // work from this site's evidence suppresses itself inside the pipeline; it
+    // no longer refuses the run on behalf of the rules beside it.
+    const [catalog, latestEvidence] = await Promise.all([
+      repo.listServices(t.scope),
+      repo.getLatestEvidence(t.scope, existing.id),
+    ]);
+    const refusal = analysisAdmissionRefusal(
+      analysisReadinessForClient({ client: existing, catalog, evidence: latestEvidence }),
+    );
+    if (refusal) return { ok: false as const, error: refusal };
     try {
       const result = await runAnalysis(t.scope, context.cloudflare.env as never, existing.id, {
         signal: request.signal,
@@ -699,10 +691,15 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
 
   // A run is worth starting when ANY rule can produce a finding. Blocking it
   // because one rule of several is limited would refuse to look for a broken
-  // checkout on a client whose offerings list happens to be short.
+  // checkout on a client whose offerings list happens to be short — or, as the
+  // audit found, refuse to check a site that had been read from end to end.
+  //
+  // `coverageBlocked` survives because several panels below still need to know
+  // whether the SERVICE-PAGE evidence is sufficient. It is a fact about one
+  // rule's evidence now, not a verdict on the run.
   const coverageBlocked = websiteCoverage !== null && !websiteCoverage.analyzable;
-  const canAnalyze =
-    readiness.catalog.matched > 0 && (websiteCoverage === null || websiteCoverage.analyzable);
+  const canAnalyze = canRunAnalysis(readiness);
+  const analysisRefusal = analysisAdmissionRefusal(readiness);
   const latest = runs[0] ?? null;
   const open = opportunities.filter(isOpen).sort(byPotentialValue);
   const closed = opportunities.filter((opp) => !isOpen(opp)).sort(byPotentialValue);
@@ -758,13 +755,7 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
                 type="submit"
                 className="btn btn-primary"
                 disabled={busy || !canAnalyze}
-                title={
-                  canAnalyze
-                    ? undefined
-                    : coverageBlocked
-                      ? "The site has not provided enough readable evidence for analysis yet. Save client context or try reading it again."
-                      : "Add a service that is offered for a website gap before analyzing."
-                }
+                title={analysisRefusal ?? undefined}
               >
                 <Icon name="refresh" size={15} className={analyzing ? "spin" : undefined} />
                 {analyzing ? "Reading the site…" : latest ? "Re-analyze" : "Analyze site"}
@@ -810,7 +801,7 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
         monitorEntitled={monitorEntitled}
         busy={busy}
         canAnalyze={canAnalyze}
-        blockedReason={coverageBlocked ? "the site needs more readable evidence" : undefined}
+        blockedReason={analysisRefusal ?? undefined}
       />
 
       <Readiness readiness={readiness} clientName={client.name} />
@@ -1505,9 +1496,8 @@ function MonitoringRow({
           title={
             canAnalyze
               ? undefined
-              : blockedReason
-                ? `Monitoring is unavailable because ${blockedReason}.`
-                : "Add a service that is offered for a website gap before turning monitoring on."
+              : (blockedReason ??
+                "Add a service that is offered for a website gap before turning monitoring on.")
           }
         >
           Save

@@ -7,6 +7,7 @@ import { RULE_SERVICE_LINKS } from "@/core/rules/registry";
 import { TECHNICAL_STARTER_PRICE_BANDS } from "@/core/rules/technical";
 import { suggestOfferings, type SuggestedOffering } from "@/core/offeringSuggestions";
 import { assessServiceCoverage } from "@/core/absenceVerification";
+import { analysisAdmissionRefusal, canRunAnalysis } from "@/core/analysisReadiness";
 import { summarizeEvidenceFailure } from "@/core/evidenceDiagnostics";
 import {
   createWorkspaceForOwner,
@@ -18,6 +19,7 @@ import type { TenantScope } from "@/db/tenant";
 import { Icon } from "../components/ui";
 import { OfferingGuidance } from "../components/offering-guidance";
 import { CatalogAssistant } from "../components/catalog-assistant";
+import { analysisReadinessForClient } from "../lib/analysis-readiness.server";
 import { d1Db } from "../lib/d1.server";
 import { requireSession } from "../lib/session.server";
 import {
@@ -229,17 +231,24 @@ export async function loader({ request, context }: Route.LoaderArgs) {
         const suggestions = evidence
           ? suggestOfferings({ evidence, existingOfferings: client.offerings, max: 10 })
           : ([] as SuggestedOffering[]);
+        // Confirmation is about to save these, so readiness and coverage are
+        // both assessed against what the client WILL hold, not what it holds
+        // while the agency is still looking at the checkboxes.
+        const pendingOfferings = dedupeOfferings([
+          ...client.offerings,
+          ...suggestions.map((suggestion) => suggestion.label),
+        ]);
         const coverage = evidence
-          ? assessServiceCoverage({
-              client: {
-                offerings: dedupeOfferings([
-                  ...client.offerings,
-                  ...suggestions.map((suggestion) => suggestion.label),
-                ]),
-              },
-              evidence,
-            })
+          ? assessServiceCoverage({ client: { offerings: pendingOfferings }, evidence })
           : null;
+        // The same admission authority the client page and both actions use.
+        // Onboarding used to gate on service-page coverage alone, which is how
+        // a site Orbit had read from end to end was announced as unreadable.
+        const readiness = analysisReadinessForClient({
+          client: { ...client, offerings: pendingOfferings },
+          catalog: await repo.listServices(scope),
+          evidence,
+        });
         return {
           stage: "confirm" as Stage,
           hasWorkspace: true,
@@ -267,6 +276,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
               : null,
           suggestions,
           coverage,
+          readiness,
         };
       }
     }
@@ -294,6 +304,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       crawl: null,
       suggestions: [] as SuggestedOffering[],
       coverage: null,
+      readiness: null,
     };
   }
 
@@ -307,6 +318,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     crawl: null,
     suggestions: [] as SuggestedOffering[],
     coverage: null,
+    readiness: null,
   };
 }
 
@@ -390,21 +402,18 @@ export async function action({ request, context }: Route.ActionArgs) {
     if (intent === "save") return redirect("/clients/" + client.id);
 
     // A stale or hand-crafted confirmation post must not turn manual context
-    // into website evidence. If the stored crawl is known to be insufficient,
-    // save the profile but refuse to run the service-gap analysis.
-    const latestEvidence = await repo.getLatestEvidence(scope, client.id);
-    if (latestEvidence) {
-      const coverage = assessServiceCoverage({
-        client: savedClient,
-        evidence: latestEvidence,
-      });
-      if (!coverage.analyzable) {
-        return {
-          error:
-            "Orbit cannot check this site for missing service pages until enough of the website can be read. The client context was saved; try reading it again first.",
-        };
-      }
-    }
+    // into website evidence. Admission is per rule and recomputed here from the
+    // saved profile, the current catalog and the stored crawl, so it refuses
+    // only when NOTHING can be checked — not when one rule of several is
+    // limited by what the site happens to contain.
+    const [catalog, latestEvidence] = await Promise.all([
+      repo.listServices(scope),
+      repo.getLatestEvidence(scope, client.id),
+    ]);
+    const refusal = analysisAdmissionRefusal(
+      analysisReadinessForClient({ client: savedClient, catalog, evidence: latestEvidence }),
+    );
+    if (refusal) return { error: `${refusal} The client context was saved.` };
 
     // The first analysis is the point of onboarding, so its result must not be
     // swallowed. A failed run still leaves a usable workspace — the client page
@@ -876,7 +885,7 @@ function ConfirmStage({
   // 20-second wait.
   const submitting = navigation.state !== "idle" && navigation.formMethod === "POST";
   const client = loaderData.client;
-  const { crawl, crawlFailure, suggestions, readFailed, coverage } = loaderData;
+  const { crawl, crawlFailure, suggestions, readFailed, coverage, readiness } = loaderData;
 
   const [checked, setChecked] = useState<Record<string, boolean>>(() =>
     Object.fromEntries([
@@ -913,13 +922,27 @@ function ConfirmStage({
   ]);
   const warnings = offeringWarnings(confirmed);
   const unreadable = readFailed || !crawl || crawl.readablePages === 0;
+  // Service-page coverage is one rule's evidence, not a verdict on the run.
+  // It still decides what this screen SAYS about suggestions and about the
+  // missing-page check; it no longer decides whether analysis is offered.
   const coverageBlocked = !coverage?.analyzable;
-  const analysisAvailable = !unreadable && !coverageBlocked;
+  // Admission comes from per-rule readiness, so a site read from end to end
+  // that simply sells nothing reaches the analysis that can say exactly that.
+  const analysisAvailable = !unreadable && Boolean(readiness) && canRunAnalysis(readiness!);
+  const analysisRefusal = readiness ? analysisAdmissionRefusal(readiness) : null;
+  // Read in full, and what it contains is the finding: no page on this site
+  // describes anything the business sells.
+  const readNoServicePages =
+    analysisAvailable && coverageBlocked && coverage?.limitation === "site-too-thin";
 
   return (
     <>
       <h1 className="title-lg onboarding-title">
-        {analysisAvailable ? `What ${client.name} sells` : `We couldn't read ${client.name} yet`}
+        {readNoServicePages
+          ? `${client.name}'s site describes no services`
+          : analysisAvailable
+            ? `What ${client.name} sells`
+            : `We couldn't read ${client.name} yet`}
       </h1>
       <p className="prose onboarding-lede">
         {!analysisAvailable && unreadable ? (
@@ -951,6 +974,12 @@ function ConfirmStage({
                 {suggestions.length === 1 ? "thing" : "things"} that look like work customers hire
                 them for. Keep what is right, drop what is not.
               </>
+            ) : readNoServicePages ? (
+              <>
+                {" "}
+                in full and found no page on it describing anything the business sells. That
+                absence is itself something Orbit can check and price.
+              </>
             ) : (
               <> but nothing on it read clearly as work customers hire them for.</>
             )}
@@ -974,12 +1003,12 @@ function ConfirmStage({
                 <p>{crawlFailure.detail}</p>
               </>
             ) : (
+              // The refusal is the same sentence the action would return, taken
+              // from the rule that is actually blocked rather than written here
+              // a second time and allowed to drift away from it.
               <p>
-                {coverage?.limitation === "site-too-thin"
-                  ? "Orbit read the whole site but found no service pages. Adding offerings will save client context, but it will not create website evidence."
-                  : coverageBlocked && !unreadable
-                    ? "Orbit read part of this site, but not enough of its service structure to check for missing pages. Adding offerings will save client context, not replace that evidence."
-                    : "Orbit could not read a usable page from this site. You can save what you know about the client, but analysis remains unavailable until there is sufficient readable evidence."}
+                {analysisRefusal ??
+                  "Orbit could not read a usable page from this site. You can save what you know about the client, but analysis remains unavailable until there is sufficient readable evidence."}
               </p>
             )}
             <Form method="post" className="suggested-actions">
@@ -1151,7 +1180,7 @@ function ConfirmStage({
                   <p className="runcard-summary">
                     {analysisAvailable
                       ? "Re-reading the site, then judging each one against what the site actually shows. Anything Axiom Orbit will not stand behind is not surfaced."
-                      : "Your entries will be available when the website can be read sufficiently for analysis."}
+                      : "Your entries will be available when the site can be read well enough to check something."}
                   </p>
                 <span className="runbar" aria-hidden="true">
                   <span />
@@ -1169,7 +1198,9 @@ function ConfirmStage({
               </button>
               <span className="faint form-actions-note" aria-live="polite">
                 {!analysisAvailable
-                  ? "Orbit can save this client, but it cannot check the site for missing service pages until enough of the website can be read."
+                  ? "Orbit can save this client, but nothing on the site can be checked yet."
+                  : readNoServicePages
+                  ? "Orbit read this site in full and found no service pages. The checks it can still run will say so, and will not claim any individual page is missing."
                   : confirmed.length >= MIN_OFFERINGS_FOR_A_FINDING
                   ? confirmed.length +
                     " confirmed. Each one is checked against the site."

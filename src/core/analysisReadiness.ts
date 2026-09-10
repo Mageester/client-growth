@@ -258,3 +258,62 @@ export function assessAnalysisReadiness(input: ReadinessInput): AnalysisReadines
     total: rules.length,
   };
 }
+
+/**
+ * Is a run worth starting at all?
+ *
+ * Yes when the catalog can price at least one kind of gap AND at least one rule
+ * is ready to look for it. This is the single admission authority: the client
+ * page, the onboarding confirmation and the crafted-post guards all ask this
+ * one question, so a disabled button and a refused POST can never disagree.
+ *
+ * What it deliberately does NOT do is consult service-page coverage as a global
+ * verdict. That was the audit's defect: a site the crawler had read from end to
+ * end was refused analysis because ONE rule — missing-service-page — could not
+ * name a page as missing from it. A limited rule suppresses itself. It has no
+ * authority over the rules beside it, and the pipeline still fails each rule
+ * closed on its own evidence, so admitting the run cannot manufacture a claim.
+ */
+export function canRunAnalysis(readiness: {
+  catalog: { matched: number };
+  readyCount: number;
+}): boolean {
+  return readiness.catalog.matched > 0 && readiness.readyCount > 0;
+}
+
+const NO_CATALOG_REFUSAL =
+  "No active service is offered for a kind of website gap, so an analysis could not check anything. Set that up in your catalog first.";
+
+/**
+ * Why the run cannot start, in the agency's own language — or null when it can.
+ *
+ * The sentence is taken from the rule that is actually blocked rather than
+ * written afresh, so the refusal a POST receives is the same explanation the
+ * page was already showing. Reporting "we could not read enough of the website"
+ * about a site that returned nothing at all is the untruth this replaces.
+ */
+export function analysisAdmissionRefusal(readiness: {
+  catalog: { matched: number };
+  readyCount: number;
+  // Structural on purpose: the same answer has to be reachable from a route
+  // loader's JSON-crossed copy of a readiness result, not just the domain type.
+  rules: ReadonlyArray<{ state: ReadinessState; reason: string }>;
+}): string | null {
+  if (canRunAnalysis(readiness)) return null;
+  if (readiness.catalog.matched === 0) return NO_CATALOG_REFUSAL;
+
+  const limited = readiness.rules.filter(
+    (rule) => rule.state !== "ready" && rule.state !== "not_ready",
+  );
+  // The crawler's limits outrank the client's setup: telling someone to add
+  // offerings when the site would not load sends them to do work that changes
+  // nothing, which is the second failure this module was written for.
+  const coverage = limited.find((rule) => rule.state === "site_coverage_limited");
+  if (coverage) {
+    return `${coverage.reason} No other check can run either, so there is nothing to analyze yet.`;
+  }
+  const setup = limited.find((rule) => rule.state === "needs_client_setup");
+  if (setup) return `${setup.reason} No other check can run either, so there is nothing to analyze yet.`;
+
+  return NO_CATALOG_REFUSAL;
+}

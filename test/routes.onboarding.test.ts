@@ -552,6 +552,23 @@ describe("onboarding stage two: the agency confirms", () => {
         reason: "Insufficient service coverage.",
         limitation: "coverage-limited",
       },
+      // Nothing was readable, so every rule is limited by the crawl and the
+      // run is refused — by readiness, which is now the only admission voice.
+      readiness: {
+        state: "site_coverage_limited",
+        catalog: { matched: 3, total: 3, unmatchedLabels: [] },
+        readyCount: 0,
+        total: 3,
+        rules: [
+          {
+            ruleId: "missing-service-page",
+            label: "A missing service page",
+            state: "site_coverage_limited",
+            reason: "The last run could not read any page on this site.",
+            actionable: false,
+          },
+        ],
+      },
     });
 
     expect(html).toMatch(/We couldn(?:&#x27;|&apos;|')t read Velvet Nails and Beauty Lounge yet/);
@@ -589,6 +606,13 @@ describe("onboarding stage two: the agency confirms", () => {
         analyzable: true,
         reason: "Service coverage confirmed.",
         limitation: null,
+      },
+      readiness: {
+        state: "ready",
+        catalog: { matched: 3, total: 3, unmatchedLabels: [] },
+        readyCount: 3,
+        total: 3,
+        rules: [],
       },
     });
 
@@ -764,7 +788,9 @@ describe("onboarding stage two: the agency confirms", () => {
       context: ctx,
     })) as { error?: string };
 
-    expect(crafted.error).toMatch(/cannot check this site for missing service pages/i);
+    // The crafted post is still refused, but for the true reason: this crawl
+    // read nothing, so no check of any kind has evidence to work from.
+    expect(crafted.error).toMatch(/could not read any page on this site/i);
     expect((await repo.getClient(t, clientId))?.offerings).toEqual([
       "Heat Pump Installation",
       "Boiler Repair",
@@ -831,5 +857,95 @@ describe("onboarding stage two: the agency confirms", () => {
     expect(data.coverage?.analyzable).toBe(true);
     expect(data.crawl?.readablePages).toBeGreaterThan(0);
     expect(renderConfirmMarkup(data)).toContain("Analyze Northwind Heating");
+  });
+});
+
+/**
+ * A site Orbit read from end to end, which happens to sell nothing on any page.
+ *
+ * The audit found this exact site being announced as one Orbit "couldn't read",
+ * with analysis refused. Both halves were untrue: the crawl was exhaustive, and
+ * no-service-pages is the rule whose whole purpose is to say so out loud.
+ */
+const THIN_HOME = `<!doctype html><html><head><title>Northwind Heating</title></head><body>
+<nav><a href="/about">About</a><a href="/team">Our team</a><a href="/contact">Contact</a></nav>
+<h1>Northwind Heating</h1>
+<p>${"A family business that has looked after this town for thirty years. ".repeat(30)}</p>
+</body></html>`;
+
+function plainPage(title: string) {
+  return `<!doctype html><html><head><title>${title}</title></head><body>
+<h1>${title}</h1><p>${`Some words about ${title.toLowerCase()} and nothing else. `.repeat(30)}</p>
+</body></html>`;
+}
+
+/** Four readable pages, every link followed, nothing refused. No services. */
+function thinSiteFetch(): typeof fetch {
+  return vi.fn(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.endsWith("/robots.txt")) {
+      return new Response("", { status: 200, headers: { "content-type": "text/plain" } });
+    }
+    if (url.endsWith("/sitemap.xml")) return new Response("", { status: 404 });
+    const html = url.includes("/about")
+      ? plainPage("About")
+      : url.includes("/team")
+        ? plainPage("Our team")
+        : url.includes("/contact")
+          ? plainPage("Contact")
+          : THIN_HOME;
+    return new Response(html, { status: 200, headers: { "content-type": "text/html" } });
+  }) as unknown as typeof fetch;
+}
+
+describe("onboarding admits a site it read in full", () => {
+  async function reachStageTwoOnAThinSite() {
+    vi.stubGlobal("fetch", thinSiteFetch());
+    const res = await runSetup();
+    const clientId = new URL(res.headers.get("location")!, "http://localhost").searchParams.get(
+      "client",
+    )!;
+    return { t: await workspaceScope(), clientId };
+  }
+
+  it("says the site was read rather than unreadable, and keeps Analyze offered", async () => {
+    const { t, clientId } = await reachStageTwoOnAThinSite();
+
+    const evidence = await repo.getLatestEvidence(t, clientId);
+    expect(evidence!.site.crawlExhaustive).toBe(true);
+    expect(
+      evidence!.site.pages.filter((page) => page.status === 200 && page.wordCount > 0).length,
+    ).toBeGreaterThanOrEqual(3);
+
+    const data = await call(onboarding.loader as never, {
+      request: new Request("http://localhost/onboarding?client=" + clientId),
+      context: ctx,
+    });
+    const html = renderConfirmMarkup(data);
+
+    expect(html).toContain("Axiom Orbit read");
+    expect(html).not.toMatch(/We couldn(?:&#x27;|&apos;|')t read Northwind Heating yet/);
+    expect(html).toContain('name="intent" value="analyze"');
+  });
+
+  it("runs the first analysis instead of refusing it before it starts", async () => {
+    const { t, clientId } = await reachStageTwoOnAThinSite();
+
+    const result = await call(onboarding.action as never, {
+      request: formReq({
+        intent: "analyze",
+        clientId,
+        offering: ["Boiler repair", "Heat pump installation"],
+      }),
+      context: ctx,
+    });
+
+    // Whatever the run concludes, it must not be refused up-front any more.
+    if (!(result instanceof Response)) {
+      expect((result as { error?: string }).error ?? "").not.toMatch(
+        /cannot check this site for missing service pages/i,
+      );
+    }
+    expect(await repo.getLatestAnalysisRun(t, clientId)).not.toBeNull();
   });
 });

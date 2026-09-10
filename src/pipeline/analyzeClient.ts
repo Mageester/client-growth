@@ -101,9 +101,12 @@ export interface AnalyzeClientResult {
   /** The evidence the run was based on (for caching and display). */
   evidence: EvidenceBundle;
   /**
-   * Whether the crawl demonstrably reached the site's service section. When
-   * `analyzable` is false, no rules run, no AI is called, and nothing is claimed
-   * missing.
+   * Whether the crawl demonstrably reached the site's service section.
+   *
+   * This gates the rules whose claim IS an absence — missing-service-page, and
+   * no-service-pages unless the crawl was exhaustive. It has never gated the
+   * rest, and callers must not read it as one: a broken call-to-action on a page
+   * that was read is a defect whatever the service-page coverage looks like.
    */
   coverage: CoverageAssessment;
   /**

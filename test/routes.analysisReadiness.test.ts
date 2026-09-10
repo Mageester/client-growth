@@ -295,7 +295,9 @@ describe("pre-analysis readiness", () => {
 
     expect(html).toContain("Know what they offer?");
     expect(html).toContain("Try reading it again");
-    expect(html).toContain("The site has not provided enough readable evidence for analysis yet");
+    // The refusal names the crawler as the limit, because it is: robots.txt
+    // refused the read, and no amount of client setup changes that.
+    expect(html).toContain("could not read any page on this site");
     expect(html).toMatch(/<button[^>]*disabled[^>]*>.*Analyze site/s);
   });
 
@@ -324,7 +326,9 @@ describe("pre-analysis readiness", () => {
     const result = await analyze();
 
     expect(result.ok).toBe(false);
-    expect(result.error).toMatch(/cannot check this site for missing service pages/i);
+    // Nothing was read at all, so the refusal says that rather than blaming the
+    // client's offerings list for a limit the agency cannot act on.
+    expect(result.error).toMatch(/could not read any page on this site/i);
     expect(await repo.listAnalysisRuns(scope, CLIENT_ID, 5)).toHaveLength(0);
   });
 
@@ -338,5 +342,304 @@ describe("pre-analysis readiness", () => {
     expect(readiness.catalog.unmatchedLabels).toEqual([]);
     expect(readiness.readyCount).toBe(readiness.total);
     expect(readiness.state).toBe("ready");
+  });
+});
+
+/**
+ * Admission is per rule, and this is the block that proves it.
+ *
+ * The audit reproduced a site Orbit had read in full — every link followed,
+ * nothing blocked, nothing unread — being refused analysis and described to
+ * the agency as unreadable. Two untruths at once: the site WAS read, and the
+ * one rule whose entire purpose is "this whole site sells nothing on any page"
+ * was the rule being denied the chance to say so.
+ *
+ * The rule that replaces it: a run is admitted when at least one catalog-backed
+ * rule is ready. A limited rule suppresses itself and nothing else. Evidence
+ * that cannot support an absence claim still cannot make one — that is the
+ * pipeline's job, and the negative cases below hold it to it.
+ */
+
+/** Every rule has a service, so admission turns only on the site evidence. */
+async function fullCatalog() {
+  for (const link of RULE_SERVICE_LINKS) await addService([link.tag]);
+}
+
+/**
+ * A site read to exhaustion that describes no services anywhere: four readable
+ * pages, every link followed, nothing refused. This is the strongest evidence
+ * the crawler ever holds, and the audit found it being called unreadable.
+ */
+async function saveExhaustiveNoServicePages() {
+  await repo.saveEvidence(
+    scope,
+    EvidenceBundleSchema.parse({
+      clientId: CLIENT_ID,
+      source: "http",
+      capturedAt: "2026-09-08T00:00:00.000Z",
+      site: {
+        pages: [
+          {
+            url: "https://meridiandental.invalid/",
+            status: 200,
+            title: "Meridian Dental",
+            h1s: ["Meridian Dental"],
+            headings: ["Welcome"],
+            wordCount: 210,
+          },
+          {
+            url: "https://meridiandental.invalid/about",
+            status: 200,
+            title: "About us",
+            h1s: ["About us"],
+            headings: ["Our story"],
+            wordCount: 180,
+          },
+          {
+            url: "https://meridiandental.invalid/team",
+            status: 200,
+            title: "The team",
+            h1s: ["The team"],
+            headings: [],
+            wordCount: 160,
+          },
+          {
+            url: "https://meridiandental.invalid/contact",
+            status: 200,
+            title: "Contact",
+            h1s: ["Contact"],
+            headings: [],
+            wordCount: 140,
+          },
+        ],
+        nav: ["About us", "The team", "Contact"],
+        links: [
+          {
+            href: "https://meridiandental.invalid/about",
+            label: "About us",
+            scheme: "http",
+            inNav: true,
+          },
+          {
+            href: "https://meridiandental.invalid/team",
+            label: "The team",
+            scheme: "http",
+            inNav: true,
+          },
+          {
+            href: "https://meridiandental.invalid/contact",
+            label: "Contact",
+            scheme: "http",
+            inNav: true,
+          },
+        ],
+        sitemapUrls: [],
+        crawlExhaustive: true,
+      },
+      networkEvents: [],
+    }),
+  );
+}
+
+/** Pages came back, but every one of them was an empty JavaScript shell. */
+async function saveJsShellEvidence() {
+  await repo.saveEvidence(
+    scope,
+    EvidenceBundleSchema.parse({
+      clientId: CLIENT_ID,
+      source: "http",
+      capturedAt: "2026-09-08T00:00:01.000Z",
+      site: {
+        pages: [
+          {
+            url: "https://meridiandental.invalid/",
+            status: 200,
+            title: "",
+            h1s: [],
+            headings: [],
+            wordCount: 0,
+          },
+        ],
+        nav: [],
+        links: [],
+        sitemapUrls: [],
+        crawlExhaustive: true,
+      },
+      networkEvents: [
+        {
+          url: "https://meridiandental.invalid/",
+          outcome: "inconclusive",
+          reason: "the page rendered no text without JavaScript",
+          code: "js-shell",
+          stage: "page",
+        },
+      ],
+    }),
+  );
+}
+
+/** A partial read: real pages, but the crawl never reached a service section. */
+async function savePartialRead() {
+  await repo.saveEvidence(
+    scope,
+    EvidenceBundleSchema.parse({
+      clientId: CLIENT_ID,
+      source: "http",
+      capturedAt: "2026-09-08T00:00:02.000Z",
+      site: {
+        pages: [
+          {
+            url: "https://meridiandental.invalid/",
+            status: 200,
+            title: "Meridian Dental",
+            h1s: ["Meridian Dental"],
+            headings: [],
+            wordCount: 220,
+          },
+        ],
+        nav: [],
+        links: [],
+        sitemapUrls: [],
+        // Budget ran out before the links did: this is a fact about the crawl.
+        crawlExhaustive: false,
+      },
+      networkEvents: [
+        {
+          url: "https://meridiandental.invalid/services",
+          outcome: "inconclusive",
+          reason: "request budget exhausted",
+          code: "request-budget",
+          stage: "page",
+        },
+      ],
+    }),
+  );
+}
+
+/** Serves nothing: no test in this block may reach the network. */
+const forbiddenFetch = () =>
+  vi.fn(async () => {
+    throw new Error("network must not be reached");
+  }) as unknown as typeof fetch;
+
+describe("analysis admission follows per-rule readiness", () => {
+  it("builds one readiness result from the stored client, catalog and evidence", async () => {
+    await addClient(["dental implants", "invisalign"]);
+    await fullCatalog();
+    await saveExhaustiveNoServicePages();
+
+    const { analysisReadinessForClient } = await import("../app/lib/analysis-readiness.server");
+    const client = (await repo.getClient(scope, CLIENT_ID))!;
+    const readiness = analysisReadinessForClient({
+      client,
+      catalog: await repo.listServices(scope),
+      evidence: await repo.getLatestEvidence(scope, CLIENT_ID),
+    });
+
+    // The site was read in full and sells nothing on any page — exactly the
+    // claim no-service-pages exists to make.
+    expect(readiness.readyCount).toBeGreaterThan(0);
+    expect(readiness.rules.find((rule) => rule.ruleId === "no-service-pages")?.state).toBe("ready");
+    // The missing-page rule stays suppressed: it cannot name a page as missing
+    // from a site that describes no services at all.
+    expect(readiness.rules.find((rule) => rule.ruleId === "missing-service-page")?.state).toBe(
+      "site_coverage_limited",
+    );
+  });
+
+  it("keeps Analyze available for a site read in full that describes no services", async () => {
+    await addClient(["dental implants", "invisalign"]);
+    await fullCatalog();
+    await saveExhaustiveNoServicePages();
+
+    const data = await loadClient();
+    expect(data.readiness.readyCount).toBeGreaterThan(0);
+
+    const html = renderClientMarkup(data);
+    expect(html).toContain("Analyze site");
+    expect(html).not.toMatch(/<button[^>]*disabled[^>]*>(?:(?!<\/button>).)*Analyze site/s);
+  });
+
+  it("does not refuse the analyze post for readable no-service-pages evidence", async () => {
+    await addClient(["dental implants", "invisalign"]);
+    await fullCatalog();
+    await saveExhaustiveNoServicePages();
+    vi.stubGlobal("fetch", forbiddenFetch());
+
+    const result = await analyze();
+
+    // The run may still fail for its own reasons in this offline test; what it
+    // must never do again is refuse before starting because one rule is limited.
+    expect(result.error ?? "").not.toMatch(/cannot check this site for missing service pages/i);
+    expect(result.error ?? "").not.toMatch(/enough of the website can be read/i);
+  });
+
+  it("still refuses when the last run could not read a single page", async () => {
+    await addClient(["dental implants", "invisalign"]);
+    await fullCatalog();
+    await repo.saveEvidence(
+      scope,
+      EvidenceBundleSchema.parse({
+        clientId: CLIENT_ID,
+        source: "http",
+        capturedAt: "2026-09-08T00:00:03.000Z",
+        site: { pages: [], nav: [], links: [], sitemapUrls: [], crawlExhaustive: false },
+        networkEvents: [
+          {
+            url: "https://meridiandental.invalid/",
+            outcome: "blocked",
+            reason: "robots.txt prevented the read",
+            code: "robots",
+            stage: "robots",
+          },
+        ],
+      }),
+    );
+    vi.stubGlobal("fetch", forbiddenFetch());
+
+    const result = await analyze();
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatch(/could not read any page/i);
+    expect(await repo.listAnalysisRuns(scope, CLIENT_ID, 5)).toHaveLength(0);
+  });
+
+  it("still refuses a JavaScript shell that produced no readable text", async () => {
+    await addClient(["dental implants", "invisalign"]);
+    await fullCatalog();
+    await saveJsShellEvidence();
+    vi.stubGlobal("fetch", forbiddenFetch());
+
+    const result = await analyze();
+
+    expect(result.ok).toBe(false);
+    expect(await repo.listAnalysisRuns(scope, CLIENT_ID, 5)).toHaveLength(0);
+    expect(await repo.listOpportunities(scope, CLIENT_ID)).toHaveLength(0);
+  });
+
+  it("admits the independent checks after a partial read without claiming an absence", async () => {
+    await addClient(["dental implants", "invisalign"]);
+    await fullCatalog();
+    await savePartialRead();
+
+    const { analysisReadinessForClient } = await import("../app/lib/analysis-readiness.server");
+    const client = (await repo.getClient(scope, CLIENT_ID))!;
+    const readiness = analysisReadinessForClient({
+      client,
+      catalog: await repo.listServices(scope),
+      evidence: await repo.getLatestEvidence(scope, CLIENT_ID),
+    });
+
+    expect(readiness.readyCount).toBeGreaterThan(0);
+    expect(readiness.rules.find((rule) => rule.ruleId === "broken-conversion-path")?.state).toBe(
+      "ready",
+    );
+    // Both absence rules stay closed: a truncated crawl cannot prove a silence.
+    expect(readiness.rules.find((rule) => rule.ruleId === "missing-service-page")?.state).toBe(
+      "site_coverage_limited",
+    );
+    expect(readiness.rules.find((rule) => rule.ruleId === "no-service-pages")?.state).toBe(
+      "site_coverage_limited",
+    );
   });
 });
