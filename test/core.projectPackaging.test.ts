@@ -278,3 +278,83 @@ describe("derived project packaging", () => {
     expect(formatProjectStatusSummary(project.statusSummary)).toBe("1 proposal ready · 1 accepted · 1 new");
   });
 });
+
+/**
+ * One finding is that finding, not a category it happens to belong to.
+ *
+ * A lone missing H1 was being titled "Site health improvement", which reads as
+ * a proposal for unspecified work and hides the only fact that matters — which
+ * page, and what is wrong with it. The family title earns its place when there
+ * are several findings to name at once; with one, it is strictly less
+ * informative than the row it wraps.
+ */
+describe("single-finding projects keep the finding's own title", () => {
+  function healthOpportunity(id: string, title: string, rule = "missing-h1"): Opportunity {
+    return {
+      id,
+      dedupeKey: `${rule}:${id}`,
+      clientId: client.id,
+      ruleId: rule as Opportunity["ruleId"],
+      title,
+      detected: "Observed on a readable page.",
+      evidenceRefs: [`https://tricity.example/${id}`],
+      suppressedEvidenceRefs: [],
+      rationale: "A small repair to the page.",
+      suggestedServiceId: "svc-health",
+      suggestedScope: ["Repair the page"],
+      priceMin: 150,
+      priceMax: 400,
+      confidence: 0.9,
+      billableStatus: "billable",
+      status: "new",
+      updatedAt: "2026-09-07T00:00:00.000Z",
+    };
+  }
+
+  it("uses the concrete finding title for a lone health finding", () => {
+    const projects = buildProjectViews([
+      { client, opportunity: healthOpportunity("home-h1", "Home page has no H1") },
+    ]);
+
+    expect(projects).toHaveLength(1);
+    expect(projects[0]?.title).toBe("Home page has no H1");
+  });
+
+  it("keeps the family title when several findings are packaged together", () => {
+    // Same leading subject, so packaging clusters them — the case where a
+    // family name says more than any one of the rows it covers.
+    const projects = buildProjectViews([
+      { client, opportunity: healthOpportunity("home-h1", "Missing H1 — home") },
+      { client, opportunity: healthOpportunity("about-h1", "Missing H1 — about") },
+    ]);
+
+    expect(projects).toHaveLength(1);
+    expect(projects[0]?.entries).toHaveLength(2);
+    expect(projects[0]?.title).toBe("Site health improvements");
+  });
+
+  it("does the same for a lone conversion finding", () => {
+    const projects = buildProjectViews([
+      {
+        client,
+        opportunity: healthOpportunity(
+          "quote-cta",
+          "The Get a quote button returns 404",
+          "broken-conversion-path",
+        ),
+      },
+    ]);
+
+    expect(projects[0]?.title).toBe("The Get a quote button returns 404");
+  });
+
+  it("never carries a package price it was not given", () => {
+    const projects = buildProjectViews([
+      { client, opportunity: healthOpportunity("home-h1", "Home page has no H1") },
+    ]);
+
+    expect(projects[0]?.packagePriceMin).toBeUndefined();
+    expect(projects[0]?.packagePriceMax).toBeUndefined();
+    expect(projects[0]?.pricingBasis).toBe("not-set");
+  });
+});

@@ -121,7 +121,17 @@ export async function generateAgencyCatalogDraft(
   signal?: AbortSignal,
   dependencies: CatalogAssistantDependencies = {},
 ) {
-  const input = CatalogRequestSchema.parse(rawInput);
+  // A ZodError's `message` is a serialized issue array, and returning it
+  // straight to the action put `[{"code":"custom","path":[],...}]` on screen —
+  // a stack trace wearing an error message's clothes. The reader gets the one
+  // sentence that was written for them.
+  const parsed = CatalogRequestSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    throw new Error(
+      parsed.error.issues[0]?.message ?? "Enter an agency website or a summary of what you sell.",
+    );
+  }
+  const input = parsed.data;
   let pages: AgencyCatalogGenerationPage[] = [];
   if (input.website) {
     const crawled = await (dependencies.crawl ?? crawlAgencyWebsite)(input.website, signal);

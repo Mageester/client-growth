@@ -172,13 +172,21 @@ function ProjectSection({
         </div>
         <dl className="project-facts">
           <div>
-            <dt>Underlying opportunity value</dt>
+            {/* Named as what it is. This is the sum of the agency's own catalog
+                ranges for the included work — an input to a quote, not money
+                the client has agreed to or the agency is owed. */}
+            <dt>Potential quote input</dt>
             <dd>{formatCurrencyRange(project.underlyingPriceMin, project.underlyingPriceMax)}</dd>
           </div>
-          <div>
-            <dt>Package price</dt>
-            <dd>Not set</dd>
-          </div>
+          {/* "Package price · Not set" was a field with nothing in it on every
+              project, competing for attention with the finding. It appears once
+              a quote is actually being assembled. */}
+          {project.packagePriceMin !== undefined && (
+            <div>
+              <dt>Package price</dt>
+              <dd>{formatCurrencyRange(project.packagePriceMin, project.packagePriceMax ?? project.packagePriceMin)}</dd>
+            </div>
+          )}
           <div>
             <dt>Work in motion</dt>
             <dd>{formatProjectStatusSummary(project.statusSummary) || "Open"}</dd>

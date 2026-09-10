@@ -741,8 +741,6 @@ function SetupStage({
 
       <ErrorNotice error={error} />
 
-      <CatalogAssistant deferSave onCatalogChange={setReviewedCatalog} />
-
       {submitting && <ReadingSite domain={normalizeDomain(domain)} stopHref="/opportunities" />}
 
       <Form method="post" hidden={submitting}>
@@ -855,6 +853,25 @@ function SetupStage({
           </span>
         </div>
       </Form>
+
+      {/* Below the minimum path on purpose. This is the optional accelerator,
+          and it was sitting above the two fields that are the only way to
+          finish setup — so the first screen led with the skippable thing and
+          buried the required one. Its reviewed catalog still feeds the hidden
+          field inside the form above; the order on screen changed, not the
+          data flow. */}
+      {!submitting && (
+        <section className="onboarding-optional" aria-labelledby="onboarding-optional-heading">
+          <h2 id="onboarding-optional-heading" className="title-section">
+            Optional: let Orbit draft your service catalog
+          </h2>
+          <p className="prose">
+            The starter services above are enough to begin. If you would rather start from your own
+            list, the assistant can draft one for you to review before anything is saved.
+          </p>
+          <CatalogAssistant deferSave onCatalogChange={setReviewedCatalog} />
+        </section>
+      )}
     </>
   );
 }

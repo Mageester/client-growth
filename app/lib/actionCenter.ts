@@ -56,10 +56,33 @@ export interface PipelineSummary {
 export interface ActionCenter {
   /** Revenue and explicitly progressed work that belongs in the primary queue. */
   primary: ActionQueueItem[];
+  /**
+   * Routine site upkeep nobody has decided to raise yet.
+   *
+   * The deployed home page led with "Clients worth contacting" and the top card
+   * was a missing H1 — a small repair presented as the next commercial
+   * conversation, priced from the catalog as though that range were value the
+   * agency could expect. An owner who acts on that once looks unserious to
+   * their client.
+   *
+   * The boundary is the human decision that already exists in the funnel. A
+   * `new` health finding waits here; the moment the agency accepts, prepares a
+   * proposal for, pitches or sells it, they have decided it is worth raising
+   * and it joins `primary`. Nothing about how it is stored changes.
+   */
+  maintenance: ActionQueueItem[];
   /** Operational blockers and setup work that should not outrank revenue actions. */
   attention: ActionQueueItem[];
   /** Backwards-compatible combined projection for non-UI consumers. */
   queue: ActionQueueItem[];
+  /**
+   * The catalog range behind the work that is actually contact-worthy.
+   *
+   * Unreviewed maintenance is excluded on purpose: a range nobody has decided
+   * to quote is an input to a quote, not a number to put beside "worth
+   * contacting". It is still a catalog range, not revenue, either way.
+   */
+  contactValue: { min: number; max: number };
   pipeline: PipelineSummary;
 }
 
@@ -176,6 +199,8 @@ function opportunityItem(
   const stage = actionStage(ordered, now);
   if (!stage) return null;
   const count = ordered.length;
+  // Progressed past `new` by a person, using the actions that already exist.
+  const reviewed = stage !== "new";
 
   return {
     id: project.displayKey,
@@ -195,7 +220,12 @@ function opportunityItem(
     count,
     priceMin: project.underlyingPriceMin,
     priceMax: project.underlyingPriceMax,
-    valueLabel: "Underlying opportunity value",
+    valueLabel: reviewed
+      ? "Underlying opportunity value"
+      : // Not "potential value": nobody has decided to quote this, and the
+        // range is what the agency's own catalog charges for the work, not
+        // money it is owed.
+        "Potential quote input",
     opportunityIds: ordered.map((opp) => opp.id),
   };
 }
@@ -358,6 +388,7 @@ export function buildActionCenterAt(
 ): ActionCenter {
   const clock = now instanceof Date ? now : new Date(now);
   const primary: ActionQueueItem[] = [];
+  const maintenance: ActionQueueItem[] = [];
   const attention: ActionQueueItem[] = [];
 
   for (const client of input.clients) {
@@ -371,7 +402,12 @@ export function buildActionCenterAt(
 
     for (const project of buildProjectViews(projectEntries)) {
       const item = opportunityItem(client, project, clock);
-      if (item) primary.push(item);
+      if (!item) continue;
+      // Site health the agency has not yet decided to raise is upkeep. Anything
+      // commercial, and any health work already moved through the funnel, is a
+      // reason to contact the client.
+      if (item.kind === "site-health" && item.stage === "new") maintenance.push(item);
+      else primary.push(item);
     }
 
     const latest = input.latestRunsByClient.get(client.id);
@@ -383,6 +419,7 @@ export function buildActionCenterAt(
   }
 
   primary.sort(compareItems);
+  maintenance.sort(compareItems);
   attention.sort(
     (a, b) =>
       (a.analysisState === "inconclusive" ? 0 : 1) -
@@ -393,8 +430,13 @@ export function buildActionCenterAt(
 
   return {
     primary,
+    maintenance,
     attention,
-    queue: [...primary, ...attention],
+    queue: [...primary, ...maintenance, ...attention],
+    contactValue: {
+      min: primary.reduce((total, item) => total + item.priceMin, 0),
+      max: primary.reduce((total, item) => total + item.priceMax, 0),
+    },
     pipeline: pipelineSummary(flatten(input)),
   };
 }

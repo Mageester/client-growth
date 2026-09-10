@@ -159,6 +159,21 @@ function affinityFromKey(key: string): string {
   return key.replace(/^conversion-/, "").replace(/^health-[^-]+-/, "");
 }
 
+/**
+ * What to call a package.
+ *
+ * A family name earns its place when it summarises several rows at once. With
+ * ONE row it is strictly less informative than the row itself: "Site health
+ * improvement" hides which page and what is wrong with it, and reads as a
+ * proposal for unspecified work. The audit found a lone missing H1 presented
+ * that way at the top of the home page, priced from the catalog, as the next
+ * client conversation.
+ *
+ * So a single finding is titled with the finding. Only the service-visibility
+ * family keeps its own single-entry wording, because "Service expansion
+ * opportunity" is the commercial framing the agency is being asked to review,
+ * and the concrete subject is already the sentence beneath it.
+ */
 function projectTitle(
   family: OpportunityFamily,
   key: string,
@@ -179,10 +194,10 @@ function projectTitle(
         return "Service Page Expansion";
     }
   }
-  if (family.key === "conversion") {
-    return entries.length > 1 ? "Conversion improvements" : "Conversion improvement";
-  }
-  return entries.length > 1 ? "Site health improvements" : "Site health improvement";
+  const only = entries.length === 1 ? entries[0] : null;
+  if (only) return only.opportunity.title;
+  if (family.key === "conversion") return "Conversion improvements";
+  return "Site health improvements";
 }
 
 function projectSummary(

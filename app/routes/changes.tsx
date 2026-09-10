@@ -110,6 +110,9 @@ export default function Changes({ loaderData: data }: Route.ComponentProps) {
   const renderNow = homeRenderClock(data.until);
   const firstName = data.firstName ?? "there";
   const primary = data.actionCenter.primary;
+  // Defaulted: loader data is a boundary, and an older payload or a fixture
+  // without a maintenance bucket must render rather than throw.
+  const maintenance = data.actionCenter.maintenance ?? [];
   const attention = data.actionCenter.attention;
   const pipeline = data.actionCenter.pipeline;
   const activity = data.activity;
@@ -132,6 +135,8 @@ export default function Changes({ loaderData: data }: Route.ComponentProps) {
           <p className="page-statement">
             {primary.length > 0
               ? `${primary.length} ${pluralize(primary.length, "next action", "next actions")} across your clients.`
+              : maintenance.length > 0
+                ? `No client conversation is due. ${maintenance.length} ${pluralize(maintenance.length, "site repair is", "site repairs are")} waiting for review.`
               : attention.length > 0
                 ? `${attention.length} ${pluralize(attention.length, "client needs", "clients need")} attention.`
               : portfolio.clients > 0
@@ -159,6 +164,30 @@ export default function Changes({ loaderData: data }: Route.ComponentProps) {
         </section>
       )}
 
+      {/* Routine upkeep, kept visible and kept out of the way. The audit found a
+          missing H1 leading "Clients worth contacting" — presented as the next
+          commercial conversation with a catalog range beside it. It is worth
+          doing; it is not worth a phone call until the agency says so. */}
+      {maintenance.length > 0 && (
+        <section className="home-maintenance" aria-labelledby="maintenance-heading">
+          <div className="section-head home-action-head">
+            <div>
+              <span className="eyebrow">Upkeep</span>
+              <h2 id="maintenance-heading" className="title-section">
+                Maintenance review
+              </h2>
+            </div>
+            <p className="faint">
+              Small site repairs, not yet raised with a client. Prepare a proposal for one and it
+              moves up with the rest of the work.
+            </p>
+          </div>
+          <ul className="home-action-list home-action-list-compact">
+            {maintenance.slice(0, 6).map((item) => <ActionCard key={item.id} item={item} />)}
+          </ul>
+        </section>
+      )}
+
       {attention.length > 0 && (
         <section className="home-attention-center" aria-labelledby="needs-attention-heading">
           <div className="section-head home-action-head">
@@ -175,7 +204,7 @@ export default function Changes({ loaderData: data }: Route.ComponentProps) {
         </section>
       )}
 
-      {primary.length === 0 && attention.length === 0 && (
+      {primary.length === 0 && maintenance.length === 0 && attention.length === 0 && (
         <div className="home-clear home-clear-start">
           <Icon name={portfolio.clients === 0 ? "users" : "check"} size={22} />
           <div>

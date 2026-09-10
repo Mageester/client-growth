@@ -116,8 +116,12 @@ describe("agency action center", () => {
       ],
     );
 
-    expect(result.primary.map((item) => item.kind)).toEqual(["commercial", "site-health"]);
+    // Unreviewed site health is upkeep, however large its catalog range: the
+    // 5000 here is what the agency charges for the work, not a reason to call.
+    expect(result.primary.map((item) => item.kind)).toEqual(["commercial"]);
     expect(result.primary[0]?.client.name).toBe("commercial");
+    expect(result.maintenance.map((item) => item.kind)).toEqual(["site-health"]);
+    expect(result.contactValue.max).toBe(900);
   });
 
   it("keeps progressed site-health work below commercial work without hiding it", () => {
@@ -297,7 +301,9 @@ describe("agency action center", () => {
       new Set(["service-1", "service-2", "service-3"]),
     );
     expect(result.primary[0]?.priceMax).toBe(5400);
-    expect(result.primary[0]?.valueLabel).toBe("Underlying opportunity value");
+    // Nobody has quoted this yet, so the range is named as what it is: the
+    // agency's own catalog price for the work, an input to a quote.
+    expect(result.primary[0]?.valueLabel).toBe("Potential quote input");
   });
 
   it("returns a null close rate until a client has decided", () => {
@@ -345,5 +351,78 @@ describe("agency action center", () => {
       "Opportunity accepted",
     ]);
     expect(activity[0]?.detail).toContain("Heat pumps");
+  });
+});
+
+/**
+ * A missing H1 is not a reason to call a client.
+ *
+ * The deployed home page led with "Clients worth contacting" and the top card
+ * was a missing H1 — a fifty-dollar fix presented as the next commercial
+ * conversation, with a catalog price range beside it reading as value the
+ * agency could expect. An agency owner who acts on that once looks unserious to
+ * their client; the audit scored it as the single most credibility-damaging
+ * defect in the product.
+ *
+ * The boundary is the human decision that already exists. A `new` health
+ * finding is maintenance. The moment the agency uses the existing positive
+ * action on it — accepted, proposal prepared, pitched, sold — they have decided
+ * it is worth raising, and it joins the contact queue. Nothing about how it is
+ * stored changes; only where an unreviewed one is shown.
+ */
+describe("reviewed recommendations come before maintenance", () => {
+  const healthOpportunity = (overrides: Partial<Opportunity> = {}) =>
+    opportunity({
+      id: "opp-h1",
+      dedupeKey: "missing-h1:home",
+      ruleId: "missing-h1",
+      title: "Home page has no H1",
+      detected: "The home page has no non-empty H1 heading.",
+      priceMin: 150,
+      priceMax: 400,
+      ...overrides,
+    });
+
+  const centerWith = (opportunities: Opportunity[]) =>
+    buildActionCenter({
+      clients: [client("client-1", "Northwind Heating")],
+      opportunitiesByClient: new Map([["client-1", opportunities]]),
+      latestRunsByClient: new Map([["client-1", run()]]),
+    });
+
+  it("keeps an unreviewed health finding out of the contact queue", () => {
+    const center = centerWith([healthOpportunity()]);
+
+    expect(center.primary.map((item) => item.title)).not.toContain("Home page has no H1");
+    expect(center.maintenance.map((item) => item.title)).toContain("Home page has no H1");
+    // The queue projection stays complete for non-UI consumers.
+    expect(center.queue.some((item) => item.title === "Home page has no H1")).toBe(true);
+  });
+
+  it("promotes the same finding once the agency has decided to raise it", () => {
+    const center = centerWith([healthOpportunity({ status: "proposal_prepared" })]);
+
+    expect(center.primary.map((item) => item.title)).toContain("Home page has no H1");
+    expect(center.maintenance).toHaveLength(0);
+  });
+
+  it("excludes unreviewed maintenance from the prominent contact value", () => {
+    const center = centerWith([
+      healthOpportunity(),
+      opportunity({ id: "opp-drain", priceMin: 900, priceMax: 1800 }),
+    ]);
+
+    // The commercial finding is the whole of the contact-worthy value.
+    expect(center.contactValue).toEqual({ min: 900, max: 1800 });
+    const maintenance = center.maintenance[0];
+    // Still shown, but labelled as what it is: an input to a quote, not value.
+    expect(maintenance?.valueLabel).toBe("Potential quote input");
+  });
+
+  it("labels a single finding with the finding, not a family wrapper", () => {
+    const center = centerWith([healthOpportunity()]);
+
+    expect(center.maintenance[0]?.title).toBe("Home page has no H1");
+    expect(center.maintenance[0]?.title).not.toBe("Site health improvement");
   });
 });

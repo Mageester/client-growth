@@ -118,3 +118,28 @@ describe("the catalog assistant discloses its transfer beside its action", () =>
     expect(html).toMatch(/Nothing is saved until you review/i);
   });
 });
+
+/**
+ * A validation failure is a sentence, not a schema dump.
+ *
+ * Submitting the assistant with nothing filled in produced a serialized Zod
+ * issue array in the UI — `[{"code":"custom","message":"…","path":[]}]` — which
+ * is a stack trace wearing an error message's clothes. The reader has to parse
+ * JSON to find the one sentence that was written for them.
+ */
+it("answers an empty catalog request with a human sentence, not a schema dump", async () => {
+  const failure = await generateAgencyCatalogDraft(
+    scope,
+    env,
+    { website: "", summary: " " },
+    undefined,
+    { generator },
+  ).catch((error: unknown) => error);
+
+  expect(failure).toBeInstanceOf(Error);
+  const message = (failure as Error).message;
+  expect(message).toBe("Enter an agency website or a summary of at least 10 characters.");
+  expect(message).not.toContain('"code"');
+  expect(message).not.toContain('"path"');
+  expect(message).not.toContain("[");
+});

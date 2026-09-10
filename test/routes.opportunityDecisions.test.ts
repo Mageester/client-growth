@@ -378,10 +378,13 @@ describe("opportunity queue presentation", () => {
     const html = renderToStaticMarkup(createElement(RouterProvider, { router }));
 
     expect(html).toContain("Water Heater Service Expansion");
-    expect(html).toContain("Underlying opportunity value");
+    // The catalog sum is named as an input to a quote, not as value the agency
+    // is owed, and the empty package-price field no longer competes with the
+    // finding for attention until a real amount exists.
+    expect(html).toContain("Potential quote input");
     expect(html).toContain("$2,700 – $5,400");
-    expect(html).toContain("Package price");
-    expect(html).toContain("Not set");
+    expect(html).not.toContain("Package price");
+    expect(html).not.toContain("Not set");
   });
 });
 

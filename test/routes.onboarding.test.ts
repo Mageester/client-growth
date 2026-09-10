@@ -232,6 +232,12 @@ describe("onboarding stage one: read the site, judge nothing", () => {
     expect(html.indexOf("Your first client")).toBeLessThan(html.indexOf("Review starter pricing"));
     expect(html.indexOf('name="clientName"')).toBeLessThan(html.indexOf("Review starter pricing"));
     expect(html.indexOf('name="clientDomain"')).toBeLessThan(html.indexOf("Review starter pricing"));
+    // The optional AI assistant sat above the one path that has to be walked to
+    // finish setup, so the first screen led with the skippable thing.
+    expect(html.indexOf("Your first client")).toBeLessThan(html.indexOf("AI catalog assistant"));
+    expect(html.indexOf('name="clientDomain"')).toBeLessThan(html.indexOf("AI catalog assistant"));
+    expect(html.indexOf("Review starter pricing")).toBeLessThan(html.indexOf("AI catalog assistant"));
+    expect(html).toMatch(/Optional/i);
   });
 
   it("explains the default pricing and the crawl-only confirmation gate", () => {

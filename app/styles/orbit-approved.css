@@ -5827,3 +5827,27 @@ body:has(.client-report-document.is-public) {
 .monitor-digest-send {
   margin-top: 0.65rem;
 }
+
+/* Maintenance review: present, and visibly subordinate to the contact queue. */
+.home-maintenance {
+  margin-top: 1.5rem;
+}
+
+.home-maintenance .action-card {
+  padding-block: 0.6rem;
+}
+
+.home-action-list-compact {
+  gap: 0.35rem;
+}
+
+/* The optional catalog assistant, below the path that actually finishes setup. */
+.onboarding-optional {
+  margin-top: 2.25rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
+}
+
+.onboarding-optional > .prose {
+  margin-bottom: 1rem;
+}
