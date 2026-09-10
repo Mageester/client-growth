@@ -8,6 +8,8 @@ import {
   createClientReportShare,
   getClientReportById,
   getClientReportShareByToken,
+  listActiveClientReportShares,
+  listClientReportSummaries,
   revokeClientReportShares,
 } from "@/db/clientReports";
 import { nodeSqliteDb } from "@/db/nodeSqlite";
@@ -257,5 +259,103 @@ describe("client report share links", () => {
     } finally {
       db.close();
     }
+  });
+});
+
+/**
+ * A saved report has to still be there tomorrow.
+ *
+ * The audit created a report, shared it, refreshed the page, and watched the
+ * revoke control disappear — the share callout was rendered from the POST's
+ * action data, so the only route to revocation was the browser tab that had
+ * created the link. The report itself had no route back at all: client detail
+ * offered `Create report` and nothing else, so a saved document was effectively
+ * write-only. The public link, meanwhile, stayed live.
+ *
+ * These projections are the fix, and they are deliberately narrow: what exists,
+ * how many links are live, and when the soonest one lapses. The raw token is
+ * never persisted and never recoverable — a replacement link is the only way
+ * back to a URL, which is the property that makes revocation mean something.
+ */
+describe("saved report and share projections", () => {
+  it("lists a client's saved reports newest first and keeps them inside the workspace", async () => {
+    const { db, scopeA, scopeB, snapshot } = await fixture();
+
+    const older = await createClientReport(scopeA, {
+      clientId: clientA.id,
+      createdByUserId: "owner_a",
+      snapshot,
+    });
+    const newerSnapshot = {
+      ...snapshot,
+      public: { ...snapshot.public, generatedAt: "2026-09-08T09:30:00.000Z" },
+    };
+    const newer = await createClientReport(scopeA, {
+      clientId: clientA.id,
+      createdByUserId: "owner_a",
+      snapshot: newerSnapshot,
+    });
+
+    const summaries = await listClientReportSummaries(scopeA, clientA.id, NOW);
+
+    expect(summaries.map((report) => report.reportId)).toEqual([newer.reportId, older.reportId]);
+    expect(summaries[0]?.generatedAt).toBe("2026-09-08T09:30:00.000Z");
+    expect(summaries[0]?.recommendedProjectCount).toBe(
+      snapshot.public.recommendedProjects.length,
+    );
+    expect(summaries[0]?.supportingProjectCount).toBe(snapshot.public.supportingProjects.length);
+    expect(summaries[0]?.activeShareCount).toBe(0);
+    expect(summaries[0]?.nearestActiveShareExpiresAt).toBeNull();
+
+    // Another agency's workspace can see none of it, by the same scoping the
+    // report read itself uses.
+    expect(await listClientReportSummaries(scopeB, clientA.id, NOW)).toEqual([]);
+    expect(await listActiveClientReportShares(scopeB, newer.reportId, NOW)).toEqual([]);
+    expect(db).toBeDefined();
+  });
+
+  it("counts only live links, reports the nearest expiry, and never returns a token", async () => {
+    const { scopeA, snapshot } = await fixture();
+    const report = await createClientReport(scopeA, {
+      clientId: clientA.id,
+      createdByUserId: "owner_a",
+      snapshot,
+    });
+
+    // Already lapsed: created 40 days ago, so its 30-day window closed.
+    await createClientReportShare(scopeA, report.reportId, {
+      actingUserId: "owner_a",
+      now: new Date(NOW.getTime() - 40 * 24 * 60 * 60 * 1000),
+    });
+    // Live, and the one that lapses first.
+    const soonest = await createClientReportShare(scopeA, report.reportId, {
+      actingUserId: "owner_a",
+      now: new Date(NOW.getTime() - 5 * 24 * 60 * 60 * 1000),
+    });
+    // Live, and lapses later.
+    const latest = await createClientReportShare(scopeA, report.reportId, {
+      actingUserId: "owner_a",
+      now: NOW,
+    });
+
+    const active = await listActiveClientReportShares(scopeA, report.reportId, NOW);
+
+    expect(active.map((share) => share.shareId)).toEqual([soonest.shareId, latest.shareId]);
+    expect(active[0]?.expiresAt).toBe(soonest.expiresAt);
+    expect(JSON.stringify(active)).not.toContain(soonest.token);
+    expect(JSON.stringify(active)).not.toContain(latest.token);
+    expect(JSON.stringify(active)).not.toContain("token_hash");
+
+    const [summary] = await listClientReportSummaries(scopeA, clientA.id, NOW);
+    expect(summary?.activeShareCount).toBe(2);
+    expect(summary?.nearestActiveShareExpiresAt).toBe(soonest.expiresAt);
+
+    // Revocation empties both projections, which is what the client page and
+    // the private report both read to decide what to offer.
+    await revokeClientReportShares(scopeA, report.reportId, { actingUserId: "owner_a", now: NOW });
+    expect(await listActiveClientReportShares(scopeA, report.reportId, NOW)).toEqual([]);
+    const [afterRevoke] = await listClientReportSummaries(scopeA, clientA.id, NOW);
+    expect(afterRevoke?.activeShareCount).toBe(0);
+    expect(afterRevoke?.nearestActiveShareExpiresAt).toBeNull();
   });
 });

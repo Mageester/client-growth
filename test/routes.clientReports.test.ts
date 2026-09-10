@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { createMemoryRouter, RouterProvider } from "react-router";
 
 import Database from "better-sqlite3";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -19,6 +20,8 @@ import { d1LikeOver } from "./helpers/testAuth";
 import * as reportBuilder from "../app/routes/clients.$id.report";
 import * as reportPreview from "../app/routes/reports.$id";
 import * as reportShare from "../app/routes/report.share";
+import * as clientDetail from "../app/routes/clients.$id";
+import { listClientReportSummaries } from "@/db/clientReports";
 
 const migrationsDir = join(dirname(fileURLToPath(import.meta.url)), "..", "migrations");
 const NOW = "2026-09-07T14:00:00.000Z";
@@ -342,5 +345,145 @@ describe("client-facing report routes", () => {
     expect(css).toMatch(/@media\s+print[\s\S]*\.client-report-project/);
     expect(css).toMatch(/@media\s+print[\s\S]*\.client-report-toolbar/);
     expect(css).toMatch(/page-break-inside:\s*avoid/);
+  });
+});
+
+/**
+ * The lifecycle the audit broke in the middle:
+ *
+ *   create -> share -> private reload -> leave -> reopen from client
+ *           -> revoke -> anonymous 404
+ *
+ * Every step after "share" failed. A refresh removed the revocation control,
+ * because it was rendered from the POST's action data. Leaving the page lost
+ * the report entirely, because client detail had no route back to it. And the
+ * public link stayed live throughout, readable by anyone holding the URL.
+ */
+function renderPreview(loaderData: unknown) {
+  const router = createMemoryRouter(
+    [
+      {
+        path: "*",
+        element: createElement(reportPreview.default, {
+          loaderData,
+          actionData: undefined,
+        } as never),
+      },
+    ],
+    { initialEntries: ["/reports/report_x"] },
+  );
+  return renderToStaticMarkup(createElement(RouterProvider, { router }));
+}
+
+function renderClient(loaderData: unknown) {
+  const router = createMemoryRouter(
+    [
+      {
+        path: "*",
+        element: createElement(clientDetail.default, {
+          loaderData,
+          actionData: undefined,
+        } as never),
+      },
+    ],
+    { initialEntries: ["/clients/cli_a"] },
+  );
+  return renderToStaticMarkup(createElement(RouterProvider, { router }));
+}
+
+async function generateReport(): Promise<string> {
+  const builder = (await reportBuilder.loader({
+    request: new Request("http://localhost/clients/cli_a/report"),
+    params: { id: "cli_a" },
+    context,
+  } as never)) as Awaited<ReturnType<typeof reportBuilder.loader>>;
+  const key = builder.candidates.defaultSelectedKeys[0]!;
+  const generated = (await call(reportBuilder.action, {
+    request: formReq({ intent: "generate", selectedProject: key, orderedProject: key }),
+    params: { id: "cli_a" },
+    context,
+  })) as Response;
+  return generated.headers.get("Location")!.split("/").at(-1)!;
+}
+
+describe("a saved report survives leaving the page", () => {
+  it("keeps share state and revocation on every private visit, and offers a way back from the client", async () => {
+    const reportId = await generateReport();
+
+    const created = (await call(reportPreview.action, {
+      request: formReq({ intent: "create-share" }),
+      params: { id: reportId },
+      context,
+    })) as { ok: boolean; shareUrl?: string };
+    expect(created.ok).toBe(true);
+    const token = new URL(created.shareUrl!).searchParams.get("token")!;
+
+    // The refresh the audit performed: a plain GET with no action data behind
+    // it. The share state has to come from storage, or it is not state.
+    const reloaded = (await reportPreview.loader({
+      request: new Request(`http://localhost/reports/${reportId}`),
+      params: { id: reportId },
+      context,
+    } as never)) as Awaited<ReturnType<typeof reportPreview.loader>>;
+    expect(reloaded.activeShares).toHaveLength(1);
+    expect(reloaded.activeShares[0]?.expiresAt).toBeTruthy();
+    // The URL itself is gone for good — only its digest was ever stored.
+    expect(JSON.stringify(reloaded)).not.toContain(token);
+
+    const html = renderPreview(reloaded);
+    expect(html).toContain("Revoke active links");
+    expect(html).toContain("Create replacement link");
+    expect(html).not.toContain("Create secure share link");
+
+    // Leaving and coming back: the client page lists the saved report.
+    const clientData = await clientDetail.loader({
+      request: new Request("http://localhost/clients/cli_a"),
+      params: { id: "cli_a" },
+      context,
+    } as never);
+    const clientHtml = renderClient(clientData);
+    expect(clientHtml).toContain("Saved reports");
+    expect(clientHtml).toContain(`/reports/${reportId}`);
+    expect(clientHtml).toMatch(/1 (?:active )?(?:share |link)/i);
+
+    // Revoking closes the public door, and the private page says so.
+    const revoked = (await call(reportPreview.action, {
+      request: formReq({ intent: "revoke-shares" }),
+      params: { id: reportId },
+      context,
+    })) as { ok: boolean; revoked?: number };
+    expect(revoked.ok).toBe(true);
+    expect(revoked.revoked).toBe(1);
+
+    const afterRevoke = (await reportPreview.loader({
+      request: new Request(`http://localhost/reports/${reportId}`),
+      params: { id: reportId },
+      context,
+    } as never)) as Awaited<ReturnType<typeof reportPreview.loader>>;
+    expect(afterRevoke.activeShares).toEqual([]);
+    expect(renderPreview(afterRevoke)).not.toContain("Revoke active links");
+
+    const anonymous = await call(reportShare.loader, {
+      request: new Request(
+        `https://orbit.example/report/share?token=${encodeURIComponent(token)}`,
+      ),
+      context,
+    });
+    expect(anonymous).toBeInstanceOf(Response);
+    expect((anonymous as Response).status).toBe(404);
+  });
+
+  it("does not show another workspace's saved reports on its own client page", async () => {
+    const reportId = await generateReport();
+
+    // Same client id, different workspace: the summary projection is scoped by
+    // workspace, so this must find nothing rather than someone else's document.
+    const foreign = await listClientReportSummaries(
+      { db, workspaceId: "ws_other" },
+      "cli_a",
+      new Date(NOW),
+    );
+    expect(foreign).toEqual([]);
+    expect(reportId).toMatch(/^report_/);
   });
 });

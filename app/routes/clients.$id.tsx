@@ -17,6 +17,7 @@ import {
   type ReadinessState,
 } from "@/core/analysisReadiness";
 import { assessServiceCoverage } from "@/core/absenceVerification";
+import { listClientReportSummaries, type ClientReportSummary } from "@/db/clientReports";
 import { analysisReadinessForClient } from "../lib/analysis-readiness.server";
 import { suggestOfferings, type SuggestedOffering } from "@/core/offeringSuggestions";
 import { isExternalBusinessMismatchEnabled } from "@/config/env";
@@ -141,7 +142,7 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
     context.cloudflare.env as unknown as Record<string, unknown>,
     t.user.email,
   );
-  const [services, coverage, opportunities, runs, monitoring, evidence, competitors] =
+  const [services, coverage, opportunities, runs, monitoring, evidence, competitors, savedReports] =
     await Promise.all([
       repo.listServices(t.scope),
       repo.listCoverage(t.scope, client.id),
@@ -150,6 +151,9 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
       monitoringRepo.getMonitoring(t.scope, client.id),
       repo.getLatestEvidence(t.scope, client.id),
       listCompetitors(t.scope, client.id),
+      // A report the agency wrote is a document, not a one-way export. Without
+      // this the only route to a saved report was the redirect that created it.
+      listClientReportSummaries(t.scope, client.id),
     ]);
   const externalClaims = externalMismatchEnabled
     ? await repo.listExternalBusinessClaims(t.scope, client.id)
@@ -209,6 +213,7 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
         }
       : null,
     crawlFailure,
+    savedReports,
     state: clientState({ outcome: latest?.outcome ?? null, openCount: totals.open }),
   };
 }
@@ -661,6 +666,7 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
     externalMismatchEnabled = false,
     externalClaims = [],
     websiteCoverage = null,
+    savedReports = [],
   } = loaderData;
   const navigation = useNavigation();
   const intent = navigation.formData?.get("intent");
@@ -820,6 +826,7 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
         onEditClient={() => setEditOpen(true)}
         coverageBlocked={coverageBlocked}
       />
+      <SavedReports reports={savedReports} />
 
       {analyzing && (
         <AnalysisRunning
@@ -1683,6 +1690,70 @@ function ReadSiteForOfferings({
   );
 }
 
+
+/**
+ * The reports this agency has already written for this client.
+ *
+ * A report is a document an agency showed a client, and the audit found there
+ * was no way back to one: `Create report` was the only entry point, so a saved
+ * report could only be reached from the redirect that made it. Refreshing lost
+ * it. Closing the tab lost it. The public link it was shared through, however,
+ * stayed live — which made "is this still shared?" a question with no answer.
+ *
+ * So this stays compact and answers exactly that: when it was written, what it
+ * contains, whether anyone outside can currently read it, and a way in.
+ */
+function SavedReports({ reports }: { reports: ClientReportSummary[] }) {
+  if (reports.length === 0) return null;
+
+  return (
+    <section className="section saved-reports">
+      <div className="section-head">
+        <div>
+          <h2 className="title-section">Saved reports</h2>
+          <p>
+            Each one is a fixed snapshot of what was recommended on the day it was generated. Open
+            one to read it, share it, or revoke a link that is still live.
+          </p>
+        </div>
+      </div>
+      <ul className="saved-report-list">
+        {reports.map((report) => (
+          <li key={report.reportId}>
+            <Link className="link saved-report-link" to={`/reports/${encodeURIComponent(report.reportId)}`}>
+              <time dateTime={report.generatedAt}>{formatDate(report.generatedAt)}</time>
+            </Link>
+            <span className="faint saved-report-contents">
+              {report.recommendedProjectCount}{" "}
+              {pluralize(report.recommendedProjectCount, "recommendation", "recommendations")}
+              {report.supportingProjectCount > 0 && (
+                <>
+                  {" · "}
+                  {report.supportingProjectCount} supporting
+                </>
+              )}
+            </span>
+            <span className={"pill" + (report.activeShareCount > 0 ? "" : " faint")}>
+              {report.activeShareCount === 0
+                ? "Not shared"
+                : report.activeShareCount === 1
+                  ? "1 active link"
+                  : `${report.activeShareCount} active links`}
+              {report.nearestActiveShareExpiresAt && (
+                <>
+                  {" · expires "}
+                  <time dateTime={report.nearestActiveShareExpiresAt}>
+                    {formatDate(report.nearestActiveShareExpiresAt)}
+                  </time>
+                </>
+              )}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
 
 /**
  * "These look like services customers can hire this business for."

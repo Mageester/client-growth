@@ -34,6 +34,39 @@ export interface ClientReportShareCreated {
   snapshot: ClientReportPublicSnapshot;
 }
 
+/**
+ * What client detail needs to offer a way back into a saved report.
+ *
+ * Deliberately not the snapshot: a client with a year of reports should cost
+ * one small query, and the document itself is one click away. The share fields
+ * are here because "is this still public?" is the question an agency asks
+ * about a report they wrote weeks ago, and it must be answerable without
+ * opening it.
+ */
+export interface ClientReportSummary {
+  reportId: string;
+  clientId: string;
+  generatedAt: string;
+  recommendedProjectCount: number;
+  supportingProjectCount: number;
+  activeShareCount: number;
+  /** Null when no live link exists. */
+  nearestActiveShareExpiresAt: string | null;
+}
+
+/**
+ * A live share link, identified well enough to revoke and no further.
+ *
+ * There is no token field and never will be: only the SHA-256 digest is
+ * persisted, so an existing link's URL cannot be recovered by anyone — us
+ * included. Losing the URL is the point. A replacement link is a new secret.
+ */
+export interface ClientReportShareMetadata {
+  shareId: string;
+  createdAt: string;
+  expiresAt: string;
+}
+
 export interface ClientReportSharePublic {
   createdAt: string;
   expiresAt: string;
@@ -75,6 +108,21 @@ interface ClientReportShareRow {
   expires_at: string;
   revoked_at: string | null;
   snapshot: string;
+}
+
+interface ClientReportSummaryRow {
+  id: string;
+  client_id: string;
+  generated_at: string;
+  snapshot: string;
+  active_share_count: number;
+  nearest_active_share_expires_at: string | null;
+}
+
+interface ClientReportShareMetadataRow {
+  id: string;
+  created_at: string;
+  expires_at: string;
 }
 
 interface WorkspaceOwnerRow {
@@ -518,4 +566,87 @@ export async function revokeClientReportShares(
     .bind(now.toISOString(), t.workspaceId, report.reportId)
     .run();
   return result.rowsAffected;
+}
+
+/** A live link: not revoked, and not yet lapsed. */
+const ACTIVE_SHARE_PREDICATE = "s.revoked_at IS NULL AND s.expires_at > ?";
+
+/**
+ * Every report saved for one client, newest first.
+ *
+ * Counts come from the stored snapshot rather than from the opportunities the
+ * report was built from: the document is a frozen record of what the agency
+ * showed a client, and re-deriving it from rows that have since changed would
+ * describe a report that was never sent.
+ */
+export async function listClientReportSummaries(
+  t: TenantScope,
+  clientId: string,
+  now = new Date(),
+): Promise<ClientReportSummary[]> {
+  const nowIso = new Date(assertValidDate(now)).toISOString();
+  const rows = await t.db
+    .prepare(
+      `SELECT r.id, r.client_id, r.generated_at, r.snapshot,
+              (SELECT COUNT(*) FROM client_report_shares s
+                WHERE s.workspace_id = r.workspace_id AND s.report_id = r.id
+                  AND ${ACTIVE_SHARE_PREDICATE}) AS active_share_count,
+              (SELECT MIN(s.expires_at) FROM client_report_shares s
+                WHERE s.workspace_id = r.workspace_id AND s.report_id = r.id
+                  AND ${ACTIVE_SHARE_PREDICATE}) AS nearest_active_share_expires_at
+       FROM client_report_snapshots r
+       WHERE r.workspace_id = ? AND r.client_id = ?
+       ORDER BY r.generated_at DESC, r.id DESC`,
+    )
+    .bind(nowIso, nowIso, t.workspaceId, clientId)
+    .all<ClientReportSummaryRow>();
+
+  const summaries: ClientReportSummary[] = [];
+  for (const row of rows) {
+    const snapshot = parseStoredSnapshot(row.snapshot);
+    // A row that no longer parses is not silently counted as an empty report:
+    // it is left out, so nothing on the client page claims a document exists
+    // that could not be opened.
+    if (!snapshot) continue;
+    summaries.push({
+      reportId: row.id,
+      clientId: row.client_id,
+      generatedAt: row.generated_at,
+      recommendedProjectCount: snapshot.public.recommendedProjects.length,
+      supportingProjectCount: snapshot.public.supportingProjects.length,
+      activeShareCount: Number(row.active_share_count ?? 0),
+      nearestActiveShareExpiresAt: row.nearest_active_share_expires_at ?? null,
+    });
+  }
+  return summaries;
+}
+
+/**
+ * The live links for one report, soonest to lapse first.
+ *
+ * This is what the private report renders its revocation controls from, on
+ * every visit — not from the action data of the POST that created a link. The
+ * audit found a public report that no longer offered any way to revoke it
+ * after a refresh, which is the failure this exists to end.
+ */
+export async function listActiveClientReportShares(
+  t: TenantScope,
+  reportId: string,
+  now = new Date(),
+): Promise<ClientReportShareMetadata[]> {
+  const nowIso = new Date(assertValidDate(now)).toISOString();
+  const rows = await t.db
+    .prepare(
+      `SELECT s.id, s.created_at, s.expires_at
+       FROM client_report_shares s
+       WHERE s.workspace_id = ? AND s.report_id = ? AND ${ACTIVE_SHARE_PREDICATE}
+       ORDER BY s.expires_at ASC, s.id ASC`,
+    )
+    .bind(t.workspaceId, reportId, nowIso)
+    .all<ClientReportShareMetadataRow>();
+  return rows.map((row) => ({
+    shareId: row.id,
+    createdAt: row.created_at,
+    expiresAt: row.expires_at,
+  }));
 }

@@ -17,11 +17,20 @@ import * as reportBuilder from "../app/routes/clients.$id.report";
 import { __setSessionResolver } from "../app/lib/session.server";
 
 const migrationsDir = join(dirname(fileURLToPath(import.meta.url)), "..", "migrations");
-const PRODUCTION_SCHEMA_LAST_MIGRATION = "0022_sales_funnel.sql";
-
-function applyProductionSchemaThrough0022(raw: Database.Database): void {
+/**
+ * The committed migrations, all of them — which is what a migrated production
+ * database holds.
+ *
+ * The subject of this file is the table that is NOT here: no migration creates
+ * `external_business_claims`, because the Business-to-site mismatch feature is
+ * paused. Applying the real migration set is therefore the honest way to prove
+ * the client route never reaches for it. (This used to stop at 0022, which was
+ * production's head when the test was written; leaving it there would also have
+ * quietly asserted that features shipped since then do not exist.)
+ */
+function applyMigratedProductionSchema(raw: Database.Database): void {
   for (const migration of readdirSync(migrationsDir)
-    .filter((file) => file.endsWith(".sql") && file <= PRODUCTION_SCHEMA_LAST_MIGRATION)
+    .filter((file) => file.endsWith(".sql"))
     .sort()) {
     raw.exec(readFileSync(join(migrationsDir, migration), "utf8"));
   }
@@ -134,7 +143,7 @@ let env: Record<string, unknown>;
 beforeEach(async () => {
   raw = new Database(":memory:");
   raw.pragma("foreign_keys = ON");
-  applyProductionSchemaThrough0022(raw);
+  applyMigratedProductionSchema(raw);
   statements = [];
   const db = recordingSqlDb(raw, statements);
   scope = { db, workspaceId: "ws_a" };

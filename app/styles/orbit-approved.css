@@ -3752,6 +3752,60 @@ html[data-theme="light"] .app-frame .entity-mark {
   grid-column: 2;
 }
 
+/* Persistent share state. Rendered from storage on every visit, so unlike the
+   one-time callout above it is quiet: a status line, not an announcement. */
+.client-report-share-state {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem 1rem;
+  margin: 0 0 1.25rem;
+  padding: 0.75rem 1.1rem;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.client-report-share-state p {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+/* Saved reports on client detail: a short index, not a second document list. */
+.saved-report-list {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.saved-report-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem 0.75rem;
+  min-width: 0;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  font-size: 0.82rem;
+}
+
+.saved-report-link {
+  font-weight: 600;
+}
+
+.saved-report-contents {
+  min-width: 0;
+  flex: 1 1 auto;
+  font-size: 0.76rem;
+}
+
 .client-report-share-callout > form {
   grid-column: 1 / -1;
 }
