@@ -366,9 +366,16 @@ describe("compact widths keep the client control inside the page", () => {
   const css = readFileSync(new URL("../app/styles/orbit-approved.css", import.meta.url), "utf8");
   const compact = css.slice(css.indexOf("@media (max-width: 700px)"));
 
-  it("lets the selected-client trigger shrink instead of widening the page", () => {
+  it("caps the trigger against the viewport, not against its parent", () => {
     expect(compact).toMatch(/\.signal-client-trigger\s*\{[^}]*min-width:\s*0/);
-    expect(compact).toMatch(/\.signal-client-trigger\s*\{[^}]*max-width:\s*100%/);
+    // A percentage was not enough, and the browser proved it: at a 355px
+    // viewport the button still measured 522px, because `max-width: 100%`
+    // resolves against an ancestor that had already grown to fit the text. A
+    // viewport unit cannot be widened by a parent, so this is the cap that
+    // actually holds.
+    expect(compact).toMatch(/\.signal-client-trigger\s*\{[^}]*max-width:\s*calc\(100vw/);
+    // The menu wrapper sits in that chain and has to be allowed to shrink too.
+    expect(compact).toMatch(/\.app-frame \.menu\s*\{[^}]*min-width:\s*0/);
   });
 
   it("truncates the label rather than the menu affordance", () => {

@@ -3411,12 +3411,26 @@ html[data-theme="light"] .app-frame .entity-mark {
     flex-wrap: wrap;
   }
 
+  /* The menu wrapper sits between the trigger and the toolbar, so it has to be
+     allowed to shrink too — otherwise `max-width: 100%` on the button resolves
+     against a parent that has already grown to fit the text. */
+  .app-frame .menu {
+    min-width: 0;
+    max-width: 100%;
+  }
+
   .app-frame .signal-client-trigger {
     /* Overrides the desktop floor. A control that cannot shrink in a row that
        cannot grow is what put the scrollbar on the document. */
     min-width: 0;
-    max-width: 100%;
-    flex: 1 1 auto;
+    /* Measured, not assumed: a percentage here resolves against an ancestor
+       that may itself have grown, which is exactly how a 355px viewport ended
+       up with a 522px button. A viewport unit cannot be widened by its parent,
+       so this is the cap that actually holds. */
+    max-width: calc(100vw - 2rem);
+    /* Shrink, but do not grow: filling the row would make a long client name
+       the widest thing on a phone screen for no reason. */
+    flex: 0 1 auto;
   }
 
   .app-frame .signal-client-trigger > span:not(.scope-count) {
