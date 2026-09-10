@@ -8,12 +8,20 @@ import {
   type ProjectView,
 } from "@/core/projectPackaging";
 import type { OpportunityFamilyKey } from "@/core/opportunityGrouping";
-import { byPotentialValue, isOpen, nextAction, sumTotals, totalsFor } from "./portfolio";
+import {
+  byPotentialValue,
+  isOpen,
+  nextAction,
+  sumTotals,
+  totalsFor,
+  type EvidenceReadState,
+} from "./portfolio";
 
 export interface ActionCenterInput {
   clients: readonly Client[];
   opportunitiesByClient: ReadonlyMap<string, readonly Opportunity[]>;
   latestRunsByClient: ReadonlyMap<string, AnalysisRun>;
+  latestEvidenceStateByClient?: ReadonlyMap<string, EvidenceReadState>;
   serviceNameById?: ReadonlyMap<string, string>;
 }
 
@@ -213,11 +221,19 @@ function analysisItem(
     client: { id: client.id, name: client.name, domain: client.domain },
     family: null,
     stage: null,
-    title: inconclusive ? "Analysis needs another look" : "Ready for a first analysis",
+    title: inconclusive
+      ? run
+        ? "Analysis needs another look"
+        : "Website read needs another look"
+      : "Ready for a first analysis",
     detail: inconclusive
-      ? run?.summary || "The site could not be fully assessed."
+      ? run?.summary || "The last website read returned no readable pages."
       : "This client has not been checked yet.",
-    action: inconclusive ? "Retry analysis" : "Run first analysis",
+    action: inconclusive
+      ? run
+        ? "Retry analysis"
+        : "Retry website read"
+      : "Run first analysis",
     href: clientHref(client.id),
     count: 0,
     priceMin: 0,
@@ -375,7 +391,8 @@ export function buildActionCenterAt(
     }
 
     const latest = input.latestRunsByClient.get(client.id);
-    if (latest?.outcome === "inconclusive") {
+    const evidenceState = input.latestEvidenceStateByClient?.get(client.id);
+    if (latest?.outcome === "inconclusive" || (!latest && evidenceState === "unreadable")) {
       attention.push(analysisItem(client, "inconclusive", latest));
     } else if (!latest && open.length === 0) {
       attention.push(analysisItem(client, "never", latest));

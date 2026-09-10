@@ -135,6 +135,15 @@ const act = (intent: string, extra: Record<string, string> = {}, id = "opp_1") =
     context: ctx,
   });
 
+const reviewedProposal = (title = "Heat pumps service page") => ({
+  proposalTitle: title,
+  proposalScope: "Build the page\nAdd a clear enquiry path",
+  proposalPriceMin: "900",
+  proposalPriceMax: "1800",
+  proposalCurrency: "USD",
+  proposalNextStep: "Reply to approve the scope and schedule the work.",
+});
+
 describe("preparing a proposal", () => {
   it("drafts and marks the opportunity ready when it is open", async () => {
     await repo.saveAnalysis(scope, [opp()]);
@@ -142,8 +151,8 @@ describe("preparing a proposal", () => {
     expect(res.status).toBe(302);
     const saved = await repo.getOpportunity(scope, "opp_1");
     expect(saved?.status).toBe("proposal_prepared");
-    expect(saved?.proposalMd).toContain("No page for heat pumps");
-    expect(saved?.proposalMd).toContain("Client A");
+    expect(saved?.proposalMd).toContain("Heat pumps service page");
+    expect(saved?.proposalMd).not.toContain("Client A");
   });
 
   // "resolved" is set by a re-analysis that confirmed the client fixed the work.
@@ -186,21 +195,21 @@ describe("preparing a proposal", () => {
     expect(res.status).toBe(302);
     const saved = await repo.getOpportunity(scope, "opp_1");
     expect(saved?.status).toBe("proposal_prepared");
-    expect(saved?.proposalMd).toContain("No page for heat pumps");
+    expect(saved?.proposalMd).toContain("Heat pumps service page");
   });
 
   it("saves an edited draft without changing the agency's decision", async () => {
     await repo.saveAnalysis(scope, [opp({ status: "snoozed", proposalMd: "# old" })]);
-    await act("save-proposal", { proposalMd: "# edited" });
+    await act("save-proposal", reviewedProposal("Edited heat pumps proposal"));
     const saved = await repo.getOpportunity(scope, "opp_1");
-    expect(saved?.proposalMd).toBe("# edited");
+    expect(saved?.proposalMd).toContain("Edited heat pumps proposal");
     expect(saved?.status).toBe("snoozed");
   });
 
   it("rejects an empty draft rather than blanking a saved one", async () => {
     await repo.saveAnalysis(scope, [opp({ proposalMd: "# keep me" })]);
-    const res = (await act("save-proposal", { proposalMd: "   " })) as { error?: string };
-    expect(res.error).toMatch(/empty/i);
+    const res = (await act("save-proposal", reviewedProposal(""))) as { error?: string };
+    expect(res.error).toMatch(/title/i);
     expect((await repo.getOpportunity(scope, "opp_1"))?.proposalMd).toBe("# keep me");
   });
 });
@@ -442,20 +451,27 @@ describe("sales funnel routes", () => {
     expect(first?.proposalPreparedAt).toBeTruthy();
 
     // Editing the draft later must not reset the milestone.
-    await act("save-proposal", { proposalMd: "# rewritten" });
+    await act("save-proposal", reviewedProposal("Rewritten proposal"));
     const second = await repo.getOpportunity(scope, "opp_1");
-    expect(second?.proposalMd).toBe("# rewritten");
+    expect(second?.proposalMd).toContain("Rewritten proposal");
     expect(second?.proposalPreparedAt).toBe(first?.proposalPreparedAt);
     expect(second?.acceptedAt).toBe(first?.acceptedAt);
   });
 
-  it("terminal outcomes cannot be reopened", async () => {
+  it("terminal outcomes require the explicit correction path rather than ordinary reopen", async () => {
     await repo.saveAnalysis(scope, [opp({ status: "sold", soldAt: "2026-09-01T00:00:00.000Z", soldAmount: 900 })]);
     const res = (await act("reopen")) as { error?: string };
     expect(res.error).toBeTruthy();
     const saved = await repo.getOpportunity(scope, "opp_1");
     expect(saved?.status).toBe("sold");
     expect(saved?.soldAmount).toBe(900);
+
+    const corrected = (await act("correct-outcome")) as Response;
+    expect(corrected.status).toBe(302);
+    const revised = await repo.getOpportunity(scope, "opp_1");
+    expect(revised?.status).toBe("pitched");
+    expect(revised?.soldAmount).toBe(900);
+    expect(revised?.soldAt).toBe("2026-09-01T00:00:00.000Z");
   });
 
   it("dismissed stays an internal rejection with dismissedAt and no lostAt", async () => {

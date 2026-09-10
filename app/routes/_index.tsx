@@ -148,7 +148,7 @@ export default function Index() {
                 <div>
                   <span className="marketing-availability-label">Available now</span>
                   <p>
-                    Orbit runs evidence-backed checks across commercial gaps, conversion failures, technical content issues,
+                    Orbit runs checks backed by website sources across commercial gaps, broken enquiry paths, and website quality,
                     evidence review, proposal drafting and sharing, and opt-in weekly monitoring.
                   </p>
                 </div>

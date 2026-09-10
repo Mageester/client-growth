@@ -9,11 +9,12 @@ import {
   AppNavigation,
   ThemePicker,
   isClientReportSharePath,
+  isMarketingPath,
   isProposalSharePath,
   loader as rootLoader,
 } from "../app/root";
 import { homeRenderClock } from "../app/routes/changes";
-import { healthSectionDescription } from "../app/routes/opportunities._index";
+import { healthSectionDescription, isQueryEmpty } from "../app/routes/opportunities._index";
 import OpportunityDetail from "../app/routes/opportunities.$id";
 import { __setSessionResolver } from "../app/lib/session.server";
 
@@ -77,6 +78,14 @@ describe("mobile viewport safety", () => {
       .join("\n");
 
     expect(bodyRules).not.toMatch(/min-width\s*:\s*320px/);
+  });
+
+  it("releases the page transform so fixed drawers use the viewport", () => {
+    const css = readFileSync(new URL("../app/styles/orbit-approved.css", import.meta.url), "utf8");
+    const start = css.indexOf("@keyframes orbit-enter");
+    const keyframes = css.slice(start, css.indexOf("\n}\n", start) + 2);
+    expect(keyframes).not.toContain("transform");
+    expect(keyframes).toMatch(/to\s*\{\s*opacity:\s*1/);
   });
 
   it("gives a running analysis an explicit stop action", () => {
@@ -160,6 +169,14 @@ describe("mobile viewport safety", () => {
     expect(healthSectionDescription(3, "open")).toMatch(/worth fixing/);
     expect(healthSectionDescription(3, "all")).toMatch(/history/i);
     expect(healthSectionDescription(3, "all")).not.toMatch(/worth fixing/);
+  });
+});
+
+describe("opportunity filtering truth", () => {
+  it("distinguishes a query with no matches from a portfolio with no work", () => {
+    expect(isQueryEmpty("zzzz no match", 0)).toBe(true);
+    expect(isQueryEmpty("", 0)).toBe(false);
+    expect(isQueryEmpty("dental", 1)).toBe(false);
   });
 });
 
@@ -269,7 +286,9 @@ describe("opportunity inspector values", () => {
     expect(html).toContain("Review proposal");
     expect(html).toMatch(/href="[^"]*#proposal-draft"/);
     expect(html).not.toContain('name="intent" value="prepare-proposal"');
-    expect(html).toContain("Edited draft");
+    expect(html).toContain("Project title");
+    expect(html).toContain("Complete client-facing proposal preview");
+    expect(html).not.toContain('name="proposalMd"');
   });
 });
 
@@ -339,6 +358,18 @@ describe("public proposal share shell", () => {
     expect(css).toMatch(/@media\s+print[\s\S]*--bg:\s*#fff/);
     expect(css).toMatch(/@media\s+print[\s\S]*\.proposal-share-page/);
   });
+});
+
+describe("marketing shell routing", () => {
+  it.each(["/", "/product", "/product/", "/Privacy/", "/Terms/"])(
+    "recognizes %s without restoring app chrome",
+    (pathname) => expect(isMarketingPath(pathname)).toBe(true),
+  );
+
+  it.each(["/privacy-policy", "/terms/extra", "/product%2Fextra"])(
+    "rejects non-marketing path %s",
+    (pathname) => expect(isMarketingPath(pathname)).toBe(false),
+  );
 });
 
 describe("money formatting", () => {

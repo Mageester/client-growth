@@ -166,8 +166,8 @@ export default function Product() {
           label="Understand"
           title="Read the site in the context of the account."
           copy="Orbit reads the public pages it can safely fetch, keeps the source URLs and observed facts, and compares them with the client’s offerings, your service catalog, and contract coverage."
-          availability="Available now · bounded public-site evidence"
-          note="Public-site evidence plus agency-entered context — not a CRM sync."
+          availability="Available now · website sources you can open and verify"
+          note="Website sources plus agency-entered context — not a CRM sync."
           visual={<ProductUnderstandVisual />}
           reverse
         />
@@ -177,9 +177,9 @@ export default function Product() {
           number="03"
           label="Find"
           title="Find work you can actually sell."
-          copy="Orbit runs evidence-backed checks across commercial gaps, conversion failures, technical content issues, and evidence review. Each finding must map to a service you sell and stay billable after contract coverage."
-          availability="Available now · evidence-backed checks across capability families"
-          note="Capability families expand only when the evidence supports them; future categories remain direction."
+          copy="Orbit checks for commercial gaps, broken enquiry paths, and website quality issues. Each finding must map to a service you sell, include website sources, and stay billable after contract coverage."
+          availability="Available now · checks for commercial gaps, broken enquiry paths, and website quality"
+          note="New checks are added only when their evidence can be reviewed; future categories remain direction."
           visual={<ProductFindVisual />}
         />
 

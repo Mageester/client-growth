@@ -10,6 +10,7 @@ import { getAuth, getTrustedAuthBaseURL } from "../lib/auth.server";
 import { canDeliverEmail } from "../lib/resend.server";
 import { getSession } from "../lib/session.server";
 import { d1Db } from "../lib/d1.server";
+import { verificationEmailCookie } from "../lib/verification-email.server";
 import { AxiomCredit, BrandLockup, Icon } from "../components/ui";
 import type { Route } from "./+types/signup";
 
@@ -165,7 +166,11 @@ export async function action({ request, context }: Route.ActionArgs) {
     if (!cookie) {
       const verificationLocation = new URL("/login?verify=sent", getTrustedAuthBaseURL(context.cloudflare.env as never));
       if (returnTo) verificationLocation.searchParams.set("returnTo", returnTo);
-      throw redirect(`${verificationLocation.pathname}${verificationLocation.search}`);
+      throw redirect(`${verificationLocation.pathname}${verificationLocation.search}`, {
+        headers: {
+          "set-cookie": verificationEmailCookie(email, verificationLocation.origin),
+        },
+      });
     }
     const session = await auth.api.getSession({ headers: new Headers({ cookie }) });
     if (!session?.user) return withAccessState({ error: "Sign-up failed. Please try again." });

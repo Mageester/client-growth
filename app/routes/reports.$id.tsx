@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Form, Link } from "react-router";
 
 import { ClientReportDocument } from "../components/client-report";
@@ -8,6 +8,8 @@ import {
   createClientReportShare,
   getClientReportById,
   isClientReportError,
+  listClientReportShares,
+  revokeClientReportShare,
   revokeClientReportShares,
 } from "@/db/clientReports";
 import { getTrustedAuthBaseURL } from "../lib/auth.server";
@@ -22,8 +24,11 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
   const t = await requireTenant(request, context);
   const report = await getClientReportById(t.scope, params.id);
   if (!report) throw new Response("Report not found", { status: 404 });
+  const shares = await listClientReportShares(t.scope, report.reportId);
+  const now = new Date().toISOString();
   return {
     report,
+    activeShares: shares.filter((share) => !share.revokedAt && share.expiresAt > now),
     canManageShares: t.userId === t.workspace.ownerUserId,
   };
 }
@@ -32,7 +37,8 @@ export async function action({ params, request, context }: Route.ActionArgs) {
   const t = await requireTenant(request, context);
   const report = await getClientReportById(t.scope, params.id);
   if (!report) throw new Response("Report not found", { status: 404 });
-  const intent = String((await request.formData()).get("intent") ?? "");
+  const form = await request.formData();
+  const intent = String(form.get("intent") ?? "");
   try {
     if (intent === "create-share") {
       const share = await createClientReportShare(t.scope, report.reportId, {
@@ -42,13 +48,22 @@ export async function action({ params, request, context }: Route.ActionArgs) {
         `/report/share?token=${encodeURIComponent(share.token)}`,
         getTrustedAuthBaseURL(context.cloudflare.env),
       ).toString();
-      return { ok: true as const, shareUrl, expiresAt: share.expiresAt };
+      return { ok: true as const, shareId: share.shareId, shareUrl, expiresAt: share.expiresAt };
     }
     if (intent === "revoke-shares") {
       const revoked = await revokeClientReportShares(t.scope, report.reportId, {
         actingUserId: t.userId,
       });
       return { ok: true as const, revoked, message: "Active report links revoked." };
+    }
+    if (intent === "revoke-share") {
+      const shareId = String(form.get("shareId") ?? "");
+      const revoked = shareId
+        ? await revokeClientReportShare(t.scope, report.reportId, shareId, {
+            actingUserId: t.userId,
+          })
+        : false;
+      return { ok: true as const, revoked: revoked ? 1 : 0, message: "Report link revoked." };
     }
     throw new Response("Unknown action", { status: 400 });
   } catch (error) {
@@ -60,8 +75,9 @@ export async function action({ params, request, context }: Route.ActionArgs) {
 }
 
 export default function ClientReportPreview({ loaderData, actionData }: Route.ComponentProps) {
-  const { report, canManageShares } = loaderData;
+  const { report, activeShares, canManageShares } = loaderData;
   const [copied, setCopied] = useState(false);
+  const [shareUrls, setShareUrls] = useState<Record<string, string>>({});
   const shareUrl = actionData && "shareUrl" in actionData ? actionData.shareUrl : null;
   const shareExpiresAt = actionData && "expiresAt" in actionData ? actionData.expiresAt : null;
   const copyShare = async () => {
@@ -69,6 +85,25 @@ export default function ClientReportPreview({ loaderData, actionData }: Route.Co
     await navigator.clipboard.writeText(shareUrl);
     setCopied(true);
   };
+
+  useEffect(() => {
+    try {
+      setShareUrls(
+        JSON.parse(window.localStorage.getItem("axiom-orbit:report-share-links") ?? "{}") as Record<string, string>,
+      );
+    } catch {
+      setShareUrls({});
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!actionData || !("shareId" in actionData) || !("shareUrl" in actionData) || !actionData.shareId || !actionData.shareUrl) return;
+    setShareUrls((current) => {
+      const next = { ...current, [String(actionData.shareId)]: String(actionData.shareUrl) };
+      try { window.localStorage.setItem("axiom-orbit:report-share-links", JSON.stringify(next)); } catch { /* server metadata remains visible */ }
+      return next;
+    });
+  }, [actionData]);
 
   return (
     <div className="client-report-preview-page">
@@ -99,7 +134,7 @@ export default function ClientReportPreview({ loaderData, actionData }: Route.Co
       {actionData && actionData.ok && "message" in actionData && (
         <div className="notice ok" role="status"><Icon name="check" size={15} />{actionData.message}</div>
       )}
-      {shareUrl && (
+      {shareUrl && activeShares.length === 0 && (
         <section className="client-report-share-callout" aria-label="Secure report link">
           <div>
             <span className="eyebrow">Ready to share</span>
@@ -117,6 +152,29 @@ export default function ClientReportPreview({ loaderData, actionData }: Route.Co
               <button type="submit" className="btn btn-quiet">Revoke active links</button>
             </Form>
           )}
+        </section>
+      )}
+
+      {activeShares.length > 0 && (
+        <section className="client-report-share-callout" aria-label="Active report links">
+          <div>
+            <span className="eyebrow">Active links</span>
+            <h2>Manage shared report versions</h2>
+            <p>These links remain tied to this fixed report snapshot.</p>
+          </div>
+          <ul className="report-share-history">
+            {activeShares.map((share, index) => {
+              const latestUrl = actionData && "shareId" in actionData && actionData.shareId === share.shareId && "shareUrl" in actionData ? String(actionData.shareUrl) : "";
+              const url = shareUrls[share.shareId] ?? latestUrl;
+              return <li key={share.shareId}>
+                <div><b>Link {activeShares.length - index}</b><small>Expires {new Date(share.expiresAt).toLocaleDateString()}</small></div>
+                <div className="row-tight">
+                  {url ? <><a className="btn btn-sm" href={url} target="_blank" rel="noreferrer">Open</a><button type="button" className="btn btn-sm" onClick={() => navigator.clipboard?.writeText(url)}>Copy</button></> : <span className="faint">URL is stored only in the browser that created it.</span>}
+                  {canManageShares && <Form method="post" className="inline"><input type="hidden" name="intent" value="revoke-share" /><input type="hidden" name="shareId" value={share.shareId} /><button type="submit" className="btn btn-sm btn-quiet">Revoke</button></Form>}
+                </div>
+              </li>;
+            })}
+          </ul>
         </section>
       )}
 

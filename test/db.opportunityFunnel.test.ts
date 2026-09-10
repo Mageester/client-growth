@@ -433,6 +433,22 @@ describe("applyFunnelTransition", () => {
     expect(row.status).toBe("lost");
     expect(row.lostAt).toBe(NOW_ISO);
   });
+
+  it("can explicitly correct a terminal outcome back to pitched while retaining its history", async () => {
+    await save(opp({
+      status: "sold",
+      acceptedAt: "2026-07-30T00:00:00.000Z",
+      pitchedAt: "2026-07-31T00:00:00.000Z",
+      soldAt: "2026-08-01T00:00:00.000Z",
+      soldAmount: 900,
+    }));
+    expect(await act({ kind: "correct-outcome" })).toBe(true);
+    const row = await stored();
+    expect(row.status).toBe("pitched");
+    expect(row.soldAt).toBe("2026-08-01T00:00:00.000Z");
+    expect(row.soldAmount).toBe(900);
+    expect(row.pitchedAt).toBe("2026-07-31T00:00:00.000Z");
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -486,6 +502,45 @@ describe("coverage vs terminal rows", () => {
     const row = (await repo.getOpportunity(scope, "opp_open")) as Opportunity;
     expect(row.status).toBe("already_covered");
     expect(row.billableStatus).toBe("already_covered");
+  });
+
+  it.each([
+    {
+      priorStatus: "proposal_prepared" as const,
+      history: {
+        acceptedAt: "2026-09-01T00:00:00.000Z",
+        proposalPreparedAt: "2026-09-02T00:00:00.000Z",
+        proposalMd: "# The reviewed proposal",
+      },
+    },
+    {
+      priorStatus: "pitched" as const,
+      history: {
+        acceptedAt: "2026-09-01T00:00:00.000Z",
+        pitchedAt: "2026-09-02T00:00:00.000Z",
+        soldAt: "2026-09-03T00:00:00.000Z",
+        soldAmount: 1800,
+      },
+    },
+    {
+      priorStatus: "dismissed" as const,
+      history: { dismissedAt: "2026-09-02T00:00:00.000Z" },
+    },
+  ])("restores $priorStatus and its history when coverage is removed", async ({ priorStatus, history }) => {
+    await save(opp({ status: priorStatus, ...history }));
+    await act({ kind: "cover" });
+    await repo.setCoverage(scope, "cli_a", "svc_a", "covered during review");
+
+    const covered = await stored();
+    expect(covered.status).toBe("already_covered");
+    const result = await repo.removeCoverageAndReopen(scope, "cli_a", "svc_a");
+    expect(result).toEqual({ removed: true, reopened: 1 });
+
+    expect(await stored()).toMatchObject({
+      status: priorStatus,
+      billableStatus: "billable",
+      ...history,
+    });
   });
 });
 

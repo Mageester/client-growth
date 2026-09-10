@@ -7,6 +7,7 @@ import { describeEvidenceRef, isPageRef, parseEvidenceRef } from "@/core/evidenc
 import { titleFromUrl } from "../lib/evidence";
 import { Icon, formatCurrencyRange } from "../components/ui";
 import type { ReactNode } from "react";
+import { proposalWithFallback } from "@/core/proposal";
 
 type PublicShareContext = {
   cloudflare: { env: { DB: unknown } };
@@ -59,6 +60,14 @@ export async function loader({ request, context }: LoaderArgs): Promise<Proposal
 export default function ProposalShare({ loaderData }: { loaderData: ProposalSharePublic }) {
   const { snapshot } = loaderData;
   const { opportunity } = snapshot;
+  const reviewed = proposalWithFallback(snapshot.proposalMd, {
+    title: opportunity.title,
+    scope: opportunity.suggestedScope.length > 0 ? opportunity.suggestedScope : ["Scope to be confirmed with the agency."],
+    priceMin: opportunity.priceMin,
+    priceMax: opportunity.priceMax,
+    nextStep: "Contact the preparing agency to confirm the reviewed scope and price.",
+  });
+  const reviewedPrice = `${reviewed.currency} ${formatCurrencyRange(reviewed.priceMin, reviewed.priceMax)}`;
 
   return (
     <main className="detail detail-narrow proposal-share-page">
@@ -84,7 +93,7 @@ export default function ProposalShare({ loaderData }: { loaderData: ProposalShar
         <div className="section-head">
           <div>
             <span className="eyebrow">Recommended work</span>
-            <h2 className="title-section">{opportunity.title}</h2>
+            <h2 className="title-section">{reviewed.title}</h2>
             <p>
               {snapshot.clientName} · {snapshot.clientDomain}
             </p>
@@ -92,12 +101,8 @@ export default function ProposalShare({ loaderData }: { loaderData: ProposalShar
         </div>
         <dl className="factbar">
           <div className="fact">
-            <dt>Estimated investment</dt>
-            <dd className="num">{formatCurrencyRange(opportunity.priceMin, opportunity.priceMax)}</dd>
-          </div>
-          <div className="fact">
-            <dt>Confidence</dt>
-            <dd className="num">{Math.round(opportunity.confidence * 100)}%</dd>
+            <dt>Reviewed price</dt>
+            <dd className="num">{reviewedPrice}</dd>
           </div>
           {opportunity.serviceName && (
             <div className="fact">
@@ -107,28 +112,33 @@ export default function ProposalShare({ loaderData }: { loaderData: ProposalShar
           )}
         </dl>
         <p className="proposal-estimate-note">
-          This is an estimate, not a quote. The agency will confirm the final scope and price before work starts.
+          This is the scope and price saved by the agency for this version. Confirm the decision with the agency before work starts.
         </p>
       </section>
 
       <section className="section">
-        <h2 className="title-section">Proposal</h2>
-        <div className="proposal-share-copy"><ProposalText text={snapshot.proposalMd} /></div>
+        <h2 className="title-section">Reviewed proposal</h2>
+        <div className="case">
+          <div className="case-block">
+            <h3 className="subhead">Deliverables</h3>
+            <ul className="scope-list">
+              {reviewed.scope.map((line, index) => <li key={index}>{line}</li>)}
+            </ul>
+          </div>
+          <div className="case-block">
+            <h3 className="subhead">Next step</h3>
+            <p className="prose">{reviewed.nextStep}</p>
+          </div>
+        </div>
       </section>
 
       <section className="section">
-        <h2 className="title-section">Scope and evidence</h2>
+        <h2 className="title-section">Evidence reviewed</h2>
         <div className="case">
-          {opportunity.suggestedScope.length > 0 && (
-            <div className="case-block">
-              <h3 className="subhead">What the work includes</h3>
-              <ul className="scope-list">
-                {opportunity.suggestedScope.map((line, index) => (
-                  <li key={index}>{line}</li>
-                ))}
-              </ul>
-            </div>
-          )}
+          <div className="case-block">
+            <h3 className="subhead">Observed issue</h3>
+            <p className="prose">{opportunity.detected}</p>
+          </div>
           {opportunity.evidenceRefs.length > 0 && (
             <div className="case-block">
               <h3 className="subhead">Sources checked</h3>
@@ -144,13 +154,15 @@ export default function ProposalShare({ loaderData }: { loaderData: ProposalShar
         </div>
       </section>
 
-      <section className="section proposal-next-step">
-        <span className="eyebrow">Next step</span>
-        <h2 className="title-section">Review the recommendation with {snapshot.agencyName}</h2>
-        <p className="prose">
-          Contact the preparing agency to confirm the final scope before work starts.
-        </p>
-      </section>
+      {snapshot.contactEmail && (
+        <section className="section proposal-next-step">
+          <span className="eyebrow">Agency contact</span>
+          <h2 className="title-section">Questions about this proposal?</h2>
+          <a className="btn btn-primary" href={`mailto:${snapshot.contactEmail}?subject=${encodeURIComponent(reviewed.title)}`}>
+            Contact {snapshot.agencyName}
+          </a>
+        </section>
+      )}
 
       <footer className="proposal-share-footer">
         <Icon name="shield" size={14} />

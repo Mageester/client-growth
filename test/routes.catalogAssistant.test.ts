@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { generateAgencyCatalogDraft } from "../app/lib/catalog-assistant.server";
+import {
+  catalogAssistantAvailable,
+  catalogAssistantError,
+  generateAgencyCatalogDraft,
+} from "../app/lib/catalog-assistant.server";
 import { reviewRowsAreValid } from "../app/components/catalog-assistant";
 import type { AgencyCatalogGenerator } from "@/ports/AgencyCatalogGenerator";
 
@@ -22,6 +26,20 @@ const generator: AgencyCatalogGenerator = {
 };
 
 describe("agency catalog assistant orchestration", () => {
+  it("reports configuration availability before the assistant accepts input", () => {
+    expect(catalogAssistantAvailable({ AI_PROVIDER: "mock" })).toBe(false);
+    expect(catalogAssistantAvailable({ AI_PROVIDER: "deepseek" })).toBe(false);
+    expect(catalogAssistantAvailable({ AI_PROVIDER: "deepseek", DEEPSEEK_API_KEY: "test" })).toBe(true);
+  });
+
+  it("turns validation internals into plain user-facing guidance", () => {
+    const raw = new Error('[{"code":"custom","message":"Enter an agency website or a summary of at least 10 characters."}]');
+    expect(catalogAssistantError(raw)).toBe(
+      "Enter an agency website or a summary of at least 10 characters.",
+    );
+    expect(catalogAssistantError(new Error("The AI catalog assistant is not available in this environment."))).toMatch(/not available/i);
+  });
+
   it("does not mistake blank review prices for explicit zero-dollar prices", () => {
     expect(reviewRowsAreValid([{ selected: true, name: "Web Design", description: "A complete website for the client.", priceMin: "", priceMax: "" }])).toBe(false);
     expect(reviewRowsAreValid([{ selected: true, name: "Web Design", description: "A complete website for the client.", priceMin: "0", priceMax: "0" }])).toBe(true);

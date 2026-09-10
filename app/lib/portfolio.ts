@@ -1,4 +1,4 @@
-import type { Opportunity } from "@/core/schema";
+import type { EvidenceBundle, Opportunity } from "@/core/schema";
 import type { AnalysisOutcome } from "@/core/analysisOutcome";
 
 /**
@@ -33,19 +33,24 @@ export function isSnoozeExpired(opp: Opportunity, now: Date): boolean {
 
 export type ClientState =
   | "attention" // analyzed, open billable work waiting
-  | "clean" // analyzed successfully, nothing to sell right now
+  | "reviewed" // findings were recorded, but commercial workflow is closed/paused
+  | "clean" // a completed analysis found no billable work
   | "inconclusive" // the site could not be read well enough to claim anything
   | "never"; // no analysis has been run
+
+export type EvidenceReadState = "readable" | "unreadable";
 
 export const CLIENT_STATE_ORDER: Record<ClientState, number> = {
   attention: 0,
   inconclusive: 1,
-  never: 2,
-  clean: 3,
+  reviewed: 2,
+  never: 3,
+  clean: 4,
 };
 
 export const CLIENT_STATE_LABEL: Record<ClientState, string> = {
   attention: "Needs attention",
+  reviewed: "Findings reviewed",
   clean: "Clean",
   inconclusive: "Could not analyze",
   never: "Not analyzed",
@@ -61,11 +66,25 @@ export const CLIENT_STATE_LABEL: Record<ClientState, string> = {
 export function clientState(input: {
   outcome: AnalysisOutcome | null;
   openCount: number;
+  evidenceState?: EvidenceReadState | null;
 }): ClientState {
   if (input.openCount > 0) return "attention";
-  if (input.outcome === null) return "never";
+  if (input.outcome === null) {
+    return input.evidenceState === "unreadable" ? "inconclusive" : "never";
+  }
   if (input.outcome === "inconclusive") return "inconclusive";
+  if (input.outcome === "findings") return "reviewed";
   return "clean";
+}
+
+/** Classify persisted crawl evidence without turning a read into an analysis. */
+export function evidenceReadState(evidence: EvidenceBundle | null): EvidenceReadState | null {
+  if (!evidence) return null;
+  return evidence.site.pages.some(
+    (page) => page.status >= 200 && page.status < 300 && page.wordCount > 0,
+  )
+    ? "readable"
+    : "unreadable";
 }
 
 export interface PortfolioTotals {

@@ -404,7 +404,7 @@ describe("client report snapshots", () => {
     client.name = "Changed Client";
 
     expect(stored.public.recommendedProjects[0]?.title).toBe(
-      "Service expansion opportunity",
+      "Water Heater Repair service page",
     );
     expect(stored.public.recommendedProjects[0]?.underlyingOpportunityValue).toBeNull();
     expect(stored.public.recommendedProjects[0]?.findings[0]?.evidence[0]?.url).toBe(

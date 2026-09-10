@@ -39,7 +39,7 @@ export const TOUR_STEPS: TourStep[] = [
     title: "What Axiom Orbit does",
     body: [
       "It reads the websites of clients you already look after, compares each site against what that business actually sells, and surfaces work you could legitimately bill for.",
-      "Everything it raises comes with the evidence it was based on, so you can take it into a client conversation without checking it yourself first.",
+      "Everything it raises comes with the website evidence it was based on. Review the sources and commercial fit before taking it into a client conversation.",
     ],
   },
   {
@@ -47,7 +47,7 @@ export const TOUR_STEPS: TourStep[] = [
     title: "Opportunities is the working screen",
     body: [
       "Findings across your whole portfolio: the work you could sell first, with site-health checks kept underneath it. Once you start marking findings sold, the order follows what you actually sell. Select one to see the case for it: what was found, why it matters to that client, and what the job would be.",
-      "This is the only screen you need day to day. The other two exist to feed it.",
+      "This is the day-to-day working screen. Clients holds account context, while Settings holds your services, monitoring, team, and workspace controls.",
     ],
     highlight: "/opportunities",
   },
@@ -55,7 +55,7 @@ export const TOUR_STEPS: TourStep[] = [
     icon: "shield",
     title: "Nothing is claimed without evidence",
     body: [
-      "Every finding carries a confidence figure and the pages it was read from. A gap is only raised after a targeted check confirms it — a small crawl is not treated as proof that something is absent.",
+      "Every finding shows what was checked, when it was checked, and which sources support it. Review that evidence before you decide the work is useful and billable.",
       "If the evidence is thin, the finding says so rather than rounding up.",
     ],
   },

@@ -429,8 +429,13 @@ export function SidePanel({
   children: ReactNode;
 }) {
   const panel = useRef<HTMLElement>(null);
+  const onCloseRef = useRef(onClose);
   const titleId = useId();
   const descriptionId = useId();
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     if (!open) return;
@@ -449,7 +454,7 @@ export function SidePanel({
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         event.stopPropagation();
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (event.key !== "Tab") return;
@@ -482,7 +487,7 @@ export function SidePanel({
       document.body.style.overflow = previousOverflow;
       opener?.focus?.();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 
@@ -635,12 +640,13 @@ export function pluralize(count: number, one: string, many: string): string {
 
 const STATE_TITLE: Record<ClientState, string> = {
   attention: "Needs attention",
+  reviewed: "Findings recorded — workflow reviewed",
   clean: "Analyzed — clean",
   inconclusive: "Could not be analyzed",
   never: "Not analyzed yet",
 };
 
-/** The portfolio's four client states, as one consistent visual token. */
+/** The portfolio's client states, as one consistent visual token. */
 export function StateDot({ state }: { state: ClientState }) {
   return (
     <span className={"state-dot " + state} title={STATE_TITLE[state]}>

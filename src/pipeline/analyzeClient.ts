@@ -167,8 +167,15 @@ function reconcile(prior: Opportunity | undefined, fresh: Opportunity): Opportun
       ...fresh,
       id: prior.id,
       status: "pitched",
+      proposalMd: prior.proposalMd,
       acceptedAt: prior.acceptedAt,
+      proposalPreparedAt: prior.proposalPreparedAt,
       pitchedAt: prior.pitchedAt,
+      // A visibly corrected sold/lost outcome returns to pitched, but its
+      // terminal values remain audit history. Re-analysis must not erase them.
+      soldAt: prior.soldAt,
+      soldAmount: prior.soldAmount,
+      lostAt: prior.lostAt,
     };
   }
   return { ...fresh, id: prior.id };

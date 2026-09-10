@@ -56,7 +56,7 @@ describe("Signal Desk opportunity presentation", () => {
     expect(html).toContain("Blue Peak HVAC");
     expect(html).toContain("Service Landing Page");
     expect(html).toContain("$900 – $1,800");
-    expect(html).toContain("86%");
+    expect(html).not.toContain("86%");
     expect(html).toContain('class="evidence-strength">Strong evidence</small>');
     expect(html).toContain("Prepare client proposal");
     expect(html).toContain("Open");
@@ -88,6 +88,8 @@ describe("Signal Desk opportunity presentation", () => {
     expect(html).toContain("Why it matters");
     expect(html).toContain("A dedicated page gives high-intent demand somewhere useful to land.");
     expect(html).toContain("Evidence strength");
+    expect(html).toContain("Strong evidence");
+    expect(html).not.toContain("86%");
     expect(html).toContain("Services");
     expect(html).toContain("Prepare client proposal");
     expect(html).toContain("/opportunities/opp-heat-pump");

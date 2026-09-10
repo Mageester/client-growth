@@ -31,9 +31,11 @@ export function reviewRowsAreValid(
 export function CatalogAssistant({
   deferSave = false,
   onCatalogChange,
+  available = true,
 }: {
   deferSave?: boolean;
   onCatalogChange?: (catalog: string) => void;
+  available?: boolean;
 } = {}) {
   const fetcher = useFetcher<DraftResponse>();
   const [rows, setRows] = useState<ReviewRow[]>([]);
@@ -82,7 +84,15 @@ export function CatalogAssistant({
         <Icon name="briefcase" size={20} />
       </div>
 
-      <div className="catalog-assistant-inputs">
+      {!available ? (
+        <div className="notice" role="status">
+          <Icon name="alert" size={15} />
+          <span>
+            The catalog assistant is not available in this environment. Use the starter catalog
+            or add services manually; nothing you enter here is required to continue.
+          </span>
+        </div>
+      ) : <div className="catalog-assistant-inputs">
         <div className="field">
           <label htmlFor="agency-catalog-website">Agency website</label>
           <input id="agency-catalog-website" name="website" type="url" placeholder="https://youragency.com" value={website} onChange={(event) => setWebsite(event.target.value)} />
@@ -94,7 +104,7 @@ export function CatalogAssistant({
         <button className="btn btn-primary" type="button" disabled={busy} onClick={() => fetcher.submit({ intent: "generate-catalog", website, summary }, { method: "post" })}>
           <Icon name="briefcase" size={15} /> {busy ? "Building draft…" : "Build my service catalog"}
         </button>
-      </div>
+      </div>}
 
       {fetcher.data && !fetcher.data.ok && <div className="notice err" role="alert"><Icon name="alert" size={15} /><span>{fetcher.data.error}</span></div>}
       {fetcher.data?.ok && fetcher.data.kind === "catalog-save" && <div className="notice ok" role="status"><Icon name="check" size={15} /><span>{fetcher.data.message}</span></div>}

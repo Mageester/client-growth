@@ -27,6 +27,28 @@ const CatalogRequestSchema = z
     message: "Enter an agency website or a summary of at least 10 characters.",
   });
 
+export function catalogAssistantAvailable(rawEnv: Record<string, unknown>): boolean {
+  return rawEnv.AI_PROVIDER === "deepseek" &&
+    typeof rawEnv.DEEPSEEK_API_KEY === "string" &&
+    rawEnv.DEEPSEEK_API_KEY.trim().length > 0;
+}
+
+/** Keep schema and provider internals out of the product UI. */
+export function catalogAssistantError(error: unknown): string {
+  if (error instanceof z.ZodError) {
+    return error.issues[0]?.message ?? "Check the catalog details and try again.";
+  }
+  const message = error instanceof Error ? error.message : "Catalog generation failed.";
+  try {
+    const decoded = JSON.parse(message) as Array<{ message?: unknown }>;
+    const first = Array.isArray(decoded) ? decoded[0]?.message : undefined;
+    if (typeof first === "string" && first.trim()) return first;
+  } catch {
+    // The message is already ordinary prose.
+  }
+  return message;
+}
+
 interface CatalogCrawlResult {
   pages: AgencyCatalogGenerationPage[];
   limitation?: string;

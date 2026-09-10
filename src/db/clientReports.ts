@@ -40,6 +40,14 @@ export interface ClientReportSharePublic {
   snapshot: ClientReportPublicSnapshot;
 }
 
+export interface ClientReportShareSummary {
+  shareId: string;
+  reportId: string;
+  createdAt: string;
+  expiresAt: string;
+  revokedAt: string | null;
+}
+
 export type ClientReportErrorCode =
   | "not-found"
   | "not-owner"
@@ -75,6 +83,14 @@ interface ClientReportShareRow {
   expires_at: string;
   revoked_at: string | null;
   snapshot: string;
+}
+
+interface ClientReportShareSummaryRow {
+  id: string;
+  report_id: string;
+  created_at: string;
+  expires_at: string;
+  revoked_at: string | null;
 }
 
 interface WorkspaceOwnerRow {
@@ -134,6 +150,9 @@ function parseStoredSnapshot(value: string): ClientReportStoredSnapshot | null {
       !parsed.public.agency ||
       typeof parsed.public.agency.name !== "string" ||
       (parsed.public.agency.logo !== null && typeof parsed.public.agency.logo !== "string") ||
+      (parsed.public.agency.contactEmail !== undefined &&
+        parsed.public.agency.contactEmail !== null &&
+        typeof parsed.public.agency.contactEmail !== "string") ||
       typeof parsed.public.preparedBy !== "string" ||
       (parsed.public.evidenceReviewedAt !== null && typeof parsed.public.evidenceReviewedAt !== "string") ||
       typeof parsed.public.notice !== "string" ||
@@ -161,6 +180,7 @@ function parseStoredSnapshot(value: string): ClientReportStoredSnapshot | null {
         agency: {
           ...parsed.public.agency,
           theme: normalizeReportTheme(parsed.public.agency.theme),
+          contactEmail: parsed.public.agency.contactEmail ?? null,
         },
       },
     };
@@ -210,6 +230,10 @@ function publicProjection(snapshot: ClientReportStoredSnapshot): ClientReportPub
       name: value.agency.name,
       logo: safeLogo(value.agency.logo),
       theme: normalizeReportTheme(value.agency.theme),
+      contactEmail:
+        typeof value.agency.contactEmail === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.agency.contactEmail)
+          ? value.agency.contactEmail
+          : null,
     },
     client: { name: value.client.name, domain: value.client.domain },
     preparedBy: value.preparedBy,
@@ -417,6 +441,45 @@ export async function getClientReportById(
   return row ? toRecord(row) : null;
 }
 
+export async function listClientReports(
+  t: TenantScope,
+  clientId: string,
+): Promise<ClientReportRecord[]> {
+  const rows = await t.db
+    .prepare(
+      `SELECT id, workspace_id, client_id, created_by_user_id, generated_at,
+              evidence_reviewed_at, snapshot
+       FROM client_report_snapshots
+       WHERE workspace_id = ? AND client_id = ?
+       ORDER BY generated_at DESC, id DESC`,
+    )
+    .bind(t.workspaceId, clientId)
+    .all<ClientReportRow>();
+  return rows.map(toRecord).filter((report): report is ClientReportRecord => report !== null);
+}
+
+export async function listClientReportShares(
+  t: TenantScope,
+  reportId: string,
+): Promise<ClientReportShareSummary[]> {
+  const rows = await t.db
+    .prepare(
+      `SELECT id, report_id, created_at, expires_at, revoked_at
+       FROM client_report_shares
+       WHERE workspace_id = ? AND report_id = ?
+       ORDER BY created_at DESC, id DESC`,
+    )
+    .bind(t.workspaceId, reportId)
+    .all<ClientReportShareSummaryRow>();
+  return rows.map((row) => ({
+    shareId: row.id,
+    reportId: row.report_id,
+    createdAt: row.created_at,
+    expiresAt: row.expires_at,
+    revokedAt: row.revoked_at,
+  }));
+}
+
 export async function createClientReportShare(
   t: TenantScope,
   reportId: string,
@@ -518,4 +581,26 @@ export async function revokeClientReportShares(
     .bind(now.toISOString(), t.workspaceId, report.reportId)
     .run();
   return result.rowsAffected;
+}
+
+export async function revokeClientReportShare(
+  t: TenantScope,
+  reportId: string,
+  shareId: string,
+  input: { actingUserId: string; now?: Date },
+): Promise<boolean> {
+  await requireOwner(t, input.actingUserId);
+  const report = await getClientReportById(t, reportId);
+  if (!report) throw new ClientReportError("not-found", "Report not found.");
+  const now = input.now ?? new Date();
+  assertValidDate(now);
+  const result = await t.db
+    .prepare(
+      `UPDATE client_report_shares
+       SET revoked_at = ?
+       WHERE id = ? AND workspace_id = ? AND report_id = ? AND revoked_at IS NULL`,
+    )
+    .bind(now.toISOString(), shareId, t.workspaceId, report.reportId)
+    .run();
+  return result.rowsAffected === 1;
 }

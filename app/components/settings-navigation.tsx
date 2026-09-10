@@ -7,7 +7,7 @@ import { Icon, type IconName } from "./ui";
  * The secondary navigation for everything that is configuration rather than
  * work: the workspace, the service catalog, monitoring, the team, billing, and
  * the reliability of the checks themselves. Keeping these here is what lets the
- * primary sidebar stay at four destinations.
+ * primary sidebar stay focused on the main work destinations.
  *
  * Three of these are sections of the Settings page rather than separate routes.
  * The highlight follows the section actually on screen, so it never claims you
@@ -37,8 +37,8 @@ const SETTINGS_LINKS: Array<{
   {
     key: "monitoring",
     to: "/settings#monitoring",
-    label: "Integrations",
-    description: "Connected tools",
+    label: "Monitoring",
+    description: "Schedule and digest",
     icon: "link",
     section: "monitoring",
   },
@@ -69,8 +69,8 @@ const SETTINGS_LINKS: Array<{
   {
     key: "account",
     to: "/settings#account",
-    label: "Billing",
-    description: "Plans and payments",
+    label: "Account & pilot",
+    description: "Access and account status",
     icon: "document",
     section: "account",
   },

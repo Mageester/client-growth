@@ -206,6 +206,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     ok: true as const,
     stage: "complete" as const,
     imported: checked.rows.length,
+    clients: clients.map((client) => ({ id: client.id, name: client.name })),
   };
 }
 
@@ -221,6 +222,7 @@ export default function ClientsImport({ loaderData, actionData }: Route.Componen
   const navigation = useNavigation();
   const busy = navigation.state !== "idle";
   const [csv, setCsv] = useState("");
+  const [fileError, setFileError] = useState("");
   const preview = actionData?.stage === "preview" ? (actionData as PreviewData) : null;
   const previewIsCurrent = preview !== null && preview.raw === csv;
 
@@ -253,12 +255,23 @@ export default function ClientsImport({ loaderData, actionData }: Route.Componen
       </div>
 
       {actionData?.stage === "complete" && (
-        <div className="notice ok" role="status">
+        <div className="notice ok import-complete" role="status">
           <Icon name="check" size={15} />
-          <span>
+          <div>
             Imported {actionData.imported} {actionData.imported === 1 ? "client" : "clients"}.
             Nothing was crawled or analyzed.
-          </span>
+            <div className="form-actions">
+              {actionData.clients.length === 1 && (
+                <Link className="btn btn-sm btn-primary" to={`/clients/${actionData.clients[0]!.id}`}>
+                  Open {actionData.clients[0]!.name}
+                </Link>
+              )}
+              <Link className="btn btn-sm" to="/clients">
+                View imported clients
+              </Link>
+            </div>
+            <p className="field-hint">Choose a client, review its context, then run its first analysis.</p>
+          </div>
         </div>
       )}
       {actionData?.stage === "input" && (
@@ -271,7 +284,7 @@ export default function ClientsImport({ loaderData, actionData }: Route.Componen
       <section className="section">
         <div className="section-head">
           <div>
-            <h2 className="title-section">Paste your client list</h2>
+            <h2 className="title-section">Add your client list</h2>
             <p>
               {loaderData.existingCount} {loaderData.existingCount === 1 ? "client is" : "clients are"}{" "}
               already in this workspace. Existing domains are never overwritten.
@@ -298,6 +311,38 @@ export default function ClientsImport({ loaderData, actionData }: Route.Componen
 
         <Form method="post">
           <input type="hidden" name="intent" value="preview" />
+          <div className="field client-import-file">
+            <label htmlFor="client-import-file">Choose a CSV file</label>
+            <input
+              id="client-import-file"
+              type="file"
+              accept=".csv,text/csv"
+              onChange={async (event) => {
+                const file = event.currentTarget.files?.[0];
+                if (!file) return;
+                if (file.size > MAX_CLIENT_IMPORT_BYTES) {
+                  setFileError(`Keep the CSV under ${Math.round(MAX_CLIENT_IMPORT_BYTES / 1024)} KB.`);
+                  return;
+                }
+                setFileError("");
+                setCsv(await file.text());
+              }}
+              aria-describedby="client-import-file-help"
+            />
+            <div id="client-import-file-help" className="field-hint">
+              The file is read in this browser and placed in the review box below. Nothing is
+              imported until you preview and confirm it.
+            </div>
+            {fileError && <div className="notice err" role="alert">{fileError}</div>}
+            <a
+              className="link"
+              download="axiom-orbit-client-import-template.csv"
+              href="data:text/csv;charset=utf-8,name%2Cdomain%2Cofferings%0ANorthwind%20Heating%2Cnorthwind.example%2C%22heat%20pumps%3B%20duct%20cleaning%22"
+            >
+              Download example CSV
+            </a>
+          </div>
+          <div className="import-divider" aria-hidden="true"><span>or paste</span></div>
           <div className="field">
             <label htmlFor="client-import-csv">CSV rows</label>
             <textarea

@@ -7,6 +7,7 @@ import {
   CLIENT_STATE_LABEL,
   CLIENT_STATE_ORDER,
   clientState,
+  evidenceReadState,
   totalsFor,
 } from "../lib/portfolio";
 import {
@@ -41,10 +42,11 @@ function slugId(name: string): string {
 export async function loader({ request, context }: Route.LoaderArgs) {
   const t = await requireTenant(request, context);
   // Three queries regardless of portfolio size.
-  const [clients, runsByClient, oppsByClient] = await Promise.all([
+  const [clients, runsByClient, oppsByClient, evidenceByClient] = await Promise.all([
     repo.listClients(t.scope),
     repo.latestAnalysisRunByClient(t.scope),
     repo.listOpportunitiesByClient(t.scope),
+    repo.latestEvidenceByClient(t.scope),
   ]);
   const enriched = clients.map((client) => {
     const totals = totalsFor(oppsByClient.get(client.id) ?? []);
@@ -54,7 +56,11 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       totals,
       lastRunAt: run?.finishedAt ?? null,
       runSummary: run?.summary ?? null,
-      state: clientState({ outcome: run?.outcome ?? null, openCount: totals.open }),
+      state: clientState({
+        outcome: run?.outcome ?? null,
+        openCount: totals.open,
+        evidenceState: evidenceReadState(evidenceByClient.get(client.id) ?? null),
+      }),
     };
   });
   return { clients: enriched };

@@ -64,7 +64,7 @@ export default function Operations({ loaderData: d }: Route.ComponentProps) {
         <div className="pagehead-copy">
           <span className="eyebrow">Settings</span>
           <h1 className="title-page">Settings</h1>
-          <p className="summary-line">Manage your workspace, services, and integrations.</p>
+          <p className="summary-line">Manage your workspace, services, monitoring, team, and account.</p>
         </div>
       </div>
 
@@ -129,7 +129,7 @@ export default function Operations({ loaderData: d }: Route.ComponentProps) {
                 </dd>
               </div>
               <div className="kv-row">
-                <dt>Evaluation errors</dt>
+                <dt>Findings that could not be assessed</dt>
                 <dd>{d.current.evaluatorErrors}</dd>
               </div>
               <div className="kv-row">
@@ -137,21 +137,24 @@ export default function Operations({ loaderData: d }: Route.ComponentProps) {
                 <dd>{d.failedStarts}</dd>
               </div>
               <div className="kv-row">
-                <dt>Evaluator calls recorded</dt>
+                <dt>Automated review checks recorded</dt>
                 <dd>{d.current.evaluatorCalls}</dd>
               </div>
             </dl>
-            <p className="faint">
-              An alert appears with at least five checks when half are inconclusive and the rate rose
-              by 20 percentage points, there is no earlier baseline, or the rate is at least 80%.
-            </p>
+            <details>
+              <summary>Technical alert criteria</summary>
+              <p className="faint">
+                An alert appears with at least five checks when half are inconclusive and the rate rose
+                by 20 percentage points, there is no earlier baseline, or the rate is at least 80%.
+              </p>
+            </details>
           </section>
 
           <section className="section">
             <h2 className="title-section">Checks to investigate</h2>
             {d.recentErrors.length === 0 ? (
               <p className="prose">
-                No recorded inconclusive checks or evaluation errors in this window. This is not a
+                No recorded inconclusive checks or assessment errors in this window. This is not a
                 claim that every client was checked.
               </p>
             ) : (
@@ -160,7 +163,7 @@ export default function Operations({ loaderData: d }: Route.ComponentProps) {
                   <li key={r.id}>
                     <b>{r.clientName}</b> · {formatDate(r.finishedAt)}
                     <p>{r.summary}</p>
-                    <p className="faint">{r.evaluatorErrors} evaluation errors</p>
+                    <p className="faint">{r.evaluatorErrors} findings could not be assessed</p>
                   </li>
                 ))}
               </ul>

@@ -42,6 +42,7 @@ export interface ProposalShareSnapshot {
   agencyName: string;
   logo: string | null;
   preparedBy: string;
+  contactEmail: string | null;
   clientName: string;
   clientDomain: string;
   proposalMd: string;
@@ -275,6 +276,7 @@ function buildSnapshot(input: {
   agencyName: string;
   logo: string | null;
   preparedBy: string;
+  contactEmail: string | null;
   client: { name: string; domain: string };
   opportunity: Opportunity;
   serviceName: string | null;
@@ -283,6 +285,7 @@ function buildSnapshot(input: {
     agencyName: input.agencyName,
     logo: input.logo,
     preparedBy: input.preparedBy.trim() || "Axiom Orbit",
+    contactEmail: input.contactEmail,
     clientName: input.client.name,
     clientDomain: input.client.domain,
     proposalMd: input.opportunity.proposalMd ?? "",
@@ -304,7 +307,7 @@ function buildSnapshot(input: {
 export async function createProposalShare(
   t: TenantScope,
   opportunityId: string,
-  input: { createdByUserId: string; preparedBy: string; now?: Date },
+  input: { createdByUserId: string; preparedBy: string; contactEmail?: string | null; now?: Date },
 ): Promise<ProposalShareCreated> {
   const workspace = await requireOwner(t, input.createdByUserId);
   const now = input.now ?? new Date();
@@ -334,6 +337,7 @@ export async function createProposalShare(
     agencyName: workspace.name,
     logo: branding.logo,
     preparedBy: input.preparedBy,
+    contactEmail: input.contactEmail?.trim() || null,
     client,
     opportunity,
     serviceName: service?.name ?? null,
@@ -384,6 +388,7 @@ function parseSnapshot(value: string): ProposalShareSnapshot | null {
       !parsed ||
       typeof parsed.agencyName !== "string" ||
       typeof parsed.preparedBy !== "string" ||
+      (parsed.contactEmail !== undefined && parsed.contactEmail !== null && typeof parsed.contactEmail !== "string") ||
       typeof parsed.clientName !== "string" ||
       typeof parsed.clientDomain !== "string" ||
       typeof parsed.proposalMd !== "string" ||
@@ -397,7 +402,7 @@ function parseSnapshot(value: string): ProposalShareSnapshot | null {
     }
     const logo = validateLogo(parsed.logo);
     if (!logo.ok) return null;
-    return parsed;
+    return { ...parsed, contactEmail: parsed.contactEmail ?? null };
   } catch {
     return null;
   }
@@ -491,4 +496,24 @@ export async function revokeProposalShares(
     .bind(now.toISOString(), t.workspaceId, opportunityId)
     .run();
   return result.rowsAffected;
+}
+
+export async function revokeProposalShare(
+  t: TenantScope,
+  opportunityId: string,
+  shareId: string,
+  input: { actingUserId: string; now?: Date },
+): Promise<boolean> {
+  await requireOwner(t, input.actingUserId);
+  const now = input.now ?? new Date();
+  assertValidDate(now);
+  const result = await t.db
+    .prepare(
+      `UPDATE proposal_shares
+       SET revoked_at = ?
+       WHERE id = ? AND workspace_id = ? AND opportunity_id = ? AND revoked_at IS NULL`,
+    )
+    .bind(now.toISOString(), shareId, t.workspaceId, opportunityId)
+    .run();
+  return result.rowsAffected === 1;
 }

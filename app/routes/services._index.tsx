@@ -22,6 +22,8 @@ import { requireTenant } from "../lib/session.server";
 import { SettingsNavigation } from "../components/settings-navigation";
 import { validateServiceInput } from "../lib/validation";
 import {
+  catalogAssistantAvailable,
+  catalogAssistantError,
   generateAgencyCatalogDraft,
   servicesFromReviewedCatalog,
 } from "../lib/catalog-assistant.server";
@@ -46,6 +48,14 @@ export function meta() {
 const MATCHES = RULE_SERVICE_LINKS;
 
 type MatchTag = (typeof MATCHES)[number]["tag"];
+type ServiceErrorField = "name" | "priceMin" | "priceMax" | "description";
+
+function serviceErrorField(problem: string): ServiceErrorField {
+  if (/name/i.test(problem)) return "name";
+  if (/description/i.test(problem)) return "description";
+  if (/top of the range|price.*typo/i.test(problem)) return "priceMax";
+  return "priceMin";
+}
 
 const MATCH_LABEL: Record<string, string> = Object.fromEntries(
   MATCHES.map((match) => [match.tag, match.label]),
@@ -64,9 +74,20 @@ function slugId(name: string): string {
   return "svc-" + (base || "service") + "-" + Math.random().toString(36).slice(2, 6);
 }
 
+export function serviceDraftStorageKey(workspaceId: string, userId: string): string {
+  return `axiom-orbit:new-service-draft:${encodeURIComponent(workspaceId)}:${encodeURIComponent(userId)}`;
+}
+
 export async function loader({ request, context }: Route.LoaderArgs) {
   const t = await requireTenant(request, context);
-  return { services: await repo.listServices(t.scope) };
+  return {
+    services: await repo.listServices(t.scope),
+    workspaceId: t.workspace.id,
+    userId: t.userId,
+    catalogAssistantAvailable: catalogAssistantAvailable(
+      context.cloudflare.env as unknown as Record<string, unknown>,
+    ),
+  };
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
@@ -90,7 +111,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       return {
         ok: false as const,
         kind: "catalog-draft" as const,
-        error: error instanceof Error ? error.message : "Catalog generation failed.",
+        error: catalogAssistantError(error),
       };
     }
   }
@@ -134,7 +155,9 @@ export async function action({ request, context }: Route.ActionArgs) {
       description: String(form.get("description") ?? "").trim(),
     };
     const problem = validateServiceInput(input);
-    if (problem) return { ok: false as const, error: problem };
+    if (problem) {
+      return { ok: false as const, error: problem, field: serviceErrorField(problem) };
+    }
 
     const idInput = String(form.get("id") ?? "").trim();
     const existing = idInput ? await repo.getService(t.scope, idInput) : null;
@@ -176,6 +199,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
 export default function ServicesIndex({ loaderData, actionData }: Route.ComponentProps) {
   const { services } = loaderData;
+  const draftStorageKey = serviceDraftStorageKey(loaderData.workspaceId, loaderData.userId);
   const navigation = useNavigation();
   const busy = navigation.state !== "idle";
   const [editing, setEditing] = useState<Service | "new" | null>(null);
@@ -186,9 +210,14 @@ export default function ServicesIndex({ loaderData, actionData }: Route.Componen
       submitted.current = true;
     } else if (navigation.state === "idle" && submitted.current) {
       submitted.current = false;
-      if (actionData?.ok) setEditing(null);
+      if (actionData?.ok) {
+        if (editing === "new") {
+          try { window.sessionStorage.removeItem(draftStorageKey); } catch {}
+        }
+        setEditing(null);
+      }
     }
-  }, [navigation.state, actionData]);
+  }, [navigation.state, actionData, draftStorageKey, editing]);
 
   const active = services.filter((service) => service.active);
   const unmatched = active.filter((service) => matchesOf(service).length === 0);
@@ -209,7 +238,7 @@ export default function ServicesIndex({ loaderData, actionData }: Route.Componen
         <div className="pagehead-copy">
           <span className="eyebrow">Settings</span>
           <h1 className="title-page">Settings</h1>
-          <p className="summary-line">Manage your workspace, services, and integrations.</p>
+          <p className="summary-line">Manage your workspace, services, monitoring, team, and account.</p>
         </div>
       </div>
 
@@ -229,7 +258,7 @@ export default function ServicesIndex({ loaderData, actionData }: Route.Componen
             )}
           </div>
 
-          <CatalogAssistant />
+          <CatalogAssistant available={loaderData.catalogAssistantAvailable} />
 
       {actionData?.ok && (
         <div className="notice ok" role="status">
@@ -237,7 +266,7 @@ export default function ServicesIndex({ loaderData, actionData }: Route.Componen
           <span>{actionData.message}</span>
         </div>
       )}
-      {actionData && !actionData.ok && (
+      {actionData && !actionData.ok && !("field" in actionData && actionData.field) && (
         <div className="notice err" role="alert">
           <Icon name="alert" size={15} />
           <span>{actionData.error}</span>
@@ -330,7 +359,13 @@ export default function ServicesIndex({ loaderData, actionData }: Route.Componen
               key={editing === "new" ? "new" : editing.id}
               service={editing === "new" ? undefined : editing}
               busy={busy}
+              draftStorageKey={draftStorageKey}
               onCancel={() => setEditing(null)}
+              error={
+                actionData && !actionData.ok && "field" in actionData
+                  ? { message: actionData.error, field: actionData.field as ServiceErrorField }
+                  : undefined
+              }
             />
           </>
         )}
@@ -393,15 +428,22 @@ function ServiceRow({
 function ServiceForm({
   service,
   busy,
+  draftStorageKey,
   onCancel,
+  error,
 }: {
   service?: Service;
   busy: boolean;
+  draftStorageKey: string;
   onCancel: () => void;
+  error?: { message: string; field: ServiceErrorField };
 }) {
   const prefix = service ? service.id.replace(/[^a-z0-9_-]/gi, "-") : "new-service";
   const [name, setName] = useState(service?.name ?? "");
   const [description, setDescription] = useState(service?.description ?? "");
+  const [priceMin, setPriceMin] = useState(String(service?.priceMin ?? 0));
+  const [priceMax, setPriceMax] = useState(String(service?.priceMax ?? 0));
+  const [draftReady, setDraftReady] = useState(Boolean(service));
   const [manualMatches, setManualMatches] = useState(
     Boolean(service && matchesOf(service).length > 0),
   );
@@ -411,6 +453,40 @@ function ServiceForm({
   const suggestions = suggestServiceTags({ name, description });
   const proposedMatches = suggestions.map((suggestion) => suggestion.tag);
   const effectiveMatches = manualMatches ? selectedMatches : proposedMatches;
+
+  useEffect(() => {
+    if (service) return;
+    try {
+      const stored = window.sessionStorage.getItem(draftStorageKey);
+      if (stored) {
+        const draft = JSON.parse(stored) as Partial<Record<"name" | "description" | "priceMin" | "priceMax", string>>;
+        setName(draft.name ?? "");
+        setDescription(draft.description ?? "");
+        setPriceMin(draft.priceMin ?? "0");
+        setPriceMax(draft.priceMax ?? "0");
+      }
+    } catch {
+      // Private browsing can disable session storage; the live form still works.
+    }
+    setDraftReady(true);
+  }, [draftStorageKey, service]);
+
+  useEffect(() => {
+    if (service || !draftReady) return;
+    try {
+      window.sessionStorage.setItem(
+        draftStorageKey,
+        JSON.stringify({ name, description, priceMin, priceMax }),
+      );
+    } catch {
+      // Draft persistence is a convenience, not a requirement for saving.
+    }
+  }, [description, draftReady, draftStorageKey, name, priceMax, priceMin, service]);
+
+  useEffect(() => {
+    if (!error) return;
+    document.getElementById(`${prefix}-${error.field === "priceMin" ? "min" : error.field === "priceMax" ? "max" : error.field}`)?.focus();
+  }, [error, prefix]);
 
   const toggleMatch = (tag: string, checked: boolean) => {
     setManualMatches(true);
@@ -439,9 +515,13 @@ function ServiceForm({
           value={name}
           onChange={(event) => setName(event.target.value)}
           placeholder="Service Landing Page"
+          aria-describedby={error?.field === "name" ? `${prefix}-name-error` : undefined}
           required
           autoComplete="off"
         />
+        {error?.field === "name" && (
+          <div className="field-error" id={`${prefix}-name-error`} role="alert">{error.message}</div>
+        )}
       </div>
       <div className="field-row">
         <div className="field">
@@ -453,7 +533,8 @@ function ServiceForm({
             min={0}
             step={50}
             inputMode="numeric"
-            defaultValue={service?.priceMin ?? 0}
+            value={priceMin}
+            onChange={(event) => setPriceMin(event.target.value)}
             required
           />
         </div>
@@ -466,11 +547,18 @@ function ServiceForm({
             min={0}
             step={50}
             inputMode="numeric"
-            defaultValue={service?.priceMax ?? 0}
+            value={priceMax}
+            onChange={(event) => setPriceMax(event.target.value)}
+            aria-describedby={error?.field === "priceMax" ? `${prefix}-price-error` : undefined}
             required
           />
         </div>
       </div>
+      {error && (error.field === "priceMin" || error.field === "priceMax") && (
+        <div className="field-error" id={`${prefix}-price-error`} role="alert">
+          {error.message}
+        </div>
+      )}
       <div className="field">
         <label htmlFor={prefix + "-description"}>What the client gets</label>
         <textarea
@@ -482,6 +570,7 @@ function ServiceForm({
           placeholder="A dedicated, conversion-focused page for one service line: copy, on-page SEO, and a lead-capture call to action."
         />
         <div className="field-hint">This wording is reused verbatim in proposal drafts.</div>
+        {error?.field === "description" && <div className="field-error" role="alert">{error.message}</div>}
       </div>
       {effectiveMatches.length > 0 && suggestions.length > 0 ? (
         <div className="notice service-tag-proposal" role="status">

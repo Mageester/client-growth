@@ -232,14 +232,16 @@ describe("onboarding stage one: read the site, judge nothing", () => {
     expect(html.indexOf("Your first client")).toBeLessThan(html.indexOf("Review starter pricing"));
     expect(html.indexOf('name="clientName"')).toBeLessThan(html.indexOf("Review starter pricing"));
     expect(html.indexOf('name="clientDomain"')).toBeLessThan(html.indexOf("Review starter pricing"));
+    expect(html.indexOf('name="clientDomain"')).toBeLessThan(html.indexOf("AI catalog assistant"));
   });
 
-  it("explains the default pricing and the crawl-only confirmation gate", () => {
+  it("explains the default pricing and the website-read confirmation gate", () => {
     const html = renderSetupMarkup();
 
     expect(html).toMatch(/defaults (?:are )?used to price early findings/i);
     expect(html).toMatch(/reviewed before analysis/i);
-    expect(html).toMatch(/first action is a crawl-only read/i);
+    expect(html).toMatch(/first action is a website read/i);
+    expect(html).not.toMatch(/crawl-only/i);
     expect(html).toMatch(/analysis runs after you confirm/i);
   });
 
@@ -284,18 +286,18 @@ describe("onboarding stage one: read the site, judge nothing", () => {
 
     const details = html.slice(detailsStart, detailsEnd);
     const starters = [
-      "Service Landing Page",
-      "Service Pages Build",
-      "Competitor Gap Page",
-      "Conversion Path Fix",
-      "Page Title Repair",
-      "Duplicate Title Repair",
-      "Thin Service Page",
-      "H1 Heading Repair",
-      "Internal Link Repair",
-      "Meta Description Repair",
-      "LocalBusiness or Service Schema",
-      "Image Alt Attribute Repair",
+      "Dedicated Service Page",
+      "Service Website Structure",
+      "Competitive Service Page",
+      "Conversion Journey Repair",
+      "Search-Friendly Page Titles",
+      "Unique Page Titles",
+      "Service Page Content Expansion",
+      "Clear Page Headings",
+      "Broken Link Repair",
+      "Search Snippet Copy",
+      "Local Service Structured Data",
+      "Accessible Image Descriptions",
     ];
     for (const name of starters) {
       expect(details).toContain(`aria-label="${name} minimum price"`);

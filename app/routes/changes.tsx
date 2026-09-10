@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import { portfolioChanges } from "@/db/portfolioChanges";
 import * as repo from "@/db/repositories";
 import { buildActionCenter, buildRecentActivity, type ActionQueueItem } from "../lib/actionCenter";
-import { sumTotals, totalsFor } from "../lib/portfolio";
+import { evidenceReadState, sumTotals, totalsFor } from "../lib/portfolio";
 import {
   formatCompactRange,
   formatCurrencyRange,
@@ -22,17 +22,21 @@ export function meta() {
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const tenant = await requireTenant(request, context);
-  const [changes, clients, runsByClient, opportunitiesByClient, services] = await Promise.all([
+  const [changes, clients, runsByClient, opportunitiesByClient, services, evidenceByClient] = await Promise.all([
     portfolioChanges(tenant.scope),
     repo.listClients(tenant.scope),
     repo.latestAnalysisRunByClient(tenant.scope),
     repo.listOpportunitiesByClient(tenant.scope),
     repo.listServices(tenant.scope),
+    repo.latestEvidenceByClient(tenant.scope),
   ]);
   const actionCenter = buildActionCenter({
     clients,
     opportunitiesByClient,
     latestRunsByClient: runsByClient,
+    latestEvidenceStateByClient: new Map(
+      [...evidenceByClient].map(([clientId, evidence]) => [clientId, evidenceReadState(evidence)!]),
+    ),
     serviceNameById: new Map(services.map((service) => [service.id, service.name])),
   });
   const totals = sumTotals(

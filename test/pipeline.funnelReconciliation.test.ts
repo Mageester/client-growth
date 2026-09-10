@@ -98,6 +98,29 @@ describe("re-analysis preserves the funnel", () => {
     expect(kept!.pitchedAt).toBe(PITCHED_AT);
   });
 
+  it.each([
+    { soldAt: "2026-09-03T00:00:00.000Z", soldAmount: 1800 },
+    { lostAt: "2026-09-04T00:00:00.000Z" },
+  ])("keeps corrected terminal history through another analysis", async (history) => {
+    const second = await analyze([
+      {
+        ...surfaced,
+        status: "pitched",
+        acceptedAt: ACCEPTED_AT,
+        pitchedAt: PITCHED_AT,
+        ...history,
+      },
+    ]);
+
+    const kept = second.opportunities.find((o) => o.dedupeKey === surfaced.dedupeKey);
+    expect(kept).toMatchObject({
+      status: "pitched",
+      acceptedAt: ACCEPTED_AT,
+      pitchedAt: PITCHED_AT,
+      ...history,
+    });
+  });
+
   it("never turns accepted or pitched back into new", async () => {
     // lost is terminal and suppressed (see below): it must never re-enter the
     // surfaced queue at all, let alone as new.

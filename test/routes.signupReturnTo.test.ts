@@ -65,6 +65,9 @@ describe("signup invitation return path", () => {
     expect(response.headers.get("location")).toBe(
       "/login?verify=sent&returnTo=%2Finvite%2Ftoken-123",
     );
+    expect(response.headers.get("set-cookie")).toContain(
+      "axiom_verify_email=new%40example.com",
+    );
     expect(authApi.signUpEmail).toHaveBeenCalledWith(
       expect.objectContaining({
         body: {

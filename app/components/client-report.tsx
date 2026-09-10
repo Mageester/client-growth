@@ -173,6 +173,13 @@ export function ClientReportDocument({
   const logo = safeLogo(snapshot.agency.logo);
   const summary = snapshot.executiveSummary;
   const evidenceDate = snapshot.evidenceReviewedAt;
+  let sectionNumber = 2;
+  const prioritiesNumber = snapshot.recommendedProjects.length > 0 ? sectionNumber++ : null;
+  const supportingNumber = snapshot.supportingProjects.length > 0 ? sectionNumber++ : null;
+  const nextStepNumber = sectionNumber++;
+  const freshnessNumber = sectionNumber;
+  const numbered = (value: number, label: string) =>
+    `${String(value).padStart(2, "0")} / ${label}`;
 
   return (
     <article
@@ -233,7 +240,7 @@ export function ClientReportDocument({
       </ReportSection>
 
       {snapshot.recommendedProjects.length > 0 && (
-        <ReportSection eyebrow="02 / Priorities" title="Recommended projects" className="client-report-projects">
+        <ReportSection eyebrow={numbered(prioritiesNumber!, "Priorities")} title="Recommended projects" className="client-report-projects">
           <p className="client-report-section-intro">These are the priorities selected for discussion, ordered by the agency.</p>
           <div className="client-report-project-list">
             {snapshot.recommendedProjects.map((project, index) => (
@@ -244,7 +251,7 @@ export function ClientReportDocument({
       )}
 
       {snapshot.supportingProjects.length > 0 && (
-        <ReportSection eyebrow="03 / Supporting work" title="Supporting website improvements" className="client-report-supporting">
+        <ReportSection eyebrow={numbered(supportingNumber!, "Supporting work")} title="Supporting website improvements" className="client-report-supporting">
           <p className="client-report-section-intro">These improvements support the priorities above and can be scheduled separately.</p>
           <div className="client-report-project-list">
             {snapshot.supportingProjects.map((project, index) => (
@@ -254,16 +261,21 @@ export function ClientReportDocument({
         </ReportSection>
       )}
 
-      <ReportSection eyebrow="04 / Next step" title="A practical next step" className="client-report-next-step">
+      <ReportSection eyebrow={numbered(nextStepNumber, "Next step")} title="A practical next step" className="client-report-next-step">
         <p>{snapshot.nextStep}</p>
         <div className="client-report-next-step-checklist" aria-label="Next step checklist">
           <span>Review priorities</span>
           <span>Confirm scope</span>
           <span>Confirm pricing</span>
         </div>
+        {snapshot.agency.contactEmail && (
+          <a className="btn btn-primary" href={`mailto:${snapshot.agency.contactEmail}?subject=${encodeURIComponent(snapshot.client.name + " report")}`}>
+            Contact {snapshot.agency.name}
+          </a>
+        )}
       </ReportSection>
 
-      <ReportSection eyebrow="05 / Freshness" title="Freshness and limitations" className="client-report-limitations">
+      <ReportSection eyebrow={numbered(freshnessNumber, "Freshness")} title="Freshness and limitations" className="client-report-limitations">
         <p>
           This report was generated on <time dateTime={snapshot.generatedAt}>{formatDate(snapshot.generatedAt)}</time>{evidenceDate ? <> using evidence reviewed on <time dateTime={evidenceDate}>{formatDate(evidenceDate)}</time>.</> : ". The evidence review date was not recorded."}
         </p>

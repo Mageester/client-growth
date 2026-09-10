@@ -14,10 +14,10 @@ import type { TenantScope } from "@/db/tenant";
  *    stamps acceptedAt and pitchedAt too, because the sale proves both happened
  *    — the agency records the outcome, not the ceremony.
  *
- * Terminal client outcomes (`sold`, `lost`) and the internal rejection
- * (`dismissed`) are never casually reverted. `dismissed` and `lost` are
- * different decisions by different parties: an internal rejection never
- * becomes a client loss, and a recorded win never becomes a loss.
+ * Terminal client outcomes (`sold`, `lost`) are changed only through an
+ * explicit correction that returns the finding to pitched while retaining
+ * its original terminal fields. `dismissed` and `lost` remain different
+ * decisions by different parties.
  */
 
 export type FunnelAction =
@@ -29,6 +29,7 @@ export type FunnelAction =
   | { kind: "lost" }
   | { kind: "snooze"; snoozeUntil: string }
   | { kind: "cover" }
+  | { kind: "correct-outcome" }
   | { kind: "reopen" };
 
 export interface FunnelTransitionOptions {
@@ -67,6 +68,10 @@ const ALLOWED_FROM: Record<FunnelAction["kind"], ReadonlySet<Opportunity["status
     "already_covered",
     "resolved",
   ]),
+  // A visibly labelled correction returns a mistaken client outcome to the
+  // last known real stage. The original terminal timestamp and amount remain
+  // on the row as audit history; an ordinary reopen still fails closed.
+  "correct-outcome": new Set(["sold", "lost"]),
   // Reopen is for the agency's own non-terminal states: an internal dismissal
   // is reconsidered, an active snooze is cancelled, and a resolved finding can
   // be manually returned (existing product behavior — genuine re-detection of
@@ -211,7 +216,7 @@ export async function applyFunnelTransition(
       next.pitched_at = keep(current.pitched_at, now);
       // Re-recording on a sold row is an explicit correction; the existing
       // recordOpportunitySale behaviour is preserved.
-      next.sold_at = action.at ?? now;
+      next.sold_at = keep(current.sold_at, action.at ?? now);
       next.sold_amount =
         typeof action.soldAmount === "number" &&
         Number.isFinite(action.soldAmount) &&
@@ -237,6 +242,12 @@ export async function applyFunnelTransition(
     case "cover":
       next.status = "already_covered";
       next.billable_status = "already_covered";
+      next.snooze_until = null;
+      break;
+    case "correct-outcome":
+      next.status = "pitched";
+      next.accepted_at = keep(current.accepted_at, now);
+      next.pitched_at = keep(current.pitched_at, now);
       next.snooze_until = null;
       break;
     case "reopen": {

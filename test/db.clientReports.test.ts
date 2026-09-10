@@ -8,6 +8,8 @@ import {
   createClientReportShare,
   getClientReportById,
   getClientReportShareByToken,
+  listClientReports,
+  listClientReportShares,
   revokeClientReportShares,
 } from "@/db/clientReports";
 import { nodeSqliteDb } from "@/db/nodeSqlite";
@@ -100,6 +102,31 @@ async function fixture() {
 }
 
 describe("client report persistence", () => {
+  it("lists every saved version for the client with durable sharing state", async () => {
+    const { db, scopeA, snapshot } = await fixture();
+    try {
+      const first = await createClientReport(scopeA, {
+        clientId: clientA.id,
+        createdByUserId: "owner_a",
+        snapshot,
+      });
+      await createClientReportShare(scopeA, first.reportId, {
+        actingUserId: "owner_a",
+        now: NOW,
+      });
+
+      const reports = await listClientReports(scopeA, clientA.id);
+      expect(reports).toHaveLength(1);
+      expect(reports[0]?.reportId).toBe(first.reportId);
+      const shares = await listClientReportShares(scopeA, first.reportId);
+      expect(shares).toEqual([
+        expect.objectContaining({ reportId: first.reportId, revokedAt: null }),
+      ]);
+    } finally {
+      db.close();
+    }
+  });
+
   it("creates a tenant-scoped immutable snapshot and denies cross-tenant creation/read", async () => {
     const { db, scopeA, scopeB, snapshot } = await fixture();
     try {

@@ -360,7 +360,7 @@ describe("proposal share routes", () => {
     expect(token).not.toBe(stored.token_hash);
   });
 
-  it("renders proposal text as escaped React text and revokes every active link", async () => {
+  it("ignores unstructured commercial text, renders stored source evidence, and revokes links", async () => {
     await repo.saveOpportunityProposalText(
       scopeA,
       "opp_a",
@@ -376,26 +376,19 @@ describe("proposal share routes", () => {
       context: ctx,
     } as never);
     const html = renderToStaticMarkup(publicShare.default({ loaderData: page } as never));
-    expect(html).toContain("&lt;script&gt;alert(1)&lt;/script&gt;");
     expect(html).not.toContain("<script>alert(1)</script>");
-    expect(html).toContain("<h3>Review</h3>");
-    expect(html).toContain("<strong>Saved terms</strong>");
-    expect(html).toContain("<li>First item</li>");
+    expect(html).not.toContain("&lt;script&gt;alert(1)&lt;/script&gt;");
     expect(html).toMatch(/<li><a href="https:\/\/client-a\.example\/services"/);
     expect(html).not.toContain("<li>https://client-a.example/services</li>");
-    expect(html).toContain("<li>4 images without alt text</li>");
     expect(html).not.toContain("<li>images-without-alt:4</li>");
-    expect(html).toContain("<li>Competitor site: competitor.example</li>");
     expect(html).not.toContain("<li>competitor:competitor.example</li>");
     expect(html).toContain("Sources checked");
     expect(html).toContain("Next step");
-    expect(html).toContain("confirm the final scope");
-    expect(html).toContain("estimate");
+    expect(html).toContain("confirm the reviewed scope");
     expect(html).not.toMatch(/<form\b|<button\b/i);
     expect(html).not.toMatch(/accept proposal|sign|pay now/i);
     expect(html).not.toMatch(/acceptance|payment/i);
-    expect(html).not.toMatch(/<h3[^>]*>What was found<\/h3>/);
-    expect(html).not.toMatch(/<h3[^>]*>Why it matters<\/h3>/);
+    expect(html).toContain("Observed issue");
     expect(html).toContain('href="https://client-a.example/services"');
     expect(html).not.toContain("<li>https://client-a.example/services</li>");
 
@@ -405,6 +398,47 @@ describe("proposal share routes", () => {
       context: ctx,
     })) as { ok?: boolean; revoked?: number };
     expect(result).toMatchObject({ ok: true, revoked: 1 });
+  });
+
+  it("renders exactly the reviewed title, scope, price and next step once", async () => {
+    await repo.saveOpportunityProposalText(
+      scopeA,
+      "opp_a",
+      [
+        "# Implant service page",
+        "",
+        "## Proposed scope",
+        "- Write, design and build one service page.",
+        "",
+        "## Investment",
+        "CAD $1,250",
+        "",
+        "## Next step",
+        "Reply to approve the reviewed scope.",
+      ].join("\n"),
+    );
+    const created = await createProposalShare(scopeA, "opp_a", {
+      createdByUserId: "u_a",
+      preparedBy: "Avery Owner",
+      now: NOW,
+    });
+    const html = renderToStaticMarkup(
+      publicShare.default({
+        loaderData: (await publicShare.loader({
+          request: new Request(`http://localhost/proposal/share?token=${created.token}`),
+          context: ctx,
+        } as never)),
+      } as never),
+    );
+
+    expect(html).toContain("Implant service page");
+    expect(html.match(/Write, design and build one service page\./g)).toHaveLength(1);
+    expect(html).toContain("CAD");
+    expect(html).toContain("$1,250");
+    expect(html.match(/Reply to approve the reviewed scope\./g)).toHaveLength(1);
+    expect(html).not.toContain("Plan the page");
+    expect(html).not.toContain("Write the service copy");
+    expect(html).not.toContain("Confidence");
   });
 
   it("refuses to create a link for a finding without a saved prepared draft", async () => {

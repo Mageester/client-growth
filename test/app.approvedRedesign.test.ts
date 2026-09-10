@@ -76,18 +76,18 @@ describe("approved page anatomy", () => {
     expect(html).toContain("Review starter pricing");
     expect(html).not.toMatch(/<details[^>]*\bopen(?:=|>)/);
     const starters = [
-      ["landing", "Service Landing Page", "900", "1800"],
-      ["servicepages", "Service Pages Build", "2500", "6000"],
-      ["competitorgap", "Competitor Gap Page", "900", "1800"],
-      ["conversion", "Conversion Path Fix", "300", "900"],
-      ["missingtitle", "Page Title Repair", "150", "300"],
-      ["duplicatetitle", "Duplicate Title Repair", "200", "400"],
-      ["thinservice", "Thin Service Page", "400", "800"],
-      ["missingh1", "H1 Heading Repair", "150", "300"],
-      ["internallink", "Internal Link Repair", "200", "500"],
-      ["metadescription", "Meta Description Repair", "200", "500"],
-      ["structureddata", "LocalBusiness or Service Schema", "300", "700"],
-      ["imagealt", "Image Alt Attribute Repair", "150", "400"],
+      ["landing", "Dedicated Service Page", "900", "1800"],
+      ["servicepages", "Service Website Structure", "2500", "6000"],
+      ["competitorgap", "Competitive Service Page", "900", "1800"],
+      ["conversion", "Conversion Journey Repair", "300", "900"],
+      ["missingtitle", "Search-Friendly Page Titles", "150", "300"],
+      ["duplicatetitle", "Unique Page Titles", "200", "400"],
+      ["thinservice", "Service Page Content Expansion", "400", "800"],
+      ["missingh1", "Clear Page Headings", "150", "300"],
+      ["internallink", "Broken Link Repair", "200", "500"],
+      ["metadescription", "Search Snippet Copy", "200", "500"],
+      ["structureddata", "Local Service Structured Data", "300", "700"],
+      ["imagealt", "Accessible Image Descriptions", "150", "400"],
     ] as const;
     for (const [field, name, min, max] of starters) {
       expect(html).toContain(`name="${field}On"`);
@@ -373,7 +373,7 @@ describe("approved page anatomy", () => {
       "/services",
     );
 
-    for (const label of ["General", "Integrations", "Services", "Team", "Billing"]) {
+    for (const label of ["General", "Monitoring", "Services", "Team", "Account &amp; pilot"]) {
       expect(html).toContain(label);
     }
     // Check health is a Settings section too, which is what lets the primary

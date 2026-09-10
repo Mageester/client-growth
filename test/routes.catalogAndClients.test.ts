@@ -102,11 +102,19 @@ const saveService = (fields: Record<string, string | string[]>) =>
   });
 
 describe("service catalog", () => {
+  it("isolates unsaved service drafts by workspace and signed-in user", () => {
+    const first = servicesIndex.serviceDraftStorageKey("ws_a", "u_a");
+    expect(first).not.toBe(servicesIndex.serviceDraftStorageKey("ws_b", "u_a"));
+    expect(first).not.toBe(servicesIndex.serviceDraftStorageKey("ws_a", "u_b"));
+    expect(first).toContain("ws_a");
+    expect(first).toContain("u_a");
+  });
+
   it("refuses AI generation when the real provider is not configured", async () => {
     const result = (await call(servicesIndex.action as never, {
       request: formReq({ intent: "generate-catalog", summary: "We design websites." }),
       context: ctx,
-    })) as { ok: boolean; error?: string };
+    })) as { ok: boolean; error?: string; field?: string };
     expect(result.ok).toBe(false);
     expect(result.error).toMatch(/not available/i);
     expect(await repo.listServices(scope)).toEqual([]);
@@ -198,9 +206,10 @@ describe("service catalog", () => {
       priceMin: "2000",
       priceMax: "500",
       matches: ["landing-page"],
-    })) as { ok: boolean; error?: string };
+    })) as { ok: boolean; error?: string; field?: string };
     expect(res.ok).toBe(false);
     expect(res.error).toMatch(/top of the range/i);
+    expect(res.field).toBe("priceMax");
     expect(await repo.listServices(scope)).toHaveLength(0);
   });
 
@@ -638,5 +647,18 @@ describe("editing a client", () => {
     const dismissed = await repo.getOpportunity(scope, "opp_dismissed");
     expect(dismissed?.status).toBe("dismissed");
     expect(dismissed?.billableStatus).toBe("billable");
+
+    const removed = (await call(clientDetail.action as never, {
+      request: formReq({ intent: "toggle-coverage", serviceId: "svc_landing" }),
+      params: { id: "cli_a" },
+      context: ctx,
+    })) as { ok: boolean; message: string };
+    expect(removed.ok).toBe(true);
+    expect(removed.message).toMatch(/3 findings returned to their prior review state/i);
+    for (const id of ["opp_open", "opp_expired", "opp_active_snooze"]) {
+      const saved = await repo.getOpportunity(scope, id);
+      expect(saved?.status).toBe("new");
+      expect(saved?.billableStatus).toBe("billable");
+    }
   });
 });

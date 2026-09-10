@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { Form, redirect, useNavigation } from "react-router";
 
 import * as monitoringRepo from "@/db/monitoring";
 import {
   getWorkspaceBranding,
   isProposalShareError,
+  MAX_PROPOSAL_LOGO_LENGTH,
   saveWorkspaceBranding,
   validateLogo,
 } from "@/db/proposalShares";
@@ -162,6 +164,8 @@ export async function action({ request, context }: Route.ActionArgs) {
 export default function Settings({ loaderData, actionData }: Route.ComponentProps) {
   const navigation = useNavigation();
   const saving = navigation.state !== "idle";
+  const [logo, setLogo] = useState(loaderData.logo ?? "");
+  const [logoError, setLogoError] = useState("");
 
   return (
     <div className="settings-page">
@@ -170,7 +174,7 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
         <div className="pagehead-copy">
           <span className="eyebrow">Settings</span>
           <h1 className="title-page">Settings</h1>
-          <p className="summary-line">Manage your workspace, services, and integrations.</p>
+          <p className="summary-line">Manage your workspace, services, monitoring, team, and account.</p>
         </div>
       </div>
 
@@ -230,18 +234,59 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
           </div>
           <div className="field">
             <label htmlFor="workspaceLogo">Proposal logo</label>
+            <input type="hidden" name="logo" value={logo} />
             <input
               id="workspaceLogo"
-              name="logo"
-              type="text"
-              inputMode="url"
-              defaultValue={loaderData.logo ?? ""}
-              placeholder="data:image/png;base64,… or https://…"
+              type="file"
+              accept="image/png,image/jpeg"
               aria-describedby="workspaceLogoHelp"
+              onChange={(event) => {
+                const file = event.currentTarget.files?.[0];
+                if (!file) return;
+                const rawLimit = Math.floor((MAX_PROPOSAL_LOGO_LENGTH - 64) * 0.75);
+                if (file.size > rawLimit) {
+                  setLogoError("Choose a PNG or JPEG smaller than 380 KB.");
+                  return;
+                }
+                if (file.type !== "image/png" && file.type !== "image/jpeg") {
+                  setLogoError("Choose a PNG or JPEG image.");
+                  return;
+                }
+                const reader = new FileReader();
+                reader.onload = () => {
+                  setLogo(typeof reader.result === "string" ? reader.result : "");
+                  setLogoError("");
+                };
+                reader.onerror = () => setLogoError("That image could not be read. Try another file.");
+                reader.readAsDataURL(file);
+              }}
             />
             <p id="workspaceLogoHelp" className="field-help">
-              Optional PNG or JPEG. A small inline data URL is safest; public logos must use HTTPS.
+              Optional PNG or JPEG, up to 380 KB. It appears on new proposal and report shares.
             </p>
+            {logoError && <div className="field-error" role="alert">{logoError}</div>}
+            {logo && (
+              <div className="branding-preview">
+                <img src={logo} alt="Current proposal logo preview" />
+                <button className="btn btn-sm" type="button" onClick={() => { setLogo(""); setLogoError(""); }}>
+                  Remove logo
+                </button>
+              </div>
+            )}
+            <details>
+              <summary>Use a hosted image URL instead</summary>
+              <div className="field">
+                <label htmlFor="workspaceLogoUrl">HTTPS image URL</label>
+                <input
+                  id="workspaceLogoUrl"
+                  type="url"
+                  inputMode="url"
+                  value={logo.startsWith("https://") ? logo : ""}
+                  onChange={(event) => setLogo(event.target.value)}
+                  placeholder="https://example.com/logo.png"
+                />
+              </div>
+            </details>
           </div>
           <fieldset className="report-theme-settings">
             <legend>Client report style</legend>

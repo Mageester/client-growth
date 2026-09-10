@@ -134,9 +134,18 @@ describe("bulk client import route", () => {
       ok: boolean;
       stage: string;
       imported: number;
+      clients: Array<{ id: string; name: string }>;
     };
 
-    expect(result).toEqual({ ok: true, stage: "complete", imported: 2 });
+    expect(result).toMatchObject({
+      ok: true,
+      stage: "complete",
+      imported: 2,
+      clients: [
+        expect.objectContaining({ name: "Northwind Heating" }),
+        expect.objectContaining({ name: "Acme Roofing" }),
+      ],
+    });
     const clients = await repo.listClients(scope);
     expect(clients).toHaveLength(2);
     expect(clients.map((client) => client.domain)).toEqual([
@@ -195,9 +204,14 @@ describe("bulk client import route", () => {
     const result = (await action({
       intent: "confirm",
       csv: "name,domain,offerings\nOur client,shared.example,service",
-    })) as { ok: boolean; imported: number };
+    })) as { ok: boolean; imported: number; clients: Array<{ id: string; name: string }> };
 
-    expect(result).toEqual({ ok: true, stage: "complete", imported: 1 });
+    expect(result).toMatchObject({
+      ok: true,
+      stage: "complete",
+      imported: 1,
+      clients: [expect.objectContaining({ name: "Our client" })],
+    });
     expect((await repo.listClients(scope)).map((client) => client.domain)).toEqual(["shared.example"]);
     expect((await repo.listClients(scopeB)).map((client) => client.domain)).toEqual(["shared.example"]);
   });
@@ -277,9 +291,11 @@ describe("bulk client import route", () => {
       ok: boolean;
       stage: string;
       imported: number;
+      clients: Array<{ id: string; name: string }>;
     };
 
-    expect(result).toEqual({ ok: true, stage: "complete", imported: 50 });
+    expect(result).toMatchObject({ ok: true, stage: "complete", imported: 50 });
+    expect(result.clients).toHaveLength(50);
     expect(await repo.listClients(scope)).toHaveLength(50);
   });
 

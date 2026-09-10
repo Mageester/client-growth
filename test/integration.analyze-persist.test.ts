@@ -84,7 +84,7 @@ describe("analyze -> persist -> decide -> re-analyze", () => {
 
     const stored = (await repo.getOpportunity(t, opp.id))!;
     expect(stored.status).toBe("proposal_prepared");
-    expect(stored.proposalMd).toContain("# Proposal:");
+    expect(stored.proposalMd).toContain("# Heat Pump Installation — dedicated service page");
     expect(stored.proposalMd).toContain("$900");
   });
 

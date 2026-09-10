@@ -19,6 +19,7 @@ import {
   CLIENT_STATE_ORDER,
   byPotentialValue,
   clientState,
+  evidenceReadState,
   isOpen,
   sumTotals,
   totalsFor,
@@ -50,7 +51,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const t = await requireTenant(request, context);
   // Six queries for the whole portfolio, not six plus one per client.
   const since = new Date(Date.now() - RECENT_WINDOW_MS).toISOString();
-  const [clients, services, runsByClient, oppsByClient, monitoringByClient, health] =
+  const [clients, services, runsByClient, oppsByClient, monitoringByClient, health, evidenceByClient] =
     await Promise.all([
       repo.listClients(t.scope),
       repo.listServices(t.scope),
@@ -58,6 +59,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       repo.listOpportunitiesByClient(t.scope),
       monitoringRepo.listMonitoringByClient(t.scope),
       monitoringRepo.scheduledRunHealth(t.scope, { since }),
+      repo.latestEvidenceByClient(t.scope),
     ]);
   const serviceName = Object.fromEntries(services.map((s) => [s.id, s.name]));
   const groups = clients.map((client) => {
@@ -70,7 +72,11 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       totals,
       run,
       monitoring: monitoringByClient.get(client.id) ?? monitoringRepo.MONITORING_OFF,
-      state: clientState({ outcome: run?.outcome ?? null, openCount: totals.open }),
+      state: clientState({
+        outcome: run?.outcome ?? null,
+        openCount: totals.open,
+        evidenceState: evidenceReadState(evidenceByClient.get(client.id) ?? null),
+      }),
     };
   });
 
@@ -148,6 +154,10 @@ export function healthSectionDescription(count: number, filter: FeedFilter): str
   return `${count} ${pluralize(count, "check", "checks")} worth fixing — titles, headings, descriptions and links. Supporting work rather than the reason to call.`;
 }
 
+export function isQueryEmpty(query: string, resultCount: number): boolean {
+  return query.trim().length > 0 && resultCount === 0;
+}
+
 function ProjectSection({
   project,
   hrefFor,
@@ -155,6 +165,13 @@ function ProjectSection({
   project: ProjectView<SignalDeskEntry>;
   hrefFor: (entry: SignalDeskEntry) => string;
 }) {
+  if (project.entries.length === 1) {
+    return (
+      <section className="signal-project signal-project-single" aria-label={project.title}>
+        <OpportunityQueue entries={project.entries} hrefFor={hrefFor} />
+      </section>
+    );
+  }
   return (
     <section className="signal-project">
       <div className="project-head">
@@ -194,7 +211,7 @@ function ProjectSection({
             <span>Opportunity</span>
             <span>Client</span>
             <span>Value</span>
-            <span>Confidence</span>
+            <span>Evidence</span>
             <span>Age</span>
             <span />
           </div>
@@ -347,7 +364,7 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
               <span className="sr-only">Filter findings</span>
               <select value={filter} onChange={(event) => setFilter(event.target.value as FeedFilter)}>
                 <option value="open">Open ({open.length})</option>
-                <option value="strongest">High confidence</option>
+                <option value="strongest">Strong evidence</option>
                 <option value="all">All findings ({open.length + closed.length})</option>
               </select>
               <Icon name="chevron-down" size={13} />
@@ -418,7 +435,7 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
           )}
         </p>
         <p className="page-context-line signal-ordering-copy">
-          Ordered by commercial fit first, then what your agency converts, potential value, and confidence.
+          Ordered by commercial fit first, then what your agency converts, potential value, and evidence strength.
         </p>
         <MonitoringSummary monitoring={monitoring} />
       </PageHead>
@@ -469,6 +486,8 @@ export default function OpportunitiesIndex({ loaderData, actionData }: Route.Com
               openCount={open.length}
               closedCount={closed.length}
               catalogMatched={catalogMatched}
+              query={deferredQuery}
+              onClearSearch={() => setQuery("")}
               onFilter={setFilter}
             />
           ) : (
@@ -758,6 +777,8 @@ function FeedEmpty({
   openCount,
   closedCount,
   catalogMatched,
+  query,
+  onClearSearch,
   onFilter,
 }: {
   selected: Group | null;
@@ -767,6 +788,8 @@ function FeedEmpty({
   openCount: number;
   closedCount: number;
   catalogMatched: number;
+  query: string;
+  onClearSearch: () => void;
   onFilter: (value: FeedFilter) => void;
 }) {
   const analyzeButton = (clientId: string, label: string) => (
@@ -779,11 +802,29 @@ function FeedEmpty({
     </Form>
   );
 
+  if (isQueryEmpty(query, 0)) {
+    return (
+      <EmptyState
+        icon="search"
+        title={`No opportunities match “${query}”`}
+        inset
+        actions={
+          <button className="btn" type="button" onClick={onClearSearch}>
+            Clear search
+          </button>
+        }
+      >
+        Your search only changes what is visible here. It does not change the website review,
+        opportunity status, or client health.
+      </EmptyState>
+    );
+  }
+
   if (filter === "strongest" && openCount > 0) {
     return (
       <EmptyState
         icon="target"
-        title="Nothing above 75% confidence"
+        title="No open findings with strong evidence"
         inset
         actions={
           <button className="btn" type="button" onClick={() => onFilter("open")}>
@@ -791,8 +832,8 @@ function FeedEmpty({
           </button>
         }
       >
-        The open findings below that bar are still worth a look — they simply carry more judgement
-        and less certainty.
+        Other open findings still have stored evidence, but require more agency verification before
+        they are ready for a client conversation.
       </EmptyState>
     );
   }

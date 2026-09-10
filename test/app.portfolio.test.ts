@@ -151,6 +151,16 @@ describe("client state", () => {
   it("does not report a client with no findings and a failed crawl as clean", () => {
     expect(clientState({ outcome: "inconclusive", openCount: 0 })).not.toBe("clean");
   });
+
+  it("keeps a findings outcome truthful after every sales item is closed", () => {
+    expect(clientState({ outcome: "findings", openCount: 0 })).toBe("reviewed");
+  });
+
+  it("treats an unreadable evidence-only first read as inconclusive", () => {
+    expect(
+      clientState({ outcome: null, openCount: 0, evidenceState: "unreadable" }),
+    ).toBe("inconclusive");
+  });
 });
 
 describe("status vocabulary", () => {

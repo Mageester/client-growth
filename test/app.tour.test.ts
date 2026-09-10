@@ -33,6 +33,8 @@ describe("product tour", () => {
     expect(prose).toContain("clean");
     expect(prose).toContain("inconclusive");
     expect(prose).toContain("evidence");
+    expect(prose).toContain("review");
+    expect(prose).not.toMatch(/without checking|the other two/i);
   });
 
   it("covers each screen the product actually has", () => {

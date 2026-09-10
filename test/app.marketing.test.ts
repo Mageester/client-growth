@@ -254,8 +254,8 @@ describe("Axiom Orbit public product detail", () => {
     const html = renderProduct();
 
     expect(html).toContain("Available now · opt-in, per-client weekly monitoring");
-    expect(html).toContain("Available now · bounded public-site evidence");
-    expect(html).toContain("Available now · evidence-backed checks across capability families");
+    expect(html).toContain("Available now · website sources you can open and verify");
+    expect(html).toContain("Available now · checks for commercial gaps, broken enquiry paths, and website quality");
     expect(html).toContain("Available now · review + proposal draft");
     expect(html).toContain("Direction · revenue and outcome tracking");
   });
@@ -286,12 +286,13 @@ describe("Axiom Orbit public product detail", () => {
     );
   });
 
-  it("describes current evidence-backed capability families and deliberate proposal sharing", () => {
+  it("describes current reviewable checks and deliberate proposal sharing", () => {
     const landing = renderLanding();
     const product = renderProduct();
 
     for (const html of [landing, product]) {
-      expect(html).toContain("evidence-backed checks");
+      expect(html).toMatch(/checks backed by website sources|website sources you can open and verify/i);
+      expect(html).not.toMatch(/capability families|bounded public-site evidence/i);
       expect(html).toMatch(/proposal drafting and sharing/i);
       expect(html).toContain("expiring share link");
       expect(html).toContain("Nothing is sent automatically");

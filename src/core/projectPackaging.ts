@@ -87,7 +87,9 @@ function subjectLabel(entry: ProjectEntry): string {
   if (opportunity.ruleId === "no-service-pages") return "all service pages";
 
   const titleSubject = opportunity.title.split(/\s+[—–-]\s+/)[0]?.trim();
-  if (SERVICE_RULES.has(opportunity.ruleId) && titleSubject) return titleSubject;
+  if (SERVICE_RULES.has(opportunity.ruleId) && titleSubject) {
+    return titleSubject.replace(/^No page for\s+/i, "").trim();
+  }
 
   const serviceName = entry.serviceName?.trim();
   if (serviceName && !GENERIC_SERVICE_NAME.test(serviceName)) return serviceName;
@@ -165,7 +167,10 @@ function projectTitle(
   entries: readonly ProjectEntry[],
 ): string {
   if (family.key === "service-visibility") {
-    if (entries.length === 1) return "Service expansion opportunity";
+    if (entries.length === 1) {
+      const label = subjectLabel(entries[0]!);
+      return `${label.charAt(0).toUpperCase()}${label.slice(1)} service page`;
+    }
     switch (affinityFromKey(key)) {
       case "water-heater":
         return "Water Heater Service Expansion";
@@ -180,9 +185,9 @@ function projectTitle(
     }
   }
   if (family.key === "conversion") {
-    return entries.length > 1 ? "Conversion improvements" : "Conversion improvement";
+    return entries.length > 1 ? "Conversion improvements" : entries[0]!.opportunity.title;
   }
-  return entries.length > 1 ? "Site health improvements" : "Site health improvement";
+  return entries.length > 1 ? "Site health improvements" : entries[0]!.opportunity.title;
 }
 
 function projectSummary(
@@ -193,7 +198,7 @@ function projectSummary(
   const labels = entries.map(subjectLabel);
   if (family.key === "service-visibility") {
     if (entries.length === 1) {
-      return `A focused service-page opportunity for ${labels[0] ?? "this service"}.`;
+      return `A dedicated page for ${(labels[0] ?? "this service").toLocaleLowerCase()}, with the scope and price reviewed by the agency.`;
     }
     switch (affinityFromKey(key)) {
       case "water-heater":

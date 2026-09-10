@@ -401,11 +401,11 @@ export function ProductFindVisual() {
       <div className="marketing-product-visual-header marketing-product-visual-header--compact">
         <div>
           <strong>Signal desk</strong>
-          <span>Evidence-backed capability families</span>
+          <span>Checks backed by website sources</span>
         </div>
         <span className="marketing-product-visual-header-status">Evidence gate</span>
       </div>
-      <ul className="marketing-product-find-list" aria-label="Evidence-backed Orbit capability families">
+      <ul className="marketing-product-find-list" aria-label="Orbit checks backed by website sources">
         {productFindCategories.map((category) => (
           <li key={category.title}>
             <span className="marketing-product-find-icon"><MarketingIcon name={category.icon} /></span>
@@ -419,7 +419,7 @@ export function ProductFindVisual() {
           </li>
         ))}
       </ul>
-      <p className="marketing-product-visual-footnote">Capability families stay evidence-gated; anything beyond current checks is direction, not a live claim.</p>
+      <p className="marketing-product-visual-footnote">Every current check needs reviewable evidence; anything beyond those checks is direction, not a live claim.</p>
     </ProductVisualFrame>
   );
 }

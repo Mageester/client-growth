@@ -266,7 +266,7 @@ describe("agency action center", () => {
     expect(result.attention).toHaveLength(1);
     expect(result.attention[0]).toMatchObject({ kind: "analysis", client: { id: "artfully" } });
     expect(result.attention[0]?.title).toMatch(/analysis/i);
-    expect(result.attention[0]?.action).toMatch(/retry/i);
+    expect(result.attention[0]?.action).toBe("Retry analysis");
     expect(result.pipeline.openCount).toBe(0);
   });
 
@@ -278,6 +278,24 @@ describe("agency action center", () => {
     expect(result.attention[0]).toMatchObject({ kind: "analysis", client: { id: "new-client" } });
     expect(result.attention[0]?.action).toMatch(/first analysis/i);
     expect(result.pipeline.openCount).toBe(0);
+  });
+
+  it("offers the client recovery path after an unreadable evidence-only first read", () => {
+    const target = client("unreadable", "Unreadable Client");
+    const result = buildActionCenter({
+      clients: [target],
+      opportunitiesByClient: new Map([[target.id, []]]),
+      latestRunsByClient: new Map(),
+      latestEvidenceStateByClient: new Map([[target.id, "unreadable"]]),
+    });
+
+    expect(result.attention).toHaveLength(1);
+    expect(result.attention[0]).toMatchObject({
+      analysisState: "inconclusive",
+      href: "/clients/unreadable",
+    });
+    expect(result.attention[0]?.title).toMatch(/website read/i);
+    expect(result.attention[0]?.action).toBe("Retry website read");
   });
 
   it("groups related service rows into a sellable project while retaining every underlying opportunity", () => {

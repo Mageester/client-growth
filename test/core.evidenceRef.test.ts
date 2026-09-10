@@ -175,7 +175,7 @@ describe("evidence panel", () => {
 });
 
 describe("proposal draft", () => {
-  it("contains no raw internal ref tags", () => {
+  it("keeps evidence out of the editable commercial draft", () => {
     const draft = generateProposalDraft({
       opportunity: conversionOpportunity(REFS),
       client: CLIENT,
@@ -184,11 +184,13 @@ describe("proposal draft", () => {
     for (const tag of ["- page:", "- status:", "- target:", "- element:", "- verified:"]) {
       expect(draft).not.toContain(tag);
     }
-    expect(draft).toContain("- https://meridiandental.test/");
-    expect(draft).toContain("Server response: HTTP 404");
+    expect(draft).not.toContain("https://meridiandental.test/");
+    expect(draft).not.toContain("Server response: HTTP 404");
+    expect(draft).toContain("## Proposed scope");
+    expect(draft).toContain("## Investment");
   });
 
-  it("renders an external source in proposal language", () => {
+  it("does not mix external evidence into reviewed deliverables", () => {
     const draft = generateProposalDraft({
       opportunity: conversionOpportunity([
         "external:https://business.google.com/locations/123",
@@ -197,21 +199,21 @@ describe("proposal draft", () => {
       client: CLIENT,
       service: SERVICE,
     });
-    expect(draft).toContain("Official business-profile source: https://business.google.com/locations/123");
-    expect(draft).not.toContain("- external:");
+    expect(draft).not.toContain("business.google.com");
+    expect(draft).not.toContain("external:");
   });
 
-  it("does not list the same address twice under two labels", () => {
+  it("does not repeat a broken address in the commercial draft", () => {
     const draft = generateProposalDraft({
       opportunity: conversionOpportunity(REFS),
       client: CLIENT,
       service: SERVICE,
     });
-    expect(draft).toContain("Broken element: https://meridiandental.test/book-online");
-    expect(draft).not.toContain("Link target: https://meridiandental.test/book-online");
+    expect(draft).not.toContain("Broken element:");
+    expect(draft).not.toContain("Link target:");
   });
 
-  it("keeps a distinct link target when it differs from the element", () => {
+  it("keeps distinct targets on the evidence record rather than duplicating them in scope", () => {
     const draft = generateProposalDraft({
       opportunity: conversionOpportunity([
         "page:https://meridiandental.test/",
@@ -222,7 +224,8 @@ describe("proposal draft", () => {
       client: CLIENT,
       service: SERVICE,
     });
-    expect(draft).toContain("Broken element: /book-online");
-    expect(draft).toContain("Link target: https://booking.example/meridian");
+    expect(draft).not.toContain("/book-online");
+    expect(draft).not.toContain("booking.example/meridian");
+    expect(draft).toContain("Repair the dead call-to-action link");
   });
 });

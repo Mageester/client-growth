@@ -4,6 +4,7 @@ import { getAuth, getTrustedAuthBaseURL } from "../lib/auth.server";
 import { canDeliverEmail } from "../lib/resend.server";
 import { getSession } from "../lib/session.server";
 import { AxiomCredit, BrandLockup, Icon } from "../components/ui";
+import { verificationEmailFromRequest } from "../lib/verification-email.server";
 import type { Route } from "./+types/login";
 
 const VERIFICATION_CALLBACK_PATH = "/login?verified=success";
@@ -35,10 +36,12 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const search = new URL(request.url).searchParams;
   const returnTo = safeReturnTo(search.get("returnTo"));
   if (await getSession(request, context)) throw redirect(returnTo ?? "/");
+  const verificationSent = search.get("verify") === "sent";
   return {
     resetSuccess: search.get("reset") === "success",
-    verificationSent: search.get("verify") === "sent",
+    verificationSent,
     verificationSuccess: search.get("verified") === "success",
+    verificationEmail: verificationSent ? verificationEmailFromRequest(request) : "",
     returnTo,
   };
 }
@@ -84,7 +87,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     }
   }
 
-  if (!email || !password) return withReturnTo({ error: "Enter your email and password." });
+  if (!email || !password) return withReturnTo({ error: "Enter your email and password.", email });
 
   try {
     const callbackURL = verificationCallbackURL(
@@ -106,24 +109,26 @@ export async function action({ request, context }: Route.ActionArgs) {
           email,
         });
       }
-      return withReturnTo({ error: "Incorrect email or password." });
+      return withReturnTo({ error: "Incorrect email or password.", email });
     }
-    if (!cookie) return withReturnTo({ error: "Incorrect email or password." });
+    if (!cookie) return withReturnTo({ error: "Incorrect email or password.", email });
     return redirect(returnTo ?? "/", { headers: { "set-cookie": cookie } });
   } catch {
-    return withReturnTo({ error: "Incorrect email or password." });
+    return withReturnTo({ error: "Incorrect email or password.", email });
   }
 }
 
 export default function Login({ loaderData, actionData }: Route.ComponentProps) {
-  const actionEmail = actionData && "email" in actionData ? actionData.email : "";
+  const actionEmail = actionData && "email" in actionData ? actionData.email : loaderData.verificationEmail;
   const returnTo = loaderData.returnTo ?? (actionData && "returnTo" in actionData ? actionData.returnTo : undefined);
   return (
     <main className="auth">
       <BrandLockup className="auth-lockup" />
-      <h1>Welcome back</h1>
+      <h1>{loaderData.verificationSent ? "Check your email" : "Welcome back"}</h1>
       <p className="auth-sub">
-        Pick up where your portfolio left off and see what is worth raising next.
+        {loaderData.verificationSent
+          ? `We sent a verification link to ${loaderData.verificationEmail || "your account address"}.`
+          : "Pick up where your portfolio left off and see what is worth raising next."}
       </p>
       {loaderData.resetSuccess && (
         <div className="notice ok" role="status" style={{ marginTop: "1.25rem", marginBottom: 0 }}>
@@ -140,7 +145,7 @@ export default function Login({ loaderData, actionData }: Route.ComponentProps) 
       {loaderData.verificationSent && (
         <div className="notice ok" role="status" style={{ marginTop: "1.25rem", marginBottom: 0 }}>
           <Icon name="check" size={15} />
-          <span>Check your email for a verification link before logging in.</span>
+          <span>Open the verification link, then return here to log in.</span>
         </div>
       )}
       {actionData && "verificationSent" in actionData && actionData.verificationSent && (
@@ -187,7 +192,8 @@ export default function Login({ loaderData, actionData }: Route.ComponentProps) 
           Log in
         </button>
       </Form>
-      {actionData && "verificationRequired" in actionData && actionData.verificationRequired === true && (
+      {((actionData && "verificationRequired" in actionData && actionData.verificationRequired === true) ||
+        loaderData.verificationSent) && (
         <div style={{ marginTop: "1.25rem" }}>
           <p className="prose">
             Check your inbox for the verification link. If it is missing, request another one below.
@@ -197,13 +203,16 @@ export default function Login({ loaderData, actionData }: Route.ComponentProps) 
             <input
               type="hidden"
               name="email"
-              value={"email" in actionData ? actionData.email : ""}
+              value={actionEmail}
             />
             {returnTo && <input type="hidden" name="returnTo" value={returnTo} />}
             <button type="submit" className="btn btn-block">
               Resend verification email
             </button>
           </Form>
+          <p className="auth-aside">
+            Wrong address? <Link className="link" to="/signup">Use a different email</Link>
+          </p>
         </div>
       )}
       <p className="auth-foot">

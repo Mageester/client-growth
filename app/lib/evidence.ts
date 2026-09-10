@@ -2,6 +2,13 @@ import type { ConversionDefect, Opportunity, Verification } from "@/core/schema"
 import { isDefectRef, isPageRef, parseEvidenceRef } from "@/core/evidenceRef";
 import { crawlKey } from "@/adapters/evidence/urlPolicy";
 
+/** The score measures corroboration of observed evidence, not value, demand, or a guarantee. */
+export function evidenceStrengthLabel(value: number): string {
+  if (value >= 0.8) return "Strong evidence";
+  if (value >= 0.6) return "Moderate evidence";
+  return "Limited evidence";
+}
+
 /**
  * Turns the raw provenance stored on an opportunity into something an agency
  * owner can read.

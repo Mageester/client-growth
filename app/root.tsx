@@ -68,11 +68,11 @@ export function links() {
  * down — a marketing page that inherited them would advertise the product with
  * the product's own chrome around it.
  */
-const MARKETING_ROUTES = new Set(["/", "/product"]);
+const MARKETING_ROUTES = new Set(["/", "/product", "/privacy", "/terms"]);
 
 /** React Router's static routes accept trailing slashes and case variations. */
 function isExactPublicPath(pathname: string, expected: string): boolean {
-  const withoutTrailingSlashes = pathname.replace(/\/+$/, "");
+  const withoutTrailingSlashes = pathname === "/" ? "/" : pathname.replace(/\/+$/, "");
   const segments = withoutTrailingSlashes.split("/");
   let decoded: string[];
   try {
@@ -93,6 +93,10 @@ export function isProposalSharePath(pathname: string): boolean {
 
 export function isClientReportSharePath(pathname: string): boolean {
   return isExactPublicPath(pathname, "/report/share");
+}
+
+export function isMarketingPath(pathname: string): boolean {
+  return [...MARKETING_ROUTES].some((route) => isExactPublicPath(pathname, route));
 }
 
 export async function loader({ request, context }: Route.LoaderArgs) {
@@ -338,7 +342,7 @@ export function Layout({ children }: { children: ReactNode }) {
   const isProposalShare = isProposalSharePath(location.pathname);
   const isClientReportShare = isClientReportSharePath(location.pathname);
   const isStandalonePublicShare = isProposalShare || isClientReportShare;
-  const isMarketingRoute = MARKETING_ROUTES.has(location.pathname);
+  const isMarketingRoute = isMarketingPath(location.pathname);
   const showAppNav = signedIn && Boolean(workspaceName) && location.pathname !== "/onboarding";
   const busy = navigation.state === "loading";
 
@@ -470,6 +474,9 @@ export default function App() {
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+  const location = useLocation();
+  const recipientShare =
+    isProposalSharePath(location.pathname) || isClientReportSharePath(location.pathname);
   const routeError = isRouteErrorResponse(error);
   const title = routeError ? `${error.status} ${error.statusText}` : "Something went wrong";
   const detail = routeError
@@ -483,14 +490,18 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
     <div className="error-page">
       <EmptyState
         icon="alert"
-        title={title}
+        title={recipientShare ? "This shared document is no longer available" : title}
         actions={
-          <Link className="btn btn-primary" to="/opportunities">
-            Back to Opportunities
-          </Link>
+          recipientShare ? undefined : (
+            <Link className="btn btn-primary" to="/opportunities">
+              Back to Opportunities
+            </Link>
+          )
         }
       >
-        {String(detail)}
+        {recipientShare
+          ? "The link may have expired or been revoked. Ask the agency that sent it to you for a new link."
+          : String(detail)}
       </EmptyState>
     </div>
   );

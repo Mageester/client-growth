@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from "react";
 import { Link } from "react-router";
 
 import type { Client, Opportunity } from "@/core/schema";
-import { buildEvidenceCase } from "../lib/evidence";
+import { buildEvidenceCase, evidenceStrengthLabel } from "../lib/evidence";
 import { isOpen, nextAction, statusBadge } from "../lib/portfolio";
 import { formatCurrencyRange, formatRelative, Icon } from "./ui";
 import { ClientMark, GlyphMark, markForRule } from "./entity-mark";
@@ -11,12 +11,6 @@ export interface SignalDeskEntry {
   client: Pick<Client, "id" | "name" | "domain">;
   opportunity: Opportunity;
   serviceName: string;
-}
-
-function confidenceLabel(value: number): string {
-  if (value >= 0.8) return "Strong";
-  if (value >= 0.6) return "Moderate";
-  return "Limited";
 }
 
 export function proposalActionLabel(opportunity: Opportunity): string {
@@ -98,7 +92,7 @@ export function OpportunitySignalRow({
 }) {
   const { opportunity, client, serviceName } = entry;
   const badge = statusBadge(opportunity);
-  const confidence = Math.round(opportunity.confidence * 100);
+  const evidenceStrength = evidenceStrengthLabel(opportunity.confidence);
 
   return (
     <li className={"signal-row" + (selected ? " is-selected" : "")}>
@@ -128,9 +122,8 @@ export function OpportunitySignalRow({
           <span>{formatCurrencyRange(opportunity.priceMin, opportunity.priceMax)}</span>
         </span>
         <span className="signal-row-confidence">
-          <span className={"confidence-dot " + (confidence >= 80 ? "strong" : confidence >= 65 ? "medium" : "low")} />
-          <b>{confidence}%</b>
-          <small className="evidence-strength">{confidenceLabel(opportunity.confidence)} evidence</small>
+          <span className={"confidence-dot " + (opportunity.confidence >= 0.8 ? "strong" : opportunity.confidence >= 0.65 ? "medium" : "low")} />
+          <small className="evidence-strength">{evidenceStrength}</small>
         </span>
         <span className="signal-row-age">{formatRelative(opportunity.updatedAt)}</span>
         <span className={"sr-only signal-status " + badge.tone}>{badge.label}</span>
@@ -152,7 +145,7 @@ export function OpportunityInspector({
   const { opportunity, client, serviceName } = entry;
   const evidence = buildEvidenceCase(opportunity);
   const badge = statusBadge(opportunity);
-  const confidence = Math.round(opportunity.confidence * 100);
+  const evidenceStrength = evidenceStrengthLabel(opportunity.confidence);
 
   return (
     <aside
@@ -186,9 +179,8 @@ export function OpportunityInspector({
           <div>
             <dt>Evidence strength</dt>
             <dd>
-              <span>
-                {confidence}% · {confidenceLabel(opportunity.confidence).toLowerCase()}
-              </span>
+              <span>{evidenceStrength}</span>
+              <small>How well the stored checks support the observation; not expected sales impact.</small>
             </dd>
           </div>
           <div>

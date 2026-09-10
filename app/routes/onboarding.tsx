@@ -35,6 +35,8 @@ import {
 } from "../lib/validation";
 import type { Route } from "./+types/onboarding";
 import {
+  catalogAssistantAvailable,
+  catalogAssistantError,
   generateAgencyCatalogDraft,
   servicesFromReviewedCatalog,
 } from "../lib/catalog-assistant.server";
@@ -78,25 +80,28 @@ type Stage = "setup" | "confirm";
  */
 const STARTER_DEFAULTS: Record<
   RuleId,
-  { field: string; name: string; min: number; max: number; when: string }
+  { field: string; name: string; description: string; min: number; max: number; when: string }
 > = {
   "missing-service-page": {
     field: "landing",
-    name: "Service Landing Page",
+    name: "Dedicated Service Page",
+    description: "A focused service page with persuasive copy, on-page search essentials, and a clear enquiry path.",
     min: 900,
     max: 1800,
     when: "a client sells something their website never gives its own page",
   },
   "no-service-pages": {
     field: "servicepages",
-    name: "Service Pages Build",
+    name: "Service Website Structure",
+    description: "A complete set of service pages that makes the client’s offer easy to understand, navigate, and enquire about.",
     min: 2500,
     max: 6000,
     when: "a client's whole website never describes anything they sell",
   },
   "competitor-service-gap": {
     field: "competitorgap",
-    name: "Competitor Gap Page",
+    name: "Competitive Service Page",
+    description: "A new service page that closes a verified gap between the client’s website and competing businesses.",
     // The deliverable is the same artefact as a service landing page, so the
     // band matches it. What differs is the argument for buying it, not the work.
     min: 900,
@@ -105,63 +110,72 @@ const STARTER_DEFAULTS: Record<
   },
   "broken-conversion-path": {
     field: "conversion",
-    name: "Conversion Path Fix",
+    name: "Conversion Journey Repair",
+    description: "Repair and verify a broken form, phone link, or call to action so visitors can complete an enquiry.",
     min: 300,
     max: 900,
     when: "a call-to-action, form or phone link on the site is broken",
   },
   "missing-title": {
     field: "missingtitle",
-    name: "Page Title Repair",
+    name: "Search-Friendly Page Titles",
+    description: "Write and implement clear page titles that help people and search engines understand each page.",
     min: TECHNICAL_STARTER_PRICE_BANDS["missing-title"].min,
     max: TECHNICAL_STARTER_PRICE_BANDS["missing-title"].max,
     when: "a readable page has no non-empty HTML title",
   },
   "duplicate-title": {
     field: "duplicatetitle",
-    name: "Duplicate Title Repair",
+    name: "Unique Page Titles",
+    description: "Replace repeated page titles with distinct, useful titles matched to each page’s purpose.",
     min: TECHNICAL_STARTER_PRICE_BANDS["duplicate-title"].min,
     max: TECHNICAL_STARTER_PRICE_BANDS["duplicate-title"].max,
     when: "readable pages expose the same title text",
   },
   "thin-service-page": {
     field: "thinservice",
-    name: "Thin Service Page",
+    name: "Service Page Content Expansion",
+    description: "Expand an underdeveloped service page with useful detail, stronger positioning, and a clear next action.",
     min: TECHNICAL_STARTER_PRICE_BANDS["thin-service-page"].min,
     max: TECHNICAL_STARTER_PRICE_BANDS["thin-service-page"].max,
     when: "a service-shaped page contains very little readable body text",
   },
   "missing-h1": {
     field: "missingh1",
-    name: "H1 Heading Repair",
+    name: "Clear Page Headings",
+    description: "Add or improve the primary page heading so visitors immediately understand the page’s purpose.",
     min: TECHNICAL_STARTER_PRICE_BANDS["missing-h1"].min,
     max: TECHNICAL_STARTER_PRICE_BANDS["missing-h1"].max,
     when: "a readable page has no non-empty H1 heading",
   },
   "broken-internal-link": {
     field: "internallink",
-    name: "Internal Link Repair",
+    name: "Broken Link Repair",
+    description: "Repair verified broken internal links and confirm visitors can reach the intended destination.",
     min: TECHNICAL_STARTER_PRICE_BANDS["broken-internal-link"].min,
     max: TECHNICAL_STARTER_PRICE_BANDS["broken-internal-link"].max,
     when: "a same-site link is verified to return HTTP 404 or 410",
   },
   "missing-meta-description": {
     field: "metadescription",
-    name: "Meta Description Repair",
+    name: "Search Snippet Copy",
+    description: "Write concise page descriptions designed to set clear expectations in search results.",
     min: TECHNICAL_STARTER_PRICE_BANDS["missing-meta-description"].min,
     max: TECHNICAL_STARTER_PRICE_BANDS["missing-meta-description"].max,
     when: "a readable page has no non-empty meta description",
   },
   "missing-structured-data": {
     field: "structureddata",
-    name: "LocalBusiness or Service Schema",
+    name: "Local Service Structured Data",
+    description: "Add appropriate business or service structured data and validate the published implementation.",
     min: TECHNICAL_STARTER_PRICE_BANDS["missing-structured-data"].min,
     max: TECHNICAL_STARTER_PRICE_BANDS["missing-structured-data"].max,
     when: "a readable page has no observed LocalBusiness or Service structured-data type",
   },
   "missing-image-alt": {
     field: "imagealt",
-    name: "Image Alt Attribute Repair",
+    name: "Accessible Image Descriptions",
+    description: "Add meaningful alternative text to informative images while leaving decorative images appropriately empty.",
     min: TECHNICAL_STARTER_PRICE_BANDS["missing-image-alt"].min,
     max: TECHNICAL_STARTER_PRICE_BANDS["missing-image-alt"].max,
     when: "an image has no alt attribute; decorative alt=\"\" images are left alone",
@@ -202,6 +216,9 @@ function dedupeOfferings(lines: string[]): string[] {
 export async function loader({ request, context }: Route.LoaderArgs) {
   const authed = await requireSession(request, context);
   const db = d1Db(context.cloudflare.env.DB as never);
+  const assistantAvailable = catalogAssistantAvailable(
+    context.cloudflare.env as unknown as Record<string, unknown>,
+  );
   const ws = await getWorkspaceForUser(db, authed.userId);
   const url = new URL(request.url);
   const clientId = url.searchParams.get("client");
@@ -267,6 +284,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
               : null,
           suggestions,
           coverage,
+          catalogAssistantAvailable: assistantAvailable,
         };
       }
     }
@@ -294,6 +312,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       crawl: null,
       suggestions: [] as SuggestedOffering[],
       coverage: null,
+      catalogAssistantAvailable: assistantAvailable,
     };
   }
 
@@ -307,6 +326,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     crawl: null,
     suggestions: [] as SuggestedOffering[],
     coverage: null,
+    catalogAssistantAvailable: assistantAvailable,
   };
 }
 
@@ -347,7 +367,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       return {
         ok: false as const,
         kind: "catalog-draft" as const,
-        error: error instanceof Error ? error.message : "Catalog generation failed.",
+        error: catalogAssistantError(error),
       };
     }
   }
@@ -458,7 +478,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       name: entry.name,
       priceMin: entry.min,
       priceMax: entry.max,
-      description: "",
+      description: entry.starter.description,
     });
     if (problem) return { error: problem };
   }
@@ -498,7 +518,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       ServiceSchema.parse({
         id: slug("svc", entry.name),
         name: entry.name.trim(),
-        description: "",
+        description: entry.starter.description,
         priceMin: entry.min,
         priceMax: entry.max,
         tags: [entry.starter.tag],
@@ -591,6 +611,7 @@ export default function Onboarding({ loaderData, actionData }: Route.ComponentPr
           needsAgencySetup={loaderData.needsAgencySetup}
           workspaceName={loaderData.workspaceName}
           error={limitation ? undefined : error}
+          catalogAssistantIsAvailable={loaderData.catalogAssistantAvailable}
         />
       )}
     </main>
@@ -701,11 +722,13 @@ function SetupStage({
   needsAgencySetup,
   workspaceName,
   error,
+  catalogAssistantIsAvailable,
 }: {
   hasWorkspace: boolean;
   needsAgencySetup: boolean;
   workspaceName: string;
   error?: string;
+  catalogAssistantIsAvailable: boolean;
 }) {
   const navigation = useNavigation();
   // Busy through the redirect too, not just the POST: a submit that ends in a
@@ -725,14 +748,12 @@ function SetupStage({
       <p className="prose onboarding-lede">
         Axiom Orbit reads a client&rsquo;s website, compares it against what that business
         actually sells, and surfaces the work you could legitimately bill for. Tell it who the
-        client is and it will read the site. The first action is a crawl-only read; analysis runs
+        client is and it will read the site. The first action is a website read; analysis runs
         after you confirm what it found.
       </p>
       <Steps current={0} />
 
       <ErrorNotice error={error} />
-
-      <CatalogAssistant deferSave onCatalogChange={setReviewedCatalog} />
 
       {submitting && <ReadingSite domain={normalizeDomain(domain)} stopHref="/opportunities" />}
 
@@ -841,11 +862,19 @@ function SetupStage({
             Read the site
           </button>
           <span className="faint form-actions-note">
-            The first action is a crawl-only read. Nothing is added to the client yet &mdash;
+            The first action is a website read. Nothing is added to the client yet &mdash;
             analysis runs after you confirm what Orbit found.
           </span>
         </div>
       </Form>
+
+      <div className="onboarding-catalog-assistant">
+        <CatalogAssistant
+          deferSave
+          available={catalogAssistantIsAvailable}
+          onCatalogChange={setReviewedCatalog}
+        />
+      </div>
     </>
   );
 }

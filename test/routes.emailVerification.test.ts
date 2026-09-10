@@ -19,6 +19,7 @@ vi.mock("../app/lib/auth.server", async (importOriginal) => {
 
 import * as login from "../app/routes/login";
 import * as signup from "../app/routes/signup";
+import { verificationEmailFromRequest } from "../app/lib/verification-email.server";
 
 const env = {
   DB: {},
@@ -58,6 +59,23 @@ beforeEach(() => {
 });
 
 describe("email verification auth routes", () => {
+  it("reads the short-lived recipient cookie and rejects malformed values", () => {
+    expect(
+      verificationEmailFromRequest(
+        new Request("https://app.example.com/login?verify=sent", {
+          headers: { cookie: "axiom_verify_email=owner%40example.com" },
+        }),
+      ),
+    ).toBe("owner@example.com");
+    expect(
+      verificationEmailFromRequest(
+        new Request("https://app.example.com/login", {
+          headers: { cookie: "axiom_verify_email=not-an-email" },
+        }),
+      ),
+    ).toBe("");
+  });
+
   it("offers a safe resend after an existing unverified user is blocked", async () => {
     authApi.signInEmail.mockResolvedValueOnce(
       new Response(JSON.stringify({ code: "EMAIL_NOT_VERIFIED" }), {
@@ -134,6 +152,9 @@ describe("email verification auth routes", () => {
 
     expect(response.status).toBe(302);
     expect(response.headers.get("location")).toBe("/login?verify=sent");
+    expect(response.headers.get("set-cookie")).toMatch(
+      /^axiom_verify_email=owner%40example\.com; Path=\/login; Max-Age=600; HttpOnly; SameSite=Lax; Secure$/,
+    );
     expect(authApi.signUpEmail).toHaveBeenCalledWith(
       expect.objectContaining({
         body: {
@@ -178,5 +199,38 @@ describe("email verification auth routes", () => {
     expect(markup).toContain('name="intent"');
     expect(markup).toContain('value="resend-verification"');
     expect(markup).toContain('value="owner@example.com"');
+  });
+
+  it("preserves the attempted address after a wrong password", async () => {
+    authApi.signInEmail.mockResolvedValueOnce(new Response(null, { status: 401 }));
+    const result = await login.action({
+      request: formRequest({ email: "owner@example.com", password: "wrong-password" }),
+      context,
+    } as never);
+    expect(result).toEqual({ error: "Incorrect email or password.", email: "owner@example.com" });
+  });
+
+  it("shows the verification recipient and a resend path after signup", () => {
+    const markup = renderToStaticMarkup(
+      createElement(
+        RouterProvider,
+        {
+          router: createMemoryRouter([{
+            path: "/login",
+            element: createElement(login.default, {
+              loaderData: {
+                resetSuccess: false,
+                verificationSent: true,
+                verificationSuccess: false,
+                verificationEmail: "owner@example.com",
+              },
+            } as never),
+          }], { initialEntries: ["/login"] }),
+        },
+      ),
+    );
+    expect(markup).toContain("Check your email");
+    expect(markup).toContain("owner@example.com");
+    expect(markup).toContain("Resend verification email");
   });
 });

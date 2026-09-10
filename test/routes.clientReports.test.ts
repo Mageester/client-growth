@@ -318,6 +318,8 @@ describe("client-facing report routes", () => {
     expect(html).not.toContain("ws_a");
     expect(html).not.toContain("ruleId");
     expect(html).not.toMatch(/DeepSeek|crawler|evaluator|confidence/i);
+    expect(html).toContain("03 / Next step");
+    expect(html).not.toContain("04 / Next step");
     expect(html).not.toContain("status:200");
     expect(html).not.toContain("Underlying opportunity value");
     expect(html).toContain("https://northwind.example/services");

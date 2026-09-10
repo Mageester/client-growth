@@ -1,18 +1,25 @@
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Form, Link, redirect, useNavigation } from "react-router";
 
 import * as repo from "@/db/repositories";
 import { applyFunnelTransition } from "@/db/opportunityFunnel";
 import {
-  countActiveProposalShares,
   createProposalShare,
   isProposalShareError,
+  listProposalShares,
+  revokeProposalShare,
   revokeProposalShares,
 } from "@/db/proposalShares";
-import { generateProposalDraft } from "@/core/proposal";
+import {
+  formatReviewedProposal,
+  generateProposalDraft,
+  proposalWithFallback,
+  PROPOSAL_CURRENCIES,
+  type ProposalCurrency,
+} from "@/core/proposal";
 import { rationaleForOpportunity } from "@/core/rules/deterministicEvaluation";
 import { jobsToPayback, parseJobValue, paybackSentence } from "@/core/clientValue";
-import { buildEvidenceCase } from "../lib/evidence";
+import { buildEvidenceCase, evidenceStrengthLabel } from "../lib/evidence";
 import { isOpen, isSnoozeExpired, statusBadge } from "../lib/portfolio";
 import { salesStageOf } from "@/db/opportunityFunnel";
 import {
@@ -38,18 +45,21 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
   const t = await requireTenant(request, context);
   const opportunity = await repo.getOpportunity(t.scope, params.id);
   if (!opportunity) throw new Response("Opportunity not found", { status: 404 });
-  const [client, service, run, activeShareCount] = await Promise.all([
+  const [client, service, run, shares] = await Promise.all([
     repo.getClient(t.scope, opportunity.clientId),
     repo.getService(t.scope, opportunity.suggestedServiceId),
     repo.getLatestAnalysisRun(t.scope, opportunity.clientId),
-    countActiveProposalShares(t.scope, opportunity.id),
+    listProposalShares(t.scope, opportunity.id),
   ]);
+  const now = new Date().toISOString();
+  const activeShares = shares.filter((share) => !share.revokedAt && share.expiresAt > now);
   return {
     opportunity,
     client,
     service,
     lastRunAt: run?.finishedAt ?? null,
-    activeShareCount,
+    activeShareCount: activeShares.length,
+    activeShares,
     canManageShares: t.userId === t.workspace.ownerUserId,
     evidence: buildEvidenceCase(opportunity),
     // Null whenever the agency has not recorded what a job is worth to this
@@ -129,6 +139,11 @@ export async function action({ params, request, context }: Route.ActionArgs) {
       }
       break;
     }
+    case "correct-outcome": {
+      const ok = await applyFunnelTransition(t.scope, opp.id, { kind: "correct-outcome" });
+      if (!ok) return { error: "Only a sold or lost outcome can be corrected back to pitched." };
+      break;
+    }
     case "cover": {
       const ok = await applyFunnelTransition(t.scope, opp.id, { kind: "cover" });
       if (!ok) return { error: "This finding cannot be marked covered from its current state." };
@@ -182,16 +197,39 @@ export async function action({ params, request, context }: Route.ActionArgs) {
       break;
     }
     case "save-proposal": {
-      const body = String(form.get("proposalMd") ?? "").trim();
-      if (!body) return { error: "The draft cannot be empty." };
+      const title = String(form.get("proposalTitle") ?? "").trim();
+      const scope = String(form.get("proposalScope") ?? "")
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+      const priceMin = Number(form.get("proposalPriceMin"));
+      const priceMax = Number(form.get("proposalPriceMax"));
+      const currency = String(form.get("proposalCurrency") ?? "") as ProposalCurrency;
+      const nextStep = String(form.get("proposalNextStep") ?? "").trim();
+      if (!title || title.length > 160) return { error: "Add a concise proposal title." };
+      if (scope.length === 0 || scope.length > 12) {
+        return { error: "Add between 1 and 12 concrete deliverables." };
+      }
+      if (
+        !Number.isFinite(priceMin) ||
+        !Number.isFinite(priceMax) ||
+        priceMin < 0 ||
+        priceMax < priceMin
+      ) {
+        return { error: "Enter a valid reviewed price range." };
+      }
+      if (!PROPOSAL_CURRENCIES.includes(currency)) return { error: "Choose a proposal currency." };
+      if (!nextStep || nextStep.length > 500) return { error: "Add a clear next step." };
+      const body = formatReviewedProposal({ title, scope, priceMin, priceMax, currency, nextStep });
       await repo.saveOpportunityProposalText(t.scope, opp.id, body);
-      break;
+      return { ok: true as const, saved: true as const };
     }
     case "create-share": {
       try {
         const created = await createProposalShare(t.scope, opp.id, {
           createdByUserId: t.userId,
           preparedBy: t.user.name.trim() || t.user.email,
+          contactEmail: t.user.email,
         });
         const shareUrl = new URL(
           "/proposal/share",
@@ -203,6 +241,7 @@ export async function action({ params, request, context }: Route.ActionArgs) {
         return {
           ok: true as const,
           shareUrl: shareUrl.toString(),
+          shareId: created.shareId,
           expiresAt: created.expiresAt,
         };
       } catch (error) {
@@ -228,6 +267,20 @@ export async function action({ params, request, context }: Route.ActionArgs) {
         throw error;
       }
     }
+    case "revoke-share": {
+      try {
+        const shareId = String(form.get("shareId") ?? "");
+        const revoked = shareId
+          ? await revokeProposalShare(t.scope, opp.id, shareId, { actingUserId: t.userId })
+          : false;
+        return { ok: true as const, revoked: revoked ? 1 : 0 };
+      } catch (error) {
+        if (isProposalShareError(error) && error.code === "not-owner") {
+          throw new Response("Only the workspace owner can manage share links.", { status: 403 });
+        }
+        throw error;
+      }
+    }
     default:
       throw new Response("Unknown action", { status: 400 });
   }
@@ -242,6 +295,7 @@ export default function OpportunityDetail({ loaderData, actionData }: Route.Comp
     lastRunAt,
     evidence,
     activeShareCount = 0,
+    activeShares = [],
     canManageShares = false,
     payback,
   } = loaderData;
@@ -257,6 +311,111 @@ export default function OpportunityDetail({ loaderData, actionData }: Route.Comp
   const stage = salesStageOf(opp);
   const [showAllEvidence, setShowAllEvidence] = useState(false);
   const [copied, setCopied] = useState(false);
+  const fallbackProposal = useMemo(
+    () => ({
+      title: opp.title,
+      scope:
+        opp.suggestedScope.length > 0
+          ? opp.suggestedScope
+          : ["Confirm the deliverables with the client."],
+      priceMin: opp.priceMin,
+      priceMax: opp.priceMax,
+      currency: "USD" as ProposalCurrency,
+      nextStep: "Reply to approve the reviewed scope and price, then we’ll schedule the work.",
+    }),
+    [opp.id],
+  );
+  const initialProposal = proposalWithFallback(opp.proposalMd ?? "", fallbackProposal);
+  const [proposalTitle, setProposalTitle] = useState(initialProposal.title);
+  const [proposalScope, setProposalScope] = useState(initialProposal.scope.join("\n"));
+  const [proposalPriceMin, setProposalPriceMin] = useState(String(initialProposal.priceMin));
+  const [proposalPriceMax, setProposalPriceMax] = useState(String(initialProposal.priceMax));
+  const [proposalCurrency, setProposalCurrency] = useState<ProposalCurrency>(
+    initialProposal.currency,
+  );
+  const [proposalNextStep, setProposalNextStep] = useState(initialProposal.nextStep);
+  const loadedProposalMd = useRef(opp.proposalMd);
+  const [shareUrls, setShareUrls] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (loadedProposalMd.current === opp.proposalMd) return;
+    loadedProposalMd.current = opp.proposalMd;
+    const proposal = proposalWithFallback(opp.proposalMd ?? "", fallbackProposal);
+    setProposalTitle(proposal.title);
+    setProposalScope(proposal.scope.join("\n"));
+    setProposalPriceMin(String(proposal.priceMin));
+    setProposalPriceMax(String(proposal.priceMax));
+    setProposalCurrency(proposal.currency);
+    setProposalNextStep(proposal.nextStep);
+  }, [fallbackProposal, opp.proposalMd]);
+
+  const currentProposal = {
+    title: proposalTitle.trim(),
+    scope: proposalScope
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean),
+    priceMin: Number(proposalPriceMin),
+    priceMax: Number(proposalPriceMax),
+    currency: proposalCurrency,
+    nextStep: proposalNextStep.trim(),
+  };
+  const currentProposalText =
+    currentProposal.title &&
+    currentProposal.scope.length > 0 &&
+    Number.isFinite(currentProposal.priceMin) &&
+    Number.isFinite(currentProposal.priceMax) &&
+    currentProposal.nextStep
+      ? formatReviewedProposal(currentProposal)
+      : "";
+  const dirty = Boolean(
+    opp.proposalMd &&
+      currentProposalText &&
+      currentProposalText.trim() !== opp.proposalMd.trim(),
+  );
+
+  useEffect(() => {
+    try {
+      setShareUrls(
+        JSON.parse(
+          window.localStorage.getItem("axiom-orbit:proposal-share-links") ?? "{}",
+        ) as Record<string, string>,
+      );
+    } catch {
+      setShareUrls({});
+    }
+  }, []);
+
+  useEffect(() => {
+    if (
+      !actionData ||
+      !("shareUrl" in actionData) ||
+      !("shareId" in actionData) ||
+      !actionData.shareUrl ||
+      !actionData.shareId
+    ) {
+      return;
+    }
+    setShareUrls((current) => {
+      const next = { ...current, [String(actionData.shareId)]: String(actionData.shareUrl) };
+      try {
+        window.localStorage.setItem("axiom-orbit:proposal-share-links", JSON.stringify(next));
+      } catch {
+        // Share metadata and revoke controls remain available from the server.
+      }
+      return next;
+    });
+  }, [actionData]);
+
+  useEffect(() => {
+    if (!dirty) return;
+    const protect = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", protect);
+    return () => window.removeEventListener("beforeunload", protect);
+  }, [dirty]);
 
   const evidenceShown = showAllEvidence
     ? [...evidence.primary, ...evidence.secondary]
@@ -296,9 +455,20 @@ export default function OpportunityDetail({ loaderData, actionData }: Route.Comp
   }
 
   async function copyDraft() {
-    if (!opp.proposalMd) return;
+    if (!currentProposalText) return;
     try {
-      await navigator.clipboard.writeText(opp.proposalMd);
+      await navigator.clipboard.writeText(
+        [
+          currentProposal.title,
+          "",
+          "Deliverables",
+          ...currentProposal.scope.map((line) => `• ${line}`),
+          "",
+          `Investment: ${currentProposal.currency} ${formatCurrencyRange(currentProposal.priceMin, currentProposal.priceMax)}`,
+          "",
+          `Next step: ${currentProposal.nextStep}`,
+        ].join("\n"),
+      );
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2200);
     } catch {
@@ -384,8 +554,9 @@ export default function OpportunityDetail({ loaderData, actionData }: Route.Comp
                 : "Recorded"}
             </Fact>
           )}
-          <Fact label="Confidence">
-            <span className="num">{Math.round(opp.confidence * 100)}%</span>
+          <Fact label="Evidence strength">
+            <span>{evidenceStrengthLabel(opp.confidence)}</span>
+            <small>Stored checks support the observation; this is not a sales forecast.</small>
           </Fact>
           <Fact label="Service to sell">
             {service ? (
@@ -436,6 +607,12 @@ export default function OpportunityDetail({ loaderData, actionData }: Route.Comp
               ? "There were no active proposal links to revoke."
               : `Revoked ${actionData.revoked} proposal ${actionData.revoked === 1 ? "link" : "links"}.`}
           </span>
+        </div>
+      )}
+      {actionData && "saved" in actionData && actionData.saved && (
+        <div className="notice ok" role="status">
+          <Icon name="check" size={15} />
+          <span>Proposal saved. This reviewed version is ready to preview or share.</span>
         </div>
       )}
 
@@ -662,15 +839,49 @@ export default function OpportunityDetail({ loaderData, actionData }: Route.Comp
                   </button>
                 </Form>
               </div>
+              {(opp.soldAt || opp.lostAt) && (
+                <p className="field-hint correction-history">
+                  Correction history: previously recorded {opp.soldAt ? "sold" : "lost"}
+                  {opp.soldAt ? ` on ${formatDate(opp.soldAt)}` : opp.lostAt ? ` on ${formatDate(opp.lostAt)}` : ""}
+                  {opp.soldAt && opp.soldAmount !== undefined ? ` for ${formatCurrencyRange(opp.soldAmount, opp.soldAmount)}` : ""}; returned to pitched for review.
+                </p>
+              )}
             </div>
           )}
 
           {(stage === "sold" || stage === "lost") && (
-            <p className="action-note">
-              {stage === "sold"
-                ? "Recorded as sold" + (opp.soldAt ? " " + formatDate(opp.soldAt) : ".")
-                : "Presented to the client but not closed. This is a client decision — different from an internal dismissal."}
-            </p>
+            <div className="terminal-outcome-review">
+              <p className="action-note">
+                {stage === "sold"
+                  ? "Recorded as sold" + (opp.soldAt ? " " + formatDate(opp.soldAt) : ".")
+                  : "Presented to the client but not closed. This is a client decision — different from an internal dismissal."}
+              </p>
+              <div className="disposition-actions">
+                {stage === "sold" && (
+                  <Form method="post" className="row-tight">
+                    <input type="hidden" name="intent" value="sold" />
+                    <label htmlFor="correct-sold-amount" className="sr-only">Correct sold amount</label>
+                    <input
+                      id="correct-sold-amount"
+                      name="soldAmount"
+                      type="text"
+                      inputMode="decimal"
+                      defaultValue={opp.soldAmount ?? ""}
+                      placeholder="Sold amount"
+                      size={14}
+                    />
+                    <button className="btn" type="submit" disabled={busy}>Save amount</button>
+                  </Form>
+                )}
+                <Form method="post" className="inline">
+                  <input type="hidden" name="intent" value="correct-outcome" />
+                  <button className="btn" type="submit" disabled={busy}>Return to pitched</button>
+                </Form>
+              </div>
+              <p className="field-hint">
+                Corrections keep the original sold or lost date on the finding as audit history.
+              </p>
+            </div>
           )}
 
           {opp.status === "already_covered" && (
@@ -700,14 +911,9 @@ export default function OpportunityDetail({ loaderData, actionData }: Route.Comp
                 </Form>
               )}
               {activeShareCount > 0 && (
-                <Form method="post" className="inline">
-                  <input type="hidden" name="intent" value="revoke-shares" />
-                  <button type="submit" className="btn btn-danger" disabled={busy}>
-                    {pending === "revoke-shares"
-                      ? "Revoking…"
-                      : `Revoke ${activeShareCount} active link${activeShareCount === 1 ? "" : "s"}`}
-                  </button>
-                </Form>
+                <span className="faint">
+                  {activeShareCount} active proposal {activeShareCount === 1 ? "link" : "links"}
+                </span>
               )}
             </>
           )}
@@ -723,8 +929,11 @@ export default function OpportunityDetail({ loaderData, actionData }: Route.Comp
         <section className="section draft-area" id="proposal-draft">
           <div className="section-head">
             <div>
-              <h2 className="title-section">Proposal draft</h2>
-              <p>Built from the evidence above. Edit it here, then take it to the client.</p>
+              <h2 className="title-section">Review the client proposal</h2>
+              <p>
+                Confirm the title, deliverables, price, currency, and next step. The complete
+                preview below is what the client receives.
+              </p>
             </div>
             <button type="button" className="btn btn-sm" onClick={copyDraft}>
               <Icon name={copied ? "check" : "copy"} size={13} />
@@ -733,22 +942,124 @@ export default function OpportunityDetail({ loaderData, actionData }: Route.Comp
           </div>
           <Form method="post">
             <input type="hidden" name="intent" value="save-proposal" />
-            <label className="sr-only" htmlFor="proposal-draft-editor">
-              Proposal draft
-            </label>
-            <textarea id="proposal-draft-editor" name="proposalMd" defaultValue={opp.proposalMd} rows={18} />
+            <div className="proposal-fields">
+              <label className="field" htmlFor="proposal-title">
+                <span>Project title</span>
+                <input
+                  id="proposal-title"
+                  name="proposalTitle"
+                  value={proposalTitle}
+                  onChange={(event) => setProposalTitle(event.target.value)}
+                  maxLength={160}
+                />
+              </label>
+              <label className="field" htmlFor="proposal-scope">
+                <span>Deliverables <small>One per line</small></span>
+                <textarea
+                  id="proposal-scope"
+                  name="proposalScope"
+                  value={proposalScope}
+                  onChange={(event) => setProposalScope(event.target.value)}
+                  rows={6}
+                />
+              </label>
+              <div className="proposal-price-fields">
+                <label className="field" htmlFor="proposal-price-min">
+                  <span>Price from</span>
+                  <input id="proposal-price-min" name="proposalPriceMin" type="number" min={0} step="1" value={proposalPriceMin} onChange={(event) => setProposalPriceMin(event.target.value)} />
+                </label>
+                <label className="field" htmlFor="proposal-price-max">
+                  <span>Price to</span>
+                  <input id="proposal-price-max" name="proposalPriceMax" type="number" min={0} step="1" value={proposalPriceMax} onChange={(event) => setProposalPriceMax(event.target.value)} />
+                </label>
+                <label className="field" htmlFor="proposal-currency">
+                  <span>Currency</span>
+                  <select id="proposal-currency" name="proposalCurrency" value={proposalCurrency} onChange={(event) => setProposalCurrency(event.target.value as ProposalCurrency)}>
+                    {PROPOSAL_CURRENCIES.map((currency) => <option key={currency}>{currency}</option>)}
+                  </select>
+                </label>
+              </div>
+              <label className="field" htmlFor="proposal-next-step">
+                <span>Next step</span>
+                <textarea id="proposal-next-step" name="proposalNextStep" value={proposalNextStep} onChange={(event) => setProposalNextStep(event.target.value)} rows={3} maxLength={500} />
+              </label>
+            </div>
+            <div className="proposal-reviewed-preview" aria-label="Complete client-facing proposal preview">
+              <span className="eyebrow">Client-facing preview</span>
+              <h3>{currentProposal.title || "Add a project title"}</h3>
+              <h4>Deliverables</h4>
+              {currentProposal.scope.length > 0 ? (
+                <ul>{currentProposal.scope.map((line, index) => <li key={index}>{line}</li>)}</ul>
+              ) : (
+                <p>Add at least one deliverable.</p>
+              )}
+              <h4>Investment</h4>
+              <p>
+                {currentProposal.currency}{" "}
+                {Number.isFinite(currentProposal.priceMin) && Number.isFinite(currentProposal.priceMax)
+                  ? formatCurrencyRange(currentProposal.priceMin, currentProposal.priceMax)
+                  : "Add the reviewed price"}
+              </p>
+              <h4>Next step</h4>
+              <p>{currentProposal.nextStep || "Add the action you want the client to take."}</p>
+              <h4>Evidence reviewed</h4>
+              <p>
+                {evidence.headline} Source evidence is fixed and cannot be rewritten in the
+                commercial scope.
+              </p>
+            </div>
             <div className="form-actions">
               <button type="submit" className="btn btn-primary" disabled={busy}>
                 {pending === "save-proposal" ? "Saving…" : "Save draft"}
               </button>
               <span className="faint form-actions-note">
-                {opp.suggestedScope.length}{" "}
-                {pluralize(opp.suggestedScope.length, "scope line", "scope lines")} ·{" "}
+                {dirty ? "Unsaved changes" : "Saved"} · {currentProposal.scope.length}{" "}
+                {pluralize(currentProposal.scope.length, "deliverable", "deliverables")} ·{" "}
                 {evidence.inspectedCount}{" "}
-                {pluralize(evidence.inspectedCount, "source", "sources")} cited
+                {pluralize(evidence.inspectedCount, "evidence source", "evidence sources")}
               </span>
             </div>
           </Form>
+          {canManageShares && activeShares.length > 0 && (
+            <section className="proposal-link-history" aria-label="Active proposal links">
+              <h3 className="subhead">Active links</h3>
+              <ul>
+                {activeShares.map((share, index) => {
+                  const latestUrl =
+                    actionData &&
+                    "shareId" in actionData &&
+                    actionData.shareId === share.shareId &&
+                    "shareUrl" in actionData
+                      ? String(actionData.shareUrl)
+                      : "";
+                  const url = shareUrls[share.shareId] ?? latestUrl;
+                  return (
+                    <li key={share.shareId}>
+                      <div>
+                        <b>Version {activeShares.length - index}</b>
+                        <small>Created {formatDate(share.createdAt)} · expires {formatDate(share.expiresAt)}</small>
+                      </div>
+                      <div className="row-tight">
+                        {url ? (
+                          <>
+                            <a className="btn btn-sm" href={url} target="_blank" rel="noreferrer">Open</a>
+                            <button className="btn btn-sm" type="button" onClick={() => navigator.clipboard?.writeText(url)}>Copy</button>
+                          </>
+                        ) : (
+                          <span className="faint">URL is stored only in the browser that created it.</span>
+                        )}
+                        <Form method="post" className="inline">
+                          <input type="hidden" name="intent" value="revoke-share" />
+                          <input type="hidden" name="shareId" value={share.shareId} />
+                          <button type="submit" className="btn btn-sm btn-danger" disabled={busy}>Revoke</button>
+                        </Form>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          )}
         </section>
       )}
     </div>

@@ -76,8 +76,10 @@ describe("derived project packaging", () => {
       { client, opportunity: opportunity("drain", "Drain Cleaning"), serviceName: "Service Landing Page" },
     ]);
 
-    expect(projects[0]?.title).toBe("Service expansion opportunity");
-    expect(projects[0]?.summary).toBe("A focused service-page opportunity for Drain Cleaning.");
+    expect(projects[0]?.title).toBe("Drain Cleaning service page");
+    expect(projects[0]?.summary).toBe(
+      "A dedicated page for drain cleaning, with the scope and price reviewed by the agency.",
+    );
   });
 
   it("falls back to deterministic projects when a semantic proposal names an unknown row", () => {

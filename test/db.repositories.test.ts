@@ -91,4 +91,32 @@ describe("tenant repositories", () => {
     expect(latest?.source).toBe("fixture");
     expect(latest?.site.pages.length).toBe(6);
   });
+
+  it("selects one latest evidence row per client in SQL", async () => {
+    const firstClient = hvacClient();
+    const secondClient = { ...firstClient, id: "client-second", name: "Second" };
+    await repo.upsertClient(t, firstClient);
+    await repo.upsertClient(t, secondClient);
+
+    const base = hvacEvidence();
+    await repo.saveEvidence(t, { ...base, capturedAt: "2026-09-01T00:00:00.000Z" });
+    await repo.saveEvidence(t, {
+      ...base,
+      source: "http",
+      capturedAt: "2026-09-02T00:00:00.000Z",
+    });
+    await repo.saveEvidence(t, {
+      ...base,
+      clientId: secondClient.id,
+      source: "http",
+      capturedAt: "2026-09-03T00:00:00.000Z",
+    });
+
+    const latest = await repo.latestEvidenceByClient(t);
+    expect(latest.size).toBe(2);
+    expect(latest.get(firstClient.id)?.source).toBe("http");
+    expect(latest.get(secondClient.id)?.source).toBe("http");
+    expect(repo.LATEST_EVIDENCE_BY_CLIENT_SQL).toMatch(/ROW_NUMBER\(\)/i);
+    expect(repo.LATEST_EVIDENCE_BY_CLIENT_SQL).toMatch(/evidence_rank\s*=\s*1/i);
+  });
 });

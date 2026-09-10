@@ -9,7 +9,7 @@ import {
   type ReportCandidates,
 } from "@/core/clientReport";
 import { reportThemeOption } from "@/core/reportTheme";
-import { createClientReport, isClientReportError } from "@/db/clientReports";
+import { createClientReport, getClientReportById, isClientReportError } from "@/db/clientReports";
 import { getWorkspaceBranding } from "@/db/proposalShares";
 import * as repo from "@/db/repositories";
 import { ClientReportDocument } from "../components/client-report";
@@ -51,13 +51,18 @@ async function loadReportInputs(t: Awaited<ReturnType<typeof requireTenant>>, cl
 export async function loader({ params, request, context }: Route.LoaderArgs) {
   const t = await requireTenant(request, context);
   const inputs = await loadReportInputs(t, params.id);
+  const sourceId = new URL(request.url).searchParams.get("from");
+  const source = sourceId ? await getClientReportById(t.scope, sourceId) : null;
+  const sourceReport = source?.clientId === inputs.client.id ? source.snapshot : null;
   return {
     client: inputs.client,
     candidates: inputs.candidates,
     branding: inputs.branding,
     agencyName: t.workspace.name,
     preparedBy: t.user.name.trim() || t.user.email,
+    contactEmail: t.user.email,
     previewGeneratedAt: new Date().toISOString(),
+    sourceReport,
   };
 }
 
@@ -117,7 +122,7 @@ export async function action({ params, request, context }: Route.ActionArgs) {
       workspaceId: t.scope.workspaceId,
       createdByUserId: t.userId,
       client: inputs.client,
-      agency: { name: t.workspace.name, logo: inputs.branding.logo, theme: inputs.branding.reportTheme },
+      agency: { name: t.workspace.name, logo: inputs.branding.logo, theme: inputs.branding.reportTheme, contactEmail: t.user.email },
       preparedBy: t.user.name.trim() || t.user.email,
       generatedAt: new Date().toISOString(),
       evidenceReviewedAt: inputs.candidates.evidenceReviewedAt,
@@ -226,16 +231,36 @@ function CandidateChoice({
 }
 
 export default function ClientReportBuilder({ loaderData, actionData }: Route.ComponentProps) {
-  const { client, candidates, branding, agencyName, preparedBy, previewGeneratedAt } = loaderData;
+  const { client, candidates, branding, agencyName, preparedBy, contactEmail, previewGeneratedAt, sourceReport } = loaderData;
   const allCandidates = [...candidates.commercial, ...candidates.health];
   const byKey = new Map(allCandidates.map((candidate) => [candidate.key, candidate]));
-  const [selectedKeys, setSelectedKeys] = useState<string[]>(() => [...candidates.defaultSelectedKeys]);
-  const [orderedKeys, setOrderedKeys] = useState<string[]>(() => [...candidates.defaultSelectedKeys]);
-  const [showUnderlyingValue, setShowUnderlyingValue] = useState(false);
-  const [agencyNote, setAgencyNote] = useState("");
-  const [nextStepNote, setNextStepNote] = useState("");
-  const [packagePrices, setPackagePrices] = useState<Record<string, string>>({});
-  const [confirmedPrices, setConfirmedPrices] = useState<Record<string, boolean>>({});
+  const sourceIds = new Set(sourceReport?.audit.includedOpportunityIds ?? []);
+  const revisedKeys = allCandidates
+    .filter((candidate) =>
+      candidate.project.entries.some((entry) => sourceIds.has(entry.opportunity.id)),
+    )
+    .map((candidate) => candidate.key);
+  const initialKeys = revisedKeys.length > 0 ? revisedKeys : [...candidates.defaultSelectedKeys];
+  const sourceProjects = sourceReport
+    ? [...sourceReport.public.recommendedProjects, ...sourceReport.public.supportingProjects]
+    : [];
+  const initialPackagePrices = Object.fromEntries(
+    allCandidates.flatMap((candidate) => {
+      const matched = sourceProjects.find((project) => project.title === candidate.project.title);
+      return matched?.packagePrice ? [[candidate.key, String(matched.packagePrice.amount)]] : [];
+    }),
+  );
+  const [selectedKeys, setSelectedKeys] = useState<string[]>(() => initialKeys);
+  const [orderedKeys, setOrderedKeys] = useState<string[]>(() => initialKeys);
+  const [showUnderlyingValue, setShowUnderlyingValue] = useState(
+    Boolean(sourceReport?.public.executiveSummary.underlyingOpportunityValue),
+  );
+  const [agencyNote, setAgencyNote] = useState(sourceReport?.public.agencyNote ?? "");
+  const [nextStepNote, setNextStepNote] = useState(sourceReport?.public.nextStep ?? "");
+  const [packagePrices, setPackagePrices] = useState<Record<string, string>>(initialPackagePrices);
+  const [confirmedPrices, setConfirmedPrices] = useState<Record<string, boolean>>(
+    Object.fromEntries(Object.keys(initialPackagePrices).map((key) => [key, true])),
+  );
 
   const toggle = (key: string, checked: boolean) => {
     setSelectedKeys((current) => checked ? [...current, key] : current.filter((item) => item !== key));
@@ -261,7 +286,7 @@ export default function ClientReportBuilder({ loaderData, actionData }: Route.Co
           workspaceId: "preview",
           createdByUserId: "preview",
           client,
-          agency: { name: agencyName, logo: branding.logo, theme: branding.reportTheme },
+          agency: { name: agencyName, logo: branding.logo, theme: branding.reportTheme, contactEmail },
           preparedBy,
           generatedAt: previewGeneratedAt,
           evidenceReviewedAt: candidates.evidenceReviewedAt,
@@ -294,12 +319,14 @@ export default function ClientReportBuilder({ loaderData, actionData }: Route.Co
           <Icon name="arrow-left" size={14} />
           {client.name}
         </Link>
-        <span className="client-report-builder-status">Draft report · private until shared</span>
+        <span className="client-report-builder-status">
+          {sourceReport ? "Revised draft · creates a new private version" : "Draft report · private until shared"}
+        </span>
       </div>
       <header className="report-builder-heading">
         <div className="report-builder-heading-copy">
           <span className="eyebrow">Client report · {client.name}</span>
-          <h1>Create a client report</h1>
+          <h1>{sourceReport ? "Create a revised report version" : "Create a client report"}</h1>
           <p>Turn the verified priorities you choose into a clear conversation starter for your client.</p>
         </div>
         <div className="report-builder-progress" aria-label="Report workflow">

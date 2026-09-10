@@ -430,11 +430,48 @@ export async function removeCoverage(
   return r.rowsAffected > 0;
 }
 
+/** Remove coverage and restore findings to the last durable review stage. */
+export async function removeCoverageAndReopen(
+  t: TenantScope,
+  clientId: string,
+  serviceId: string,
+): Promise<{ removed: boolean; reopened: number }> {
+  const now = nowIso();
+  const [removed, reopened] = await t.db.batch([
+    {
+      sql: "DELETE FROM client_coverage WHERE client_id = ? AND service_id = ? AND workspace_id = ?",
+      params: [clientId, serviceId, t.workspaceId],
+    },
+    {
+      sql: `UPDATE opportunities
+            SET billable_status = 'billable',
+                status = CASE
+                  WHEN dismissed_at IS NOT NULL THEN 'dismissed'
+                  WHEN pitched_at IS NOT NULL THEN 'pitched'
+                  WHEN proposal_prepared_at IS NOT NULL OR proposal_md IS NOT NULL
+                    THEN 'proposal_prepared'
+                  WHEN accepted_at IS NOT NULL THEN 'accepted'
+                  ELSE 'new'
+                END,
+                snooze_until = NULL,
+                updated_at = ?
+            WHERE workspace_id = ? AND client_id = ? AND suggested_service_id = ?
+              AND status = 'already_covered' AND billable_status = 'already_covered'`,
+      params: [now, t.workspaceId, clientId, serviceId],
+    },
+  ]);
+  return { removed: removed!.rowsAffected > 0, reopened: reopened!.rowsAffected };
+}
+
 // ---------------------------------------------------------------------------
 // evidence bundle cache
 // ---------------------------------------------------------------------------
 interface EvidenceRow {
   bundle: string;
+}
+
+interface EvidenceByClientRow extends EvidenceRow {
+  client_id: string;
 }
 
 export async function saveEvidence(t: TenantScope, bundle: EvidenceBundle): Promise<void> {
@@ -465,6 +502,34 @@ export async function getLatestEvidence(
     .bind(clientId, t.workspaceId)
     .first<EvidenceRow>();
   return row ? EvidenceBundleSchema.parse(JSON.parse(row.bundle)) : null;
+}
+
+export const LATEST_EVIDENCE_BY_CLIENT_SQL = `SELECT client_id, bundle
+       FROM (
+         SELECT client_id, bundle,
+                ROW_NUMBER() OVER (
+                  PARTITION BY client_id
+                  ORDER BY captured_at DESC, id DESC
+                ) AS evidence_rank
+         FROM evidence_bundles
+         WHERE workspace_id = ?
+       ) AS latest_evidence
+       WHERE evidence_rank = 1
+       ORDER BY client_id ASC`;
+
+/** Latest evidence for every client in one tenant-scoped query. */
+export async function latestEvidenceByClient(
+  t: TenantScope,
+): Promise<Map<string, EvidenceBundle>> {
+  const rows = await t.db
+    .prepare(LATEST_EVIDENCE_BY_CLIENT_SQL)
+    .bind(t.workspaceId)
+    .all<EvidenceByClientRow>();
+  const latest = new Map<string, EvidenceBundle>();
+  for (const row of rows) {
+    latest.set(row.client_id, EvidenceBundleSchema.parse(JSON.parse(row.bundle)));
+  }
+  return latest;
 }
 
 // ---------------------------------------------------------------------------

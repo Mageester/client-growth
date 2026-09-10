@@ -84,7 +84,7 @@ export interface ClientReportProjectSnapshot {
 
 export interface ClientReportPublicSnapshot {
   schemaVersion: 1;
-  agency: { name: string; logo: string | null; theme: ReportTheme };
+  agency: { name: string; logo: string | null; theme: ReportTheme; contactEmail: string | null };
   client: { name: string; domain: string };
   preparedBy: string;
   generatedAt: string;
@@ -140,7 +140,7 @@ export interface BuildClientReportSnapshotInput {
   workspaceId: string;
   createdByUserId: string;
   client: Pick<Client, "id" | "name" | "domain">;
-  agency: { name: string; logo: string | null; theme?: ReportTheme };
+  agency: { name: string; logo: string | null; theme?: ReportTheme; contactEmail?: string | null };
   preparedBy: string;
   generatedAt: string;
   evidenceReviewedAt: string | null;
@@ -472,6 +472,7 @@ export function buildClientReportSnapshot(
         name: agencyName,
         logo: input.agency.logo ?? null,
         theme: normalizeReportTheme(input.agency.theme),
+        contactEmail: input.agency.contactEmail?.trim() || null,
       },
       client: { name: input.client.name, domain: input.client.domain },
       preparedBy: input.preparedBy.trim() || "Your agency team",

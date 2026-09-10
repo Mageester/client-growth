@@ -43,6 +43,7 @@ import {
 } from "@/db/competitors";
 import { compareWithCompetitors } from "../lib/competitors.server";
 import * as repo from "@/db/repositories";
+import { listClientReports, listClientReportShares } from "@/db/clientReports";
 import {
   AnalysisAbortedError,
   collectEvidenceOnly,
@@ -51,6 +52,7 @@ import {
 import {
   byPotentialValue,
   clientState,
+  evidenceReadState,
   isOpen,
   statusBadge,
   totalsFor,
@@ -74,6 +76,7 @@ import {
 import { OfferingGuidance } from "../components/offering-guidance";
 import { requireTenant } from "../lib/session.server";
 import { normalizeDomain, offeringWarnings, validateClientInput } from "../lib/validation";
+import { evidenceStrengthLabel } from "../lib/evidence";
 import type { Route } from "./+types/clients.$id";
 
 /** The readiness shape after it has crossed the loader's JSON boundary. */
@@ -137,7 +140,16 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
     context.cloudflare.env as unknown as Record<string, unknown>,
     t.user.email,
   );
-  const [services, coverage, opportunities, runs, monitoring, evidence, competitors] =
+  const reportsPromise = listClientReports(t.scope, client.id).catch((error: unknown) => {
+    // During a staggered deployment the client page can reach a database that
+    // has not received the additive report migration yet. Keep the portfolio
+    // usable, but let every unrelated database error fail loudly.
+    if (error instanceof Error && /no such table:\s*client_report_snapshots/i.test(error.message)) {
+      return [];
+    }
+    throw error;
+  });
+  const [services, coverage, opportunities, runs, monitoring, evidence, competitors, reports] =
     await Promise.all([
       repo.listServices(t.scope),
       repo.listCoverage(t.scope, client.id),
@@ -146,7 +158,28 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
       monitoringRepo.getMonitoring(t.scope, client.id),
       repo.getLatestEvidence(t.scope, client.id),
       listCompetitors(t.scope, client.id),
+      reportsPromise,
     ]);
+  const nowIso = new Date().toISOString();
+  const reportHistory = await Promise.all(
+    reports.map(async (report) => {
+      const shares = await listClientReportShares(t.scope, report.reportId);
+      return {
+        reportId: report.reportId,
+        generatedAt: report.generatedAt,
+        title:
+          report.snapshot.public.recommendedProjects[0]?.title ??
+          report.snapshot.public.supportingProjects[0]?.title ??
+          `${client.name} website review`,
+        projectCount:
+          report.snapshot.public.recommendedProjects.length +
+          report.snapshot.public.supportingProjects.length,
+        activeShareCount: shares.filter(
+          (share) => !share.revokedAt && share.expiresAt > nowIso,
+        ).length,
+      };
+    }),
+  );
   const externalClaims = externalMismatchEnabled
     ? await repo.listExternalBusinessClaims(t.scope, client.id)
     : [];
@@ -213,7 +246,12 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
         }
       : null,
     crawlFailure,
-    state: clientState({ outcome: latest?.outcome ?? null, openCount: totals.open }),
+    reportHistory,
+    state: clientState({
+      outcome: latest?.outcome ?? null,
+      openCount: totals.open,
+      evidenceState: evidenceReadState(evidence),
+    }),
   };
 }
 
@@ -491,8 +529,13 @@ export async function action({ params, request, context }: Route.ActionArgs) {
       if (!applied) return { ok: false as const, error: "That service is not in your catalog." };
       return { ok: true as const, message: "Marked as covered by contract." };
     }
-    await repo.removeCoverage(t.scope, existing.id, serviceId);
-    return { ok: true as const, message: "Coverage removed. Future gaps here become billable." };
+    const result = await repo.removeCoverageAndReopen(t.scope, existing.id, serviceId);
+    return {
+      ok: true as const,
+      message: result.reopened > 0
+        ? `Coverage removed and ${result.reopened} ${result.reopened === 1 ? "finding" : "findings"} returned to their prior review state.`
+        : "Coverage removed. Future gaps here become billable.",
+    };
   }
 
   if (intent === "add-competitor") {
@@ -669,6 +712,7 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
     externalMismatchEnabled = false,
     externalClaims = [],
     websiteCoverage = null,
+    reportHistory = [],
   } = loaderData;
   const navigation = useNavigation();
   const intent = navigation.formData?.get("intent");
@@ -949,8 +993,8 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
                               <span>potential value</span>
                             </span>
                             <span className="record-stat">
-                              <b className="num">{Math.round(opp.confidence * 100)}%</b>
-                              <span>confident</span>
+                              <b>{evidenceStrengthLabel(opp.confidence)}</b>
+                              <span>verification support</span>
                             </span>
                             <Icon name="chevron-right" size={15} className="record-chevron" />
                           </span>
@@ -962,6 +1006,48 @@ export default function ClientDetail({ loaderData, actionData }: Route.Component
               </section>
             ))}
           </div>
+        )}
+      </section>
+
+      <section className="section client-report-history" aria-labelledby="client-report-history-title">
+        <div className="section-head">
+          <div>
+            <h2 className="title-section" id="client-report-history-title">Saved reports</h2>
+            <p>Fixed client-facing versions you prepared for this client.</p>
+          </div>
+          <Link className="btn btn-sm" to={`/clients/${encodeURIComponent(client.id)}/report`}>
+            <Icon name="plus" size={13} />
+            New report
+          </Link>
+        </div>
+        {reportHistory.length > 0 ? (
+          <ul className="report-history-list">
+            {reportHistory.map((report, index) => (
+              <li key={report.reportId}>
+                <div>
+                  <span className="eyebrow">Version {reportHistory.length - index}</span>
+                  <b>{report.title}</b>
+                  <small>
+                    {formatDate(report.generatedAt)} · {report.projectCount}{" "}
+                    {pluralize(report.projectCount, "project", "projects")} ·{" "}
+                    {report.activeShareCount > 0
+                      ? `${report.activeShareCount} active ${pluralize(report.activeShareCount, "link", "links")}`
+                      : "Private"}
+                  </small>
+                </div>
+                <div className="row-tight">
+                  <Link className="btn btn-sm" to={`/reports/${encodeURIComponent(report.reportId)}`}>
+                    Open
+                  </Link>
+                  <Link className="btn btn-sm" to={`/clients/${encodeURIComponent(client.id)}/report?from=${encodeURIComponent(report.reportId)}`}>
+                    Create revised version
+                  </Link>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="prose faint">No saved reports yet. Create one when the reviewed findings are ready for a client conversation.</p>
         )}
       </section>
 

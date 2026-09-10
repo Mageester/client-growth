@@ -43,7 +43,11 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const entitled = isWorkspaceEntitledToMonitor(env, t.user.email);
 
   if (!entitled) {
-    return { entitled: false as const, ownerEmail: t.user.email };
+    return {
+      entitled: false as const,
+      ownerEmail: t.user.email,
+      workspaceName: t.workspace.name,
+    };
   }
 
   const [clients, monitoringByClient, latestRuns, digest, digestRuns] = await Promise.all([
@@ -168,7 +172,8 @@ export async function action({ request, context }: Route.ActionArgs) {
 
 // ---------------------------------------------------------------------------
 
-function Upsell({ ownerEmail }: { ownerEmail: string }) {
+function Upsell({ ownerEmail, workspaceName }: { ownerEmail: string; workspaceName: string }) {
+  const requestHref = `mailto:hello@getaxiom.ca?subject=${encodeURIComponent("Axiom Orbit MONITOR access request")}&body=${encodeURIComponent(`Please contact me about enabling MONITOR for ${workspaceName} (${ownerEmail}).`)}`;
   return (
     <main className="home-page">
       <header className="home-head">
@@ -187,12 +192,14 @@ function Upsell({ ownerEmail }: { ownerEmail: string }) {
         <div>
           <b>MONITOR isn’t enabled for this workspace yet.</b>
           <p>
-            It’s a paid feature. Ask us to turn it on for <b>{ownerEmail}</b> and your clients will
-            start being watched automatically — nothing runs until you’re on it.
+            MONITOR is a paid pilot add-on. Request access for <b>{ownerEmail}</b>; we will confirm
+            pricing and activation with you before anything is enabled. We aim to reply within two
+            business days.
           </p>
-          <Link className="btn btn-sm" to="/clients">
-            Back to clients
-          </Link>
+          <div className="form-actions">
+            <a className="btn btn-sm btn-primary" href={requestHref}>Request MONITOR access</a>
+            <Link className="btn btn-sm" to="/clients">Back to clients</Link>
+          </div>
         </div>
       </section>
     </main>
@@ -204,7 +211,7 @@ export default function Monitor({ loaderData, actionData }: Route.ComponentProps
   const busy = navigation.state !== "idle";
 
   if (!loaderData.entitled) {
-    return <Upsell ownerEmail={loaderData.ownerEmail} />;
+    return <Upsell ownerEmail={loaderData.ownerEmail} workspaceName={loaderData.workspaceName} />;
   }
 
   const { portfolio, digest, digestRuns, clients, changes, emailConfigured, now } = loaderData;
