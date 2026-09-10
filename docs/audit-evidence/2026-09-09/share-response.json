@@ -1,0 +1,14 @@
+{
+  "status": 200,
+  "cacheControl": [
+    "no-store, private"
+  ],
+  "referrerPolicy": [
+    "no-referrer"
+  ],
+  "robots": [
+    "noindex, nofollow"
+  ],
+  "containsRevisionA": true,
+  "requestCookies": "none"
+}

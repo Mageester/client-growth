@@ -1,0 +1,21 @@
+{
+  "observedOn": "2026-09-09",
+  "method": "Read-only Wrangler deployments list and versions view; public HTML asset comparison",
+  "localHead": "8bd4240486f26636cee6b73f681084e78a3cf95c",
+  "deploymentCreatedAt": "2026-09-09T03:56:12.381Z",
+  "workerVersion": "4772248c-844a-40a5-9e3f-e2d36eee8073",
+  "versionCreatedAt": "2026-09-09T03:56:11.226Z",
+  "trafficPercent": 100,
+  "observedNonSecretRuntimeValues": {
+    "AI_PROVIDER": "deepseek",
+    "SIGNUP_MODE": "invite",
+    "SIGNUP_ALLOWLIST": "",
+    "MONITOR_ENTITLEMENT_MODE": "off",
+    "MONITOR_ALLOWLIST": "",
+    "ANALYSIS_PLATFORM_DAILY_LIMIT": "200",
+    "MAX_AI_CALLS_PER_RUN": "10",
+    "MONITORING_MAX_CLIENTS_PER_RUN": "3",
+    "BETTER_AUTH_URL": "https://orbit.getaxiom.ca"
+  },
+  "boundary": "No deployment mutation, secret-value retrieval, production provider request, or production data mutation. Matching public frontend asset filenames do not independently prove exact backend commit identity."
+}

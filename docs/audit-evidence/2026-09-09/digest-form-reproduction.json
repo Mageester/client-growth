@@ -1,0 +1,21 @@
+{
+  "buttonText": "Send me this week’s digest",
+  "intentControls": [
+    {
+      "tag": "INPUT",
+      "type": "hidden",
+      "domValue": "Not exposed by the browser inspection surface",
+      "sourceValue": "save-digest-settings",
+      "sourceLocation": "app/routes/monitor.tsx:268"
+    },
+    {
+      "tag": "BUTTON",
+      "type": "submit",
+      "value": "send-digest-now"
+    }
+  ],
+  "route": "/monitor",
+  "observedAfterTwoClicks": "Digest preferences saved.",
+  "localTransport": "console",
+  "productionMessagesSent": 0
+}

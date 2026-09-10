@@ -1,0 +1,128 @@
+[rtk] /!\ No hook installed — run `rtk init -g` for automatic token savings
+
+> client-growth@ bench C:\Users\aidan\OneDrive\Documents\client-growth
+> tsx scripts/bench.ts
+
+Adversarial judgment set: 37 cases — 12 true_service, 7 trust_signal, 7 promotion, 5 generic_claim, 6 ambiguous
+
+OPPORTUNITY ENGINE BENCHMARK — MockEvaluator, fixture sites, no network
+==============================================================================================================
+case                                          outcome       cand  thr   supp  eval  rej   surf  exp  grade
+--------------------------------------------------------------------------------------------------------------
+clean-full-coverage                           clean         0     0     0     0     0     0     0    GOOD
+missing-service-page                          findings      1     1     0     1     0     1     1    GOOD
+broken-cta-404                                findings      1     1     0     1     0     1     1    GOOD
+near-miss-not-a-gap                           clean         0     0     0     0     0     0     0    GOOD
+cta-probe-inconclusive                        clean         0     0     0     0     0     0     0    GOOD
+js-handled-form                               clean         0     0     0     0     0     0     0    GOOD
+covered-by-contract                           clean         1     1     1     0     0     0     0    GOOD
+dismissed-stays-dismissed                     clean         1     1     1     0     0     0     0    GOOD
+blocked-network                               inconclusive  0     0     0     0     0     0     0    GOOD
+service-section-never-reached                 inconclusive  0     0     0     0     0     0     0    GOOD
+verification-fetch-blocked                    findings      1     1     0     1     0     1     1    GOOD
+malformed-tel-single-page                     findings      1     1     0     1     0     1     1    GOOD
+placeholder-form-action                       findings      1     1     0     1     0     1     1    GOOD
+--------------------------------------------------------------------------------------------------------------
+GOOD 13/13 (100%)   QUESTIONABLE 0   BAD 0
+false positives 0   false negatives 0   evaluator calls 5
+
+Hartley Roofing (missing-service-page)
+  • [missing-service-page] Chimney Repointing — dedicated service page — $900–$1800
+Meridian Dental (broken-cta-404)
+  • [broken-conversion-path] Broken "Book an appointment" link — $300–$1000
+Sandbourne Removals (verification-fetch-blocked)
+  • [missing-service-page] Storage — dedicated service page — $900–$1800
+Halden Motors (malformed-tel-single-page)
+  • [broken-conversion-path] Broken click-to-call link — $300–$1000
+Everly Photography (placeholder-form-action)
+  • [broken-conversion-path] Broken form submission path — $300–$1000
+
+JUDGMENT CASES — evidence sufficient, commercial call not automatic (MockEvaluator)
+==============================================================================================================
+case                                          outcome       cand  thr   supp  eval  rej   surf  exp  grade
+--------------------------------------------------------------------------------------------------------------
+marketing-claims-as-offerings                 findings      3     3     0     3     0     3     1    BAD
+                                              ↳ Surfaced work the agency should not pitch: missing-service-page: Free Quotes — dedicated service page; missing-service-page: Fully Insured — dedicated service page.
+high-intent-variant-of-existing-page          clean         0     0     0     0     0     0     1    QUESTIONABLE
+                                              ↳ Missed real, sellable work: missing-service-page: emergency boiler repair.
+stale-duplicate-contact-link                  findings      1     1     0     1     0     1     1    GOOD
+--------------------------------------------------------------------------------------------------------------
+GOOD 1/3 (33%)   QUESTIONABLE 1   BAD 1
+false positives 2   false negatives 1   evaluator calls 4
+
+ADVERSARIAL JUDGMENT SET — MockEvaluator (no commercial judgment)
+==============================================================================================================
+case                                          outcome       cand  thr   supp  eval  rej   surf  exp  grade
+--------------------------------------------------------------------------------------------------------------
+true-service-ev-charger-installation          findings      1     1     0     1     0     1     1    GOOD
+true-service-fuse-box-replacement             findings      1     1     0     1     0     1     1    GOOD
+true-service-outdoor-lighting-installation    findings      1     1     0     1     0     1     1    GOOD
+true-service-heat-pump-installation           findings      1     1     0     1     0     1     1    GOOD
+true-service-power-flushing                   findings      1     1     0     1     0     1     1    GOOD
+true-service-underfloor-heating-installation  findings      1     1     0     1     0     1     1    GOOD
+true-service-loft-insulation                  findings      1     1     0     1     0     1     1    GOOD
+true-service-commercial-roofing               findings      1     1     0     1     0     1     1    GOOD
+true-service-invisalign                       findings      1     1     0     1     0     1     1    GOOD
+true-service-emergency-root-canal-treatment   findings      1     1     0     1     0     1     1    GOOD
+true-service-end-of-tenancy-cleaning          findings      1     1     0     1     0     1     1    GOOD
+true-service-commercial-kitchen-deep-cleaning findings      1     1     0     1     0     1     1    GOOD
+trust-signal-fully-insured                    findings      1     1     0     1     0     1     0    BAD
+                                              ↳ Surfaced work the agency should not pitch: missing-service-page: Fully Insured — dedicated service page.
+trust-signal-licensed-technicians             findings      1     1     0     1     0     1     0    BAD
+                                              ↳ Surfaced work the agency should not pitch: missing-service-page: Licensed Technicians — dedicated service page.
+trust-signal-niceic-approved-contractor       findings      1     1     0     1     0     1     0    BAD
+                                              ↳ Surfaced work the agency should not pitch: missing-service-page: Niceic Approved Contractor — dedicated service page.
+trust-signal-family-owned-business            findings      1     1     0     1     0     1     0    BAD
+                                              ↳ Surfaced work the agency should not pitch: missing-service-page: Family Owned Business — dedicated service page.
+trust-signal-award-winning-practice           findings      1     1     0     1     0     1     0    BAD
+                                              ↳ Surfaced work the agency should not pitch: missing-service-page: Award Winning Practice — dedicated service page.
+trust-signal-24-years-experience              findings      1     1     0     1     0     1     0    BAD
+                                              ↳ Surfaced work the agency should not pitch: missing-service-page: 24 Years Experience — dedicated service page.
+trust-signal-dbs-checked-staff                findings      1     1     0     1     0     1     0    BAD
+                                              ↳ Surfaced work the agency should not pitch: missing-service-page: Dbs Checked Staff — dedicated service page.
+promotion-free-quotes                         findings      1     1     0     1     0     1     0    BAD
+                                              ↳ Surfaced work the agency should not pitch: missing-service-page: Free Quotes — dedicated service page.
+promotion-free-consultation                   findings      1     1     0     1     0     1     0    BAD
+                                              ↳ Surfaced work the agency should not pitch: missing-service-page: Free Consultation — dedicated service page.
+promotion-finance-available                   findings      1     1     0     1     0     1     0    BAD
+                                              ↳ Surfaced work the agency should not pitch: missing-service-page: Finance Available — dedicated service page.
+promotion-satisfaction-guarantee              findings      1     1     0     1     0     1     0    BAD
+                                              ↳ Surfaced work the agency should not pitch: missing-service-page: Satisfaction Guarantee — dedicated service page.
+promotion-10-off-first-clean                  findings      1     1     0     1     0     1     0    BAD
+                                              ↳ Surfaced work the agency should not pitch: missing-service-page: 10% Off First Clean — dedicated service page.
+promotion-no-call-out-fee                     findings      1     1     0     1     0     1     0    BAD
+                                              ↳ Surfaced work the agency should not pitch: missing-service-page: No Call Out Fee — dedicated service page.
+promotion-12-month-workmanship-warranty       findings      1     1     0     1     0     1     0    BAD
+                                              ↳ Surfaced work the agency should not pitch: missing-service-page: 12 Month Workmanship Warranty — dedicated service page.
+generic-claim-quality-workmanship             findings      1     1     0     1     0     1     0    BAD
+                                              ↳ Surfaced work the agency should not pitch: missing-service-page: Quality Workmanship — dedicated service page.
+generic-claim-fast-response-times             findings      1     1     0     1     0     1     0    BAD
+                                              ↳ Surfaced work the agency should not pitch: missing-service-page: Fast Response Times — dedicated service page.
+generic-claim-affordable-pricing              clean         0     0     0     0     0     0     0    GOOD
+generic-claim-friendly-professional-team      findings      1     1     0     1     0     1     0    BAD
+                                              ↳ Surfaced work the agency should not pitch: missing-service-page: Friendly Professional Team — dedicated service page.
+generic-claim-customer-satisfaction           findings      1     1     0     1     0     1     0    BAD
+                                              ↳ Surfaced work the agency should not pitch: missing-service-page: Customer Satisfaction — dedicated service page.
+ambiguous-bespoke-packages                    findings      1     1     0     1     0     1     0    BAD
+                                              ↳ Surfaced work the agency should not pitch: missing-service-page: Bespoke Packages — dedicated service page.
+ambiguous-nationwide-coverage                 findings      1     1     0     1     0     1     0    BAD
+                                              ↳ Surfaced work the agency should not pitch: missing-service-page: Nationwide Coverage — dedicated service page.
+ambiguous-aftercare                           findings      1     1     0     1     0     1     0    BAD
+                                              ↳ Surfaced work the agency should not pitch: missing-service-page: Aftercare — dedicated service page.
+ambiguous-out-of-hours-availability           findings      1     1     0     1     0     1     0    BAD
+                                              ↳ Surfaced work the agency should not pitch: missing-service-page: Out Of Hours Availability — dedicated service page.
+ambiguous-maintenance-plans                   clean         0     0     0     0     0     0     0    GOOD
+ambiguous-site-surveys                        findings      1     1     0     1     0     1     0    GOOD
+--------------------------------------------------------------------------------------------------------------
+GOOD 15/37 (41%)   QUESTIONABLE 0   BAD 22
+false positives 22   false negatives 0   evaluator calls 35
+
+ADVERSARIAL BY CATEGORY — MockEvaluator
+==============================================================================================================
+category                            cases  judged  surfaced  rate   GOOD  QUES  BAD
+--------------------------------------------------------------------------------------------------------------
+true services (should surface)      12     12      12        100%   12    0     0
+trust signals (must not surface)    7      7       7         100%   0     0     7
+promotions (must not surface)       7      7       7         100%   0     0     7
+generic claims (must not surface)   5      4       4         80%    1     0     4
+ambiguous (must fail closed)        6      5       5         83%    2     0     4

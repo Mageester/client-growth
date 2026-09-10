@@ -1,0 +1,27 @@
+{
+  "normalDesktop": {
+    "width": 1440,
+    "height": 1000
+  },
+  "laptop": {
+    "width": 1280,
+    "height": 800
+  },
+  "mobile": {
+    "width": 390,
+    "height": 844,
+    "visibleOverflow": []
+  },
+  "compactMobile": {
+    "height": 767,
+    "overflow": [
+      {
+        "class": "app-nav app-nav-compact",
+        "scroll": 209,
+        "tag": "NAV",
+        "width": 200
+      }
+    ],
+    "width": 355
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "statusAfterPrivatePreviewRefresh": 200,
+  "containsSyntheticNote": true,
+  "cacheControl": [
+    "no-store, private"
+  ],
+  "referrerPolicy": [
+    "no-referrer"
+  ],
+  "requestCookies": "none",
+  "revokeControlAfterRefresh": "absent in browser",
+  "clientReportLinks": "Create report only; no saved report list"
+}

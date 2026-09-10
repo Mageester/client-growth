@@ -1,0 +1,63 @@
+{
+  "environment": "Isolated local Worker, real Better Auth sessions and local D1; no production writes or real email",
+  "signup": 302,
+  "verification": 302,
+  "login": 302,
+  "setup": 302,
+  "verifiedSessionEmail": "astra.isolation.20260909@example.test",
+  "results": [
+    {
+      "path": "/clients/client-test-salon-evidence-sample-wngu",
+      "anonymous": {
+        "status": 302,
+        "location": "/login"
+      },
+      "otherTenant": {
+        "status": 404,
+        "location": null,
+        "containsFirstWorkspaceName": false,
+        "containsFirstClient": false
+      }
+    },
+    {
+      "path": "/opportunities/technical%3A%3Aclient-test-salon-evidence-sample-wngu%3A%3Amissing-meta-description",
+      "anonymous": {
+        "status": 302,
+        "location": "/login"
+      },
+      "otherTenant": {
+        "status": 404,
+        "location": null,
+        "containsFirstWorkspaceName": false,
+        "containsFirstClient": false
+      }
+    },
+    {
+      "path": "/reports/report_3e9d46b688704ba2a71c2ac53d9bb8a3",
+      "anonymous": {
+        "status": 302,
+        "location": "/login"
+      },
+      "otherTenant": {
+        "status": 404,
+        "location": null,
+        "containsFirstWorkspaceName": false,
+        "containsFirstClient": false
+      }
+    },
+    {
+      "path": "/export/workspace",
+      "anonymous": {
+        "status": 302,
+        "location": "/login"
+      },
+      "otherTenant": {
+        "status": 200,
+        "location": null,
+        "containsFirstWorkspaceName": false,
+        "containsFirstClient": false,
+        "privateNoStore": "private, no-store"
+      }
+    }
+  ]
+}

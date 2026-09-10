@@ -1,0 +1,477 @@
+{
+  "capturedAt": "2026-09-09T04:20:29.644Z",
+  "source": "Current isolated D1 evidence, unchanged production rule functions; no network and no evaluator",
+  "rows": [
+    {
+      "client": {
+        "id": "client-test-kids-connect-evidence-sample-93p2",
+        "name": "[TEST] Kids Connect Evidence Sample",
+        "domain": "kids-connect.ca",
+        "offerings": [
+          "after school program",
+          "summer camp"
+        ]
+      },
+      "readablePages": 5,
+      "coverage": {
+        "analyzable": false,
+        "reason": "This site has no service pages: the crawl followed every link on it and found 0 offering(s) represented in the site's navigation, links or sitemap, 0 service page(s) read, 0 service URL(s) in the sitemap. Nothing was blocked and nothing was left unread, so this is the whole site.",
+        "representedOfferings": 0,
+        "serviceLikePages": 0,
+        "serviceLikeSitemapUrls": 0,
+        "limitation": "site-too-thin"
+      },
+      "exhaustive": true,
+      "candidates": [
+        {
+          "ruleId": "no-service-pages",
+          "subject": "kids-connect.ca",
+          "detected": "The crawl followed every link on kids-connect.ca and read 5 pages, and not one of them is dedicated to a single service this business sells. Nothing was blocked and nothing was left unread, so this is the whole site. The client is recorded as offering after school program, summer camp, so a visitor searching for any one of those has no page to land on.",
+          "rawConfidence": 0.9
+        }
+      ],
+      "readiness": {
+        "state": "ready",
+        "rules": [
+          {
+            "ruleId": "missing-service-page",
+            "label": "A missing service page",
+            "state": "site_coverage_limited",
+            "reason": "This site has no pages describing what the business sells — the last run followed every link on it. A missing service page cannot be claimed against a site that describes no services, and adding offerings will not change that.",
+            "actionable": false
+          },
+          {
+            "ruleId": "no-service-pages",
+            "label": "A site with no service pages at all",
+            "state": "ready",
+            "reason": "Checked whenever the crawl reads a whole site and finds nothing on it describing a service.",
+            "actionable": false
+          },
+          {
+            "ruleId": "competitor-service-gap",
+            "label": "A service the competition sells and this client does not",
+            "state": "ready",
+            "reason": "Broken calls-to-action are checked on whatever pages the crawl reads; this needs no client setup.",
+            "actionable": false
+          },
+          {
+            "ruleId": "broken-conversion-path",
+            "label": "A broken conversion path",
+            "state": "ready",
+            "reason": "Broken calls-to-action are checked on whatever pages the crawl reads; this needs no client setup.",
+            "actionable": false
+          },
+          {
+            "ruleId": "missing-title",
+            "label": "Repair a missing page title",
+            "state": "ready",
+            "reason": "Broken calls-to-action are checked on whatever pages the crawl reads; this needs no client setup.",
+            "actionable": false
+          },
+          {
+            "ruleId": "duplicate-title",
+            "label": "Repair duplicate page titles",
+            "state": "ready",
+            "reason": "Broken calls-to-action are checked on whatever pages the crawl reads; this needs no client setup.",
+            "actionable": false
+          },
+          {
+            "ruleId": "thin-service-page",
+            "label": "Expand a thin service page",
+            "state": "ready",
+            "reason": "Broken calls-to-action are checked on whatever pages the crawl reads; this needs no client setup.",
+            "actionable": false
+          },
+          {
+            "ruleId": "missing-h1",
+            "label": "Repair a missing H1",
+            "state": "ready",
+            "reason": "Broken calls-to-action are checked on whatever pages the crawl reads; this needs no client setup.",
+            "actionable": false
+          },
+          {
+            "ruleId": "broken-internal-link",
+            "label": "Repair a broken internal link",
+            "state": "ready",
+            "reason": "Broken calls-to-action are checked on whatever pages the crawl reads; this needs no client setup.",
+            "actionable": false
+          },
+          {
+            "ruleId": "missing-meta-description",
+            "label": "Repair a missing meta description",
+            "state": "ready",
+            "reason": "Broken calls-to-action are checked on whatever pages the crawl reads; this needs no client setup.",
+            "actionable": false
+          },
+          {
+            "ruleId": "missing-structured-data",
+            "label": "Add LocalBusiness or Service schema",
+            "state": "ready",
+            "reason": "Broken calls-to-action are checked on whatever pages the crawl reads; this needs no client setup.",
+            "actionable": false
+          },
+          {
+            "ruleId": "missing-image-alt",
+            "label": "Add missing image alt attributes",
+            "state": "ready",
+            "reason": "Broken calls-to-action are checked on whatever pages the crawl reads; this needs no client setup.",
+            "actionable": false
+          }
+        ],
+        "catalog": {
+          "rules": [
+            {
+              "ruleId": "missing-service-page",
+              "tier": "commercial",
+              "tag": "landing-page",
+              "label": "A missing service page",
+              "hint": "Sell this when a client offers something their website never gives its own page.",
+              "serviceId": "svc-service-landing-page-qxtu"
+            },
+            {
+              "ruleId": "no-service-pages",
+              "tier": "commercial",
+              "tag": "service-pages-build",
+              "label": "A site with no service pages at all",
+              "hint": "Sell this when a client's whole website never describes anything they sell — the work is a set of pages, not one.",
+              "serviceId": "svc-service-pages-build-2v1e"
+            },
+            {
+              "ruleId": "competitor-service-gap",
+              "tier": "commercial",
+              "tag": "competitor-gap",
+              "label": "A service the competition sells and this client does not",
+              "hint": "Sell this when two or more of the client's named competitors have a page for something the client has no page for.",
+              "serviceId": "svc-competitor-gap-page-p6f7"
+            },
+            {
+              "ruleId": "broken-conversion-path",
+              "tier": "commercial",
+              "tag": "conversion-fix",
+              "label": "A broken conversion path",
+              "hint": "Sell this when a call-to-action, form or phone link on the site is broken.",
+              "serviceId": "svc-conversion-path-fix-e8yd"
+            },
+            {
+              "ruleId": "missing-title",
+              "tier": "health",
+              "tag": "missing-title",
+              "label": "Repair a missing page title",
+              "hint": "Sell this when a readable page has no non-empty HTML title.",
+              "serviceId": "svc-page-title-repair-chi1"
+            },
+            {
+              "ruleId": "duplicate-title",
+              "tier": "health",
+              "tag": "duplicate-title",
+              "label": "Repair duplicate page titles",
+              "hint": "Sell this when two or more readable pages expose the same title text.",
+              "serviceId": "svc-duplicate-title-repair-q3sl"
+            },
+            {
+              "ruleId": "thin-service-page",
+              "tier": "health",
+              "tag": "thin-service-page",
+              "label": "Expand a thin service page",
+              "hint": "Sell this when a service-shaped page contains very little readable body text.",
+              "serviceId": "svc-thin-service-page-j9qv"
+            },
+            {
+              "ruleId": "missing-h1",
+              "tier": "health",
+              "tag": "missing-h1",
+              "label": "Repair a missing H1",
+              "hint": "Sell this when a readable page has no non-empty H1 heading.",
+              "serviceId": "svc-h1-heading-repair-reri"
+            },
+            {
+              "ruleId": "broken-internal-link",
+              "tier": "health",
+              "tag": "broken-internal-link",
+              "label": "Repair a broken internal link",
+              "hint": "Sell this when a same-site link is verified to return HTTP 404 or 410.",
+              "serviceId": "svc-internal-link-repair-96n9"
+            },
+            {
+              "ruleId": "missing-meta-description",
+              "tier": "health",
+              "tag": "missing-meta-description",
+              "label": "Repair a missing meta description",
+              "hint": "Sell this when a readable page has no non-empty meta description.",
+              "serviceId": "svc-meta-description-repair-2oxj"
+            },
+            {
+              "ruleId": "missing-structured-data",
+              "tier": "health",
+              "tag": "missing-structured-data",
+              "label": "Add LocalBusiness or Service schema",
+              "hint": "Sell this when a readable page has no observed LocalBusiness or Service structured-data type.",
+              "serviceId": "svc-localbusiness-or-service-schema-0kj5"
+            },
+            {
+              "ruleId": "missing-image-alt",
+              "tier": "health",
+              "tag": "missing-image-alt",
+              "label": "Add missing image alt attributes",
+              "hint": "Sell this when an image has no alt attribute; decorative alt=\"\" is left alone.",
+              "serviceId": "svc-image-alt-attribute-repair-o20i"
+            }
+          ],
+          "matched": 12,
+          "total": 12,
+          "unmatchedLabels": []
+        },
+        "readyCount": 11,
+        "total": 12
+      }
+    },
+    {
+      "client": {
+        "id": "client-test-salon-evidence-sample-wngu",
+        "name": "[TEST] Salon Evidence Sample",
+        "domain": "www.tekniksalon.com",
+        "offerings": [
+          "Hair Extensions",
+          "Balayage",
+          "Colours & Highlights",
+          "Curly Hair Services",
+          "Haircutting & Styling",
+          "Kashmir Keratin Smoothing Treatment",
+          "Perms"
+        ]
+      },
+      "readablePages": 10,
+      "coverage": {
+        "analyzable": true,
+        "reason": "Service coverage confirmed: 7 offering(s) represented in the site's navigation, links or sitemap, 7 service page(s) read, 2 service URL(s) in the sitemap.",
+        "representedOfferings": 7,
+        "serviceLikePages": 7,
+        "serviceLikeSitemapUrls": 2,
+        "limitation": null
+      },
+      "exhaustive": false,
+      "candidates": [
+        {
+          "ruleId": "missing-h1",
+          "subject": "www.tekniksalon.com",
+          "detected": "1 affected page has no non-empty H1 heading: https://www.tekniksalon.com/.",
+          "rawConfidence": 0.9
+        },
+        {
+          "ruleId": "missing-meta-description",
+          "subject": "www.tekniksalon.com",
+          "detected": "1 affected page is missing a non-empty meta description: https://www.tekniksalon.com/collections/kashmir.",
+          "rawConfidence": 0.9
+        }
+      ],
+      "readiness": {
+        "state": "ready",
+        "rules": [
+          {
+            "ruleId": "missing-service-page",
+            "label": "A missing service page",
+            "state": "ready",
+            "reason": "Enough offerings are recorded, and the last crawl reached the site's service pages.",
+            "actionable": false
+          },
+          {
+            "ruleId": "no-service-pages",
+            "label": "A site with no service pages at all",
+            "state": "ready",
+            "reason": "Checked whenever the crawl reads a whole site and finds nothing on it describing a service.",
+            "actionable": false
+          },
+          {
+            "ruleId": "competitor-service-gap",
+            "label": "A service the competition sells and this client does not",
+            "state": "ready",
+            "reason": "Broken calls-to-action are checked on whatever pages the crawl reads; this needs no client setup.",
+            "actionable": false
+          },
+          {
+            "ruleId": "broken-conversion-path",
+            "label": "A broken conversion path",
+            "state": "ready",
+            "reason": "Broken calls-to-action are checked on whatever pages the crawl reads; this needs no client setup.",
+            "actionable": false
+          },
+          {
+            "ruleId": "missing-title",
+            "label": "Repair a missing page title",
+            "state": "ready",
+            "reason": "Broken calls-to-action are checked on whatever pages the crawl reads; this needs no client setup.",
+            "actionable": false
+          },
+          {
+            "ruleId": "duplicate-title",
+            "label": "Repair duplicate page titles",
+            "state": "ready",
+            "reason": "Broken calls-to-action are checked on whatever pages the crawl reads; this needs no client setup.",
+            "actionable": false
+          },
+          {
+            "ruleId": "thin-service-page",
+            "label": "Expand a thin service page",
+            "state": "ready",
+            "reason": "Broken calls-to-action are checked on whatever pages the crawl reads; this needs no client setup.",
+            "actionable": false
+          },
+          {
+            "ruleId": "missing-h1",
+            "label": "Repair a missing H1",
+            "state": "ready",
+            "reason": "Broken calls-to-action are checked on whatever pages the crawl reads; this needs no client setup.",
+            "actionable": false
+          },
+          {
+            "ruleId": "broken-internal-link",
+            "label": "Repair a broken internal link",
+            "state": "ready",
+            "reason": "Broken calls-to-action are checked on whatever pages the crawl reads; this needs no client setup.",
+            "actionable": false
+          },
+          {
+            "ruleId": "missing-meta-description",
+            "label": "Repair a missing meta description",
+            "state": "ready",
+            "reason": "Broken calls-to-action are checked on whatever pages the crawl reads; this needs no client setup.",
+            "actionable": false
+          },
+          {
+            "ruleId": "missing-structured-data",
+            "label": "Add LocalBusiness or Service schema",
+            "state": "ready",
+            "reason": "Broken calls-to-action are checked on whatever pages the crawl reads; this needs no client setup.",
+            "actionable": false
+          },
+          {
+            "ruleId": "missing-image-alt",
+            "label": "Add missing image alt attributes",
+            "state": "ready",
+            "reason": "Broken calls-to-action are checked on whatever pages the crawl reads; this needs no client setup.",
+            "actionable": false
+          }
+        ],
+        "catalog": {
+          "rules": [
+            {
+              "ruleId": "missing-service-page",
+              "tier": "commercial",
+              "tag": "landing-page",
+              "label": "A missing service page",
+              "hint": "Sell this when a client offers something their website never gives its own page.",
+              "serviceId": "svc-service-landing-page-qxtu"
+            },
+            {
+              "ruleId": "no-service-pages",
+              "tier": "commercial",
+              "tag": "service-pages-build",
+              "label": "A site with no service pages at all",
+              "hint": "Sell this when a client's whole website never describes anything they sell — the work is a set of pages, not one.",
+              "serviceId": "svc-service-pages-build-2v1e"
+            },
+            {
+              "ruleId": "competitor-service-gap",
+              "tier": "commercial",
+              "tag": "competitor-gap",
+              "label": "A service the competition sells and this client does not",
+              "hint": "Sell this when two or more of the client's named competitors have a page for something the client has no page for.",
+              "serviceId": "svc-competitor-gap-page-p6f7"
+            },
+            {
+              "ruleId": "broken-conversion-path",
+              "tier": "commercial",
+              "tag": "conversion-fix",
+              "label": "A broken conversion path",
+              "hint": "Sell this when a call-to-action, form or phone link on the site is broken.",
+              "serviceId": "svc-conversion-path-fix-e8yd"
+            },
+            {
+              "ruleId": "missing-title",
+              "tier": "health",
+              "tag": "missing-title",
+              "label": "Repair a missing page title",
+              "hint": "Sell this when a readable page has no non-empty HTML title.",
+              "serviceId": "svc-page-title-repair-chi1"
+            },
+            {
+              "ruleId": "duplicate-title",
+              "tier": "health",
+              "tag": "duplicate-title",
+              "label": "Repair duplicate page titles",
+              "hint": "Sell this when two or more readable pages expose the same title text.",
+              "serviceId": "svc-duplicate-title-repair-q3sl"
+            },
+            {
+              "ruleId": "thin-service-page",
+              "tier": "health",
+              "tag": "thin-service-page",
+              "label": "Expand a thin service page",
+              "hint": "Sell this when a service-shaped page contains very little readable body text.",
+              "serviceId": "svc-thin-service-page-j9qv"
+            },
+            {
+              "ruleId": "missing-h1",
+              "tier": "health",
+              "tag": "missing-h1",
+              "label": "Repair a missing H1",
+              "hint": "Sell this when a readable page has no non-empty H1 heading.",
+              "serviceId": "svc-h1-heading-repair-reri"
+            },
+            {
+              "ruleId": "broken-internal-link",
+              "tier": "health",
+              "tag": "broken-internal-link",
+              "label": "Repair a broken internal link",
+              "hint": "Sell this when a same-site link is verified to return HTTP 404 or 410.",
+              "serviceId": "svc-internal-link-repair-96n9"
+            },
+            {
+              "ruleId": "missing-meta-description",
+              "tier": "health",
+              "tag": "missing-meta-description",
+              "label": "Repair a missing meta description",
+              "hint": "Sell this when a readable page has no non-empty meta description.",
+              "serviceId": "svc-meta-description-repair-2oxj"
+            },
+            {
+              "ruleId": "missing-structured-data",
+              "tier": "health",
+              "tag": "missing-structured-data",
+              "label": "Add LocalBusiness or Service schema",
+              "hint": "Sell this when a readable page has no observed LocalBusiness or Service structured-data type.",
+              "serviceId": "svc-localbusiness-or-service-schema-0kj5"
+            },
+            {
+              "ruleId": "missing-image-alt",
+              "tier": "health",
+              "tag": "missing-image-alt",
+              "label": "Add missing image alt attributes",
+              "hint": "Sell this when an image has no alt attribute; decorative alt=\"\" is left alone.",
+              "serviceId": "svc-image-alt-attribute-repair-o20i"
+            }
+          ],
+          "matched": 12,
+          "total": 12,
+          "unmatchedLabels": []
+        },
+        "readyCount": 12,
+        "total": 12
+      }
+    }
+  ],
+  "corpus": {
+    "clients": 24,
+    "candidates": 24,
+    "byRule": {
+      "no-service-pages": 2,
+      "missing-structured-data": 5,
+      "missing-service-page": 2,
+      "duplicate-title": 1,
+      "missing-h1": 3,
+      "missing-meta-description": 5,
+      "missing-image-alt": 5,
+      "thin-service-page": 1
+    }
+  }
+}

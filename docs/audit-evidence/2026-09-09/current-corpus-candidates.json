@@ -1,0 +1,1424 @@
+{
+  "generatedAt": "2026-09-09T04:16:24.576Z",
+  "catalog": [
+    {
+      "id": "svc-landing-page",
+      "name": "Dedicated service page",
+      "description": "A dedicated, conversion-focused page for one service line: research, copy, on-page SEO and a single lead-capture call to action.",
+      "priceMin": 900,
+      "priceMax": 1800,
+      "tags": [
+        "landing-page"
+      ],
+      "active": true
+    },
+    {
+      "id": "svc-conversion-fix",
+      "name": "Conversion-path repair",
+      "description": "Diagnose and repair a broken conversion element — a dead call to action, a form that submits nowhere, an undialable phone link — and re-test the path end to end.",
+      "priceMin": 300,
+      "priceMax": 1000,
+      "tags": [
+        "conversion-fix"
+      ],
+      "active": true
+    },
+    {
+      "id": "svc-service-pages-build",
+      "name": "Service pages build",
+      "description": "A set of service pages for a business whose website describes nothing it sells: one page per service line, with copy, on-page SEO and a lead-capture call to action on each.",
+      "priceMin": 2500,
+      "priceMax": 6000,
+      "tags": [
+        "service-pages-build"
+      ],
+      "active": true
+    },
+    {
+      "id": "svc-analytics",
+      "name": "Analytics / conversion tracking setup",
+      "description": "Server-side and client-side conversion tracking, goal configuration and a reporting view the owner can actually read.",
+      "priceMin": 400,
+      "priceMax": 1200,
+      "tags": [],
+      "active": true
+    },
+    {
+      "id": "svc-location-page",
+      "name": "Local service-location page",
+      "description": "A location-targeted page for one service area: local proof, schema markup and internal linking from the service pages.",
+      "priceMin": 700,
+      "priceMax": 1500,
+      "tags": [],
+      "active": true
+    },
+    {
+      "id": "fixture-missing-title",
+      "name": "Repair a missing page title",
+      "description": "Sell this when a readable page has no non-empty HTML title.",
+      "priceMin": 150,
+      "priceMax": 300,
+      "tags": [
+        "missing-title"
+      ],
+      "active": true
+    },
+    {
+      "id": "fixture-duplicate-title",
+      "name": "Repair duplicate page titles",
+      "description": "Sell this when two or more readable pages expose the same title text.",
+      "priceMin": 200,
+      "priceMax": 400,
+      "tags": [
+        "duplicate-title"
+      ],
+      "active": true
+    },
+    {
+      "id": "fixture-thin-service-page",
+      "name": "Expand a thin service page",
+      "description": "Sell this when a service-shaped page contains very little readable body text.",
+      "priceMin": 400,
+      "priceMax": 800,
+      "tags": [
+        "thin-service-page"
+      ],
+      "active": true
+    },
+    {
+      "id": "fixture-missing-h1",
+      "name": "Repair a missing H1",
+      "description": "Sell this when a readable page has no non-empty H1 heading.",
+      "priceMin": 150,
+      "priceMax": 300,
+      "tags": [
+        "missing-h1"
+      ],
+      "active": true
+    },
+    {
+      "id": "fixture-broken-internal-link",
+      "name": "Repair a broken internal link",
+      "description": "Sell this when a same-site link is verified to return HTTP 404 or 410.",
+      "priceMin": 200,
+      "priceMax": 500,
+      "tags": [
+        "broken-internal-link"
+      ],
+      "active": true
+    },
+    {
+      "id": "fixture-missing-meta-description",
+      "name": "Repair a missing meta description",
+      "description": "Sell this when a readable page has no non-empty meta description.",
+      "priceMin": 200,
+      "priceMax": 500,
+      "tags": [
+        "missing-meta-description"
+      ],
+      "active": true
+    },
+    {
+      "id": "fixture-missing-structured-data",
+      "name": "Add LocalBusiness or Service schema",
+      "description": "Sell this when a readable page has no observed LocalBusiness or Service structured-data type.",
+      "priceMin": 300,
+      "priceMax": 700,
+      "tags": [
+        "missing-structured-data"
+      ],
+      "active": true
+    },
+    {
+      "id": "fixture-missing-image-alt",
+      "name": "Add missing image alt attributes",
+      "description": "Sell this when an image has no alt attribute; decorative alt=\"\" is left alone.",
+      "priceMin": 150,
+      "priceMax": 400,
+      "tags": [
+        "missing-image-alt"
+      ],
+      "active": true
+    }
+  ],
+  "clients": [
+    {
+      "client": {
+        "id": "corpus-getaxiom",
+        "name": "Getaxiom",
+        "domain": "getaxiom.ca",
+        "offerings": [
+          "Website design and build for local businesses"
+        ],
+        "notes": ""
+      },
+      "outcome": "clean",
+      "summary": "Read 10 pages and found no unmet billable work.",
+      "limitation": "Only 11 of 12 kinds of gap were checked — no active service is offered for a service the competition sells and this client does not.",
+      "open": 0,
+      "pagesRead": 10,
+      "analyzable": true
+    },
+    {
+      "client": {
+        "id": "corpus-kids-connect",
+        "name": "Kids Connect",
+        "domain": "kids-connect.ca",
+        "offerings": [
+          "Brick Club social groups for autistic children",
+          "Social skills groups",
+          "One to one support sessions",
+          "Parent consultations"
+        ],
+        "notes": ""
+      },
+      "outcome": "findings",
+      "summary": "1 evidence-backed opportunity found.",
+      "limitation": null,
+      "open": 1,
+      "pagesRead": 5,
+      "analyzable": false
+    },
+    {
+      "client": {
+        "id": "corpus-morrisjenkins",
+        "name": "Morrisjenkins",
+        "domain": "morrisjenkins.com",
+        "offerings": [
+          "Air conditioning repair",
+          "Furnace replacement",
+          "Heat pump installation",
+          "Water heater replacement",
+          "Indoor air quality",
+          "Standby generators"
+        ],
+        "notes": ""
+      },
+      "outcome": "clean",
+      "summary": "Read 1 page and found no unmet billable work.",
+      "limitation": "9 requests during this run could not be completed, so a small part of the site was not assessed. Only 11 of 12 kinds of gap were checked — no active service is offered for a service the competition sells and this client does not.",
+      "open": 0,
+      "pagesRead": 1,
+      "analyzable": true
+    },
+    {
+      "client": {
+        "id": "corpus-michaelandson",
+        "name": "Michaelandson",
+        "domain": "michaelandson.com",
+        "offerings": [
+          "Central air conditioning repair",
+          "Furnace installation",
+          "Drain clearing",
+          "Sewer line repair",
+          "Electrical panel upgrades",
+          "Water damage restoration"
+        ],
+        "notes": ""
+      },
+      "outcome": "findings",
+      "summary": "1 evidence-backed opportunity found.",
+      "limitation": null,
+      "open": 1,
+      "pagesRead": 9,
+      "analyzable": true
+    },
+    {
+      "client": {
+        "id": "corpus-aireserv",
+        "name": "Aireserv",
+        "domain": "aireserv.com",
+        "offerings": [
+          "Air conditioner repair",
+          "Heat pump installation",
+          "Ductless mini split systems",
+          "Geothermal heating",
+          "Dryer vent cleaning",
+          "Indoor air quality testing"
+        ],
+        "notes": ""
+      },
+      "outcome": "clean",
+      "summary": "Read 10 pages and found no unmet billable work.",
+      "limitation": "Only 11 of 12 kinds of gap were checked — no active service is offered for a service the competition sells and this client does not.",
+      "open": 0,
+      "pagesRead": 10,
+      "analyzable": true
+    },
+    {
+      "client": {
+        "id": "corpus-cambridgeheating",
+        "name": "Cambridgeheating",
+        "domain": "cambridgeheating.ca",
+        "offerings": [
+          "Furnace repair",
+          "Air conditioning installation",
+          "Water heater replacement",
+          "Duct cleaning"
+        ],
+        "notes": ""
+      },
+      "outcome": "findings",
+      "summary": "7 evidence-backed opportunities found.",
+      "limitation": null,
+      "open": 7,
+      "pagesRead": 7,
+      "analyzable": true
+    },
+    {
+      "client": {
+        "id": "corpus-mrrooter",
+        "name": "Mrrooter",
+        "domain": "mrrooter.com",
+        "offerings": [
+          "Drain cleaning",
+          "Sewer line repair",
+          "Water heater replacement",
+          "Toilet repair",
+          "Sump pump services",
+          "Emergency plumbing"
+        ],
+        "notes": ""
+      },
+      "outcome": "clean",
+      "summary": "Read 4 pages and found no unmet billable work.",
+      "limitation": "6 requests during this run could not be completed, so a small part of the site was not assessed. Only 11 of 12 kinds of gap were checked — no active service is offered for a service the competition sells and this client does not.",
+      "open": 0,
+      "pagesRead": 4,
+      "analyzable": true
+    },
+    {
+      "client": {
+        "id": "corpus-drainworks",
+        "name": "Drainworks",
+        "domain": "drainworks.com",
+        "offerings": [
+          "Drain cleaning",
+          "Faucet and tap repair",
+          "Toilet repair",
+          "Cast iron stack replacement",
+          "Emergency plumbing"
+        ],
+        "notes": ""
+      },
+      "outcome": "clean",
+      "summary": "Read 3 pages and found no unmet billable work.",
+      "limitation": "7 requests during this run could not be completed, so a small part of the site was not assessed. Only 11 of 12 kinds of gap were checked — no active service is offered for a service the competition sells and this client does not.",
+      "open": 0,
+      "pagesRead": 3,
+      "analyzable": true
+    },
+    {
+      "client": {
+        "id": "corpus-atlasplumbing",
+        "name": "Atlasplumbing",
+        "domain": "atlasplumbing.ca",
+        "offerings": [
+          "Drain cleaning",
+          "Water heater installation",
+          "Leak detection",
+          "Toilet and faucet repair"
+        ],
+        "notes": ""
+      },
+      "outcome": "findings",
+      "summary": "1 evidence-backed opportunity found.",
+      "limitation": null,
+      "open": 1,
+      "pagesRead": 8,
+      "analyzable": false
+    },
+    {
+      "client": {
+        "id": "corpus-fixitright",
+        "name": "Fixitright",
+        "domain": "fixitrightplumbing.com.au",
+        "offerings": [
+          "Blocked drains",
+          "Hot water systems",
+          "Burst pipe repair",
+          "Leak detection",
+          "Drain relining",
+          "Gas leak repair"
+        ],
+        "notes": ""
+      },
+      "outcome": "clean",
+      "summary": "Read 10 pages and found no unmet billable work.",
+      "limitation": "Only 11 of 12 kinds of gap were checked — no active service is offered for a service the competition sells and this client does not.",
+      "open": 0,
+      "pagesRead": 10,
+      "analyzable": true
+    },
+    {
+      "client": {
+        "id": "corpus-mrelectric",
+        "name": "Mrelectric",
+        "domain": "mrelectric.com",
+        "offerings": [
+          "Electrical panel installation",
+          "Outlet installation and repair",
+          "Ceiling fan installation",
+          "Electrical safety inspections",
+          "Generator installation",
+          "Landscape lighting"
+        ],
+        "notes": ""
+      },
+      "outcome": "clean",
+      "summary": "Read 10 pages and found no unmet billable work.",
+      "limitation": "Only 11 of 12 kinds of gap were checked — no active service is offered for a service the competition sells and this client does not.",
+      "open": 0,
+      "pagesRead": 10,
+      "analyzable": true
+    },
+    {
+      "client": {
+        "id": "corpus-altimadental",
+        "name": "Altimadental",
+        "domain": "altimadental.com",
+        "offerings": [
+          "Dental implants",
+          "Teeth whitening",
+          "Root canal treatment",
+          "Invisalign clear aligners",
+          "Wisdom tooth extraction"
+        ],
+        "notes": ""
+      },
+      "outcome": "findings",
+      "summary": "2 evidence-backed opportunities found.",
+      "limitation": null,
+      "open": 2,
+      "pagesRead": 10,
+      "analyzable": true
+    },
+    {
+      "client": {
+        "id": "corpus-smiledesign",
+        "name": "Smiledesign",
+        "domain": "smiledesigndentistry.com",
+        "offerings": [
+          "Dental implants",
+          "Porcelain veneers",
+          "Teeth whitening",
+          "Invisalign clear aligners",
+          "Full mouth reconstruction"
+        ],
+        "notes": ""
+      },
+      "outcome": "findings",
+      "summary": "2 evidence-backed opportunities found.",
+      "limitation": null,
+      "open": 2,
+      "pagesRead": 10,
+      "analyzable": true
+    },
+    {
+      "client": {
+        "id": "corpus-bloordental",
+        "name": "Bloordental",
+        "domain": "bloordental.com",
+        "offerings": [
+          "Dental implants",
+          "Root canal therapy",
+          "Invisalign clear aligners",
+          "TMJ therapy",
+          "Emergency dentistry",
+          "Teeth whitening"
+        ],
+        "notes": ""
+      },
+      "outcome": "clean",
+      "summary": "Read 1 page and found no unmet billable work.",
+      "limitation": "Only 11 of 12 kinds of gap were checked — no active service is offered for a service the competition sells and this client does not.",
+      "open": 0,
+      "pagesRead": 1,
+      "analyzable": true
+    },
+    {
+      "client": {
+        "id": "corpus-yorkvilledental",
+        "name": "Yorkvilledental",
+        "domain": "yorkvilledental.ca",
+        "offerings": [
+          "Dental implants",
+          "Teeth whitening",
+          "Invisalign clear aligners",
+          "Emergency dentistry"
+        ],
+        "notes": ""
+      },
+      "outcome": "inconclusive",
+      "summary": "No readable pages were returned, so nothing was assessed.",
+      "limitation": "Orbit received an HTTP error instead of a readable page. Nothing was concluded from that response.",
+      "open": 0,
+      "pagesRead": 0,
+      "analyzable": false
+    },
+    {
+      "client": {
+        "id": "corpus-physiomed",
+        "name": "Physiomed",
+        "domain": "physiomed.ca",
+        "offerings": [
+          "Physiotherapy",
+          "Chiropractic care",
+          "Custom orthotics",
+          "Massage therapy",
+          "Pelvic floor physiotherapy"
+        ],
+        "notes": ""
+      },
+      "outcome": "clean",
+      "summary": "Read 10 pages and found no unmet billable work.",
+      "limitation": "Only 11 of 12 kinds of gap were checked — no active service is offered for a service the competition sells and this client does not.",
+      "open": 0,
+      "pagesRead": 10,
+      "analyzable": true
+    },
+    {
+      "client": {
+        "id": "corpus-renoduck",
+        "name": "Renoduck",
+        "domain": "renoduck.com",
+        "offerings": [
+          "Basement finishing",
+          "Basement underpinning",
+          "Legal basement apartment conversion",
+          "Bathroom renovation",
+          "Kitchen renovation"
+        ],
+        "notes": ""
+      },
+      "outcome": "findings",
+      "summary": "1 evidence-backed opportunity found.",
+      "limitation": null,
+      "open": 1,
+      "pagesRead": 10,
+      "analyzable": true
+    },
+    {
+      "client": {
+        "id": "corpus-nusite",
+        "name": "Nusite",
+        "domain": "nusite.ca",
+        "offerings": [
+          "Basement waterproofing",
+          "Foundation repair",
+          "Underpinning",
+          "Drainage systems"
+        ],
+        "notes": ""
+      },
+      "outcome": "findings",
+      "summary": "2 evidence-backed opportunities found.",
+      "limitation": null,
+      "open": 2,
+      "pagesRead": 1,
+      "analyzable": false
+    },
+    {
+      "client": {
+        "id": "corpus-nerdsonsite",
+        "name": "Nerdsonsite",
+        "domain": "nerdsonsite.com",
+        "offerings": [
+          "Managed IT services",
+          "On-site IT support",
+          "Cyber security services",
+          "Cloud services",
+          "Computer repair"
+        ],
+        "notes": ""
+      },
+      "outcome": "clean",
+      "summary": "Read 4 pages and found no unmet billable work.",
+      "limitation": "6 requests during this run could not be completed, so a small part of the site was not assessed. Only 11 of 12 kinds of gap were checked — no active service is offered for a service the competition sells and this client does not.",
+      "open": 0,
+      "pagesRead": 4,
+      "analyzable": true
+    },
+    {
+      "client": {
+        "id": "corpus-goddardschool",
+        "name": "Goddardschool",
+        "domain": "goddardschool.com",
+        "offerings": [
+          "Infant care",
+          "Toddler programs",
+          "Preschool",
+          "Pre-kindergarten",
+          "Before and after school programs",
+          "Summer camp programs"
+        ],
+        "notes": ""
+      },
+      "outcome": "findings",
+      "summary": "1 evidence-backed opportunity found.",
+      "limitation": null,
+      "open": 1,
+      "pagesRead": 10,
+      "analyzable": true
+    },
+    {
+      "client": {
+        "id": "corpus-thelawnsalon",
+        "name": "Thelawnsalon",
+        "domain": "thelawnsalon.ca",
+        "offerings": [
+          "Deck building",
+          "Paving stone patios and walkways",
+          "Retaining walls",
+          "Fence installation",
+          "Sodding",
+          "Grading and drainage"
+        ],
+        "notes": ""
+      },
+      "outcome": "findings",
+      "summary": "3 evidence-backed opportunities found.",
+      "limitation": null,
+      "open": 3,
+      "pagesRead": 10,
+      "analyzable": true
+    },
+    {
+      "client": {
+        "id": "corpus-davey",
+        "name": "Davey",
+        "domain": "davey.com",
+        "offerings": [
+          "Tree removal",
+          "Tree trimming and pruning",
+          "Tree and shrub fertilization",
+          "Lawn aeration",
+          "Lawn pest control",
+          "Storm damage support"
+        ],
+        "notes": ""
+      },
+      "outcome": "findings",
+      "summary": "1 evidence-backed opportunity found.",
+      "limitation": null,
+      "open": 1,
+      "pagesRead": 9,
+      "analyzable": true
+    },
+    {
+      "client": {
+        "id": "corpus-bartlett",
+        "name": "Bartlett",
+        "domain": "bartlett.com",
+        "offerings": [
+          "Tree pruning",
+          "Tree removal",
+          "Stump grinding",
+          "Insect and disease management",
+          "Soil care and fertilization"
+        ],
+        "notes": ""
+      },
+      "outcome": "inconclusive",
+      "summary": "The site could not be reached safely, so nothing was assessed.",
+      "limitation": "Requests to this domain were refused by the network policy — the address did not resolve to a public host, used an unsupported scheme, or redirected somewhere unsafe.",
+      "open": 0,
+      "pagesRead": 0,
+      "analyzable": false
+    },
+    {
+      "client": {
+        "id": "corpus-activegreenross",
+        "name": "Activegreenross",
+        "domain": "activegreenross.com",
+        "offerings": [
+          "Tire installation",
+          "Brake repair",
+          "Oil changes",
+          "Wheel alignment",
+          "Vehicle safety inspections"
+        ],
+        "notes": ""
+      },
+      "outcome": "findings",
+      "summary": "2 evidence-backed opportunities found.",
+      "limitation": null,
+      "open": 2,
+      "pagesRead": 7,
+      "analyzable": true
+    }
+  ],
+  "candidates": [
+    {
+      "clientId": "corpus-kids-connect",
+      "clientName": "Kids Connect",
+      "clientDomain": "kids-connect.ca",
+      "serviceName": "Service pages build",
+      "opportunity": {
+        "id": "corpus-kids-connect-0",
+        "dedupeKey": "no-service-pages__kids-connect-ca__a7a7ff33",
+        "clientId": "corpus-kids-connect",
+        "ruleId": "no-service-pages",
+        "title": "kids-connect.ca describes none of its services",
+        "detected": "The crawl followed every link on kids-connect.ca and read 5 pages, and not one of them is dedicated to a single service this business sells. Nothing was blocked and nothing was left unread, so this is the whole site. The client is recorded as offering Brick Club social groups for autistic children, Social skills groups, One to one support sessions and 1 more, so a visitor searching for any one of those has no page to land on.",
+        "evidenceRefs": [
+          "https://kids-connect.ca/",
+          "https://kids-connect.ca/the-team/",
+          "https://kids-connect.ca/faq/",
+          "https://kids-connect.ca/contact-us-social-skills-near-you/",
+          "https://kids-connect.ca/burnaby-social-skills-autism-our-mission/"
+        ],
+        "suppressedEvidenceRefs": [],
+        "rationale": "The crawl followed every link on kids-connect.ca and read 5 pages, and not one of them is dedicated to a single service this business sells. Nothing was blocked and nothing was left unread, so this is the whole site. The client is recorded as offering Brick Club social groups for autistic children, Social skills groups, One to one support sessions and 1 more, so a visitor searching for any one of those has no page to land on.",
+        "suggestedServiceId": "svc-service-pages-build",
+        "suggestedScope": [],
+        "priceMin": 2500,
+        "priceMax": 6000,
+        "confidence": 0.9,
+        "billableStatus": "billable",
+        "status": "new",
+        "updatedAt": "2026-09-09T04:16:23.147Z"
+      }
+    },
+    {
+      "clientId": "corpus-michaelandson",
+      "clientName": "Michaelandson",
+      "clientDomain": "michaelandson.com",
+      "serviceName": "Add LocalBusiness or Service schema",
+      "opportunity": {
+        "id": "corpus-michaelandson-1",
+        "dedupeKey": "technical::corpus-michaelandson::missing-structured-data",
+        "clientId": "corpus-michaelandson",
+        "ruleId": "missing-structured-data",
+        "title": "Missing LocalBusiness or Service schema — 2 pages",
+        "detected": "2 affected pages have no observed LocalBusiness or Service structured-data type: https://michaelandson.com/cooling, https://michaelandson.com/cooling/furnace-ac-tune-ups.",
+        "evidenceRefs": [
+          "page:https://michaelandson.com/cooling",
+          "structured-data:localbusiness-or-service-missing",
+          "page:https://michaelandson.com/cooling/furnace-ac-tune-ups"
+        ],
+        "suppressedEvidenceRefs": [],
+        "rationale": "2 affected pages have no observed LocalBusiness or Service structured-data type: https://michaelandson.com/cooling, https://michaelandson.com/cooling/furnace-ac-tune-ups.",
+        "suggestedServiceId": "fixture-missing-structured-data",
+        "suggestedScope": [],
+        "priceMin": 300,
+        "priceMax": 700,
+        "confidence": 0.9,
+        "billableStatus": "billable",
+        "status": "new",
+        "updatedAt": "2026-09-09T04:16:23.272Z"
+      }
+    },
+    {
+      "clientId": "corpus-cambridgeheating",
+      "clientName": "Cambridgeheating",
+      "clientDomain": "cambridgeheating.ca",
+      "serviceName": "Dedicated service page",
+      "opportunity": {
+        "id": "corpus-cambridgeheating-2",
+        "dedupeKey": "missing-service-page__water-heater-replacement__f42383ec",
+        "clientId": "corpus-cambridgeheating",
+        "ruleId": "missing-service-page",
+        "title": "No page for Water heater replacement",
+        "detected": "The client offers \"Water heater replacement\" but targeted verification found no dedicated page for it. Checked 7 crawled pages, 0 navigation labels, 10 discovered links.",
+        "evidenceRefs": [
+          "https://cambridgeheating.ca/",
+          "https://cambridgeheating.ca/furnace-installation.html",
+          "https://cambridgeheating.ca/furnace-repair.html",
+          "https://cambridgeheating.ca/airconditioner-installation.html",
+          "https://cambridgeheating.ca/air-conditioner-repair.html",
+          "https://cambridgeheating.ca/contact-us.html",
+          "https://cambridgeheating.ca/about-us.html"
+        ],
+        "suppressedEvidenceRefs": [],
+        "rationale": "The client offers \"Water heater replacement\" but targeted verification found no dedicated page for it. Checked 7 crawled pages, 0 navigation labels, 10 discovered links.",
+        "suggestedServiceId": "svc-landing-page",
+        "suggestedScope": [],
+        "priceMin": 900,
+        "priceMax": 1800,
+        "confidence": 0.725,
+        "billableStatus": "billable",
+        "status": "new",
+        "updatedAt": "2026-09-09T04:16:23.444Z"
+      }
+    },
+    {
+      "clientId": "corpus-cambridgeheating",
+      "clientName": "Cambridgeheating",
+      "clientDomain": "cambridgeheating.ca",
+      "serviceName": "Dedicated service page",
+      "opportunity": {
+        "id": "corpus-cambridgeheating-3",
+        "dedupeKey": "missing-service-page__duct-cleaning__51f3e742",
+        "clientId": "corpus-cambridgeheating",
+        "ruleId": "missing-service-page",
+        "title": "No page for Duct cleaning",
+        "detected": "The client offers \"Duct cleaning\" but targeted verification found no dedicated page for it. Checked 7 crawled pages, 0 navigation labels, 10 discovered links.",
+        "evidenceRefs": [
+          "https://cambridgeheating.ca/",
+          "https://cambridgeheating.ca/furnace-installation.html",
+          "https://cambridgeheating.ca/furnace-repair.html",
+          "https://cambridgeheating.ca/airconditioner-installation.html",
+          "https://cambridgeheating.ca/air-conditioner-repair.html",
+          "https://cambridgeheating.ca/contact-us.html",
+          "https://cambridgeheating.ca/about-us.html"
+        ],
+        "suppressedEvidenceRefs": [],
+        "rationale": "The client offers \"Duct cleaning\" but targeted verification found no dedicated page for it. Checked 7 crawled pages, 0 navigation labels, 10 discovered links.",
+        "suggestedServiceId": "svc-landing-page",
+        "suggestedScope": [],
+        "priceMin": 900,
+        "priceMax": 1800,
+        "confidence": 0.725,
+        "billableStatus": "billable",
+        "status": "new",
+        "updatedAt": "2026-09-09T04:16:23.444Z"
+      }
+    },
+    {
+      "clientId": "corpus-cambridgeheating",
+      "clientName": "Cambridgeheating",
+      "clientDomain": "cambridgeheating.ca",
+      "serviceName": "Repair duplicate page titles",
+      "opportunity": {
+        "id": "corpus-cambridgeheating-4",
+        "dedupeKey": "technical::corpus-cambridgeheating::duplicate-title",
+        "clientId": "corpus-cambridgeheating",
+        "ruleId": "duplicate-title",
+        "title": "Duplicate page title — 7 pages",
+        "detected": "The title \"HVAC\" is repeated on 7 readable pages: https://cambridgeheating.ca/, https://cambridgeheating.ca/furnace-installation.html, https://cambridgeheating.ca/furnace-repair.html, https://cambridgeheating.ca/airconditioner-installation.html, https://cambridgeheating.ca/air-conditioner-repair.html, https://cambridgeheating.ca/contact-us.html, https://cambridgeheating.ca/about-us.html.",
+        "evidenceRefs": [
+          "page:https://cambridgeheating.ca/",
+          "page:https://cambridgeheating.ca/furnace-installation.html",
+          "page:https://cambridgeheating.ca/furnace-repair.html",
+          "page:https://cambridgeheating.ca/airconditioner-installation.html",
+          "page:https://cambridgeheating.ca/air-conditioner-repair.html",
+          "page:https://cambridgeheating.ca/contact-us.html",
+          "page:https://cambridgeheating.ca/about-us.html",
+          "title:HVAC"
+        ],
+        "suppressedEvidenceRefs": [],
+        "rationale": "The title \"HVAC\" is repeated on 7 readable pages: https://cambridgeheating.ca/, https://cambridgeheating.ca/furnace-installation.html, https://cambridgeheating.ca/furnace-repair.html, https://cambridgeheating.ca/airconditioner-installation.html, https://cambridgeheating.ca/air-conditioner-repair.html, https://cambridgeheating.ca/contact-us.html, https://cambridgeheating.ca/about-us.html.",
+        "suggestedServiceId": "fixture-duplicate-title",
+        "suggestedScope": [],
+        "priceMin": 200,
+        "priceMax": 400,
+        "confidence": 0.9,
+        "billableStatus": "billable",
+        "status": "new",
+        "updatedAt": "2026-09-09T04:16:23.444Z"
+      }
+    },
+    {
+      "clientId": "corpus-cambridgeheating",
+      "clientName": "Cambridgeheating",
+      "clientDomain": "cambridgeheating.ca",
+      "serviceName": "Repair a missing H1",
+      "opportunity": {
+        "id": "corpus-cambridgeheating-5",
+        "dedupeKey": "technical::corpus-cambridgeheating::missing-h1",
+        "clientId": "corpus-cambridgeheating",
+        "ruleId": "missing-h1",
+        "title": "Missing H1 heading — 2 pages",
+        "detected": "2 affected pages have no non-empty H1 heading: https://cambridgeheating.ca/, https://cambridgeheating.ca/contact-us.html.",
+        "evidenceRefs": [
+          "page:https://cambridgeheating.ca/",
+          "h1:missing",
+          "page:https://cambridgeheating.ca/contact-us.html"
+        ],
+        "suppressedEvidenceRefs": [],
+        "rationale": "2 affected pages have no non-empty H1 heading: https://cambridgeheating.ca/, https://cambridgeheating.ca/contact-us.html.",
+        "suggestedServiceId": "fixture-missing-h1",
+        "suggestedScope": [],
+        "priceMin": 150,
+        "priceMax": 300,
+        "confidence": 0.9,
+        "billableStatus": "billable",
+        "status": "new",
+        "updatedAt": "2026-09-09T04:16:23.444Z"
+      }
+    },
+    {
+      "clientId": "corpus-cambridgeheating",
+      "clientName": "Cambridgeheating",
+      "clientDomain": "cambridgeheating.ca",
+      "serviceName": "Repair a missing meta description",
+      "opportunity": {
+        "id": "corpus-cambridgeheating-6",
+        "dedupeKey": "technical::corpus-cambridgeheating::missing-meta-description",
+        "clientId": "corpus-cambridgeheating",
+        "ruleId": "missing-meta-description",
+        "title": "Missing meta description — 7 pages",
+        "detected": "7 affected pages are missing a non-empty meta description: https://cambridgeheating.ca/, https://cambridgeheating.ca/furnace-installation.html, https://cambridgeheating.ca/furnace-repair.html, https://cambridgeheating.ca/airconditioner-installation.html, https://cambridgeheating.ca/air-conditioner-repair.html, https://cambridgeheating.ca/contact-us.html, https://cambridgeheating.ca/about-us.html.",
+        "evidenceRefs": [
+          "page:https://cambridgeheating.ca/",
+          "meta-description:missing",
+          "page:https://cambridgeheating.ca/furnace-installation.html",
+          "page:https://cambridgeheating.ca/furnace-repair.html",
+          "page:https://cambridgeheating.ca/airconditioner-installation.html",
+          "page:https://cambridgeheating.ca/air-conditioner-repair.html",
+          "page:https://cambridgeheating.ca/contact-us.html",
+          "page:https://cambridgeheating.ca/about-us.html"
+        ],
+        "suppressedEvidenceRefs": [],
+        "rationale": "7 affected pages are missing a non-empty meta description: https://cambridgeheating.ca/, https://cambridgeheating.ca/furnace-installation.html, https://cambridgeheating.ca/furnace-repair.html, https://cambridgeheating.ca/airconditioner-installation.html, https://cambridgeheating.ca/air-conditioner-repair.html, https://cambridgeheating.ca/contact-us.html, https://cambridgeheating.ca/about-us.html.",
+        "suggestedServiceId": "fixture-missing-meta-description",
+        "suggestedScope": [],
+        "priceMin": 200,
+        "priceMax": 500,
+        "confidence": 0.9,
+        "billableStatus": "billable",
+        "status": "new",
+        "updatedAt": "2026-09-09T04:16:23.444Z"
+      }
+    },
+    {
+      "clientId": "corpus-cambridgeheating",
+      "clientName": "Cambridgeheating",
+      "clientDomain": "cambridgeheating.ca",
+      "serviceName": "Add LocalBusiness or Service schema",
+      "opportunity": {
+        "id": "corpus-cambridgeheating-7",
+        "dedupeKey": "technical::corpus-cambridgeheating::missing-structured-data",
+        "clientId": "corpus-cambridgeheating",
+        "ruleId": "missing-structured-data",
+        "title": "Missing LocalBusiness or Service schema — 5 pages",
+        "detected": "5 affected pages have no observed LocalBusiness or Service structured-data type: https://cambridgeheating.ca/, https://cambridgeheating.ca/furnace-installation.html, https://cambridgeheating.ca/furnace-repair.html, https://cambridgeheating.ca/airconditioner-installation.html, https://cambridgeheating.ca/air-conditioner-repair.html.",
+        "evidenceRefs": [
+          "page:https://cambridgeheating.ca/",
+          "structured-data:localbusiness-or-service-missing",
+          "page:https://cambridgeheating.ca/furnace-installation.html",
+          "page:https://cambridgeheating.ca/furnace-repair.html",
+          "page:https://cambridgeheating.ca/airconditioner-installation.html",
+          "page:https://cambridgeheating.ca/air-conditioner-repair.html"
+        ],
+        "suppressedEvidenceRefs": [],
+        "rationale": "5 affected pages have no observed LocalBusiness or Service structured-data type: https://cambridgeheating.ca/, https://cambridgeheating.ca/furnace-installation.html, https://cambridgeheating.ca/furnace-repair.html, https://cambridgeheating.ca/airconditioner-installation.html, https://cambridgeheating.ca/air-conditioner-repair.html.",
+        "suggestedServiceId": "fixture-missing-structured-data",
+        "suggestedScope": [],
+        "priceMin": 300,
+        "priceMax": 700,
+        "confidence": 0.9,
+        "billableStatus": "billable",
+        "status": "new",
+        "updatedAt": "2026-09-09T04:16:23.444Z"
+      }
+    },
+    {
+      "clientId": "corpus-cambridgeheating",
+      "clientName": "Cambridgeheating",
+      "clientDomain": "cambridgeheating.ca",
+      "serviceName": "Add missing image alt attributes",
+      "opportunity": {
+        "id": "corpus-cambridgeheating-8",
+        "dedupeKey": "technical::corpus-cambridgeheating::missing-image-alt",
+        "clientId": "corpus-cambridgeheating",
+        "ruleId": "missing-image-alt",
+        "title": "Missing image alt attribute — 1 page",
+        "detected": "3 images across 1 affected page are missing an alt attribute; decorative alt=\"\" images are excluded. Pages: https://cambridgeheating.ca/.",
+        "evidenceRefs": [
+          "page:https://cambridgeheating.ca/",
+          "images-without-alt:3"
+        ],
+        "suppressedEvidenceRefs": [],
+        "rationale": "3 images across 1 affected page are missing an alt attribute; decorative alt=\"\" images are excluded. Pages: https://cambridgeheating.ca/.",
+        "suggestedServiceId": "fixture-missing-image-alt",
+        "suggestedScope": [],
+        "priceMin": 150,
+        "priceMax": 400,
+        "confidence": 0.9,
+        "billableStatus": "billable",
+        "status": "new",
+        "updatedAt": "2026-09-09T04:16:23.444Z"
+      }
+    },
+    {
+      "clientId": "corpus-atlasplumbing",
+      "clientName": "Atlasplumbing",
+      "clientDomain": "atlasplumbing.ca",
+      "serviceName": "Service pages build",
+      "opportunity": {
+        "id": "corpus-atlasplumbing-9",
+        "dedupeKey": "no-service-pages__atlasplumbing-ca__6ba96ddd",
+        "clientId": "corpus-atlasplumbing",
+        "ruleId": "no-service-pages",
+        "title": "atlasplumbing.ca describes none of its services",
+        "detected": "The crawl followed every link on atlasplumbing.ca and read 8 pages, and not one of them is dedicated to a single service this business sells. Nothing was blocked and nothing was left unread, so this is the whole site. The client is recorded as offering Drain cleaning, Water heater installation, Leak detection and 1 more, so a visitor searching for any one of those has no page to land on.",
+        "evidenceRefs": [
+          "https://atlasplumbing.ca/",
+          "https://atlasplumbing.ca/toronto/",
+          "https://atlasplumbing.ca/scarborough/",
+          "https://atlasplumbing.ca/north-york/",
+          "https://atlasplumbing.ca/markham/",
+          "https://atlasplumbing.ca/richmond-hill/",
+          "https://atlasplumbing.ca/about/",
+          "https://atlasplumbing.ca/contact-us/"
+        ],
+        "suppressedEvidenceRefs": [],
+        "rationale": "The crawl followed every link on atlasplumbing.ca and read 8 pages, and not one of them is dedicated to a single service this business sells. Nothing was blocked and nothing was left unread, so this is the whole site. The client is recorded as offering Drain cleaning, Water heater installation, Leak detection and 1 more, so a visitor searching for any one of those has no page to land on.",
+        "suggestedServiceId": "svc-service-pages-build",
+        "suggestedScope": [],
+        "priceMin": 2500,
+        "priceMax": 6000,
+        "confidence": 0.9,
+        "billableStatus": "billable",
+        "status": "new",
+        "updatedAt": "2026-09-09T04:16:23.586Z"
+      }
+    },
+    {
+      "clientId": "corpus-altimadental",
+      "clientName": "Altimadental",
+      "clientDomain": "altimadental.com",
+      "serviceName": "Repair a missing H1",
+      "opportunity": {
+        "id": "corpus-altimadental-10",
+        "dedupeKey": "technical::corpus-altimadental::missing-h1",
+        "clientId": "corpus-altimadental",
+        "ruleId": "missing-h1",
+        "title": "Missing H1 heading — 1 page",
+        "detected": "1 affected page has no non-empty H1 heading: https://altimadental.com/.",
+        "evidenceRefs": [
+          "page:https://altimadental.com/",
+          "h1:missing"
+        ],
+        "suppressedEvidenceRefs": [],
+        "rationale": "1 affected page has no non-empty H1 heading: https://altimadental.com/.",
+        "suggestedServiceId": "fixture-missing-h1",
+        "suggestedScope": [],
+        "priceMin": 150,
+        "priceMax": 300,
+        "confidence": 0.9,
+        "billableStatus": "billable",
+        "status": "new",
+        "updatedAt": "2026-09-09T04:16:23.938Z"
+      }
+    },
+    {
+      "clientId": "corpus-altimadental",
+      "clientName": "Altimadental",
+      "clientDomain": "altimadental.com",
+      "serviceName": "Repair a missing meta description",
+      "opportunity": {
+        "id": "corpus-altimadental-11",
+        "dedupeKey": "technical::corpus-altimadental::missing-meta-description",
+        "clientId": "corpus-altimadental",
+        "ruleId": "missing-meta-description",
+        "title": "Missing meta description — 2 pages",
+        "detected": "2 affected pages are missing a non-empty meta description: https://www.altimadental.com/?post_type=clinic&amp;p=8575, https://www.altimadental.com/services/family-dentistry/myofunctional-therapy/.",
+        "evidenceRefs": [
+          "page:https://www.altimadental.com/?post_type=clinic&amp;p=8575",
+          "meta-description:missing",
+          "page:https://www.altimadental.com/services/family-dentistry/myofunctional-therapy/"
+        ],
+        "suppressedEvidenceRefs": [],
+        "rationale": "2 affected pages are missing a non-empty meta description: https://www.altimadental.com/?post_type=clinic&amp;p=8575, https://www.altimadental.com/services/family-dentistry/myofunctional-therapy/.",
+        "suggestedServiceId": "fixture-missing-meta-description",
+        "suggestedScope": [],
+        "priceMin": 200,
+        "priceMax": 500,
+        "confidence": 0.9,
+        "billableStatus": "billable",
+        "status": "new",
+        "updatedAt": "2026-09-09T04:16:23.938Z"
+      }
+    },
+    {
+      "clientId": "corpus-smiledesign",
+      "clientName": "Smiledesign",
+      "clientDomain": "smiledesigndentistry.com",
+      "serviceName": "Repair a missing meta description",
+      "opportunity": {
+        "id": "corpus-smiledesign-12",
+        "dedupeKey": "technical::corpus-smiledesign::missing-meta-description",
+        "clientId": "corpus-smiledesign",
+        "ruleId": "missing-meta-description",
+        "title": "Missing meta description — 3 pages",
+        "detected": "3 affected pages are missing a non-empty meta description: https://www.smiledesigndentistry.com/category/teeth-whitening/, https://www.smiledesigndentistry.com/invisalign-vs-traditional-braces-weighing-the-pros-and-cons-at-smile-design-dentistry/, https://www.smiledesigndentistry.com/achieving-a-confident-smile-with-a-smile-makeover-at-smile-design-dentistry/.",
+        "evidenceRefs": [
+          "page:https://www.smiledesigndentistry.com/category/teeth-whitening/",
+          "meta-description:missing",
+          "page:https://www.smiledesigndentistry.com/invisalign-vs-traditional-braces-weighing-the-pros-and-cons-at-smile-design-dentistry/",
+          "page:https://www.smiledesigndentistry.com/achieving-a-confident-smile-with-a-smile-makeover-at-smile-design-dentistry/"
+        ],
+        "suppressedEvidenceRefs": [],
+        "rationale": "3 affected pages are missing a non-empty meta description: https://www.smiledesigndentistry.com/category/teeth-whitening/, https://www.smiledesigndentistry.com/invisalign-vs-traditional-braces-weighing-the-pros-and-cons-at-smile-design-dentistry/, https://www.smiledesigndentistry.com/achieving-a-confident-smile-with-a-smile-makeover-at-smile-design-dentistry/.",
+        "suggestedServiceId": "fixture-missing-meta-description",
+        "suggestedScope": [],
+        "priceMin": 200,
+        "priceMax": 500,
+        "confidence": 0.9,
+        "billableStatus": "billable",
+        "status": "new",
+        "updatedAt": "2026-09-09T04:16:24.035Z"
+      }
+    },
+    {
+      "clientId": "corpus-smiledesign",
+      "clientName": "Smiledesign",
+      "clientDomain": "smiledesigndentistry.com",
+      "serviceName": "Add missing image alt attributes",
+      "opportunity": {
+        "id": "corpus-smiledesign-13",
+        "dedupeKey": "technical::corpus-smiledesign::missing-image-alt",
+        "clientId": "corpus-smiledesign",
+        "ruleId": "missing-image-alt",
+        "title": "Missing image alt attribute — 10 pages",
+        "detected": "15 images across 10 affected pages are missing an alt attribute; decorative alt=\"\" images are excluded. Pages: https://smiledesigndentistry.com/, https://www.smiledesigndentistry.com/teeth-whitening/, https://www.smiledesigndentistry.com/tooth-extractions/, https://www.smiledesigndentistry.com/periodontal-treatment/, https://www.smiledesigndentistry.com/need-a-professional-teeth-whitening-procedure-this-is-what-the-professional-teeth-whitening-procedure-looks-like/, https://www.smiledesigndentistry.com/is-a-teeth-whitening-procedure-right-for-me/, https://www.smiledesigndentistry.com/category/teeth-whitening/, https://www.smiledesigndentistry.com/invisalign-vs-traditional-braces-weighing-the-pros-and-cons-at-smile-design-dentistry/, https://www.smiledesigndentistry.com/how-to-remove-tobacco-stains-from-teeth/, https://www.smiledesigndentistry.com/achieving-a-confident-smile-with-a-smile-makeover-at-smile-design-dentistry/.",
+        "evidenceRefs": [
+          "page:https://smiledesigndentistry.com/",
+          "images-without-alt:6",
+          "page:https://www.smiledesigndentistry.com/teeth-whitening/",
+          "images-without-alt:1",
+          "page:https://www.smiledesigndentistry.com/tooth-extractions/",
+          "page:https://www.smiledesigndentistry.com/periodontal-treatment/",
+          "page:https://www.smiledesigndentistry.com/need-a-professional-teeth-whitening-procedure-this-is-what-the-professional-teeth-whitening-procedure-looks-like/",
+          "page:https://www.smiledesigndentistry.com/is-a-teeth-whitening-procedure-right-for-me/",
+          "page:https://www.smiledesigndentistry.com/category/teeth-whitening/",
+          "page:https://www.smiledesigndentistry.com/invisalign-vs-traditional-braces-weighing-the-pros-and-cons-at-smile-design-dentistry/",
+          "page:https://www.smiledesigndentistry.com/how-to-remove-tobacco-stains-from-teeth/",
+          "page:https://www.smiledesigndentistry.com/achieving-a-confident-smile-with-a-smile-makeover-at-smile-design-dentistry/"
+        ],
+        "suppressedEvidenceRefs": [],
+        "rationale": "15 images across 10 affected pages are missing an alt attribute; decorative alt=\"\" images are excluded. Pages: https://smiledesigndentistry.com/, https://www.smiledesigndentistry.com/teeth-whitening/, https://www.smiledesigndentistry.com/tooth-extractions/, https://www.smiledesigndentistry.com/periodontal-treatment/, https://www.smiledesigndentistry.com/need-a-professional-teeth-whitening-procedure-this-is-what-the-professional-teeth-whitening-procedure-looks-like/, https://www.smiledesigndentistry.com/is-a-teeth-whitening-procedure-right-for-me/, https://www.smiledesigndentistry.com/category/teeth-whitening/, https://www.smiledesigndentistry.com/invisalign-vs-traditional-braces-weighing-the-pros-and-cons-at-smile-design-dentistry/, https://www.smiledesigndentistry.com/how-to-remove-tobacco-stains-from-teeth/, https://www.smiledesigndentistry.com/achieving-a-confident-smile-with-a-smile-makeover-at-smile-design-dentistry/.",
+        "suggestedServiceId": "fixture-missing-image-alt",
+        "suggestedScope": [],
+        "priceMin": 150,
+        "priceMax": 400,
+        "confidence": 0.9,
+        "billableStatus": "billable",
+        "status": "new",
+        "updatedAt": "2026-09-09T04:16:24.035Z"
+      }
+    },
+    {
+      "clientId": "corpus-renoduck",
+      "clientName": "Renoduck",
+      "clientDomain": "renoduck.com",
+      "serviceName": "Add missing image alt attributes",
+      "opportunity": {
+        "id": "corpus-renoduck-14",
+        "dedupeKey": "technical::corpus-renoduck::missing-image-alt",
+        "clientId": "corpus-renoduck",
+        "ruleId": "missing-image-alt",
+        "title": "Missing image alt attribute — 10 pages",
+        "detected": "31 images across 10 affected pages are missing an alt attribute; decorative alt=\"\" images are excluded. Pages: https://renoduck.com/, https://www.renoduck.com/renovation-glossary/, https://www.renoduck.com/basement-underpinning-toronto/, https://www.renoduck.com/turnkey-basement-renovation-toronto/, https://www.renoduck.com/basement-bathroom-renovation-toronto/, https://www.renoduck.com/basement-kitchen-renovation-toronto/, https://www.renoduck.com/basement-sauna-renovation/, https://www.renoduck.com/basement-game-room-renovation/, https://www.renoduck.com/basement-office-renovation/, https://www.renoduck.com/home-renovation/.",
+        "evidenceRefs": [
+          "page:https://renoduck.com/",
+          "images-without-alt:22",
+          "page:https://www.renoduck.com/renovation-glossary/",
+          "images-without-alt:1",
+          "page:https://www.renoduck.com/basement-underpinning-toronto/",
+          "page:https://www.renoduck.com/turnkey-basement-renovation-toronto/",
+          "page:https://www.renoduck.com/basement-bathroom-renovation-toronto/",
+          "page:https://www.renoduck.com/basement-kitchen-renovation-toronto/",
+          "page:https://www.renoduck.com/basement-sauna-renovation/",
+          "page:https://www.renoduck.com/basement-game-room-renovation/",
+          "page:https://www.renoduck.com/basement-office-renovation/",
+          "page:https://www.renoduck.com/home-renovation/"
+        ],
+        "suppressedEvidenceRefs": [],
+        "rationale": "31 images across 10 affected pages are missing an alt attribute; decorative alt=\"\" images are excluded. Pages: https://renoduck.com/, https://www.renoduck.com/renovation-glossary/, https://www.renoduck.com/basement-underpinning-toronto/, https://www.renoduck.com/turnkey-basement-renovation-toronto/, https://www.renoduck.com/basement-bathroom-renovation-toronto/, https://www.renoduck.com/basement-kitchen-renovation-toronto/, https://www.renoduck.com/basement-sauna-renovation/, https://www.renoduck.com/basement-game-room-renovation/, https://www.renoduck.com/basement-office-renovation/, https://www.renoduck.com/home-renovation/.",
+        "suggestedServiceId": "fixture-missing-image-alt",
+        "suggestedScope": [],
+        "priceMin": 150,
+        "priceMax": 400,
+        "confidence": 0.9,
+        "billableStatus": "billable",
+        "status": "new",
+        "updatedAt": "2026-09-09T04:16:24.188Z"
+      }
+    },
+    {
+      "clientId": "corpus-nusite",
+      "clientName": "Nusite",
+      "clientDomain": "nusite.ca",
+      "serviceName": "Repair a missing meta description",
+      "opportunity": {
+        "id": "corpus-nusite-15",
+        "dedupeKey": "technical::corpus-nusite::missing-meta-description",
+        "clientId": "corpus-nusite",
+        "ruleId": "missing-meta-description",
+        "title": "Missing meta description — 1 page",
+        "detected": "1 affected page is missing a non-empty meta description: https://nusite.ca/.",
+        "evidenceRefs": [
+          "page:https://nusite.ca/",
+          "meta-description:missing"
+        ],
+        "suppressedEvidenceRefs": [],
+        "rationale": "1 affected page is missing a non-empty meta description: https://nusite.ca/.",
+        "suggestedServiceId": "fixture-missing-meta-description",
+        "suggestedScope": [],
+        "priceMin": 200,
+        "priceMax": 500,
+        "confidence": 0.9,
+        "billableStatus": "billable",
+        "status": "new",
+        "updatedAt": "2026-09-09T04:16:24.191Z"
+      }
+    },
+    {
+      "clientId": "corpus-nusite",
+      "clientName": "Nusite",
+      "clientDomain": "nusite.ca",
+      "serviceName": "Add LocalBusiness or Service schema",
+      "opportunity": {
+        "id": "corpus-nusite-16",
+        "dedupeKey": "technical::corpus-nusite::missing-structured-data",
+        "clientId": "corpus-nusite",
+        "ruleId": "missing-structured-data",
+        "title": "Missing LocalBusiness or Service schema — 1 page",
+        "detected": "1 affected page has no observed LocalBusiness or Service structured-data type: https://nusite.ca/.",
+        "evidenceRefs": [
+          "page:https://nusite.ca/",
+          "structured-data:localbusiness-or-service-missing"
+        ],
+        "suppressedEvidenceRefs": [],
+        "rationale": "1 affected page has no observed LocalBusiness or Service structured-data type: https://nusite.ca/.",
+        "suggestedServiceId": "fixture-missing-structured-data",
+        "suggestedScope": [],
+        "priceMin": 300,
+        "priceMax": 700,
+        "confidence": 0.9,
+        "billableStatus": "billable",
+        "status": "new",
+        "updatedAt": "2026-09-09T04:16:24.191Z"
+      }
+    },
+    {
+      "clientId": "corpus-goddardschool",
+      "clientName": "Goddardschool",
+      "clientDomain": "goddardschool.com",
+      "serviceName": "Add missing image alt attributes",
+      "opportunity": {
+        "id": "corpus-goddardschool-17",
+        "dedupeKey": "technical::corpus-goddardschool::missing-image-alt",
+        "clientId": "corpus-goddardschool",
+        "ruleId": "missing-image-alt",
+        "title": "Missing image alt attribute — 10 pages",
+        "detected": "53 images across 10 affected pages are missing an alt attribute; decorative alt=\"\" images are excluded. Pages: https://goddardschool.com/, https://www.goddardschool.com/the-goddard-difference, https://www.goddardschool.com/wonder-of-learning, https://www.goddardschool.com/the-goddard-difference/health-and-safety, https://www.goddardschool.com/teachers-and-philosophy, https://www.goddardschool.com/family-feedback, https://www.goddardschool.com/the-goddard-difference/classrooms, https://www.goddardschool.com/the-goddard-difference/classrooms/infant-classroom, https://www.goddardschool.com/the-goddard-difference/classrooms/toddler-classroom, https://www.goddardschool.com/the-goddard-difference/classrooms/twos-classroom.",
+        "evidenceRefs": [
+          "page:https://goddardschool.com/",
+          "images-without-alt:7",
+          "page:https://www.goddardschool.com/the-goddard-difference",
+          "images-without-alt:15",
+          "page:https://www.goddardschool.com/wonder-of-learning",
+          "images-without-alt:11",
+          "page:https://www.goddardschool.com/the-goddard-difference/health-and-safety",
+          "images-without-alt:1",
+          "page:https://www.goddardschool.com/teachers-and-philosophy",
+          "images-without-alt:2",
+          "page:https://www.goddardschool.com/family-feedback",
+          "page:https://www.goddardschool.com/the-goddard-difference/classrooms",
+          "images-without-alt:4",
+          "page:https://www.goddardschool.com/the-goddard-difference/classrooms/infant-classroom",
+          "page:https://www.goddardschool.com/the-goddard-difference/classrooms/toddler-classroom",
+          "page:https://www.goddardschool.com/the-goddard-difference/classrooms/twos-classroom"
+        ],
+        "suppressedEvidenceRefs": [],
+        "rationale": "53 images across 10 affected pages are missing an alt attribute; decorative alt=\"\" images are excluded. Pages: https://goddardschool.com/, https://www.goddardschool.com/the-goddard-difference, https://www.goddardschool.com/wonder-of-learning, https://www.goddardschool.com/the-goddard-difference/health-and-safety, https://www.goddardschool.com/teachers-and-philosophy, https://www.goddardschool.com/family-feedback, https://www.goddardschool.com/the-goddard-difference/classrooms, https://www.goddardschool.com/the-goddard-difference/classrooms/infant-classroom, https://www.goddardschool.com/the-goddard-difference/classrooms/toddler-classroom, https://www.goddardschool.com/the-goddard-difference/classrooms/twos-classroom.",
+        "suggestedServiceId": "fixture-missing-image-alt",
+        "suggestedScope": [],
+        "priceMin": 150,
+        "priceMax": 400,
+        "confidence": 0.9,
+        "billableStatus": "billable",
+        "status": "new",
+        "updatedAt": "2026-09-09T04:16:24.262Z"
+      }
+    },
+    {
+      "clientId": "corpus-thelawnsalon",
+      "clientName": "Thelawnsalon",
+      "clientDomain": "thelawnsalon.ca",
+      "serviceName": "Expand a thin service page",
+      "opportunity": {
+        "id": "corpus-thelawnsalon-18",
+        "dedupeKey": "technical::corpus-thelawnsalon::thin-service-page",
+        "clientId": "corpus-thelawnsalon",
+        "ruleId": "thin-service-page",
+        "title": "Thin service page — 1 page",
+        "detected": "1 affected page is below the technical content threshold: https://www.thelawnsalon.ca/all-projects/stump-removal/.",
+        "evidenceRefs": [
+          "page:https://www.thelawnsalon.ca/all-projects/stump-removal/",
+          "word-count:118"
+        ],
+        "suppressedEvidenceRefs": [],
+        "rationale": "1 affected page is below the technical content threshold: https://www.thelawnsalon.ca/all-projects/stump-removal/.",
+        "suggestedServiceId": "fixture-thin-service-page",
+        "suggestedScope": [],
+        "priceMin": 400,
+        "priceMax": 800,
+        "confidence": 0.9,
+        "billableStatus": "billable",
+        "status": "new",
+        "updatedAt": "2026-09-09T04:16:24.370Z"
+      }
+    },
+    {
+      "clientId": "corpus-thelawnsalon",
+      "clientName": "Thelawnsalon",
+      "clientDomain": "thelawnsalon.ca",
+      "serviceName": "Repair a missing meta description",
+      "opportunity": {
+        "id": "corpus-thelawnsalon-19",
+        "dedupeKey": "technical::corpus-thelawnsalon::missing-meta-description",
+        "clientId": "corpus-thelawnsalon",
+        "ruleId": "missing-meta-description",
+        "title": "Missing meta description — 10 pages",
+        "detected": "10 affected pages are missing a non-empty meta description: https://thelawnsalon.ca/, https://www.thelawnsalon.ca/landscaping-who-we-are/, https://www.thelawnsalon.ca/all-projects/pool-removal/, https://www.thelawnsalon.ca/all-projects/stump-removal/, https://www.thelawnsalon.ca/landscaping-contact-us/, https://www.thelawnsalon.ca/all-projects/, https://www.thelawnsalon.ca/all-projects/decks/, https://www.thelawnsalon.ca/all-projects/gazebos/, https://www.thelawnsalon.ca/all-projects/wood-structures/, https://www.thelawnsalon.ca/all-projects/hot-tub-pads/.",
+        "evidenceRefs": [
+          "page:https://thelawnsalon.ca/",
+          "meta-description:missing",
+          "page:https://www.thelawnsalon.ca/landscaping-who-we-are/",
+          "page:https://www.thelawnsalon.ca/all-projects/pool-removal/",
+          "page:https://www.thelawnsalon.ca/all-projects/stump-removal/",
+          "page:https://www.thelawnsalon.ca/landscaping-contact-us/",
+          "page:https://www.thelawnsalon.ca/all-projects/",
+          "page:https://www.thelawnsalon.ca/all-projects/decks/",
+          "page:https://www.thelawnsalon.ca/all-projects/gazebos/",
+          "page:https://www.thelawnsalon.ca/all-projects/wood-structures/",
+          "page:https://www.thelawnsalon.ca/all-projects/hot-tub-pads/"
+        ],
+        "suppressedEvidenceRefs": [],
+        "rationale": "10 affected pages are missing a non-empty meta description: https://thelawnsalon.ca/, https://www.thelawnsalon.ca/landscaping-who-we-are/, https://www.thelawnsalon.ca/all-projects/pool-removal/, https://www.thelawnsalon.ca/all-projects/stump-removal/, https://www.thelawnsalon.ca/landscaping-contact-us/, https://www.thelawnsalon.ca/all-projects/, https://www.thelawnsalon.ca/all-projects/decks/, https://www.thelawnsalon.ca/all-projects/gazebos/, https://www.thelawnsalon.ca/all-projects/wood-structures/, https://www.thelawnsalon.ca/all-projects/hot-tub-pads/.",
+        "suggestedServiceId": "fixture-missing-meta-description",
+        "suggestedScope": [],
+        "priceMin": 200,
+        "priceMax": 500,
+        "confidence": 0.9,
+        "billableStatus": "billable",
+        "status": "new",
+        "updatedAt": "2026-09-09T04:16:24.370Z"
+      }
+    },
+    {
+      "clientId": "corpus-thelawnsalon",
+      "clientName": "Thelawnsalon",
+      "clientDomain": "thelawnsalon.ca",
+      "serviceName": "Add LocalBusiness or Service schema",
+      "opportunity": {
+        "id": "corpus-thelawnsalon-20",
+        "dedupeKey": "technical::corpus-thelawnsalon::missing-structured-data",
+        "clientId": "corpus-thelawnsalon",
+        "ruleId": "missing-structured-data",
+        "title": "Missing LocalBusiness or Service schema — 5 pages",
+        "detected": "5 affected pages have no observed LocalBusiness or Service structured-data type: https://thelawnsalon.ca/, https://www.thelawnsalon.ca/landscaping-who-we-are/, https://www.thelawnsalon.ca/all-projects/pool-removal/, https://www.thelawnsalon.ca/all-projects/stump-removal/, https://www.thelawnsalon.ca/landscaping-contact-us/.",
+        "evidenceRefs": [
+          "page:https://thelawnsalon.ca/",
+          "structured-data:localbusiness-or-service-missing",
+          "page:https://www.thelawnsalon.ca/landscaping-who-we-are/",
+          "page:https://www.thelawnsalon.ca/all-projects/pool-removal/",
+          "page:https://www.thelawnsalon.ca/all-projects/stump-removal/",
+          "page:https://www.thelawnsalon.ca/landscaping-contact-us/"
+        ],
+        "suppressedEvidenceRefs": [],
+        "rationale": "5 affected pages have no observed LocalBusiness or Service structured-data type: https://thelawnsalon.ca/, https://www.thelawnsalon.ca/landscaping-who-we-are/, https://www.thelawnsalon.ca/all-projects/pool-removal/, https://www.thelawnsalon.ca/all-projects/stump-removal/, https://www.thelawnsalon.ca/landscaping-contact-us/.",
+        "suggestedServiceId": "fixture-missing-structured-data",
+        "suggestedScope": [],
+        "priceMin": 300,
+        "priceMax": 700,
+        "confidence": 0.9,
+        "billableStatus": "billable",
+        "status": "new",
+        "updatedAt": "2026-09-09T04:16:24.370Z"
+      }
+    },
+    {
+      "clientId": "corpus-davey",
+      "clientName": "Davey",
+      "clientDomain": "davey.com",
+      "serviceName": "Add LocalBusiness or Service schema",
+      "opportunity": {
+        "id": "corpus-davey-21",
+        "dedupeKey": "technical::corpus-davey::missing-structured-data",
+        "clientId": "corpus-davey",
+        "ruleId": "missing-structured-data",
+        "title": "Missing LocalBusiness or Service schema — 9 pages",
+        "detected": "9 affected pages have no observed LocalBusiness or Service structured-data type: https://davey.com/, https://www.davey.com/residential-tree-services/tree-health-inspection-treatment/, https://www.davey.com/residential-tree-services/shrub-pruning/, https://www.davey.com/residential-tree-services/tree-removal/, https://www.davey.com/residential-tree-services/tree-trimming-pruning/, https://www.davey.com/residential-tree-services/lawn-care-services/lawn-pest-grub-control/, https://www.davey.com/commercial-services/commercial-grounds-maintenance/, https://www.davey.com/commercial-services/commercial-snow-ice-removal/, https://www.davey.com/commercial-services/class-a-property-landscaping-services/.",
+        "evidenceRefs": [
+          "page:https://davey.com/",
+          "structured-data:localbusiness-or-service-missing",
+          "page:https://www.davey.com/residential-tree-services/tree-health-inspection-treatment/",
+          "page:https://www.davey.com/residential-tree-services/shrub-pruning/",
+          "page:https://www.davey.com/residential-tree-services/tree-removal/",
+          "page:https://www.davey.com/residential-tree-services/tree-trimming-pruning/",
+          "page:https://www.davey.com/residential-tree-services/lawn-care-services/lawn-pest-grub-control/",
+          "page:https://www.davey.com/commercial-services/commercial-grounds-maintenance/",
+          "page:https://www.davey.com/commercial-services/commercial-snow-ice-removal/",
+          "page:https://www.davey.com/commercial-services/class-a-property-landscaping-services/"
+        ],
+        "suppressedEvidenceRefs": [],
+        "rationale": "9 affected pages have no observed LocalBusiness or Service structured-data type: https://davey.com/, https://www.davey.com/residential-tree-services/tree-health-inspection-treatment/, https://www.davey.com/residential-tree-services/shrub-pruning/, https://www.davey.com/residential-tree-services/tree-removal/, https://www.davey.com/residential-tree-services/tree-trimming-pruning/, https://www.davey.com/residential-tree-services/lawn-care-services/lawn-pest-grub-control/, https://www.davey.com/commercial-services/commercial-grounds-maintenance/, https://www.davey.com/commercial-services/commercial-snow-ice-removal/, https://www.davey.com/commercial-services/class-a-property-landscaping-services/.",
+        "suggestedServiceId": "fixture-missing-structured-data",
+        "suggestedScope": [],
+        "priceMin": 300,
+        "priceMax": 700,
+        "confidence": 0.9,
+        "billableStatus": "billable",
+        "status": "new",
+        "updatedAt": "2026-09-09T04:16:24.497Z"
+      }
+    },
+    {
+      "clientId": "corpus-activegreenross",
+      "clientName": "Activegreenross",
+      "clientDomain": "activegreenross.com",
+      "serviceName": "Repair a missing H1",
+      "opportunity": {
+        "id": "corpus-activegreenross-22",
+        "dedupeKey": "technical::corpus-activegreenross::missing-h1",
+        "clientId": "corpus-activegreenross",
+        "ruleId": "missing-h1",
+        "title": "Missing H1 heading — 4 pages",
+        "detected": "4 affected pages have no non-empty H1 heading: https://www.activegreenross.com/repair-services/cooling-system, https://www.activegreenross.com/maintenance-services/tune-up, https://www.activegreenross.com/maintenance-services/vehicle-maintenance, https://www.activegreenross.com/maintenance-services/oil-change.",
+        "evidenceRefs": [
+          "page:https://www.activegreenross.com/repair-services/cooling-system",
+          "h1:missing",
+          "page:https://www.activegreenross.com/maintenance-services/tune-up",
+          "page:https://www.activegreenross.com/maintenance-services/vehicle-maintenance",
+          "page:https://www.activegreenross.com/maintenance-services/oil-change"
+        ],
+        "suppressedEvidenceRefs": [],
+        "rationale": "4 affected pages have no non-empty H1 heading: https://www.activegreenross.com/repair-services/cooling-system, https://www.activegreenross.com/maintenance-services/tune-up, https://www.activegreenross.com/maintenance-services/vehicle-maintenance, https://www.activegreenross.com/maintenance-services/oil-change.",
+        "suggestedServiceId": "fixture-missing-h1",
+        "suggestedScope": [],
+        "priceMin": 150,
+        "priceMax": 300,
+        "confidence": 0.9,
+        "billableStatus": "billable",
+        "status": "new",
+        "updatedAt": "2026-09-09T04:16:24.576Z"
+      }
+    },
+    {
+      "clientId": "corpus-activegreenross",
+      "clientName": "Activegreenross",
+      "clientDomain": "activegreenross.com",
+      "serviceName": "Add missing image alt attributes",
+      "opportunity": {
+        "id": "corpus-activegreenross-23",
+        "dedupeKey": "technical::corpus-activegreenross::missing-image-alt",
+        "clientId": "corpus-activegreenross",
+        "ruleId": "missing-image-alt",
+        "title": "Missing image alt attribute — 2 pages",
+        "detected": "2 images across 2 affected pages are missing an alt attribute; decorative alt=\"\" images are excluded. Pages: https://activegreenross.com/, https://www.activegreenross.com/maintenance-services.",
+        "evidenceRefs": [
+          "page:https://activegreenross.com/",
+          "images-without-alt:1",
+          "page:https://www.activegreenross.com/maintenance-services"
+        ],
+        "suppressedEvidenceRefs": [],
+        "rationale": "2 images across 2 affected pages are missing an alt attribute; decorative alt=\"\" images are excluded. Pages: https://activegreenross.com/, https://www.activegreenross.com/maintenance-services.",
+        "suggestedServiceId": "fixture-missing-image-alt",
+        "suggestedScope": [],
+        "priceMin": 150,
+        "priceMax": 400,
+        "confidence": 0.9,
+        "billableStatus": "billable",
+        "status": "new",
+        "updatedAt": "2026-09-09T04:16:24.576Z"
+      }
+    }
+  ]
+}

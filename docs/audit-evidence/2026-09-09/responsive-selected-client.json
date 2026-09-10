@@ -1,0 +1,36 @@
+{
+  "height": 767,
+  "overflow": [
+    {
+      "class": "app-nav app-nav-compact",
+      "scroll": 209,
+      "tag": "NAV",
+      "width": 200
+    },
+    {
+      "class": "page-enter",
+      "scroll": 323,
+      "tag": "DIV",
+      "width": 300
+    },
+    {
+      "class": "opportunities-page",
+      "scroll": 323,
+      "tag": "DIV",
+      "width": 300
+    },
+    {
+      "class": "pagehead",
+      "scroll": 323,
+      "tag": "DIV",
+      "width": 300
+    },
+    {
+      "class": "pagehead-actions",
+      "scroll": 323,
+      "tag": "DIV",
+      "width": 300
+    }
+  ],
+  "width": 355
+}
