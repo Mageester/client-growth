@@ -771,6 +771,17 @@ const screens: Record<string, { nav: string; node: ReactNode; bare?: boolean; st
           reason: "Service coverage confirmed.",
           limitation: null,
         },
+        // Admission is per-rule readiness now, so a fixture that describes a
+        // readable site has to carry one — otherwise this screen renders the
+        // honest fail-closed state and the harness shows a screen the product
+        // would never produce for this evidence.
+        readiness: {
+          state: "ready",
+          catalog: { matched: 3, total: 3, unmatchedLabels: [] },
+          readyCount: 3,
+          total: 3,
+          rules: [],
+        },
       },
     } as never),
   },
@@ -793,6 +804,24 @@ const screens: Record<string, { nav: string; node: ReactNode; bare?: boolean; st
           analyzable: false,
           reason: "The site could not be read.",
           limitation: "coverage-limited",
+        },
+        // Nothing was readable, so every rule is limited by the crawl and no
+        // check can run — the state this screen exists to say out loud.
+        readiness: {
+          state: "site_coverage_limited",
+          catalog: { matched: 3, total: 3, unmatchedLabels: [] },
+          readyCount: 0,
+          total: 3,
+          rules: [
+            {
+              ruleId: "missing-service-page",
+              label: "A missing service page",
+              state: "site_coverage_limited",
+              reason:
+                "The last run could not read any page on this site, so there is nothing for a missing-page check to work from.",
+              actionable: false,
+            },
+          ],
         },
       },
     } as never),
