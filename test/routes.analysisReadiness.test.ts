@@ -294,9 +294,15 @@ describe("pre-analysis readiness", () => {
     const html = renderClientMarkup(data);
 
     expect(html).toContain("Know what they offer?");
-    expect(html).toContain("Try reading it again");
     expect(html).toContain("The site has not provided enough readable evidence for analysis yet");
     expect(html).toMatch(/<button[^>]*disabled[^>]*>.*Analyze site/s);
+
+    // This fixture is a robots.txt block, which the engine classifies as
+    // permanent. Offering "Try reading it again" here re-read nothing and
+    // reported the same sentence that was already on the page. The way out is
+    // named instead of a button that cannot work.
+    expect(html).not.toContain("Try reading it again");
+    expect(html).toContain("AxiomOrbitBot");
   });
 
   it("refuses a crafted detail Analyze post when manual offerings cannot fix coverage", async () => {

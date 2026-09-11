@@ -25,6 +25,7 @@ describe("what the public internet is told about this app", () => {
     // publish a client's proposal to anyone who searched for it.
     for (const disallowed of [
       "/proposal/",
+      "/report/",
       "/opportunities",
       "/clients",
       "/settings",

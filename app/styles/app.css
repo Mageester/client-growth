@@ -726,7 +726,14 @@ input[type="checkbox"] {
   gap: 0.85rem;
 }
 
+/* A standalone navigation target, so it gets a target rather than a line box.
+   As plain inline text this measured 36x19px, which is readable but unforgiving
+   for touch and for anyone with a motor impairment. */
 .public-nav > a:not(.btn) {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding-inline: 0.2rem;
   color: var(--ink-2);
   font-size: 0.83rem;
   font-weight: 520;
@@ -2283,8 +2290,27 @@ a.record:hover .record-name {
   text-align: right;
 }
 
+/* Account recovery is a standalone control, not a word inside a sentence, so it
+   carries a real target. Measured 101x14px before this. */
+.auth-aside .link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+/* --------------------------------------------------------------------------
+   The branded failure page.
+
+   It owns its own heading rather than borrowing EmptyState, whose <h2> is
+   correct inside a page that already has an <h1> and wrong when the failure
+   *is* the page: a 404 with no <h1> and no <title> reads as unfinished.
+   -------------------------------------------------------------------------- */
+
 .error-page {
-  max-width: 30rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 34rem;
   margin: 6rem auto;
   padding: 0 1.5rem;
   text-align: center;
@@ -2292,6 +2318,29 @@ a.record:hover .record-name {
 
 .error-page .empty-mark {
   margin-inline: auto;
+}
+
+.error-page h1 {
+  margin: 1.1rem 0 0;
+  font-size: 1.35rem;
+  font-weight: 620;
+  letter-spacing: -0.02em;
+}
+
+.error-page p {
+  max-width: 30rem;
+  margin-top: 0.6rem;
+  color: var(--ink-2);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.error-page .empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1.6rem;
 }
 
 /* --------------------------------------------------------------------------
@@ -3123,6 +3172,9 @@ a.ev-title:hover {
 .axiom-credit {
   display: inline-flex;
   align-items: center;
+  /* Standalone link to another site: above the 24px minimum even though the
+     wordmark itself is only 15px tall. */
+  min-height: 24px;
   gap: 0.45rem;
   color: var(--ink-4);
   font-family: var(--mono);

@@ -6,6 +6,7 @@ import {
 import { describeEvidenceRef, isPageRef, parseEvidenceRef } from "@/core/evidenceRef";
 import { titleFromUrl } from "../lib/evidence";
 import { Icon, formatCurrencyRange } from "../components/ui";
+import { UnavailableDocument, unavailableDocumentTitle } from "../components/unavailable-document";
 import type { ReactNode } from "react";
 import { proposalWithFallback } from "@/core/proposal";
 
@@ -26,18 +27,23 @@ const NO_STORE_HEADERS = {
   "X-Robots-Tag": "noindex, nofollow",
 };
 
-export function meta({ data }: { data?: ProposalSharePublic | null }) {
-  return [
-    {
-      title: data
-        ? `${data.snapshot.clientName} proposal · ${data.snapshot.agencyName}`
-        : "Proposal share · Axiom Orbit",
-    },
-  ];
+export function meta({ data, error }: { data?: ProposalSharePublic | null; error?: unknown }) {
+  if (error || !data) return [{ title: unavailableDocumentTitle("proposal") }];
+  return [{ title: `${data.snapshot.clientName} proposal · ${data.snapshot.agencyName}` }];
 }
 
 export function headers(_args?: unknown) {
   return NO_STORE_HEADERS;
+}
+
+/**
+ * The route owns its own failure state for two reasons: it keeps the recipient
+ * on a branded, titled page instead of the agency-facing root boundary, and it
+ * keeps this route in React Router's active match list, which is what lets the
+ * `meta` above title the page at all.
+ */
+export function ErrorBoundary() {
+  return <UnavailableDocument kind="proposal" />;
 }
 
 /**

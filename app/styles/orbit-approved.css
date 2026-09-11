@@ -4695,7 +4695,11 @@ body:has(.client-report-document.is-public) {
   background: #f3f4f1;
 }
 
-.content.client-report-share-content {
+/* The pale report ground belongs to the report, not to the route. root.tsx adds
+ * this class for every /report/share request, so without the :has() an expired
+ * link inherited a light background and dark ink for a card that has neither —
+ * the heading rendered dark on dark. */
+.content.client-report-share-content:has(.client-report-public-page) {
   width: 100%;
   max-width: none;
   min-height: 100vh;

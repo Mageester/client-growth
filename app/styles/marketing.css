@@ -101,7 +101,9 @@
   border: 1px solid var(--marketing-border);
   border-radius: 3px;
   padding: 0.55rem 0.9rem;
-  font-size: clamp(0.7rem, 0.66rem + 0.14vw, 0.78rem);
+  /* rem resolves against a 15px root, so the old floor of 0.7rem put the
+     page's primary call to action at 10.5px. Fluid still, above 12px now. */
+  font-size: clamp(0.8rem, 0.76rem + 0.14vw, 0.88rem);
   font-weight: 600;
   letter-spacing: 0.03em;
   line-height: 1.2;
@@ -1344,7 +1346,20 @@
   --product-surface: #0b0b0c;
   --product-raised: #111113;
   --product-muted: #a5a5ab;
-  --product-subtle: #6f6f76;
+  /* Normal informational text. The audited value (#6f6f76) measured 4.09:1 on
+     #050505 and 3.78:1 on the raised surface, so the page's own caveats — the
+     copy that stops a buyer misreading the product — were its least readable. */
+  --product-subtle: #8a8a92;
+  /* Ornament only: a generated glyph, an aria-hidden chevron, a status dot.
+     WCAG 1.4.3 governs text, and brightening ornament to 4.5:1 would flatten
+     the drawing without making anything more readable. */
+  --product-decoration: #6f6f76;
+  /* The example type scale. `html` sizes rem at 15px, so 0.8rem is the 12px
+     floor for a label and 0.94rem the 14px target for supporting copy. The
+     examples are reflowed to fit this; they are never scaled down to make
+     room for it. */
+  --product-example-label: 0.8rem;
+  --product-example-copy: 0.94rem;
   --product-positive: #78bd94;
   --product-caution: #c2a568;
   --product-display: "Space Grotesk", Inter, system-ui, sans-serif;
@@ -1478,7 +1493,7 @@
   padding-block: 1.15rem;
   color: var(--product-muted);
   font-family: var(--product-mono);
-  font-size: 0.61rem;
+  font-size: var(--product-example-label);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -1553,7 +1568,7 @@
 .marketing-product-chapter-nav-status {
   color: var(--product-subtle);
   font-family: var(--product-mono);
-  font-size: 0.59rem;
+  font-size: var(--product-example-label);
   letter-spacing: 0.06em;
   line-height: 1.35;
   text-transform: uppercase;
@@ -1614,7 +1629,7 @@
   margin-bottom: 1.7rem;
   color: var(--product-muted);
   font-family: var(--product-mono);
-  font-size: 0.65rem;
+  font-size: var(--product-example-label);
   letter-spacing: 0.08em;
   line-height: 1.3;
   text-transform: uppercase;
@@ -1653,7 +1668,7 @@
   border-left: 1px solid var(--product-positive);
   color: var(--product-positive);
   font-family: var(--product-mono);
-  font-size: 0.65rem;
+  font-size: var(--product-example-label);
   letter-spacing: 0.04em;
   line-height: 1.45;
   text-transform: uppercase;
@@ -1692,7 +1707,7 @@
   margin: 0 0 1.15rem;
   color: var(--product-muted);
   font-family: var(--product-mono);
-  font-size: 0.59rem;
+  font-size: var(--product-example-label);
   letter-spacing: 0.08em;
   line-height: 1.35;
   text-transform: uppercase;
@@ -1728,7 +1743,7 @@
   overflow-wrap: anywhere;
   color: var(--product-muted);
   font-family: var(--product-mono);
-  font-size: 0.61rem;
+  font-size: var(--product-example-label);
   line-height: 1.4;
 }
 
@@ -1739,7 +1754,7 @@
 .marketing-product-visual-header-meta strong {
   color: var(--product-positive);
   font-family: var(--product-mono);
-  font-size: 0.64rem;
+  font-size: var(--product-example-label);
   letter-spacing: 0.02em;
   text-transform: uppercase;
 }
@@ -1748,7 +1763,7 @@
   flex: 0 0 auto;
   color: var(--product-muted) !important;
   font-family: var(--product-mono);
-  font-size: 0.6rem !important;
+  font-size: var(--product-example-label) !important;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -1794,7 +1809,7 @@
 .marketing-product-field-label {
   color: var(--product-subtle);
   font-family: var(--product-mono);
-  font-size: 0.57rem;
+  font-size: var(--product-example-label);
   letter-spacing: 0.06em;
   line-height: 1.35;
   text-transform: uppercase;
@@ -1822,7 +1837,7 @@
 }
 
 .marketing-product-monitor-state--inconclusive .marketing-product-monitor-point {
-  background: var(--product-subtle);
+  background: var(--product-decoration);
   box-shadow: 0 0 0 1px var(--product-muted);
 }
 
@@ -1830,7 +1845,7 @@
   min-width: 0;
   color: var(--marketing-text);
   font-family: var(--product-mono);
-  font-size: 0.65rem;
+  font-size: var(--product-example-copy);
   line-height: 1.35;
 }
 
@@ -1849,7 +1864,7 @@
 .marketing-product-monitor-detail {
   max-width: 8rem;
   color: var(--product-subtle);
-  font-size: 0.54rem;
+  font-size: var(--product-example-label);
   text-transform: none;
 }
 
@@ -1859,7 +1874,7 @@
   padding-top: 1rem;
   border-top: 1px solid var(--product-line);
   color: var(--product-muted);
-  font-size: 0.76rem;
+  font-size: var(--product-example-copy);
   line-height: 1.5;
 }
 
@@ -1889,13 +1904,13 @@
   overflow-wrap: anywhere;
   color: var(--marketing-text);
   font-family: var(--product-mono);
-  font-size: 0.61rem;
+  font-size: var(--product-example-label);
   line-height: 1.45;
 }
 
 .marketing-product-source-list li::before {
   margin-right: 0.45rem;
-  color: var(--product-subtle);
+  color: var(--product-decoration);
   content: "↗";
 }
 
@@ -1903,7 +1918,7 @@
   display: block;
   margin-top: 1.15rem;
   color: var(--product-subtle);
-  font-size: 0.72rem;
+  font-size: var(--product-example-copy);
   line-height: 1.45;
 }
 
@@ -1928,7 +1943,7 @@
 .marketing-product-context-list dt {
   color: var(--product-muted);
   font-family: var(--product-mono);
-  font-size: 0.58rem;
+  font-size: var(--product-example-label);
   letter-spacing: 0.06em;
   line-height: 1.35;
   text-transform: uppercase;
@@ -1937,7 +1952,7 @@
 .marketing-product-context-list dd {
   margin: 0;
   color: var(--marketing-text);
-  font-size: 0.78rem;
+  font-size: var(--product-example-copy);
   line-height: 1.5;
 }
 
@@ -1998,7 +2013,7 @@
 
 .marketing-product-find-copy span {
   color: var(--product-muted);
-  font-size: 0.76rem;
+  font-size: var(--product-example-copy);
   line-height: 1.4;
 }
 
@@ -2010,7 +2025,7 @@
   padding-inline: 0.7rem;
   background: transparent;
   color: var(--marketing-text);
-  font: 500 0.66rem/1 var(--product-mono);
+  font: 500 var(--product-example-label)/1 var(--product-mono);
 }
 
 .marketing-product-fragment-action:disabled {
@@ -2085,19 +2100,19 @@
 
 .marketing-product-act-review li strong {
   color: var(--marketing-text);
-  font-size: 0.76rem;
+  font-size: var(--product-example-copy);
   font-weight: 500;
   line-height: 1.35;
 }
 
 .marketing-product-act-review li small {
   color: var(--product-muted);
-  font-size: 0.66rem;
+  font-size: var(--product-example-label);
   line-height: 1.35;
 }
 
 .marketing-product-review-chevron {
-  color: var(--product-subtle);
+  color: var(--product-decoration);
   font-size: 1.15rem;
 }
 
@@ -2118,7 +2133,7 @@
 
 .marketing-product-potential-value small {
   color: var(--product-subtle);
-  font-size: 0.66rem;
+  font-size: var(--product-example-label);
   line-height: 1.4;
 }
 
@@ -2137,7 +2152,7 @@
   gap: 0.35rem;
   color: var(--product-muted);
   font-family: var(--product-mono);
-  font-size: 0.57rem;
+  font-size: var(--product-example-label);
   letter-spacing: 0.06em;
   line-height: 1.35;
   text-transform: uppercase;
@@ -2151,7 +2166,7 @@
   padding: 0.55rem 0.65rem;
   background: rgba(255, 255, 255, 0.02);
   color: var(--marketing-text);
-  font: 0.76rem/1.35 Inter, system-ui, sans-serif;
+  font: var(--product-example-copy)/1.35 Inter, system-ui, sans-serif;
 }
 
 .marketing-product-proposal-boundary {
@@ -2159,7 +2174,7 @@
   overflow-wrap: anywhere;
   color: var(--product-muted);
   font-family: var(--product-mono);
-  font-size: 0.65rem;
+  font-size: var(--product-example-label);
   letter-spacing: 0.04em;
   line-height: 1.4;
 }
@@ -2215,7 +2230,7 @@
 
 .marketing-product-grow-copy > span:not(.marketing-product-direction-label) {
   color: var(--product-muted);
-  font-size: 0.72rem;
+  font-size: var(--product-example-copy);
   line-height: 1.45;
 }
 
@@ -2232,7 +2247,7 @@
   margin-bottom: 0.08rem;
   color: var(--product-muted);
   font-family: var(--product-mono);
-  font-size: 0.56rem;
+  font-size: var(--product-example-label);
   letter-spacing: 0.08em;
   line-height: 1.3;
   text-transform: uppercase;

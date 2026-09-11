@@ -8,7 +8,6 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
-  isRouteErrorResponse,
   useLocation,
   useNavigation,
   useRouteLoaderData,
@@ -26,7 +25,9 @@ import {
 } from "./lib/theme";
 import { parseSignupPolicy } from "@/core/signupAccess";
 import { getWorkspaceForUser } from "@/db/workspaces";
-import { AxiomCredit, EmptyState, getInitials, Icon, Menu } from "./components/ui";
+import { AxiomCredit, getInitials, Icon, Menu } from "./components/ui";
+import { ErrorPage, errorPageView } from "./components/error-page";
+import { UnavailableDocument, unavailableDocumentTitle } from "./components/unavailable-document";
 import { ProductTour, useProductTour } from "./components/tour";
 import { d1Db } from "./lib/d1.server";
 import { getSession } from "./lib/session.server";
@@ -97,6 +98,23 @@ export function isClientReportSharePath(pathname: string): boolean {
 
 export function isMarketingPath(pathname: string): boolean {
   return [...MARKETING_ROUTES].some((route) => isExactPublicPath(pathname, route));
+}
+
+/**
+ * Titles for failed pages.
+ *
+ * React Router renders metadata only for matches up to the boundary that caught
+ * the error, so when the root boundary handles an unmatched URL no route is left
+ * to supply a `<title>` and the tab reads as a bare hostname. Root is always in
+ * that list, so the title belongs here. With no error this returns nothing, and
+ * every route keeps the metadata it already publishes.
+ */
+export function meta({ error, location }: Route.MetaArgs) {
+  if (!error) return [];
+  const pathname = location?.pathname ?? "";
+  if (isProposalSharePath(pathname)) return [{ title: unavailableDocumentTitle("proposal") }];
+  if (isClientReportSharePath(pathname)) return [{ title: unavailableDocumentTitle("report") }];
+  return [{ title: errorPageView(error, false).title }];
 }
 
 export async function loader({ request, context }: Route.LoaderArgs) {
@@ -473,36 +491,18 @@ export default function App() {
   return <Outlet />;
 }
 
+/**
+ * The last-resort boundary.
+ *
+ * Both share routes own their own failure state, so in practice this handles
+ * unmatched URLs and anything a protected route throws. The share branch stays
+ * as a second line: a recipient must never fall through to a page built for
+ * agency staff, whichever boundary catches the error.
+ */
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   const location = useLocation();
-  const recipientShare =
-    isProposalSharePath(location.pathname) || isClientReportSharePath(location.pathname);
-  const routeError = isRouteErrorResponse(error);
-  const title = routeError ? `${error.status} ${error.statusText}` : "Something went wrong";
-  const detail = routeError
-    ? typeof error.data === "string" && error.data
-      ? error.data
-      : "That page could not be found."
-    : error instanceof Error
-      ? error.message
-      : "An unexpected error occurred.";
-  return (
-    <div className="error-page">
-      <EmptyState
-        icon="alert"
-        title={recipientShare ? "This shared document is no longer available" : title}
-        actions={
-          recipientShare ? undefined : (
-            <Link className="btn btn-primary" to="/opportunities">
-              Back to Opportunities
-            </Link>
-          )
-        }
-      >
-        {recipientShare
-          ? "The link may have expired or been revoked. Ask the agency that sent it to you for a new link."
-          : String(detail)}
-      </EmptyState>
-    </div>
-  );
+  const data = useRouteLoaderData<typeof loader>("root");
+  if (isProposalSharePath(location.pathname)) return <UnavailableDocument kind="proposal" />;
+  if (isClientReportSharePath(location.pathname)) return <UnavailableDocument kind="report" />;
+  return <ErrorPage error={error} signedIn={data?.signedIn ?? false} />;
 }

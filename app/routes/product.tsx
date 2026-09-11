@@ -105,8 +105,14 @@ export default function Product() {
               <p>
                 Monitor client sites, understand the evidence, find legitimate work, and prepare the next conversation.
               </p>
+              {/*
+                Naming a sibling product to draw a boundary only works if the
+                reader knows what it is. Unexplained, `Pipeline Engine` reads as
+                a prerequisite, an integration, or an upsell.
+              */}
               <p className="marketing-product-hero-distinction">
-                Pipeline Engine acquires new clients. Orbit helps agencies grow existing accounts.
+                Pipeline Engine is Axiom’s client-acquisition product; it brings in new clients.
+                Orbit is this one: it grows the accounts an agency already has.
               </p>
               <div className="marketing-product-hero-actions">
                 <Link className="marketing-button marketing-button-primary" to="/signup">

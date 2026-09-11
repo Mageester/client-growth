@@ -6,6 +6,11 @@ export interface EvidenceFailureSummary {
   title: string;
   detail: string;
   retryable: boolean;
+  /**
+   * What would actually change the outcome, for failures where reading again
+   * cannot. A dead end is only honest if it names the way out.
+   */
+  resolution?: string;
 }
 
 function inferCode(reason: string): EvidenceFailureCode | "unknown" {
@@ -30,7 +35,7 @@ function inferCode(reason: string): EvidenceFailureCode | "unknown" {
 function copyFor(
   code: EvidenceFailureCode | "unknown",
   stage: EvidenceNetworkStage | "unknown",
-): Pick<EvidenceFailureSummary, "title" | "detail" | "retryable"> {
+): Pick<EvidenceFailureSummary, "title" | "detail" | "retryable" | "resolution"> {
   switch (code) {
     case "timeout":
       return {
@@ -52,6 +57,8 @@ function copyFor(
         detail:
           "The site's robots.txt instructions prevented Orbit from reading the pages needed for this check. Nothing was concluded from the unreadable pages.",
         retryable: false,
+        resolution:
+          "Orbit obeys robots.txt, so reading again changes nothing on its own. The site's owner would need to allow AxiomOrbitBot in the site's robots.txt before Orbit can read these pages.",
       };
     case "content-type":
       return {
@@ -80,6 +87,8 @@ function copyFor(
         detail:
           "The address or redirect did not meet Orbit's public-site safety policy. Nothing was fetched and no finding was created.",
         retryable: false,
+        resolution:
+          "Reading again would be refused the same way. Correct this client's domain, or ask the site's owner about the redirect, before trying a read.",
       };
     case "http-status":
       return {
@@ -108,6 +117,8 @@ function copyFor(
         detail:
           "Orbit received the site's page shell, but the service content was not present in the HTML it could safely read. Nothing was concluded from that incomplete read. The site needs server-rendered page content or a supported rendering connection before Orbit can analyze it.",
         retryable: false,
+        resolution:
+          "The same shell would come back on a second read. The site has to serve its page content in HTML before Orbit can analyze it.",
       };
     case "aborted":
       return {
@@ -142,4 +153,37 @@ export function summarizeEvidenceFailure(evidence: EvidenceBundle): EvidenceFail
   const code = first?.code ?? (first ? inferCode(first.reason) : "unknown");
   const stage = first?.stage ?? "unknown";
   return { code, stage, ...copyFor(code, stage) };
+}
+
+/**
+ * Whether reading the site again could change anything.
+ *
+ * `retryable` was computed here from the beginning and read nowhere, so a
+ * robots.txt block — which the engine already classifies as permanent — was
+ * still offered a "Try reading it again" button on the client page. Pressing it
+ * re-read nothing and reported the same sentence that was already on screen,
+ * which reads as the product doing nothing at all.
+ */
+export function canRetryEvidenceRead(
+  failure: EvidenceFailureSummary | null | undefined,
+): boolean {
+  // Callers legitimately hold this as undefined (a harness render with the prop
+  // omitted), and "no known failure" must never be read as "permanent failure".
+  return !failure || failure.retryable;
+}
+
+/**
+ * The outcome of one read that reached no pages.
+ *
+ * Deliberately the short form: the full explanation is already on the page in
+ * the standing diagnostic, and repeating it word for word is what showed the
+ * same paragraph twice.
+ */
+export function describeFailedRead(
+  failure: EvidenceFailureSummary | null | undefined,
+): string {
+  if (!failure || failure.code === "unknown") {
+    return "No page on this site could be read, so there is nothing to suggest from.";
+  }
+  return `That read reached no pages. ${failure.title}.`;
 }

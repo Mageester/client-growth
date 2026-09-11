@@ -4,6 +4,7 @@ import {
   type ClientReportSharePublic,
 } from "@/db/clientReports";
 import { ClientReportDocument } from "../components/client-report";
+import { UnavailableDocument, unavailableDocumentTitle } from "../components/unavailable-document";
 
 type PublicShareContext = {
   cloudflare: { env: { DB: unknown } };
@@ -25,18 +26,18 @@ export const NO_STORE_HEADERS = {
   "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
 };
 
-export function meta({ data }: { data?: ClientReportSharePublic | null }) {
-  return [
-    {
-      title: data
-        ? `${data.snapshot.client.name} report · ${data.snapshot.agency.name}`
-        : "Client report",
-    },
-  ];
+export function meta({ data, error }: { data?: ClientReportSharePublic | null; error?: unknown }) {
+  if (error || !data) return [{ title: unavailableDocumentTitle("report") }];
+  return [{ title: `${data.snapshot.client.name} report · ${data.snapshot.agency.name}` }];
 }
 
 export function headers(_args?: unknown) {
   return NO_STORE_HEADERS;
+}
+
+/** The recipient-facing failure state, shared with the proposal share route. */
+export function ErrorBoundary() {
+  return <UnavailableDocument kind="report" />;
 }
 
 /** The URL token resolves only the immutable report snapshot. */

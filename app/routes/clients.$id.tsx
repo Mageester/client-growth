@@ -17,6 +17,8 @@ import { assessServiceCoverage } from "@/core/absenceVerification";
 import { suggestOfferings, type SuggestedOffering } from "@/core/offeringSuggestions";
 import { isExternalBusinessMismatchEnabled } from "@/config/env";
 import {
+  canRetryEvidenceRead,
+  describeFailedRead,
   summarizeEvidenceFailure,
   type EvidenceFailureSummary,
 } from "@/core/evidenceDiagnostics";
@@ -343,13 +345,9 @@ export async function action({ params, request, context }: Route.ActionArgs) {
       if (readablePages === 0) {
         const evidence = await repo.getLatestEvidence(t.scope, existing.id);
         const failure = evidence ? summarizeEvidenceFailure(evidence) : null;
-        return {
-          ok: false as const,
-          error:
-            failure && failure.code !== "unknown"
-              ? failure.detail
-              : "No page on this site could be read, so there is nothing to suggest from.",
-        };
+        // The standing diagnostic above already carries the full explanation.
+        // Repeating its paragraph here put the same text on screen twice.
+        return { ok: false as const, error: describeFailedRead(failure) };
       }
       return {
         ok: true as const,
@@ -1728,7 +1726,11 @@ function ReadSiteForOfferings({
   if (!coverageBlocked && suggestionCount > 0) return null;
   if (!coverageBlocked && client.offerings.length >= 2) return null;
 
-  const canRetry = coverageBlocked || !hasEvidence || crawlFailure !== null;
+  // A permanent failure vetoes the retry. robots.txt and a refused address
+  // both leave coverage blocked, so without this veto the other conditions
+  // still offered a button that could only ever fail the same way.
+  const retryCanHelp = canRetryEvidenceRead(crawlFailure);
+  const canRetry = retryCanHelp && (coverageBlocked || !hasEvidence || crawlFailure !== null);
 
   return (
     <div className="notice suggested-services" role="status">
@@ -1773,6 +1775,9 @@ function ReadSiteForOfferings({
               : "Nothing is saved until you confirm it. No analysis is run."}
             </span>
           </Form>
+        )}
+        {!retryCanHelp && crawlFailure?.resolution && (
+          <p className="suggested-note">{crawlFailure.resolution}</p>
         )}
       </div>
     </div>

@@ -269,7 +269,9 @@ describe("onboarding stage one: read the site, judge nothing", () => {
     } finally {
       rmSync(output, { recursive: true, force: true });
     }
-  });
+    // Compiles and renders the harness in a child process; the 5s default
+    // turned a loaded machine into a failing release gate.
+  }, 60_000);
 
   it("names every starter price control and keeps it inside the closed setup form", () => {
     const html = renderSetupMarkup();

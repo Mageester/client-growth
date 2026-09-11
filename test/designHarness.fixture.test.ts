@@ -29,5 +29,8 @@ describe("design harness fixture truth", () => {
 
     const queue = readFileSync(join(output, "opportunities.html"), "utf8");
     expect(queue).toContain("Review proposal");
-  });
+    // This test compiles and renders the whole harness in a child process,
+    // which takes seconds on an idle machine and longer on a loaded one. The
+    // 5s default made the release gate fail whenever anything else was running.
+  }, 60_000);
 });
