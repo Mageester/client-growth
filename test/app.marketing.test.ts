@@ -26,38 +26,19 @@ function renderProduct() {
 }
 
 describe("Axiom Orbit marketing shell", () => {
-  it("renders the ordered public Orbit showcase with truthful CTAs", () => {
+  it("explains the existing-client workflow and offers honest pilot access", () => {
     const html = renderLanding();
-
-    expect(html).toContain("Grow the clients you’ve already won.");
-    expect(html).toContain("The work is already in your accounts.");
-    expect(html).toMatch(/How it works/i);
-    expect(html).toMatch(/Straight answers/i);
-    expect(html).toMatch(/For your agency/i);
-    expect(html).toContain("Watch");
-    expect(html).toContain("Find");
-    expect(html).toContain("Prepare");
-    expect(html).toContain("Available now");
-    expect(html).toContain("Direction");
+    expect(html).toContain("Your next project.");
+    expect(html).toContain("Already a client.");
+    expect(html).toContain("client sites");
+    expect(html).toContain("Illustrative example");
+    expect(html).toContain("your service catalog");
+    expect(html).toContain("contract");
     expect(html).toContain('href="/signup"');
     expect(html).toContain('href="/product"');
     expect(html).toContain('href="/login"');
-    expect(html).toContain("Illustrative product view");
-    expect(html).toContain("Illustrative data — not customer proof.");
-
-    const sectionOrder = [
-      "The work is already in your accounts.",
-      "Watch, find, prepare.",
-      "Straight answers. No invented wins.",
-      "Build more value from the relationships already on your books.",
-      "Give every client account a next review.",
-    ];
-    let previous = -1;
-    for (const text of sectionOrder) {
-      const current = html.indexOf(text);
-      expect(current, `missing or misplaced section: ${text}`).toBeGreaterThan(previous);
-      previous = current;
-    }
+    expect(html).toContain("invitation-only");
+    expect(html).not.toContain("Start free");
   });
 
   it("publishes route-specific canonical and social metadata", () => {
@@ -65,7 +46,7 @@ describe("Axiom Orbit marketing shell", () => {
 
     expect(metadata).toEqual(
       expect.arrayContaining([
-        { title: "Axiom Orbit — Grow the clients you’ve already won." },
+        { title: "Axiom Orbit — Your next project. Already a client." },
         { name: "description", content: expect.stringContaining("client sites") },
         { tagName: "link", rel: "canonical", href: "https://orbit.getaxiom.ca/" },
         {
@@ -95,52 +76,29 @@ describe("Axiom Orbit marketing shell", () => {
     expect(html.slice(0, firstPageHeading)).not.toContain("<h3");
   });
 
-  it("uses a genuinely compact hero evidence fragment", () => {
+  it("provides an accessible, clearly illustrative finding-to-proposal example", () => {
     const html = renderLanding();
-    const compactCard = html.match(
-      /<article class="marketing-evidence-card marketing-evidence-card--compact"[\s\S]*?<\/article>/,
-    )?.[0];
-
-    expect(compactCard).toBeDefined();
-    expect(compactCard).toContain("Northstar HVAC");
-    expect(compactCard).toContain("Checked source paths");
-    expect(compactCard).not.toContain("marketing-evidence-case");
-    expect(compactCard).not.toContain("What was found");
+    expect(html).toContain('role="tablist"');
+    expect(html.match(/role="tab"/g)).toHaveLength(3);
+    expect(html.match(/role="tabpanel"/g)).toHaveLength(3);
+    expect(html).toContain('aria-selected="true"');
+    expect(html).toContain('aria-controls="example-panel-finding"');
+    expect(html).toContain("Northstar HVAC");
+    expect(html).toContain("northstarhvac.example");
+    expect(html).toContain("Review the evidence");
+    expect(html).toContain("Preview proposal");
+    expect(html).toContain("Example pricing");
+    expect(html).toContain("not booked revenue");
+    expect(html).toContain('aria-label="Proposed scope for example proposal"');
+    expect(html).not.toContain(' disabled=""');
   });
 
-  it("draws the Watch / Find / Prepare steps in order with a decorative line", () => {
+  it("keeps monitoring optional and does not gate homepage content behind scroll effects", () => {
     const html = renderLanding();
-    const css = readFileSync(new URL("../app/styles/marketing.css", import.meta.url), "utf8");
-
-    expect(html).toContain('class="marketing-steps-line" aria-hidden="true"');
-    expect(html).toContain("marketing-steps-line-fill");
-    const watch = html.indexOf(">Watch<");
-    const find = html.indexOf(">Find<");
-    const prepare = html.indexOf(">Prepare<");
-    expect(watch).toBeGreaterThan(-1);
-    expect(find).toBeGreaterThan(watch);
-    expect(prepare).toBeGreaterThan(find);
-    expect(css).toMatch(
-      /\.marketing-motion \.marketing-steps\.is-revealed \.marketing-steps-line-fill/s,
-    );
-    expect(css).toMatch(/--step-index/);
-  });
-
-  it("keeps reveal motion opt-in and reduced-motion safe", () => {
-    const html = renderLanding();
-    const css = readFileSync(new URL("../app/styles/marketing.css", import.meta.url), "utf8");
-    const layout = readFileSync(
-      new URL("../app/components/marketing-layout.tsx", import.meta.url),
-      "utf8",
-    );
-
-    expect(html).toContain("data-reveal");
-    expect(css).toMatch(/\.marketing-motion \[data-reveal\]/);
-    expect(css).toMatch(
-      /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.marketing-motion \[data-reveal\]/s,
-    );
-    expect(layout).toContain("prefers-reduced-motion");
-    expect(layout).toContain("IntersectionObserver");
+    expect(html).toContain("Optional weekly monitoring");
+    expect(html).toContain("enabled for your workspace");
+    expect(html).toContain("Inconclusive");
+    expect(html).not.toContain("data-reveal");
   });
 
   it("registers the public product route", () => {
@@ -269,6 +227,21 @@ describe("Axiom Orbit public product detail", () => {
     expect(html).toContain("Request pilot access");
   });
 
+  it("explains Pipeline Engine rather than assuming the visitor knows it", () => {
+    const html = renderProduct();
+    const mentions = html.match(/Pipeline Engine/g) ?? [];
+
+    expect(mentions.length).toBeGreaterThan(0);
+    // A first-time visitor cannot tell whether an unexplained product name is a
+    // prerequisite, an integration, or a sibling. Say which it is, every time.
+    for (const mention of html.split("Pipeline Engine").slice(1)) {
+      expect(`Pipeline Engine${mention.slice(0, 120)}`).toMatch(
+        /Pipeline Engine[^<]*Axiom[^<]*(acquisition|acquires|new clients)/i,
+      );
+    }
+    expect(html).toMatch(/Orbit[^<]*(grow|existing)/i);
+  });
+
   it("names the bounded workflow without fabricated proof or hype", () => {
     const html = renderProduct();
 
@@ -291,7 +264,7 @@ describe("Axiom Orbit public product detail", () => {
     const product = renderProduct();
 
     for (const html of [landing, product]) {
-      expect(html).toMatch(/checks backed by website sources|website sources you can open and verify/i);
+      expect(html).toMatch(/checks backed by website sources|website sources you can open and verify|site review/i);
       expect(html).not.toMatch(/capability families|bounded public-site evidence/i);
       expect(html).toMatch(/proposal drafting and sharing/i);
       expect(html).toContain("expiring share link");

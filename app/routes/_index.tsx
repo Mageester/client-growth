@@ -1,9 +1,10 @@
 import { Link, redirect } from "react-router";
-import type { CSSProperties } from "react";
 
 import { getWorkspaceForUser } from "@/db/workspaces";
 import { MarketingLayout } from "../components/marketing-layout";
-import { OpportunityEvidenceVisual } from "../components/marketing-visuals";
+import { HomepageDemo } from "../components/homepage-demo";
+import { Icon } from "../components/ui";
+import "../styles/homepage.css";
 import { d1Db } from "../lib/d1.server";
 import { getSession } from "../lib/session.server";
 import type { Route } from "./+types/_index";
@@ -21,9 +22,9 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   throw redirect(ws ? "/changes" : "/onboarding");
 }
 
-const landingTitle = "Axiom Orbit — Grow the clients you’ve already won.";
+const landingTitle = "Axiom Orbit — Your next project. Already a client.";
 const landingDescription =
-  "Axiom Orbit reviews the client sites your agency already manages, finds work worth a conversation, and keeps the next review in view.";
+  "Orbit finds work worth proposing on the client sites your agency already manages. Grounded in website evidence. Matched to the services you sell.";
 const landingCanonical = "https://orbit.getaxiom.ca/";
 const socialImage = "https://orbit.getaxiom.ca/brand/axiom-orbit-social-1200x630.png";
 
@@ -43,154 +44,89 @@ export function meta() {
   ];
 }
 
-const steps = [
-  {
-    number: "01",
-    title: "Watch",
-    copy: "Choose the clients you want monitored. Each week, Orbit checks their sites and records what changed.",
-  },
-  {
-    number: "02",
-    title: "Find",
-    copy: "Evidence-backed checks cover commercial gaps, conversion failures, and technical content issues — then Orbit shows the source evidence.",
-  },
-  {
-    number: "03",
-    title: "Prepare",
-    copy: "Review the case, draft the conversation, and deliberately create an expiring share link. Nothing is sent automatically.",
-  },
-] as const;
+const accountContext = [
+  { title: "What your client sells", copy: "Confirmed offerings give every review its context." },
+  { title: "What your agency delivers", copy: "Findings map to your services and your own price ranges." },
+  { title: "What’s already covered", copy: "Work included in the contract stays out of the opportunity queue." },
+];
+
+const workflow = [
+  { title: "Start with a client", copy: "Add their site, confirm what they offer, and bring your service catalog." },
+  { title: "Review what matters", copy: "Check the sources behind each finding. Accept, dismiss, snooze, or mark it covered." },
+  { title: "Prepare the conversation", copy: "Turn a reviewed opportunity into an editable proposal. You decide when to share it." },
+];
 
 export default function Index() {
   return (
-    <MarketingLayout>
-      <div className="marketing-landing">
-        <section className="marketing-hero marketing-container" aria-labelledby="landing-title">
-          <div className="marketing-hero-copy">
-            <h1 id="landing-title" data-reveal>
-              Grow the clients you’ve already won.
-            </h1>
-            <div className="marketing-hero-deck" data-reveal style={{ "--reveal-delay": "110ms" } as CSSProperties}>
-              <p>{landingDescription}</p>
-              <p>
-                Pipeline Engine finds new clients. Orbit grows the ones you already have.
-              </p>
-            </div>
-            <div className="marketing-cta-row" data-reveal style={{ "--reveal-delay": "220ms" } as CSSProperties}>
-              <Link className="marketing-button marketing-button-primary" to="/signup">
-                Request pilot access
-              </Link>
-              <Link className="marketing-button" to="/product">
-                Explore the product
-              </Link>
-            </div>
-            <p className="marketing-trust-line" data-reveal style={{ "--reveal-delay": "330ms" } as CSSProperties}>
-              <span aria-hidden="true" /> Real evidence. Human review. Optional weekly checks.
-            </p>
-          </div>
-          <div className="marketing-hero-visual" data-reveal style={{ "--reveal-delay": "150ms" } as CSSProperties}>
-            <OpportunityEvidenceVisual compact />
-          </div>
-        </section>
-
-        <section className="marketing-section marketing-section--problem" aria-labelledby="portfolio-problem-title">
-          <div className="marketing-container marketing-two-column" data-reveal>
-            <div>
-              <p className="marketing-section-label">THE PORTFOLIO PROBLEM</p>
-              <h2 id="portfolio-problem-title">The work is already in your accounts.</h2>
-            </div>
-            <div className="marketing-section-copy">
-              <p>
-                A client site changes between reviews. A quote path breaks. A service they sell has no page. Across a portfolio, those gaps are easy to miss.
-              </p>
-              <p className="marketing-bridge-line">Orbit turns each review into a short list your team can act on.</p>
+    <MarketingLayout className="orbit-home">
+      <div className="home-container">
+        <section className="home-hero" aria-labelledby="landing-title">
+          <h1 id="landing-title">Your next project.<br /><span>Already a client.</span></h1>
+          <div className="home-hero-copy">
+            <p>{landingDescription}</p>
+            <div className="home-actions">
+              <Link className="home-button" to="/signup">Request pilot access <Icon name="arrow-right" size={16} /></Link>
+              <a className="home-text-link" href="#example">See an example <Icon name="arrow-right" size={17} /></a>
             </div>
           </div>
         </section>
 
-        <section className="marketing-section marketing-section--steps" aria-labelledby="steps-title">
-          <div className="marketing-container">
-            <div className="marketing-section-heading" data-reveal>
-              <p className="marketing-section-label">HOW IT WORKS</p>
-              <h2 id="steps-title">Watch, find, prepare.</h2>
-              <p>Three steps. Your judgment stays in charge.</p>
-            </div>
-            <div className="marketing-steps" data-reveal>
-              <div className="marketing-steps-line" aria-hidden="true">
-                <span className="marketing-steps-line-fill" />
-              </div>
-              <ol className="marketing-steps-list">
-                {steps.map((step, index) => (
-                  <li className="marketing-steps-item" key={step.title}>
-                    <span className="marketing-steps-number" style={{ "--step-index": index } as CSSProperties}>
-                      {step.number}
-                    </span>
-                    <h3>{step.title}</h3>
-                    <p>{step.copy}</p>
-                  </li>
-                ))}
-              </ol>
-            </div>
+        <HomepageDemo />
+        <div className="home-demo-caption">
+          <span>Built for web &amp; digital agencies.</span>
+        </div>
+
+        <section className="home-context home-section" aria-labelledby="context-title">
+          <div className="home-section-intro">
+            <h2 id="context-title">A website check sees a page.<br /><span>Orbit sees the account.</span></h2>
+            <p>A missing page is only an opportunity if the client offers the service, your agency can deliver it, and the work isn’t already covered.</p>
+            <Link className="home-text-link" to="/product">Explore the product <Icon name="arrow-right" size={18} /></Link>
+          </div>
+          <ol className="home-context-list">
+            {accountContext.map((item, index) => (
+              <li key={item.title}>
+                <span className="home-number" aria-hidden="true">0{index + 1}</span>
+                <div><h3>{item.title}</h3><p>{item.copy}</p></div>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        <section className="home-workflow home-section" aria-labelledby="workflow-title">
+          <h2 id="workflow-title">A better reason to get back in touch.</h2>
+          <ol className="home-workflow-list">
+            {workflow.map((item, index) => (
+              <li key={item.title}>
+                <span className="home-number" aria-hidden="true">0{index + 1}</span>
+                <h3>{item.title}</h3><p>{item.copy}</p>
+              </li>
+            ))}
+          </ol>
+          <p className="home-workflow-note"><Icon name="shield" size={17} /> Proposal drafting and sharing stays in your hands. Nothing is sent automatically.</p>
+        </section>
+
+        <section className="home-monitor" aria-labelledby="monitor-title">
+          <div className="home-monitor-copy">
+            <Icon name="refresh" size={21} />
+            <div><h2 id="monitor-title">Keep the next review in view.</h2><p>Optional weekly monitoring revisits the clients you choose, when enabled for your workspace.</p></div>
+          </div>
+          <div className="home-monitor-states">
+            <ul aria-label="Monitoring outcomes">
+              <li><span className="home-dot home-dot-blue" />New</li>
+              <li><span className="home-dot home-dot-amber" />Still open</li>
+              <li><span className="home-dot" />Resolved</li>
+              <li><span className="home-dot home-dot-muted" />Inconclusive</li>
+            </ul>
+            <p>An incomplete read stays visible. It never becomes a confident claim.</p>
           </div>
         </section>
 
-        <section className="marketing-section marketing-section--honest" aria-labelledby="honest-title">
-          <div className="marketing-container marketing-two-column" data-reveal>
-            <div>
-              <p className="marketing-section-label">STRAIGHT ANSWERS</p>
-              <h2 id="honest-title">Straight answers. No invented wins.</h2>
-            </div>
-            <div className="marketing-section-copy">
-              <p>
-                If Orbit can’t read a site clearly, it says <strong>Inconclusive</strong> — it never turns missing evidence into a confident opportunity.
-              </p>
-              <div className="marketing-availability" aria-label="Current and future capabilities">
-                <div>
-                  <span className="marketing-availability-label">Available now</span>
-                  <p>
-                    Orbit runs checks backed by website sources across commercial gaps, broken enquiry paths, and website quality,
-                    evidence review, proposal drafting and sharing, and opt-in weekly monitoring.
-                  </p>
-                </div>
-                <div>
-                  <span className="marketing-availability-label marketing-availability-label--direction">Direction</span>
-                  <p>Outcome and revenue tracking are direction — not current results.</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="marketing-section marketing-section--economic" aria-labelledby="economic-title">
-          <div className="marketing-container marketing-two-column" data-reveal>
-            <div>
-              <p className="marketing-section-label">FOR YOUR AGENCY</p>
-              <h2 id="economic-title">Build more value from the relationships already on your books.</h2>
-            </div>
-            <div className="marketing-section-copy">
-              <p>
-                Orbit keeps the review of existing clients visible: real site changes, work your agency sells, and a decision about the next conversation.
-              </p>
-              <p>
-                Potential value comes from your own price list — not booked revenue, a forecast, or a guarantee.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <section className="marketing-section marketing-section--pilot" aria-labelledby="pilot-title">
-          <div className="marketing-container marketing-pilot-card" data-reveal>
-            <p className="marketing-section-label">THE NEXT REVIEW</p>
-            <h2 id="pilot-title">Give every client account a next review.</h2>
-            <p>Start with the sites you already manage. Request pilot access to Axiom Orbit.</p>
-            <div className="marketing-cta-row marketing-cta-row--centered">
-              <Link className="marketing-button marketing-button-primary" to="/signup">
-                Request pilot access
-              </Link>
-              <Link className="marketing-button marketing-button-quiet" to="/login">
-                Sign in
-              </Link>
-            </div>
+        <section className="home-close" aria-labelledby="pilot-title">
+          <h2 id="pilot-title">Start with the clients<br /><span>who already trust you.</span></h2>
+          <div>
+            <p>Bring your portfolio to Orbit. Find the work worth discussing, with the evidence to back it up.</p>
+            <Link className="home-button" to="/signup">Request pilot access <Icon name="arrow-right" size={16} /></Link>
+            <small>Currently an invitation-only pilot.</small>
           </div>
         </section>
       </div>

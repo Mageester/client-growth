@@ -161,10 +161,10 @@ function useScrollReveals() {
   }, []);
 }
 
-export function MarketingLayout({ children }: { children: ReactNode }) {
+export function MarketingLayout({ children, className = "" }: { children: ReactNode; className?: string }) {
   useScrollReveals();
   return (
-    <div className="marketing-page">
+    <div className={`marketing-page${className ? ` ${className}` : ""}`}>
       {/*
         Opt into reveal motion before first paint so the page never flashes
         fully visible and then hides. Without JS, or with reduced motion, the
