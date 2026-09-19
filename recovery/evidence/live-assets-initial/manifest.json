@@ -1,0 +1,19 @@
+{
+  "baseUrl": "https://orbit.getaxiom.ca/",
+  "origin": "https://orbit.getaxiom.ca",
+  "fetchedAt": "2026-09-19T21:21:23.493Z",
+  "records": [
+    {
+      "requestedUrl": "https://orbit.getaxiom.ca/",
+      "finalUrl": "https://orbit.getaxiom.ca/",
+      "status": 200,
+      "contentType": "text/html",
+      "bytes": 24361,
+      "sha256": "d7847619b5658c17010d62aeb04af5249376b85f0c964f968262662f0f405b59",
+      "saved": true,
+      "sourceMapReferences": [],
+      "localPath": "assets\\index.html"
+    }
+  ],
+  "extractedSources": []
+}

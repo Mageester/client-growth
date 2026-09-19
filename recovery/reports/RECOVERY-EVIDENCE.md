@@ -47,7 +47,7 @@ The copied artifact manifest is `recovery/evidence/known/hashes.json`. The three
 | Extracted Worker script | Exact extracted `app.js` | Preserved/hash-verified | `recovery/evidence/known/extracted/app.js` |
 | Cloudflare version metadata | Version/runtime/bindings | Preserved from supplied artifact | `recovery/evidence/known/version-529a96b3.json` |
 | Cloudflare API forensics | Complete for documented version/content surfaces | Read-only only | `recovery/evidence/cloudflare/` |
-| Public live assets | Pending | Same-origin/public only | `recovery/evidence/live-assets/` |
+| Public live assets | Complete for public homepage asset graph | Same-origin/application-owned only | `recovery/evidence/live-assets/` |
 | GitHub refs/objects | Pending | Read-only search | `recovery/evidence/github/` and `local-git/` |
 | Local caches/worktrees | Pending | Bounded search only | `recovery/evidence/caches/` |
 | D1 metadata | Pending | Read-only only | `recovery/evidence/database/` |
@@ -59,6 +59,13 @@ The copied artifact manifest is `recovery/evidence/known/hashes.json`. The three
 - The supplied bundle's trailing `sourceMappingURL=app.js.map` remains unresolved as an independently downloadable source map.
 - The legacy `content` GET path returned HTTP 405; the supported v2 path was preserved in full.
 - The complete endpoint log, redacted responses, and hashes are under `recovery/evidence/cloudflare/`.
+
+## Public asset result
+
+- The public homepage and 14 application-owned static assets were captured with status 200.
+- The embedded React Router manifest was extracted as `recovery/evidence/live-assets/route-manifest.json`.
+- No public application asset exposed a source-map reference or downloadable `*.map` file.
+- A first-pass capture also saw a Cloudflare `/cdn-cgi/` script; it was archived separately and excluded from the canonical application-owned inventory.
 
 ## Safety log
 

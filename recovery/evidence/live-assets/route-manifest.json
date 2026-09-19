@@ -1,0 +1,55 @@
+{
+  "entry": {
+    "module": "/assets/entry.client-DA5ElLgt.js",
+    "imports": [
+      "/assets/chunk-BV7QT456-C5gx_Rvz.js"
+    ],
+    "css": []
+  },
+  "routes": {
+    "root": {
+      "id": "root",
+      "path": "",
+      "hasAction": false,
+      "hasLoader": true,
+      "hasClientAction": false,
+      "hasClientLoader": false,
+      "hasClientMiddleware": false,
+      "hasDefaultExport": true,
+      "hasErrorBoundary": true,
+      "module": "/assets/root-DOL8tCYu.js",
+      "imports": [
+        "/assets/chunk-BV7QT456-C5gx_Rvz.js",
+        "/assets/ui-BJ6uvrLM.js",
+        "/assets/unavailable-document-D0QRylR_.js"
+      ],
+      "css": [
+        "/assets/root-C5hxMEjn.css"
+      ]
+    },
+    "routes/_index": {
+      "id": "routes/_index",
+      "parentId": "root",
+      "index": true,
+      "hasAction": false,
+      "hasLoader": true,
+      "hasClientAction": false,
+      "hasClientLoader": false,
+      "hasClientMiddleware": false,
+      "hasDefaultExport": true,
+      "hasErrorBoundary": false,
+      "module": "/assets/_index-CFuuiImH.js",
+      "imports": [
+        "/assets/chunk-BV7QT456-C5gx_Rvz.js",
+        "/assets/marketing-layout-Be8eIuWm.js",
+        "/assets/ui-BJ6uvrLM.js"
+      ],
+      "css": [
+        "/assets/_index-TDD4P4hm.css",
+        "/assets/marketing-layout-BUeFvU3i.css"
+      ]
+    }
+  },
+  "url": "/assets/manifest-ab2acd58.js",
+  "version": "ab2acd58"
+}
