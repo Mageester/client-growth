@@ -43,6 +43,16 @@ No module is currently labeled exact. The first reconstruction slices are
 limited to bounded schemas, deterministic accounting/lifecycle utilities, and
 small persistence helpers whose contracts can be checked locally.
 
+## Known production-region inconsistency
+
+The emitted `src/core/insightTaxonomy.ts` region assigns `duplicate-title` as
+the legacy rule for `duplicate_page_title`, while the emitted
+`src/core/ruleIds.ts` region does not include `duplicate-title`. The editable
+recovery keeps both facts: `RULE_IDS` follows the production rule-id region,
+and the taxonomy preserves the historical label as a compatibility value
+without throwing during module import. This is recorded as a medium-confidence
+compatibility discrepancy, not silently normalized away.
+
 ## Reconstruction rules
 
 1. Preserve the deployed region in the evidence vault before editing source.
