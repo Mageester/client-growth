@@ -1,0 +1,21 @@
+  main
+* recovery/orbit-production-2026-09-18
+  remotes/github/backup/release-safety-local-2026-09-05
+  remotes/github/claude/bug-testing-verification-b6al1u
+  remotes/github/codex/axiom-orbit-marketing
+  remotes/github/codex/client-growth-blue-ui
+  remotes/github/codex/client-growth-network-hardening
+  remotes/github/codex/client-growth-productization
+  remotes/github/codex/client-growth-release-safety
+  remotes/github/codex/client-growth-release-safety-reconciled
+  remotes/github/codex/client-growth-reset-email-fix
+  remotes/github/codex/integrate-reports-and-analysis-safety
+  remotes/github/codex/premium-signal-desk-redesign
+  remotes/github/feat/axiom-orbit-product-polish
+  remotes/github/feat/real-site-analyzability
+  remotes/github/fix/thin-site-semantics
+  remotes/github/main
+  remotes/github/new-ui
+  remotes/github/ops/activate-deepseek-production
+  remotes/origin/HEAD -> origin/main
+  remotes/origin/main

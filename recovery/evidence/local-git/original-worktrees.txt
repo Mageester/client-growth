@@ -1,0 +1,4 @@
+worktree C:/Users/Aidan/Documents/Repos/client-growth
+HEAD 1d8e5d0e66ecaa5991b1182fc187738c6da69f1b
+branch refs/heads/main
+

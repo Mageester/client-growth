@@ -1,0 +1,22 @@
+{
+  "searchedRoots": [
+    "C:\\Users\\Aidan\\Documents\\Repos",
+    "C:\\Users\\Aidan\\.codex",
+    "C:\\Users\\Aidan\\.claude",
+    "C:\\Users\\Aidan\\AppData\\Local\\Temp",
+    "C:\\Users\\Aidan\\OneDrive",
+    "C:\\Users\\Aidan\\Desktop"
+  ],
+  "candidateFilenameMatches": [],
+  "productionSymbolMatchesUsedAsSource": [],
+  "outOfScopeContentMatches": [
+    {
+      "path": "C:\\Users\\Aidan\\Documents\\Repos\\morrow",
+      "reason": "unrelated project with generic DeepSeek references; no Orbit module paths"
+    }
+  ],
+  "excludedRoots": [
+    "browser profiles",
+    "credential directories"
+  ]
+}

@@ -1,0 +1,32 @@
+adf2b91 refs/remotes/github/backup/release-safety-local-2026-09-05@{0}: fetch --no-tags github +refs/heads/*:refs/remotes/github/*: storing head
+224f3e4 refs/remotes/github/claude/bug-testing-verification-b6al1u@{0}: fetch --no-tags github +refs/heads/*:refs/remotes/github/*: storing head
+8b68a21 refs/remotes/github/codex/axiom-orbit-marketing@{0}: fetch --no-tags github +refs/heads/*:refs/remotes/github/*: storing head
+6c27078 refs/remotes/github/codex/client-growth-blue-ui@{0}: fetch --no-tags github +refs/heads/*:refs/remotes/github/*: storing head
+0cf05e1 refs/remotes/github/codex/client-growth-network-hardening@{0}: fetch --no-tags github +refs/heads/*:refs/remotes/github/*: storing head
+a11892e refs/remotes/github/codex/client-growth-productization@{0}: fetch --no-tags github +refs/heads/*:refs/remotes/github/*: storing head
+ca63ef1 refs/remotes/github/codex/client-growth-release-safety@{0}: fetch --no-tags github +refs/heads/*:refs/remotes/github/*: storing head
+ca63ef1 refs/remotes/github/codex/client-growth-release-safety-reconciled@{0}: fetch --no-tags github +refs/heads/*:refs/remotes/github/*: storing head
+2346992 refs/remotes/github/codex/client-growth-reset-email-fix@{0}: fetch --no-tags github +refs/heads/*:refs/remotes/github/*: storing head
+4875441 refs/remotes/github/codex/integrate-reports-and-analysis-safety@{0}: fetch --no-tags github +refs/heads/*:refs/remotes/github/*: storing head
+3ff2fb5 refs/remotes/github/codex/premium-signal-desk-redesign@{0}: fetch --no-tags github +refs/heads/*:refs/remotes/github/*: storing head
+5d67bb3 refs/remotes/github/feat/axiom-orbit-product-polish@{0}: fetch --no-tags github +refs/heads/*:refs/remotes/github/*: storing head
+fbf08ea refs/remotes/github/feat/real-site-analyzability@{0}: fetch --no-tags github +refs/heads/*:refs/remotes/github/*: storing head
+a32c7b9 refs/remotes/github/fix/thin-site-semantics@{0}: fetch --no-tags github +refs/heads/*:refs/remotes/github/*: storing head
+1d8e5d0 refs/remotes/github/main@{0}: fetch --no-tags github +refs/heads/*:refs/remotes/github/*: storing head
+3ff2fb5 refs/remotes/github/new-ui@{0}: fetch --no-tags github +refs/heads/*:refs/remotes/github/*: storing head
+ca2a3e2 refs/remotes/github/ops/activate-deepseek-production@{0}: fetch --no-tags github +refs/heads/*:refs/remotes/github/*: storing head
+4b719ac refs/heads/recovery/orbit-production-2026-09-18@{0}: commit: docs: preserve public production asset evidence
+4b719ac HEAD@{0}: commit: docs: preserve public production asset evidence
+e8f6ca2 refs/heads/recovery/orbit-production-2026-09-18@{1}: commit: docs: record Cloudflare production evidence
+e8f6ca2 HEAD@{1}: commit: docs: record Cloudflare production evidence
+58631d7 refs/heads/recovery/orbit-production-2026-09-18@{2}: commit: chore: initialize Orbit recovery evidence vault
+58631d7 HEAD@{2}: commit: chore: initialize Orbit recovery evidence vault
+c07a5b6 refs/heads/recovery/orbit-production-2026-09-18@{3}: branch: Created from HEAD
+c07a5b6 HEAD@{3}: checkout: moving from main to recovery/orbit-production-2026-09-18
+c07a5b6 refs/heads/main@{0}: commit: docs: plan Orbit production source recovery
+c07a5b6 HEAD@{4}: commit: docs: plan Orbit production source recovery
+3c799d3 refs/heads/main@{1}: commit: docs: define Orbit production source recovery
+3c799d3 HEAD@{5}: commit: docs: define Orbit production source recovery
+1d8e5d0 refs/heads/main@{2}: clone: from C:\Users\Aidan\Documents\Repos\client-growth
+1d8e5d0 refs/remotes/origin/HEAD@{0}: clone: from C:\Users\Aidan\Documents\Repos\client-growth
+1d8e5d0 HEAD@{6}: clone: from C:\Users\Aidan\Documents\Repos\client-growth
