@@ -113,7 +113,7 @@ function delimiterBalance(text) {
   return { balanced: mismatches === 0 && stack.length === 0, mismatches, remaining: stack.length };
 }
 
-function regionMetadata(text) {
+export function regionMetadata(text) {
   const symbols = [
     ...collectMatches(text, /\b(?:function|class)\s+([A-Za-z_$][\w$]*)/g),
     ...collectMatches(text, /\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)/g),

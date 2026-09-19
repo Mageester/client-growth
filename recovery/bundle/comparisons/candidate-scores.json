@@ -1,0 +1,1230 @@
+{
+  "inputHash": "e3b996cbc94bf72723866220852ea069fdea09d771de299f67a1aa3dfc0f0611",
+  "generatedAt": "2026-09-19T21:34:38.495Z",
+  "branches": [
+    {
+      "refs": [
+        "refs/remotes/github/main"
+      ],
+      "tip": "1d8e5d0e66ecaa5991b1182fc187738c6da69f1b",
+      "candidateRegions": 64,
+      "meanScore": 65.8586
+    },
+    {
+      "refs": [
+        "refs/remotes/github/codex/integrate-reports-and-analysis-safety"
+      ],
+      "tip": "487544109310ebd0b5feb729a469184ddec4976f",
+      "candidateRegions": 64,
+      "meanScore": 65.8556
+    },
+    {
+      "refs": [
+        "refs/remotes/github/ops/activate-deepseek-production"
+      ],
+      "tip": "ca2a3e2d44a432d255f8f49f8952027339231ef5",
+      "candidateRegions": 10,
+      "meanScore": 64.5998
+    },
+    {
+      "refs": [
+        "refs/remotes/github/feat/axiom-orbit-product-polish"
+      ],
+      "tip": "5d67bb3e7d51a8f39776fb7d96ffd7c87a164f2e",
+      "candidateRegions": 55,
+      "meanScore": 63.609
+    },
+    {
+      "refs": [
+        "refs/remotes/github/codex/client-growth-reset-email-fix"
+      ],
+      "tip": "2346992d69dd7bd966880ddfd5280e662d0b66d6",
+      "candidateRegions": 15,
+      "meanScore": 63.4012
+    },
+    {
+      "refs": [
+        "refs/remotes/github/codex/client-growth-blue-ui"
+      ],
+      "tip": "6c27078afcd3d1696a9e947b21db857542427cf3",
+      "candidateRegions": 14,
+      "meanScore": 62.7512
+    },
+    {
+      "refs": [
+        "refs/remotes/github/claude/bug-testing-verification-b6al1u"
+      ],
+      "tip": "224f3e4f6483fa9623bc87a29ad1bb1a9a262d0d",
+      "candidateRegions": 16,
+      "meanScore": 62.7408
+    },
+    {
+      "refs": [
+        "refs/remotes/github/codex/axiom-orbit-marketing"
+      ],
+      "tip": "8b68a21603e7c89d7c4fb4a658fdc2f97c32f7f3",
+      "candidateRegions": 29,
+      "meanScore": 62.5309
+    },
+    {
+      "refs": [
+        "refs/remotes/github/codex/premium-signal-desk-redesign",
+        "refs/remotes/github/new-ui"
+      ],
+      "tip": "3ff2fb5edc515d769094a3c97fb8befb23cd0916",
+      "candidateRegions": 40,
+      "meanScore": 62.3253
+    },
+    {
+      "refs": [
+        "refs/remotes/github/fix/thin-site-semantics"
+      ],
+      "tip": "a32c7b949eb6246fd289f4605a77fae1a6eb5d3a",
+      "candidateRegions": 26,
+      "meanScore": 62.0959
+    },
+    {
+      "refs": [
+        "refs/remotes/github/codex/client-growth-productization"
+      ],
+      "tip": "a11892e51a8070d94eee5cc0d3f3ad8831b84171",
+      "candidateRegions": 14,
+      "meanScore": 61.5334
+    },
+    {
+      "refs": [
+        "refs/remotes/github/codex/client-growth-network-hardening"
+      ],
+      "tip": "0cf05e1cb80d7b53478b22168821f0201a617fa6",
+      "candidateRegions": 16,
+      "meanScore": 59.8189
+    },
+    {
+      "refs": [
+        "refs/remotes/github/feat/real-site-analyzability"
+      ],
+      "tip": "fbf08ea56c37623caac9839022981dcc73ef28ea",
+      "candidateRegions": 15,
+      "meanScore": 59.5522
+    },
+    {
+      "refs": [
+        "refs/remotes/github/backup/release-safety-local-2026-09-05"
+      ],
+      "tip": "adf2b915d30bac76433d0396010a0c1d385656ce",
+      "candidateRegions": 0,
+      "meanScore": 0
+    },
+    {
+      "refs": [
+        "refs/remotes/github/codex/client-growth-release-safety",
+        "refs/remotes/github/codex/client-growth-release-safety-reconciled"
+      ],
+      "tip": "ca63ef1b9bf7c28648bc012d10c80899a734fc04",
+      "candidateRegions": 0,
+      "meanScore": 0
+    }
+  ],
+  "rows": [
+    {
+      "productionModule": "src/core/monitoring.ts",
+      "startLine": 49010,
+      "endLine": 49055,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/core/monitoring.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 7,
+      "bestScore": 72.9167
+    },
+    {
+      "productionModule": "src/db/analysisLimits.ts",
+      "startLine": 49056,
+      "endLine": 49257,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/db/analysisLimits.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 3,
+      "bestScore": 69.2083
+    },
+    {
+      "productionModule": "src/db/catalogGenerationLimits.ts",
+      "startLine": 49258,
+      "endLine": 49261,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/db/catalogGenerationLimits.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 2,
+      "bestScore": 70
+    },
+    {
+      "productionModule": "src/config/env.ts",
+      "startLine": 49262,
+      "endLine": 49333,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/config/env.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 15,
+      "bestScore": 72.1875
+    },
+    {
+      "productionModule": "app/lib/d1.server.ts",
+      "startLine": 49334,
+      "endLine": 49384,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:app/lib/d1.server.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 15,
+      "bestScore": 65
+    },
+    {
+      "productionModule": "src/core/allowlist.ts",
+      "startLine": 49385,
+      "endLine": 49411,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/core/allowlist.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 2,
+      "bestScore": 63.0952
+    },
+    {
+      "productionModule": "src/core/entitlements.ts",
+      "startLine": 49412,
+      "endLine": 49435,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/core/entitlements.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 2,
+      "bestScore": 72.8571
+    },
+    {
+      "productionModule": "src/db/monitoring.ts",
+      "startLine": 49436,
+      "endLine": 49542,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/db/monitoring.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 7,
+      "bestScore": 72.9338
+    },
+    {
+      "productionModule": "src/db/workspaces.ts",
+      "startLine": 49543,
+      "endLine": 49565,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/db/workspaces.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 15,
+      "bestScore": 72.5
+    },
+    {
+      "productionModule": "src/core/ruleIds.ts",
+      "startLine": 49566,
+      "endLine": 49583,
+      "mainState": "missing",
+      "bestBranchSource": "No reachable GitHub source candidate",
+      "confidence": "UNRESOLVED",
+      "actionRequired": "Reconstruct from production bundle and neighboring types",
+      "candidateCount": 0,
+      "bestScore": 0
+    },
+    {
+      "productionModule": "src/core/insightTaxonomy.ts",
+      "startLine": 49584,
+      "endLine": 50094,
+      "mainState": "missing",
+      "bestBranchSource": "No reachable GitHub source candidate",
+      "confidence": "UNRESOLVED",
+      "actionRequired": "Reconstruct from production bundle and neighboring types",
+      "candidateCount": 0,
+      "bestScore": 0
+    },
+    {
+      "productionModule": "src/core/analysisAccounting.ts",
+      "startLine": 50095,
+      "endLine": 50462,
+      "mainState": "missing",
+      "bestBranchSource": "No reachable GitHub source candidate",
+      "confidence": "UNRESOLVED",
+      "actionRequired": "Reconstruct from production bundle and neighboring types",
+      "candidateCount": 0,
+      "bestScore": 0
+    },
+    {
+      "productionModule": "src/core/visualSchema.ts",
+      "startLine": 50463,
+      "endLine": 50738,
+      "mainState": "missing",
+      "bestBranchSource": "No reachable GitHub source candidate",
+      "confidence": "UNRESOLVED",
+      "actionRequired": "Reconstruct from production bundle and neighboring types",
+      "candidateCount": 0,
+      "bestScore": 0
+    },
+    {
+      "productionModule": "src/core/schema.ts",
+      "startLine": 50739,
+      "endLine": 51316,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/core/schema.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 15,
+      "bestScore": 68.0054
+    },
+    {
+      "productionModule": "src/core/evidenceDiagnostics.ts",
+      "startLine": 51317,
+      "endLine": 51447,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/core/evidenceDiagnostics.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 2,
+      "bestScore": 70.0481
+    },
+    {
+      "productionModule": "src/core/analysisOutcome.ts",
+      "startLine": 51448,
+      "endLine": 51581,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/core/analysisOutcome.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 11,
+      "bestScore": 62.7778
+    },
+    {
+      "productionModule": "src/core/offeringDrift.ts",
+      "startLine": 51582,
+      "endLine": 51622,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/core/offeringDrift.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 3,
+      "bestScore": 71.6667
+    },
+    {
+      "productionModule": "src/core/commercialLanguage.ts",
+      "startLine": 51623,
+      "endLine": 51661,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/core/commercialLanguage.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 7,
+      "bestScore": 72.5
+    },
+    {
+      "productionModule": "src/core/text.ts",
+      "startLine": 51662,
+      "endLine": 51794,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/codex/client-growth-network-hardening @ 0cf05e1cb80d:src/core/text.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 15,
+      "bestScore": 72.7708
+    },
+    {
+      "productionModule": "src/core/externalBusinessEvidence.ts",
+      "startLine": 51795,
+      "endLine": 51915,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/core/externalBusinessEvidence.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 2,
+      "bestScore": 72.4134
+    },
+    {
+      "productionModule": "src/db/tenant.ts",
+      "startLine": 51916,
+      "endLine": 51931,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/codex/client-growth-network-hardening @ 0cf05e1cb80d:src/db/tenant.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 15,
+      "bestScore": 66.25
+    },
+    {
+      "productionModule": "src/core/insightSchema.ts",
+      "startLine": 51932,
+      "endLine": 52446,
+      "mainState": "missing",
+      "bestBranchSource": "No reachable GitHub source candidate",
+      "confidence": "UNRESOLVED",
+      "actionRequired": "Reconstruct from production bundle and neighboring types",
+      "candidateCount": 0,
+      "bestScore": 0
+    },
+    {
+      "productionModule": "src/core/siteUnderstandingSchema.ts",
+      "startLine": 52447,
+      "endLine": 53095,
+      "mainState": "missing",
+      "bestBranchSource": "No reachable GitHub source candidate",
+      "confidence": "UNRESOLVED",
+      "actionRequired": "Reconstruct from production bundle and neighboring types",
+      "candidateCount": 0,
+      "bestScore": 0
+    },
+    {
+      "productionModule": "src/core/analysisLifecycle.ts",
+      "startLine": 53096,
+      "endLine": 53155,
+      "mainState": "missing",
+      "bestBranchSource": "No reachable GitHub source candidate",
+      "confidence": "UNRESOLVED",
+      "actionRequired": "Reconstruct from production bundle and neighboring types",
+      "candidateCount": 0,
+      "bestScore": 0
+    },
+    {
+      "productionModule": "src/db/insights.ts",
+      "startLine": 53156,
+      "endLine": 53380,
+      "mainState": "missing",
+      "bestBranchSource": "No reachable GitHub source candidate",
+      "confidence": "UNRESOLVED",
+      "actionRequired": "Reconstruct from production bundle and neighboring types",
+      "candidateCount": 0,
+      "bestScore": 0
+    },
+    {
+      "productionModule": "src/db/repositories.ts",
+      "startLine": 53381,
+      "endLine": 53991,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/db/repositories.ts",
+      "confidence": "UNRESOLVED",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 15,
+      "bestScore": 54.5527
+    },
+    {
+      "productionModule": "src/adapters/evidence/FixtureEvidenceProvider.ts",
+      "startLine": 53992,
+      "endLine": 54012,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/codex/client-growth-network-hardening @ 0cf05e1cb80d:src/adapters/evidence/FixtureEvidenceProvider.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 15,
+      "bestScore": 65
+    },
+    {
+      "productionModule": "src/adapters/evidence/urlPolicy.ts",
+      "startLine": 54013,
+      "endLine": 54206,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/adapters/evidence/urlPolicy.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 15,
+      "bestScore": 72.2423
+    },
+    {
+      "productionModule": "src/core/siteStructure.ts",
+      "startLine": 54207,
+      "endLine": 54534,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/core/siteStructure.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 7,
+      "bestScore": 78.6083
+    },
+    {
+      "productionModule": "src/adapters/evidence/parseHtml.ts",
+      "startLine": 54535,
+      "endLine": 55360,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/adapters/evidence/parseHtml.ts",
+      "confidence": "UNRESOLVED",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 15,
+      "bestScore": 54.2765
+    },
+    {
+      "productionModule": "src/adapters/evidence/robots.ts",
+      "startLine": 55361,
+      "endLine": 55452,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/adapters/evidence/robots.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 3,
+      "bestScore": 69.5806
+    },
+    {
+      "productionModule": "src/adapters/evidence/HttpEvidenceProvider.ts",
+      "startLine": 55453,
+      "endLine": 56781,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/adapters/evidence/HttpEvidenceProvider.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 15,
+      "bestScore": 71.6805
+    },
+    {
+      "productionModule": "src/adapters/evaluator/MockEvaluator.ts",
+      "startLine": 56782,
+      "endLine": 56857,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/adapters/evaluator/MockEvaluator.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 15,
+      "bestScore": 74.2857
+    },
+    {
+      "productionModule": "src/adapters/evaluator/prompt.ts",
+      "startLine": 56858,
+      "endLine": 56973,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/adapters/evaluator/prompt.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 15,
+      "bestScore": 74.4737
+    },
+    {
+      "productionModule": "src/adapters/evaluator/DeepSeekEvaluator.ts",
+      "startLine": 56974,
+      "endLine": 57132,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/adapters/evaluator/DeepSeekEvaluator.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 15,
+      "bestScore": 67.0833
+    },
+    {
+      "productionModule": "src/adapters/evaluator/createEvaluator.ts",
+      "startLine": 57133,
+      "endLine": 57146,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/codex/client-growth-network-hardening @ 0cf05e1cb80d:src/adapters/evaluator/createEvaluator.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 15,
+      "bestScore": 72.5
+    },
+    {
+      "productionModule": "src/core/offeringSuggestions.ts",
+      "startLine": 57147,
+      "endLine": 57349,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/core/offeringSuggestions.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 7,
+      "bestScore": 72.9032
+    },
+    {
+      "productionModule": "src/core/rules/context.ts",
+      "startLine": 57350,
+      "endLine": 57366,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/codex/client-growth-network-hardening @ 0cf05e1cb80d:src/core/rules/context.ts",
+      "confidence": "UNRESOLVED",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 15,
+      "bestScore": 40
+    },
+    {
+      "productionModule": "src/core/evidenceRef.ts",
+      "startLine": 57367,
+      "endLine": 57433,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/core/evidenceRef.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 11,
+      "bestScore": 63.4398
+    },
+    {
+      "productionModule": "src/core/rules/registry.ts",
+      "startLine": 57434,
+      "endLine": 57577,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/core/rules/registry.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 10,
+      "bestScore": 59.9483
+    },
+    {
+      "productionModule": "src/core/diagnosticCompatibility.ts",
+      "startLine": 57578,
+      "endLine": 57611,
+      "mainState": "missing",
+      "bestBranchSource": "No reachable GitHub source candidate",
+      "confidence": "UNRESOLVED",
+      "actionRequired": "Reconstruct from production bundle and neighboring types",
+      "candidateCount": 0,
+      "bestScore": 0
+    },
+    {
+      "productionModule": "src/core/pageIdentity.ts",
+      "startLine": 57612,
+      "endLine": 57628,
+      "mainState": "missing",
+      "bestBranchSource": "No reachable GitHub source candidate",
+      "confidence": "UNRESOLVED",
+      "actionRequired": "Reconstruct from production bundle and neighboring types",
+      "candidateCount": 0,
+      "bestScore": 0
+    },
+    {
+      "productionModule": "src/core/rules/thinServicePage.ts",
+      "startLine": 57629,
+      "endLine": 57644,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/core/rules/thinServicePage.ts",
+      "confidence": "UNRESOLVED",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 3,
+      "bestScore": 46.25
+    },
+    {
+      "productionModule": "src/core/diagnosticAggregation.ts",
+      "startLine": 57645,
+      "endLine": 57880,
+      "mainState": "missing",
+      "bestBranchSource": "No reachable GitHub source candidate",
+      "confidence": "UNRESOLVED",
+      "actionRequired": "Reconstruct from production bundle and neighboring types",
+      "candidateCount": 0,
+      "bestScore": 0
+    },
+    {
+      "productionModule": "src/core/rules/technical.ts",
+      "startLine": 57881,
+      "endLine": 58008,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/core/rules/technical.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 3,
+      "bestScore": 66.9963
+    },
+    {
+      "productionModule": "src/core/dedupe.ts",
+      "startLine": 58009,
+      "endLine": 58035,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/core/dedupe.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 15,
+      "bestScore": 69.6429
+    },
+    {
+      "productionModule": "src/core/visualReview.ts",
+      "startLine": 58036,
+      "endLine": 58311,
+      "mainState": "missing",
+      "bestBranchSource": "No reachable GitHub source candidate",
+      "confidence": "UNRESOLVED",
+      "actionRequired": "Reconstruct from production bundle and neighboring types",
+      "candidateCount": 0,
+      "bestScore": 0
+    },
+    {
+      "productionModule": "src/core/absenceVerification.ts",
+      "startLine": 58312,
+      "endLine": 58671,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/core/absenceVerification.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 15,
+      "bestScore": 70.3341
+    },
+    {
+      "productionModule": "src/core/businessSiteMismatch.ts",
+      "startLine": 58672,
+      "endLine": 58721,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/core/businessSiteMismatch.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 2,
+      "bestScore": 62.75
+    },
+    {
+      "productionModule": "src/core/measurementLimits.ts",
+      "startLine": 58722,
+      "endLine": 58756,
+      "mainState": "missing",
+      "bestBranchSource": "No reachable GitHub source candidate",
+      "confidence": "UNRESOLVED",
+      "actionRequired": "Reconstruct from production bundle and neighboring types",
+      "candidateCount": 0,
+      "bestScore": 0
+    },
+    {
+      "productionModule": "src/core/conversionIntent.ts",
+      "startLine": 58757,
+      "endLine": 58884,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/codex/client-growth-network-hardening @ 0cf05e1cb80d:src/core/conversionIntent.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 15,
+      "bestScore": 74.4792
+    },
+    {
+      "productionModule": "src/core/rules/brokenConversionPath.ts",
+      "startLine": 58885,
+      "endLine": 59254,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/core/rules/brokenConversionPath.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 15,
+      "bestScore": 66.1132
+    },
+    {
+      "productionModule": "src/core/rules/duplicateTitle.ts",
+      "startLine": 59255,
+      "endLine": 59283,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/core/rules/duplicateTitle.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 3,
+      "bestScore": 60
+    },
+    {
+      "productionModule": "src/core/rules/missingH1.ts",
+      "startLine": 59284,
+      "endLine": 59297,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/core/rules/missingH1.ts",
+      "confidence": "UNRESOLVED",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 3,
+      "bestScore": 41.25
+    },
+    {
+      "productionModule": "src/core/rules/missingImageAlt.ts",
+      "startLine": 59298,
+      "endLine": 59319,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/core/rules/missingImageAlt.ts",
+      "confidence": "UNRESOLVED",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 3,
+      "bestScore": 53.75
+    },
+    {
+      "productionModule": "src/core/rules/missingMetaDescription.ts",
+      "startLine": 59320,
+      "endLine": 59335,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/core/rules/missingMetaDescription.ts",
+      "confidence": "UNRESOLVED",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 3,
+      "bestScore": 41.25
+    },
+    {
+      "productionModule": "src/core/rules/missingServicePage.ts",
+      "startLine": 59336,
+      "endLine": 59406,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/core/rules/missingServicePage.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 15,
+      "bestScore": 56.4615
+    },
+    {
+      "productionModule": "src/core/rules/missingStructuredData.ts",
+      "startLine": 59407,
+      "endLine": 59463,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/core/rules/missingStructuredData.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 3,
+      "bestScore": 61.9595
+    },
+    {
+      "productionModule": "src/core/rules/missingTitle.ts",
+      "startLine": 59464,
+      "endLine": 59477,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/core/rules/missingTitle.ts",
+      "confidence": "UNRESOLVED",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 3,
+      "bestScore": 46.25
+    },
+    {
+      "productionModule": "src/core/rules/noServicePages.ts",
+      "startLine": 59478,
+      "endLine": 59520,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/core/rules/noServicePages.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 4,
+      "bestScore": 64.8571
+    },
+    {
+      "productionModule": "src/core/rules/placeholderSignatures.ts",
+      "startLine": 59521,
+      "endLine": 59597,
+      "mainState": "missing",
+      "bestBranchSource": "No reachable GitHub source candidate",
+      "confidence": "UNRESOLVED",
+      "actionRequired": "Reconstruct from production bundle and neighboring types",
+      "candidateCount": 0,
+      "bestScore": 0
+    },
+    {
+      "productionModule": "src/core/rules/bookingCardSkeleton.ts",
+      "startLine": 59598,
+      "endLine": 59774,
+      "mainState": "missing",
+      "bestBranchSource": "No reachable GitHub source candidate",
+      "confidence": "UNRESOLVED",
+      "actionRequired": "Reconstruct from production bundle and neighboring types",
+      "candidateCount": 0,
+      "bestScore": 0
+    },
+    {
+      "productionModule": "src/core/rules/brokenInternalLink.ts",
+      "startLine": 59775,
+      "endLine": 59862,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/core/rules/brokenInternalLink.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 3,
+      "bestScore": 67.6515
+    },
+    {
+      "productionModule": "src/core/evidenceLedger.ts",
+      "startLine": 59863,
+      "endLine": 61021,
+      "mainState": "missing",
+      "bestBranchSource": "No reachable GitHub source candidate",
+      "confidence": "UNRESOLVED",
+      "actionRequired": "Reconstruct from production bundle and neighboring types",
+      "candidateCount": 0,
+      "bestScore": 0
+    },
+    {
+      "productionModule": "src/core/rules/broadDetectors.ts",
+      "startLine": 61022,
+      "endLine": 62783,
+      "mainState": "missing",
+      "bestBranchSource": "No reachable GitHub source candidate",
+      "confidence": "UNRESOLVED",
+      "actionRequired": "Reconstruct from production bundle and neighboring types",
+      "candidateCount": 0,
+      "bestScore": 0
+    },
+    {
+      "productionModule": "src/core/threshold.ts",
+      "startLine": 62784,
+      "endLine": 62810,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/core/threshold.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 15,
+      "bestScore": 63.75
+    },
+    {
+      "productionModule": "src/core/billability.ts",
+      "startLine": 62811,
+      "endLine": 62819,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/codex/client-growth-network-hardening @ 0cf05e1cb80d:src/core/billability.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 15,
+      "bestScore": 68.3333
+    },
+    {
+      "productionModule": "src/core/judgment.ts",
+      "startLine": 62820,
+      "endLine": 62864,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/core/judgment.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 9,
+      "bestScore": 74
+    },
+    {
+      "productionModule": "src/core/rules/deterministicEvaluation.ts",
+      "startLine": 62865,
+      "endLine": 62929,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/core/rules/deterministicEvaluation.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 3,
+      "bestScore": 74.1176
+    },
+    {
+      "productionModule": "src/core/assembleOpportunity.ts",
+      "startLine": 62930,
+      "endLine": 63026,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/core/assembleOpportunity.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 15,
+      "bestScore": 66.7749
+    },
+    {
+      "productionModule": "src/core/diagnosticIdentity.ts",
+      "startLine": 63027,
+      "endLine": 63061,
+      "mainState": "missing",
+      "bestBranchSource": "No reachable GitHub source candidate",
+      "confidence": "UNRESOLVED",
+      "actionRequired": "Reconstruct from production bundle and neighboring types",
+      "candidateCount": 0,
+      "bestScore": 0
+    },
+    {
+      "productionModule": "src/core/qualityGate.ts",
+      "startLine": 63062,
+      "endLine": 63303,
+      "mainState": "missing",
+      "bestBranchSource": "No reachable GitHub source candidate",
+      "confidence": "UNRESOLVED",
+      "actionRequired": "Reconstruct from production bundle and neighboring types",
+      "candidateCount": 0,
+      "bestScore": 0
+    },
+    {
+      "productionModule": "src/core/problemSynthesis.ts",
+      "startLine": 63304,
+      "endLine": 64414,
+      "mainState": "missing",
+      "bestBranchSource": "No reachable GitHub source candidate",
+      "confidence": "UNRESOLVED",
+      "actionRequired": "Reconstruct from production bundle and neighboring types",
+      "candidateCount": 0,
+      "bestScore": 0
+    },
+    {
+      "productionModule": "src/core/semanticDrafts.ts",
+      "startLine": 64415,
+      "endLine": 64461,
+      "mainState": "missing",
+      "bestBranchSource": "No reachable GitHub source candidate",
+      "confidence": "UNRESOLVED",
+      "actionRequired": "Reconstruct from production bundle and neighboring types",
+      "candidateCount": 0,
+      "bestScore": 0
+    },
+    {
+      "productionModule": "src/core/insightSnapshot.ts",
+      "startLine": 64462,
+      "endLine": 64598,
+      "mainState": "missing",
+      "bestBranchSource": "No reachable GitHub source candidate",
+      "confidence": "UNRESOLVED",
+      "actionRequired": "Reconstruct from production bundle and neighboring types",
+      "candidateCount": 0,
+      "bestScore": 0
+    },
+    {
+      "productionModule": "src/core/findingSchema.ts",
+      "startLine": 64599,
+      "endLine": 64723,
+      "mainState": "missing",
+      "bestBranchSource": "No reachable GitHub source candidate",
+      "confidence": "UNRESOLVED",
+      "actionRequired": "Reconstruct from production bundle and neighboring types",
+      "candidateCount": 0,
+      "bestScore": 0
+    },
+    {
+      "productionModule": "src/core/claimBinding.ts",
+      "startLine": 64724,
+      "endLine": 64834,
+      "mainState": "missing",
+      "bestBranchSource": "No reachable GitHub source candidate",
+      "confidence": "UNRESOLVED",
+      "actionRequired": "Reconstruct from production bundle and neighboring types",
+      "candidateCount": 0,
+      "bestScore": 0
+    },
+    {
+      "productionModule": "src/core/findingPublication.ts",
+      "startLine": 64835,
+      "endLine": 65619,
+      "mainState": "missing",
+      "bestBranchSource": "No reachable GitHub source candidate",
+      "confidence": "UNRESOLVED",
+      "actionRequired": "Reconstruct from production bundle and neighboring types",
+      "candidateCount": 0,
+      "bestScore": 0
+    },
+    {
+      "productionModule": "src/pipeline/analyzeClient.ts",
+      "startLine": 65620,
+      "endLine": 66609,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/pipeline/analyzeClient.ts",
+      "confidence": "UNRESOLVED",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 15,
+      "bestScore": 50.3312
+    },
+    {
+      "productionModule": "src/adapters/evidence/CloudflareVisualCapture.ts",
+      "startLine": 66610,
+      "endLine": 66971,
+      "mainState": "missing",
+      "bestBranchSource": "No reachable GitHub source candidate",
+      "confidence": "UNRESOLVED",
+      "actionRequired": "Reconstruct from production bundle and neighboring types",
+      "candidateCount": 0,
+      "bestScore": 0
+    },
+    {
+      "productionModule": "src/adapters/evaluator/DeepSeekVisualCritic.ts",
+      "startLine": 66972,
+      "endLine": 67055,
+      "mainState": "missing",
+      "bestBranchSource": "No reachable GitHub source candidate",
+      "confidence": "UNRESOLVED",
+      "actionRequired": "Reconstruct from production bundle and neighboring types",
+      "candidateCount": 0,
+      "bestScore": 0
+    },
+    {
+      "productionModule": "src/adapters/evaluator/DeepSeekVisualReviewer.ts",
+      "startLine": 67056,
+      "endLine": 67321,
+      "mainState": "missing",
+      "bestBranchSource": "No reachable GitHub source candidate",
+      "confidence": "UNRESOLVED",
+      "actionRequired": "Reconstruct from production bundle and neighboring types",
+      "candidateCount": 0,
+      "bestScore": 0
+    },
+    {
+      "productionModule": "src/db/visualScreenshots.ts",
+      "startLine": 67322,
+      "endLine": 67342,
+      "mainState": "missing",
+      "bestBranchSource": "No reachable GitHub source candidate",
+      "confidence": "UNRESOLVED",
+      "actionRequired": "Reconstruct from production bundle and neighboring types",
+      "candidateCount": 0,
+      "bestScore": 0
+    },
+    {
+      "productionModule": "app/lib/visual-review.server.ts",
+      "startLine": 67343,
+      "endLine": 67448,
+      "mainState": "missing",
+      "bestBranchSource": "No reachable GitHub source candidate",
+      "confidence": "UNRESOLVED",
+      "actionRequired": "Reconstruct from production bundle and neighboring types",
+      "candidateCount": 0,
+      "bestScore": 0
+    },
+    {
+      "productionModule": "src/db/analysisLifecycle.ts",
+      "startLine": 67449,
+      "endLine": 67549,
+      "mainState": "missing",
+      "bestBranchSource": "No reachable GitHub source candidate",
+      "confidence": "UNRESOLVED",
+      "actionRequired": "Reconstruct from production bundle and neighboring types",
+      "candidateCount": 0,
+      "bestScore": 0
+    },
+    {
+      "productionModule": "src/core/providerPricing.ts",
+      "startLine": 67550,
+      "endLine": 67645,
+      "mainState": "missing",
+      "bestBranchSource": "No reachable GitHub source candidate",
+      "confidence": "UNRESOLVED",
+      "actionRequired": "Reconstruct from production bundle and neighboring types",
+      "candidateCount": 0,
+      "bestScore": 0
+    },
+    {
+      "productionModule": "src/db/providerUsage.ts",
+      "startLine": 67646,
+      "endLine": 67732,
+      "mainState": "missing",
+      "bestBranchSource": "No reachable GitHub source candidate",
+      "confidence": "UNRESOLVED",
+      "actionRequired": "Reconstruct from production bundle and neighboring types",
+      "candidateCount": 0,
+      "bestScore": 0
+    },
+    {
+      "productionModule": "app/lib/provider-usage.server.ts",
+      "startLine": 67733,
+      "endLine": 67836,
+      "mainState": "missing",
+      "bestBranchSource": "No reachable GitHub source candidate",
+      "confidence": "UNRESOLVED",
+      "actionRequired": "Reconstruct from production bundle and neighboring types",
+      "candidateCount": 0,
+      "bestScore": 0
+    },
+    {
+      "productionModule": "src/adapters/evaluator/DeepSeekSiteUnderstanding.ts",
+      "startLine": 67837,
+      "endLine": 68144,
+      "mainState": "missing",
+      "bestBranchSource": "No reachable GitHub source candidate",
+      "confidence": "UNRESOLVED",
+      "actionRequired": "Reconstruct from production bundle and neighboring types",
+      "candidateCount": 0,
+      "bestScore": 0
+    },
+    {
+      "productionModule": "src/adapters/evaluator/DeepSeekInsightCritic.ts",
+      "startLine": 68145,
+      "endLine": 68403,
+      "mainState": "missing",
+      "bestBranchSource": "No reachable GitHub source candidate",
+      "confidence": "UNRESOLVED",
+      "actionRequired": "Reconstruct from production bundle and neighboring types",
+      "candidateCount": 0,
+      "bestScore": 0
+    },
+    {
+      "productionModule": "app/lib/analysis.server.ts",
+      "startLine": 68404,
+      "endLine": 68708,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:app/lib/analysis.server.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 15,
+      "bestScore": 57.2412
+    },
+    {
+      "productionModule": "app/lib/monitoring.server.ts",
+      "startLine": 68709,
+      "endLine": 68887,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:app/lib/monitoring.server.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 7,
+      "bestScore": 71.2587
+    },
+    {
+      "productionModule": "src/core/clientValue.ts",
+      "startLine": 68888,
+      "endLine": 68912,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/core/clientValue.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 3,
+      "bestScore": 66.25
+    },
+    {
+      "productionModule": "src/core/monitorDigest.ts",
+      "startLine": 68913,
+      "endLine": 69112,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/core/monitorDigest.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 2,
+      "bestScore": 68.8785
+    },
+    {
+      "productionModule": "src/db/monitorDigests.ts",
+      "startLine": 69113,
+      "endLine": 69275,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:src/db/monitorDigests.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 2,
+      "bestScore": 73.958
+    },
+    {
+      "productionModule": "app/lib/resend.server.ts",
+      "startLine": 95084,
+      "endLine": 95136,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:app/lib/resend.server.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 14,
+      "bestScore": 71.25
+    },
+    {
+      "productionModule": "app/lib/workerContext.server.ts",
+      "startLine": 95137,
+      "endLine": 95150,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:app/lib/workerContext.server.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 14,
+      "bestScore": 72.5
+    },
+    {
+      "productionModule": "app/lib/auth.server.ts",
+      "startLine": 95151,
+      "endLine": 95162,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:app/lib/auth.server.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 15,
+      "bestScore": 72.5
+    },
+    {
+      "productionModule": "app/lib/monitorDigest.server.ts",
+      "startLine": 95163,
+      "endLine": 95319,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:app/lib/monitorDigest.server.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 2,
+      "bestScore": 68.8125
+    },
+    {
+      "productionModule": "workers/app.ts",
+      "startLine": 143143,
+      "endLine": 143286,
+      "mainState": "present",
+      "bestBranchSource": "refs/remotes/github/main @ 1d8e5d0e66ec:workers/app.ts",
+      "confidence": "MEDIUM-CONFIDENCE RECONSTRUCTION",
+      "actionRequired": "Compare main source semantics and apply only production-backed changes",
+      "candidateCount": 15,
+      "bestScore": 67.2917
+    }
+  ]
+}
