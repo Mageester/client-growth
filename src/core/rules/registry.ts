@@ -148,6 +148,7 @@ export const RULE_SERVICE_LINKS: readonly RuleServiceLink[] = [
  * and silently never run.
  */
 export const RULES_PRODUCED_OUTSIDE_PIPELINE: readonly RuleId[] = [
+  "visual-conversion-opportunity",
   "competitor-service-gap",
 ];
 

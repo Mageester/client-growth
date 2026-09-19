@@ -18,7 +18,8 @@ export const EnvSchema = z.object({
   AI_PROVIDER: z.enum(["mock", "deepseek"]).default("mock"),
   DEEPSEEK_API_KEY: z.string().optional(),
   DEEPSEEK_BASE_URL: z.string().url().optional(),
-  DEEPSEEK_MODEL: z.string().optional(),
+  DEEPSEEK_MODEL: z.string().default("deepseek-flash"),
+  DEEPSEEK_VISION_MODEL: z.string().default("deepseek-flash"),
   /**
    * Business-to-site mismatch is paused until its additive schema is approved
    * and deployed. The string form is what Wrangler supplies; parsing it

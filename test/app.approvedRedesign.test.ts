@@ -76,6 +76,7 @@ describe("approved page anatomy", () => {
     expect(html).toContain("Review starter pricing");
     expect(html).not.toMatch(/<details[^>]*\bopen(?:=|>)/);
     const starters = [
+      ["visualreview", "Visual Conversion Review", "1200", "3500"],
       ["landing", "Dedicated Service Page", "900", "1800"],
       ["servicepages", "Service Website Structure", "2500", "6000"],
       ["competitorgap", "Competitive Service Page", "900", "1800"],

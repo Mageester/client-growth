@@ -57,6 +57,8 @@ export interface OutcomeInput {
   surfaced: number;
   /** Evaluator invocations that threw. Failing closed hides real work. */
   evaluatorErrors: number;
+  /** Candidates or model stages withheld by the shared AI budget. */
+  budgetSkipped?: number;
   /** Which of today's rules the agency's catalog can actually reach. */
   catalog: CatalogCoverage;
 }
@@ -68,6 +70,38 @@ export interface AnalysisOutcomeResult {
   /** The specific limitation, when the run was inconclusive. */
   limitation: string | null;
   reach: EvidenceReach;
+  /** Present when diagnostics exist but publication is blocked by the catalog. */
+  publicationBlockReason?: "no_matching_catalog_service";
+}
+
+function joinSentences(parts: readonly (string | null | undefined)[]): string | null {
+  const sentences = parts
+    .map((part) => part?.trim())
+    .filter((part): part is string => Boolean(part))
+    .map((part) => /[.!?]$/.test(part) ? part : `${part}.`);
+  return sentences.length > 0 ? sentences.join(" ") : null;
+}
+
+function incompleteRunReasons(input: OutcomeInput, reach: EvidenceReach): string[] {
+  const limits: string[] = [];
+  const adjacentLabels = input.catalog.adjacentLabels ?? [];
+  if (!input.analyzable) limits.push(`Site-wide coverage was incomplete: ${input.coverageReason}`);
+  if (reach.inconclusiveEvents > 0) {
+    limits.push(`${reach.inconclusiveEvents} ${reach.inconclusiveEvents === 1 ? "request" : "requests"} during this run could not be completed, so a small part of the site was not assessed.`);
+  }
+  if (input.evaluatorErrors > 0) {
+    limits.push(`${input.evaluatorErrors} other ${input.evaluatorErrors === 1 ? "candidate could" : "candidates could"} not be assessed because the evaluator failed.`);
+  }
+  if (input.budgetSkipped) {
+    limits.push(`${input.budgetSkipped} other potential ${input.budgetSkipped === 1 ? "project was" : "projects were"} not assessed because the AI limit was reached.`);
+  }
+  if (input.catalog.unmatchedLabels.length > 0) {
+    limits.push(`Only ${input.catalog.matched} of ${input.catalog.total} kinds of gap were checked — no active service is offered for ${input.catalog.unmatchedLabels.map((label) => label.toLowerCase()).join(" or ")}.`);
+  }
+  if (adjacentLabels.length > 0) {
+    limits.push(`${adjacentLabels.length} ${adjacentLabels.length === 1 ? "check used an adjacent catalog capability" : "checks used adjacent catalog capabilities"}; review service fit, scope and pricing before presenting that work.`);
+  }
+  return limits;
 }
 
 /**
@@ -76,6 +110,65 @@ export interface AnalysisOutcomeResult {
  */
 export function classifyAnalysis(input: OutcomeInput): AnalysisOutcomeResult {
   const reach = measureEvidenceReach(input.evidence);
+
+  if (!input.surfaced && input.budgetSkipped) {
+    return {
+      outcome: "inconclusive",
+      summary: "The review reached its AI limit before every candidate was checked.",
+      limitation: `${input.budgetSkipped} potential ${input.budgetSkipped === 1 ? "project remains" : "projects remain"} unassessed. Existing work is preserved.`,
+      reach,
+    };
+  }
+
+  const visual = input.evidence.visualReview;
+  if (visual) {
+    const limitation = joinSentences([...visual.limitations, ...incompleteRunReasons(input, reach)]);
+    if (input.catalog.matched === 0) {
+      return {
+        outcome: "inconclusive",
+        summary: "Diagnostics were collected, but no catalog-backed opportunities can be published because no service in your catalog is offered for a website gap.",
+        limitation: joinSentences([
+          limitation,
+          "No active service is offered for a website gap yet; add or edit a service, set what kind of gap it answers, then re-analyze to publish catalog-backed work.",
+        ]),
+        publicationBlockReason: "no_matching_catalog_service",
+        reach,
+      };
+    }
+    if (input.surfaced > 0) {
+      return {
+        outcome: "findings",
+        summary: `${input.surfaced} ${input.surfaced === 1 ? "project" : "projects"} worth reviewing.`,
+        limitation,
+        reach,
+      };
+    }
+    const coverageLimited = !input.analyzable && input.coverageLimitation !== "site-too-thin";
+    if (visual.status !== "complete" || input.evaluatorErrors > 0 || coverageLimited || reach.readablePages === 0) {
+      return {
+        outcome: "inconclusive",
+        summary: "The review is incomplete. No priority project was established.",
+        limitation,
+        reach,
+      };
+    }
+    return {
+      outcome: "clean",
+      summary: "No substantial project was identified in the captured views.",
+      limitation,
+      reach,
+    };
+  }
+
+  if (input.catalog.matched === 0) {
+    return {
+      outcome: "inconclusive",
+      summary: "Diagnostics were collected, but no catalog-backed opportunities can be published because no service in your catalog is offered for a website gap.",
+      limitation: "The diagnostic evidence is available for review. No active service is offered for a website gap yet; Axiom Orbit prices every opportunity from something you sell, so add or edit a service, set what kind of gap it answers, then re-analyze to publish catalog-backed work.",
+      publicationBlockReason: "no_matching_catalog_service",
+      reach,
+    };
+  }
 
   // Before anything about the website: could this catalog have produced a
   // finding at all? Every finding is priced from an active service that is
@@ -100,7 +193,7 @@ export function classifyAnalysis(input: OutcomeInput): AnalysisOutcomeResult {
         input.surfaced === 1
           ? "1 evidence-backed opportunity found."
           : `${input.surfaced} evidence-backed opportunities found.`,
-      limitation: null,
+      limitation: joinSentences(incompleteRunReasons(input, reach)),
       reach,
     };
   }
@@ -161,17 +254,7 @@ export function classifyAnalysis(input: OutcomeInput): AnalysisOutcomeResult {
   // "Clean" is a claim about what was checked, so anything that narrowed the
   // check has to travel with it. A partly-matched catalog silently skips a whole
   // rule; saying nothing would let the agency read "clean" as "fully checked".
-  const limits: string[] = [];
-  if (reach.inconclusiveEvents > 0) {
-    limits.push(
-      `${reach.inconclusiveEvents} ${reach.inconclusiveEvents === 1 ? "request" : "requests"} during this run could not be completed, so a small part of the site was not assessed.`,
-    );
-  }
-  if (input.catalog.unmatchedLabels.length > 0) {
-    limits.push(
-      `Only ${input.catalog.matched} of ${input.catalog.total} kinds of gap were checked — no active service is offered for ${input.catalog.unmatchedLabels.map((l) => l.toLowerCase()).join(" or ")}.`,
-    );
-  }
+  const limits = incompleteRunReasons(input, reach);
 
   return {
     outcome: "clean",

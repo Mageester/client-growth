@@ -35,6 +35,7 @@ const EXPECTED_MIGRATIONS = [
   "0024_report_themes.sql",
   "0025_monitor_digests.sql",
   "0026_catalog_generation_limits.sql",
+  "0027_production_analysis_contracts.sql",
 ] as const;
 
 const DEMO_IDENTIFIERS = [
@@ -140,6 +141,7 @@ describe("production migration baseline", () => {
       await db.exec(readFileSync(join(migrationsDir, "0024_report_themes.sql"), "utf8"));
       await db.exec(readFileSync(join(migrationsDir, "0025_monitor_digests.sql"), "utf8"));
       await db.exec(readFileSync(join(migrationsDir, "0026_catalog_generation_limits.sql"), "utf8"));
+      await db.exec(readFileSync(join(migrationsDir, "0027_production_analysis_contracts.sql"), "utf8"));
 
       expect(await db.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
 
@@ -200,11 +202,12 @@ describe("production migration baseline", () => {
       .filter((file) => file.endsWith(".sql"))
       .sort();
 
-    expect(migrations.slice(-4)).toEqual([
+    expect(migrations.slice(-5)).toEqual([
       "0023_client_reports.sql",
       "0024_report_themes.sql",
       "0025_monitor_digests.sql",
       "0026_catalog_generation_limits.sql",
+      "0027_production_analysis_contracts.sql",
     ]);
     expect(migrations).not.toContain("0023_external_business_claims.sql");
   });

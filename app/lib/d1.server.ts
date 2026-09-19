@@ -24,7 +24,7 @@ interface D1DatabaseLike {
   prepare(query: string): D1PreparedStatementLike;
   exec(query: string): Promise<unknown>;
   /** Cloudflare's transactional batch: all statements commit or none do. */
-  batch(statements: D1PreparedStatementLike[]): Promise<Array<{ meta?: { changes?: number; rows_written?: number } }>>;
+  batch(statements: D1PreparedStatementLike[]): Promise<Array<{ meta?: { changes?: number; rows_written?: number; last_row_id?: number } }>>;
 }
 
 function wrap(stmt: D1PreparedStatementLike): SqlStatement {
@@ -71,7 +71,10 @@ export function d1Db(binding: D1DatabaseLike): SqlDb {
       });
       const results = await binding.batch(prepared);
       return results.map(
-        (r) => ({ rowsAffected: r.meta?.changes ?? r.meta?.rows_written ?? 0 }) as RunResult,
+        (r) => ({
+          rowsAffected: r.meta?.changes ?? r.meta?.rows_written ?? 0,
+          ...(typeof r.meta?.last_row_id === "number" ? { lastRowId: r.meta.last_row_id } : {}),
+        }),
       );
     },
   };

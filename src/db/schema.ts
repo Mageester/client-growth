@@ -1,7 +1,7 @@
 /**
  * Canonical **application** schema (tenant + workspace tables). Applied verbatim
  * by the node:sqlite adapter in tests and by the local seed. The migration files
- * (0001..0024) must converge on this exact shape — test/db.schema-parity.test.ts
+ * (0001..0027) must converge on this exact shape — test/db.schema-parity.test.ts
  * compares table columns AND foreign keys.
  *
  * The Better Auth tables (user / session / account / verification / rateLimit)
@@ -206,6 +206,109 @@ CREATE INDEX IF NOT EXISTS idx_analysis_runs_ws
 CREATE INDEX IF NOT EXISTS idx_analysis_runs_trigger
   ON analysis_runs (workspace_id, trigger, finished_at DESC);
 
+/** Typed Increment 2 insight persistence written with each completed run. */
+CREATE TABLE IF NOT EXISTS analysis_insight_accounting (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  workspace_id TEXT NOT NULL,
+  run_id INTEGER NOT NULL,
+  client_id TEXT NOT NULL,
+  accounting TEXT NOT NULL,
+  shadow_drafts TEXT NOT NULL DEFAULT '[]',
+  critic_decisions TEXT NOT NULL DEFAULT '[]',
+  stage_durations TEXT NOT NULL DEFAULT '{}',
+  detector_manifest TEXT NOT NULL DEFAULT '[]',
+  created_at TEXT NOT NULL,
+  UNIQUE (workspace_id, run_id),
+  FOREIGN KEY (workspace_id, client_id) REFERENCES clients (workspace_id, id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_analysis_insight_accounting_client
+  ON analysis_insight_accounting (workspace_id, client_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS analysis_evidence_refs (
+  id TEXT NOT NULL,
+  workspace_id TEXT NOT NULL,
+  run_id INTEGER NOT NULL,
+  client_id TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  locator TEXT NOT NULL,
+  page_url TEXT,
+  screenshot_id TEXT,
+  viewport TEXT,
+  position INTEGER NOT NULL,
+  observed_at TEXT NOT NULL,
+  payload TEXT NOT NULL,
+  PRIMARY KEY (workspace_id, run_id, id),
+  FOREIGN KEY (workspace_id, client_id) REFERENCES clients (workspace_id, id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_analysis_evidence_refs_run
+  ON analysis_evidence_refs (workspace_id, client_id, run_id, position);
+
+CREATE TABLE IF NOT EXISTS analysis_diagnostics (
+  id TEXT NOT NULL,
+  workspace_id TEXT NOT NULL,
+  run_id INTEGER NOT NULL,
+  client_id TEXT NOT NULL,
+  detector_id TEXT NOT NULL,
+  detector_version TEXT NOT NULL,
+  category TEXT NOT NULL,
+  problem_type TEXT NOT NULL,
+  subject_kind TEXT NOT NULL,
+  subject_key TEXT NOT NULL,
+  state TEXT NOT NULL,
+  fingerprint TEXT NOT NULL,
+  position INTEGER NOT NULL,
+  created_at TEXT NOT NULL,
+  payload TEXT NOT NULL,
+  PRIMARY KEY (workspace_id, run_id, id),
+  FOREIGN KEY (workspace_id, client_id) REFERENCES clients (workspace_id, id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_analysis_diagnostics_run
+  ON analysis_diagnostics (workspace_id, client_id, run_id, position);
+
+CREATE TABLE IF NOT EXISTS analysis_problems (
+  id TEXT NOT NULL,
+  workspace_id TEXT NOT NULL,
+  run_id INTEGER NOT NULL,
+  client_id TEXT NOT NULL,
+  canonical_key TEXT NOT NULL,
+  category TEXT NOT NULL,
+  problem_type TEXT NOT NULL,
+  surface_key TEXT NOT NULL,
+  quality_gate TEXT NOT NULL,
+  position INTEGER NOT NULL,
+  created_at TEXT NOT NULL,
+  payload TEXT NOT NULL,
+  PRIMARY KEY (workspace_id, run_id, id),
+  FOREIGN KEY (workspace_id, client_id) REFERENCES clients (workspace_id, id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_analysis_problems_run
+  ON analysis_problems (workspace_id, client_id, run_id, position);
+
+CREATE TABLE IF NOT EXISTS analysis_category_assessments (
+  id TEXT NOT NULL,
+  workspace_id TEXT NOT NULL,
+  run_id INTEGER NOT NULL,
+  client_id TEXT NOT NULL,
+  category TEXT NOT NULL,
+  state TEXT NOT NULL,
+  diagnostic_count INTEGER NOT NULL,
+  problem_count INTEGER NOT NULL,
+  reason TEXT,
+  limitations TEXT NOT NULL DEFAULT '[]',
+  snapshot_limitations TEXT,
+  position INTEGER NOT NULL,
+  payload TEXT NOT NULL,
+  PRIMARY KEY (workspace_id, run_id, id),
+  FOREIGN KEY (workspace_id, client_id) REFERENCES clients (workspace_id, id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_analysis_category_assessments_run
+  ON analysis_category_assessments (workspace_id, client_id, run_id, position);
+
 CREATE TABLE IF NOT EXISTS external_business_claims (
   id TEXT PRIMARY KEY,
   workspace_id TEXT NOT NULL,
@@ -260,7 +363,13 @@ CREATE TABLE IF NOT EXISTS analysis_limit_reservations (
   reserved_at TEXT NOT NULL,
   day_utc TEXT NOT NULL,
   finished_at TEXT,
-  failed INTEGER NOT NULL DEFAULT 0
+  failed INTEGER NOT NULL DEFAULT 0,
+  stage TEXT NOT NULL DEFAULT 'queued',
+  stage_updated_at TEXT,
+  failure_code TEXT,
+  failure_message TEXT,
+  analysis_run_id INTEGER,
+  completion_fingerprint TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_analysis_limits_client
@@ -271,6 +380,51 @@ CREATE INDEX IF NOT EXISTS idx_analysis_limits_day
 -- use an index that leads with workspace_id.
 CREATE INDEX IF NOT EXISTS idx_analysis_limits_day_all
   ON analysis_limit_reservations (day_utc);
+
+CREATE INDEX IF NOT EXISTS idx_analysis_limits_stage
+  ON analysis_limit_reservations (workspace_id, stage, stage_updated_at DESC);
+
+CREATE TABLE IF NOT EXISTS visual_screenshots (
+  id TEXT PRIMARY KEY,
+  workspace_id TEXT NOT NULL,
+  client_id TEXT NOT NULL,
+  metadata TEXT NOT NULL,
+  data_url TEXT NOT NULL,
+  captured_at TEXT NOT NULL,
+  FOREIGN KEY (workspace_id, client_id) REFERENCES clients (workspace_id, id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_visual_screenshots_client
+  ON visual_screenshots (workspace_id, client_id, captured_at DESC);
+
+CREATE TABLE IF NOT EXISTS provider_usage (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  workspace_id TEXT NOT NULL REFERENCES workspaces (id) ON DELETE CASCADE,
+  client_id TEXT,
+  user_id TEXT,
+  job_id TEXT,
+  provider TEXT NOT NULL,
+  model TEXT NOT NULL,
+  feature TEXT NOT NULL,
+  started_at TEXT NOT NULL,
+  finished_at TEXT NOT NULL,
+  duration_ms INTEGER NOT NULL DEFAULT 0,
+  request_status TEXT NOT NULL DEFAULT 'unknown',
+  input_tokens INTEGER,
+  output_tokens INTEGER,
+  cached_input_tokens INTEGER,
+  cache_miss_input_tokens INTEGER,
+  cost_basis TEXT NOT NULL DEFAULT 'unavailable',
+  cost_micros INTEGER,
+  currency TEXT NOT NULL DEFAULT 'USD',
+  pricing_version TEXT,
+  limitation TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_provider_usage_workspace_started
+  ON provider_usage (workspace_id, started_at DESC);
+CREATE INDEX IF NOT EXISTS idx_provider_usage_client_started
+  ON provider_usage (workspace_id, client_id, started_at DESC);
 
 /**
  * Append-only paid catalog-generation admissions. Unlike services, these rows

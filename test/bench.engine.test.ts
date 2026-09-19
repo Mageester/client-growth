@@ -83,11 +83,11 @@ describe("opportunity engine benchmark", () => {
 
   it("records which catalog services no rule can reach, so the gap is measured not assumed", () => {
     const coverage = assessCatalogCoverage(agencyCatalog());
-    // The benchmark agency only has the three original services configured;
-    // the expanded technical rules, and the competitor-gap page, remain visibly
-    // unmatched until an agency opts into their starter services.
-    expect(coverage.matched).toBe(3);
-    expect(coverage.total).toBe(12);
+    // The benchmark agency has three direct capabilities and two conservative
+    // adjacent capabilities; the remaining technical and visual checks stay
+    // visibly unmatched until an agency opts into their starter services.
+    expect(coverage.matched).toBe(5);
+    expect(coverage.total).toBe(13);
 
     const reachableTags = coverage.rules.map((r) => r.tag);
     const unreachable = AGENCY_SERVICES.filter(

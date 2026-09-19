@@ -52,7 +52,7 @@ describe("analysis outcome classification", () => {
     });
     expect(result.outcome).toBe("findings");
     expect(result.summary).toContain("2 evidence-backed opportunities");
-    expect(result.limitation).toBeNull();
+    expect(result.limitation).toMatch(/Only 4 of 13 kinds of gap were checked/);
   });
 
   it("reports clean only when pages were actually read", () => {

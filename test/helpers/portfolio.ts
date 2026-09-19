@@ -50,6 +50,18 @@ export function d1LikeOver(handle: NodeSqliteDb): unknown {
     exec: async (sql: string) => {
       handle.raw.exec(sql);
     },
+    batch: async (statements: Array<{ run: () => Promise<unknown> }>) => {
+      handle.raw.exec("BEGIN");
+      try {
+        const results = [];
+        for (const statement of statements) results.push(await statement.run());
+        handle.raw.exec("COMMIT");
+        return results;
+      } catch (error) {
+        handle.raw.exec("ROLLBACK");
+        throw error;
+      }
+    },
   };
 }
 

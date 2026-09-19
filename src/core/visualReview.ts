@@ -15,7 +15,7 @@ export type VisualCapture = VisualScreenshot & {
 };
 export interface VisualValidationOptions { requireExactReferences?: boolean; maxFindings?: number; mode?: "shadow" | "publish"; }
 
-function isVisualService(service: Service): boolean {
+export function isVisualService(service: Service): boolean {
   return service.active && (service.tags.includes("visual-review") || service.tags.includes("landing-page") || service.tags.includes("service-pages-build") || service.tags.includes("conversion-fix") || service.tags.includes("competitor-gap") || /web(?:site)? design|redesign|conversion|ux|user experience/i.test(service.name));
 }
 

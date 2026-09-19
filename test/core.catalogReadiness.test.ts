@@ -76,7 +76,10 @@ describe("rule/service registry", () => {
     // If this list grows, each addition should be a deliberate decision that a
     // rule cannot be expressed as a function of ONE evidence bundle — not a
     // rule that was added to the registry and then forgotten.
-    expect(RULES_PRODUCED_OUTSIDE_PIPELINE).toEqual(["competitor-service-gap"]);
+    expect(RULES_PRODUCED_OUTSIDE_PIPELINE).toEqual([
+      "visual-conversion-opportunity",
+      "competitor-service-gap",
+    ]);
 
     const registered = new Set(RULE_SERVICE_LINKS.map((link) => link.ruleId));
     for (const ruleId of RULES_PRODUCED_OUTSIDE_PIPELINE) {
@@ -94,10 +97,10 @@ describe("rule/service registry", () => {
 
   it("reports which kinds of gap a catalog cannot reach", () => {
     const partial = assessCatalogCoverage([service({ id: "s1", tags: ["landing-page"] })]);
-    expect(partial.matched).toBe(1);
+    expect(partial.matched).toBe(3);
     expect(partial.total).toBe(RULE_SERVICE_LINKS.length);
     expect(partial.unmatchedLabels).toEqual(
-      RULE_SERVICE_LINKS.filter((link) => link.tag !== "landing-page").map((link) => link.label),
+      partial.rules.filter((link) => link.serviceId === null).map((link) => link.label),
     );
 
     const none = assessCatalogCoverage([service({ id: "s1", tags: ["seo", "retainer"] })]);
@@ -149,9 +152,10 @@ describe("analysis outcome with an unusable catalog", () => {
 
     expect(result.outcome).toBe("clean");
     expect(result.limitation).toMatch(
-      new RegExp(`1 of ${RULE_SERVICE_LINKS.length} kinds of gap`, "i"),
+      new RegExp(`3 of ${RULE_SERVICE_LINKS.length} kinds of gap`, "i"),
     );
     expect(result.limitation).toMatch(/a broken conversion path/i);
+    expect(result.limitation).toMatch(/adjacent catalog capabilities/i);
   });
 
   it("leaves a fully-matched clean run with nothing to caveat", () => {

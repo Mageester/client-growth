@@ -19,12 +19,12 @@ import { RULE_SERVICE_LINKS } from "@/core/rules/registry";
 import * as clientDetail from "../app/routes/clients.$id";
 
 /**
- * Readiness is shown BEFORE a run, not explained afterwards.
+ * Readiness is shown BEFORE a run, while the production analysis path still
+ * retains diagnostics when a catalog cannot publish a billable opportunity.
  *
- * The failure this guards against is a brand-new workspace pressing "Analyze
- * site" with a catalog that cannot match anything, waiting for a crawl, and
- * being told the site is clean. The button is disabled for that, but a form post
- * must not be able to start the run either.
+ * A brand-new workspace still sees the detail-page readiness warning and a
+ * disabled CTA. The portfolio action is intentionally different: it retains a
+ * diagnostic run so the evidence and the publication block are inspectable.
  */
 
 const migrationsDir = join(dirname(fileURLToPath(import.meta.url)), "..", "migrations");
@@ -159,24 +159,20 @@ afterEach(() => {
 });
 
 describe("pre-analysis readiness", () => {
-  it("refuses the Opportunities analyze action before crawl or cooldown when the catalog cannot produce a finding", async () => {
+  it("retains a diagnostic run when the catalog cannot publish a finding", async () => {
     await addClient(["hair extensions", "balayage"]);
-    const fetchSpy = vi.fn(async () => {
-      throw new Error("network must not be reached");
-    });
-    vi.stubGlobal("fetch", fetchSpy);
 
     const opportunities = await import("../app/routes/opportunities._index");
     const result = (await opportunities.action({
       request: formReq({ clientId: CLIENT_ID }),
       context: ctx,
-    } as never)) as { ok: boolean; error?: string };
+    } as never)) as { ok: boolean; outcome?: string; limitation?: string };
 
-    expect(result.ok).toBe(false);
-    expect(result.error).toMatch(/no active service is offered/i);
-    expect(fetchSpy).not.toHaveBeenCalled();
-    expect(await repo.listAnalysisRuns(scope, CLIENT_ID, 5)).toHaveLength(0);
-    expect(raw.prepare("SELECT COUNT(*) AS count FROM analysis_limit_reservations").get()).toEqual({ count: 0 });
+    expect(result.ok).toBe(true);
+    expect(result.outcome).toBe("inconclusive");
+    expect(result.limitation).toMatch(/no active service is offered/i);
+    expect(await repo.listAnalysisRuns(scope, CLIENT_ID, 5)).toHaveLength(1);
+    expect(raw.prepare("SELECT COUNT(*) AS count FROM analysis_limit_reservations").get()).toEqual({ count: 1 });
   });
 
   it("refuses to start a run when no service is offered for any gap", async () => {
@@ -230,9 +226,16 @@ describe("pre-analysis readiness", () => {
 
     const { readiness } = await loadClient();
 
-    expect(readiness.catalog.matched).toBe(1);
+    expect(readiness.catalog.matched).toBe(3);
     expect(readiness.catalog.unmatchedLabels).toEqual(
-      RULE_SERVICE_LINKS.filter((l) => l.tag !== "landing-page").map((l) => l.label),
+      RULE_SERVICE_LINKS
+        .filter(
+          (link) =>
+            !["missing-service-page", "competitor-service-gap", "thin-service-page"].includes(
+              link.ruleId,
+            ),
+        )
+        .map((link) => link.label),
     );
     expect(ruleOf(readiness, "broken-conversion-path").state).toBe("not_ready");
   });

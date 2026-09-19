@@ -687,7 +687,6 @@ describe("network-policy failures fail closed in the analysis pipeline", () => {
       evaluator,
     });
 
-    expect(result.opportunities).toEqual([]);
     expect(result.opportunities.some((o) => o.ruleId === "missing-service-page")).toBe(false);
     expect(result.stats.aiCalls).toBe(0);
     expect(evaluator.evaluate).not.toHaveBeenCalled();

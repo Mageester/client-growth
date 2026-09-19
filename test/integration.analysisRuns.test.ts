@@ -33,7 +33,24 @@ function sqlDbOver(db: Database.Database) {
     first: async () => db.prepare(sql).get(...(bound as never[])) ?? null,
     run: async () => ({ rowsAffected: db.prepare(sql).run(...(bound as never[])).changes }),
   });
-  return { prepare: (sql: string) => stmt(sql, []), exec: async (s: string) => void db.exec(s) };
+  return {
+    prepare: (sql: string) => stmt(sql, []),
+    exec: async (s: string) => void db.exec(s),
+    batch: async (statements: Array<{ sql: string; params?: unknown[] }>) => {
+      db.exec("BEGIN");
+      try {
+        const results = statements.map((statement) => {
+          const result = db.prepare(statement.sql).run(...((statement.params ?? []) as never[]));
+          return { meta: { changes: result.changes, last_row_id: Number(result.lastInsertRowid ?? 0) } };
+        });
+        db.exec("COMMIT");
+        return results;
+      } catch (error) {
+        db.exec("ROLLBACK");
+        throw error;
+      }
+    },
+  };
 }
 
 const PAGE = `<!doctype html><html><head><title>Cool Air</title></head><body>

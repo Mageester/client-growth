@@ -61,7 +61,8 @@ describe("production Wrangler configuration", () => {
     expect(production?.vars).toMatchObject({
       AI_PROVIDER: "deepseek",
       DEEPSEEK_BASE_URL: "https://api.deepseek.com",
-      DEEPSEEK_MODEL: "deepseek-chat",
+      DEEPSEEK_MODEL: "deepseek-flash",
+      DEEPSEEK_VISION_MODEL: "deepseek-flash",
       MAX_AI_CALLS_PER_RUN: "10",
       CATALOG_AI_WORKSPACE_DAILY_LIMIT: "10",
       CATALOG_AI_PLATFORM_DAILY_LIMIT: "200",

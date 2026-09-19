@@ -2,9 +2,16 @@ import type { Client } from "@/core/schema";
 import { FixtureEvidenceProvider } from "@/adapters/evidence/FixtureEvidenceProvider";
 import { HttpEvidenceProvider } from "@/adapters/evidence/HttpEvidenceProvider";
 import { createEvaluator } from "@/adapters/evaluator/createEvaluator";
+import { DeepSeekInsightCritic } from "@/adapters/evaluator/DeepSeekInsightCritic";
+import { DeepSeekSiteUnderstanding } from "@/adapters/evaluator/DeepSeekSiteUnderstanding";
+import { createMeteredDeepSeekFetch } from "./provider-usage.server";
+import { reviewClientVisually, visualReviewAvailable, visualServices } from "./visual-review.server";
 import { isExternalBusinessMismatchEnabled, parseAnalysisCaps, parseEnv } from "@/config/env";
 import { classifyAnalysis, type AnalysisOutcomeResult } from "@/core/analysisOutcome";
-import { assessCatalogCoverage } from "@/core/rules/registry";
+import { advanceAnalysisLifecycle } from "@/db/analysisLifecycle";
+import { classifyTerminalAnalysisStage, isTerminalAnalysisStage, type AnalysisStage } from "@/core/analysisLifecycle";
+import { RenderBudget } from "@/core/analysisAccounting";
+import { isCommercialRule } from "@/core/rules/registry";
 import { detectOfferingDrift } from "@/core/offeringDrift";
 import { suggestOfferings } from "@/core/offeringSuggestions";
 import { analyzeClient, type AnalyzeClientResult } from "@/pipeline/analyzeClient";
@@ -32,7 +39,7 @@ const DEMO_WORKSPACE_ID = "ws_demo";
  * failure can otherwise spend the full request budget on every crawl, probe,
  * and absence check before the UI gets a response.
  */
-export const ANALYSIS_TIMEOUT_MS = 45_000;
+export const ANALYSIS_TIMEOUT_MS = 120_000;
 
 export type AnalysisAbortReason = "timeout" | "cancelled";
 
@@ -42,7 +49,7 @@ export class AnalysisAbortedError extends Error {
   constructor(reason: AnalysisAbortReason) {
     super(
       reason === "timeout"
-        ? "This site did not finish reading within 45 seconds. The run was stopped before it could make a claim; check the domain or try again later."
+        ? "This site did not finish reading within two minutes. The run was stopped before it could make a claim; check the domain or try again later."
         : "The site reading was stopped before it finished. No finding was saved from this incomplete run.",
     );
     this.name = "AnalysisAbortedError";
@@ -134,6 +141,8 @@ export interface RunAnalysisOptions extends AnalysisLimitOptions {
   trigger?: RunTrigger;
   /** The owning request signal; scheduled runs omit it but still get a deadline. */
   signal?: AbortSignal;
+  /** Better Auth user identity for provider-usage attribution. */
+  userId?: string;
 }
 
 /**
@@ -156,20 +165,13 @@ export async function runAnalysis(
   if (!client) throw new Response("Client not found", { status: 404 });
 
   const catalog = await repo.listServices(t);
-  if (assessCatalogCoverage(catalog).matched === 0) {
-    throw new Error(
-      "No active service is offered for a kind of website gap, so an analysis could not check anything. Set that up in your catalog first.",
-    );
-  }
+  const visualEnv = env as Parameters<typeof visualReviewAvailable>[0];
+  const visualEnabled = visualReviewAvailable(visualEnv);
+  const visualUnavailableReason =
+    !visualEnabled && visualServices(catalog).length > 0
+      ? "Connect DeepSeek and website capture to review the design. The text checks alone do not assess the visual customer journey."
+      : undefined;
 
-  // Admission is the first stateful step after the tenant/client lookup. It is
-  // deliberately before full env parsing, crawling and evaluator construction.
-  // Catalog readiness is a read-only precondition checked above: a request that
-  // can prove no finding is possible is not an analysis start and must not burn
-  // the client's cooldown.
-  // so an accepted start is counted even when a later stage throws — including
-  // a stage that throws because the environment is misconfigured. Only the caps
-  // themselves are read first, and only they can reject a start from here.
   const caps = parseAnalysisCaps(env);
   const reservation = await requireAnalysisReservation(t, clientId, {
     now: options.now,
@@ -178,40 +180,149 @@ export async function runAnalysis(
     platformDailyLimit:
       options.platformDailyLimit ?? caps.ANALYSIS_PLATFORM_DAILY_LIMIT,
   });
+  const renderBudget = new RenderBudget(String(reservation.reservationId), 3);
   const startedAt = reservation.reservedAt;
   const trigger = options.trigger ?? "manual";
   const deadline = createAnalysisDeadline(options.signal);
+  let lifecycleStage: AnalysisStage = "queued";
+  const advance = async (
+    stage: AnalysisStage,
+    details: {
+      failureCode?: import("@/core/analysisLifecycle").AnalysisFailureCode | null;
+      failureMessage?: string;
+      analysisRunId?: number | null;
+    } = {},
+  ) => {
+    await advanceAnalysisLifecycle(t, {
+      reservationId: reservation.reservationId,
+      stage,
+      ...details,
+    });
+    lifecycleStage = stage;
+  };
+
   try {
+    await advance("preparing");
     // Only exhaustive runs can be baselines. Keeping this lookup separate from
     // the current evidence makes an incomplete crawl unable to overwrite the
     // last trustworthy view of what the site advertised.
     const previousOfferingRun = await repo.getLatestExhaustiveAnalysisRun(t, clientId);
     const parsed = parseEnv(env);
+    const usageJobId = `analysis:${reservation.reservationId}`;
+    const evaluatorFetch = parsed.AI_PROVIDER === "deepseek"
+      ? createMeteredDeepSeekFetch(t, {
+          clientId,
+          userId: options.userId ?? null,
+          jobId: usageJobId,
+          feature: "opportunity-evaluation",
+          model: parsed.DEEPSEEK_MODEL,
+        })
+      : undefined;
+    let visualProviderCalls = 0;
+    const visualFetch = parsed.AI_PROVIDER === "deepseek"
+      ? createMeteredDeepSeekFetch(t, {
+          clientId,
+          userId: options.userId ?? null,
+          jobId: usageJobId,
+          feature: "visual-review",
+          model: parsed.DEEPSEEK_VISION_MODEL,
+          onProviderRequest: () => {
+            visualProviderCalls += 1;
+          },
+        })
+      : undefined;
+    const understandingFetch = parsed.AI_PROVIDER === "deepseek"
+      ? createMeteredDeepSeekFetch(t, {
+          clientId,
+          userId: options.userId ?? null,
+          jobId: usageJobId,
+          feature: "site-understanding",
+          model: parsed.DEEPSEEK_MODEL,
+        })
+      : undefined;
+    const criticFetch = parsed.AI_PROVIDER === "deepseek"
+      ? createMeteredDeepSeekFetch(t, {
+          clientId,
+          userId: options.userId ?? null,
+          jobId: usageJobId,
+          feature: "insight-critic",
+          model: parsed.DEEPSEEK_MODEL,
+        })
+      : undefined;
     const externalClaims = isExternalBusinessMismatchEnabled(parsed)
       ? await repo.listExternalBusinessClaims(t, clientId)
       : [];
     const result = await analyzeClient({
       client,
       catalog,
+      workspaceId: t.workspaceId,
+      runId: String(reservation.reservationId),
+      renderBudget,
       coverage: await repo.listCoverage(t, clientId),
       existing: await repo.listOpportunities(t, clientId),
       evidenceProvider: evidenceProviderFor(client, t.workspaceId, deadline.signal),
-      evaluator: createEvaluator(parsed),
+      evaluator: createEvaluator(parsed, { fetchImpl: evaluatorFetch }),
+      siteUnderstanding:
+        understandingFetch && parsed.DEEPSEEK_API_KEY
+          ? new DeepSeekSiteUnderstanding({
+              apiKey: parsed.DEEPSEEK_API_KEY,
+              baseUrl: parsed.DEEPSEEK_BASE_URL,
+              model: parsed.DEEPSEEK_MODEL,
+              fetchImpl: understandingFetch,
+            })
+          : undefined,
+      insightCritic:
+        criticFetch && parsed.DEEPSEEK_API_KEY
+          ? new DeepSeekInsightCritic({
+              apiKey: parsed.DEEPSEEK_API_KEY,
+              baseUrl: parsed.DEEPSEEK_BASE_URL,
+              model: parsed.DEEPSEEK_MODEL,
+              fetchImpl: criticFetch,
+            })
+          : undefined,
+      visualReview: visualEnabled
+        ? (evidence, onAnalysisStart) =>
+            reviewClientVisually(
+              t,
+              visualEnv,
+              client,
+              catalog,
+              evidence,
+              { runId: String(reservation.reservationId), budget: renderBudget },
+              deadline.signal,
+              onAnalysisStart,
+              visualFetch,
+            )
+        : undefined,
+      onStage: (stage) => advance(stage),
+      signal: deadline.signal,
+      visualReviewMaxCalls: 2,
+      visualReviewProviderCalls: () => visualProviderCalls,
+      visualReviewUnavailableReason: visualUnavailableReason,
       maxAiCalls: parsed.MAX_AI_CALLS_PER_RUN,
       externalClaims,
       now: options.now,
     });
 
+    const verdictEvidence =
+      result.evidence.visualReview?.status === "unavailable"
+        ? { ...result.evidence, visualReview: undefined }
+        : result.evidence;
     const verdict = classifyAnalysis({
-      evidence: result.evidence,
+      evidence: verdictEvidence,
       analyzable: result.coverage.analyzable,
       coverageReason: result.coverage.reason,
       coverageLimitation: result.coverage.limitation,
-      surfaced: result.opportunities.length,
+      surfaced:
+        result.evidence.visualReview?.status !== "unavailable"
+          ? result.opportunities.filter((opportunity) => isCommercialRule(opportunity.ruleId)).length
+          : result.opportunities.length,
       evaluatorErrors: result.stats.evaluatorErrors,
+      budgetSkipped: result.stats.budgetSkipped,
       catalog: result.catalogCoverage,
     });
 
+    await advance("synthesizing");
     const change: MonitoringChange = {
       newCount: result.newlyFound.length,
       stillOpenCount: result.stillOpen.length,
@@ -239,41 +350,74 @@ export async function runAnalysis(
         : null,
     });
 
-    await repo.saveEvidence(t, result.evidence);
-    await repo.saveAnalysis(t, [
-      ...result.opportunities,
-      ...result.suppressed,
-      ...result.resolved,
-    ]);
-    await repo.recordAnalysisRun(t, {
-      clientId,
-      startedAt,
-      finishedAt: new Date().toISOString(),
-      source: result.evidence.source,
-      outcome: verdict.outcome,
-      summary: verdict.summary,
-      limitation: verdict.limitation,
-      pagesRead: verdict.reach.readablePages,
-      pagesFetched: verdict.reach.fetchedPages,
-      blockedEvents: verdict.reach.blockedEvents,
-      inconclusiveEvents: verdict.reach.inconclusiveEvents,
-      surfaced: result.opportunities.length,
-      stats: { ...result.stats },
-      trigger,
-      newCount: change.newCount,
-      resolvedCount: change.resolvedCount,
-      evaluatorCalls: result.stats.aiCalls,
-      evaluatorRejections: result.stats.rejectedByEvaluator,
-      evaluatorErrors: result.stats.evaluatorErrors,
-      crawlExhaustive: result.evidence.site.crawlExhaustive,
-      suggestedOfferings,
-      offeringDrift,
+    const abortedAfterAnalysis = deadline.signal.aborted;
+    if (!result.insightSnapshot) {
+      throw new Error("Analysis did not produce its required insight snapshot.");
+    }
+    const analysisRunId = await repo.saveAnalysisCompletion(t, {
+      evidence: result.evidence,
+      insightSnapshot: result.insightSnapshot,
+      shadowDrafts: result.shadowDrafts,
+      criticDecisions: result.criticDecisions,
+      stageDurations: result.stageDurations,
+      opportunities: [
+        ...result.opportunities,
+        ...result.suppressed,
+        ...result.resolved,
+      ],
+      run: {
+        clientId,
+        startedAt,
+        finishedAt: new Date().toISOString(),
+        source: result.evidence.source,
+        outcome: verdict.outcome,
+        summary: verdict.summary,
+        limitation: verdict.limitation,
+        pagesRead: verdict.reach.readablePages,
+        pagesFetched: verdict.reach.fetchedPages,
+        blockedEvents: verdict.reach.blockedEvents,
+        inconclusiveEvents: verdict.reach.inconclusiveEvents,
+        surfaced: result.opportunities.length,
+        stats: { ...result.stats },
+        trigger,
+        newCount: change.newCount,
+        resolvedCount: change.resolvedCount,
+        evaluatorCalls: result.stats.aiCalls,
+        evaluatorRejections: result.stats.rejectedByEvaluator,
+        evaluatorErrors: result.stats.evaluatorErrors,
+        crawlExhaustive: result.evidence.site.crawlExhaustive,
+        suggestedOfferings,
+        offeringDrift,
+      },
     });
 
-    await finishReservation(false);
+    const terminalStage = classifyTerminalAnalysisStage({
+      outcome: verdict.outcome,
+      limitation: Boolean(verdict.limitation),
+      readablePages: verdict.reach.readablePages,
+      blockedEvents: verdict.reach.blockedEvents,
+      inconclusiveEvents: verdict.reach.inconclusiveEvents,
+    });
+    await advance(terminalStage, {
+      analysisRunId,
+      ...terminalFailureDetails(terminalStage, result.evidence, verdict),
+    });
+    if (abortedAfterAnalysis) {
+      throw new AnalysisAbortedError(deadline.timedOut ? "timeout" : "cancelled");
+    }
     return { ...result, verdict, change };
   } catch (error) {
-    await finishReservation(true);
+    if (!isTerminalAnalysisStage(lifecycleStage)) {
+      const failure = thrownFailureDetails(error, lifecycleStage, deadline);
+      try {
+        await advance(failure.stage, {
+          failureCode: failure.failureCode,
+          failureMessage: failure.failureMessage,
+        });
+      } catch {
+        console.error("[analysis] could not persist terminal lifecycle state");
+      }
+    }
     if (deadline.signal.aborted) {
       throw new AnalysisAbortedError(deadline.timedOut ? "timeout" : "cancelled");
     }
@@ -281,16 +425,59 @@ export async function runAnalysis(
   } finally {
     deadline.dispose();
   }
+}
 
-  async function finishReservation(failed: boolean) {
-    try {
-      await t.db.prepare(`UPDATE analysis_limit_reservations SET finished_at = ?, failed = ?
-        WHERE id = ? AND workspace_id = ?`)
-        .bind(new Date().toISOString(), failed ? 1 : 0, reservation.reservationId, t.workspaceId).run();
-    } catch {
-      // Do not obscure the original failure or expose provider payloads.
-      // The health page keeps this start visible as uncompleted telemetry.
-      console.error("[analysis] could not persist completion telemetry");
-    }
+function terminalFailureDetails(
+  stage: AnalysisStage,
+  evidence: AnalyzeClientResult["evidence"],
+  verdict: AnalysisOutcomeResult,
+): { failureCode?: import("@/core/analysisLifecycle").AnalysisFailureCode; failureMessage?: string } {
+  if (stage !== "failed" && stage !== "blocked") return {};
+  const first = evidence.networkEvents[0];
+  return {
+    failureCode: stage === "blocked" ? "policy" : first?.code === "timeout" ? "timeout" : "network",
+    failureMessage: verdict.limitation ?? verdict.summary,
+  };
+}
+
+function thrownFailureDetails(
+  _error: unknown,
+  stage: AnalysisStage,
+  deadline: ReturnType<typeof createAnalysisDeadline>,
+): { stage: AnalysisStage; failureCode: import("@/core/analysisLifecycle").AnalysisFailureCode; failureMessage: string } {
+  if (deadline.signal.aborted) {
+    return {
+      stage: "failed",
+      failureCode: deadline.timedOut ? "timeout" : "cancelled",
+      failureMessage: deadline.timedOut
+        ? "Analysis stopped after its two minute deadline. No incomplete finding was saved."
+        : "Analysis was cancelled before it finished. No incomplete finding was saved.",
+    };
   }
+  if (stage === "preparing" || stage === "queued") {
+    return {
+      stage: "unavailable",
+      failureCode: "configuration",
+      failureMessage: "Analysis is unavailable because its provider configuration is incomplete.",
+    };
+  }
+  if (stage === "crawling") {
+    return {
+      stage: "failed",
+      failureCode: "network",
+      failureMessage: "The website could not be read because the crawl failed unexpectedly.",
+    };
+  }
+  if (stage === "rendering" || stage === "analyzing") {
+    return {
+      stage: "failed",
+      failureCode: "provider",
+      failureMessage: "The evidence provider could not finish the analysis.",
+    };
+  }
+  return {
+    stage: "failed",
+    failureCode: "persistence",
+    failureMessage: "The analysis finished processing but its result could not be saved.",
+  };
 }

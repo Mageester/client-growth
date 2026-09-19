@@ -82,6 +82,14 @@ const STARTER_DEFAULTS: Record<
   RuleId,
   { field: string; name: string; description: string; min: number; max: number; when: string }
 > = {
+  "visual-conversion-opportunity": {
+    field: "visualreview",
+    name: "Visual Conversion Review",
+    description: "Review desktop and mobile customer journeys for concrete visual or interaction work that helps visitors understand, choose, and enquire.",
+    min: 1200,
+    max: 3500,
+    when: "captured desktop or mobile views expose a material customer-journey obstacle",
+  },
   "missing-service-page": {
     field: "landing",
     name: "Dedicated Service Page",

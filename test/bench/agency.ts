@@ -4,10 +4,12 @@ import { ServiceSchema, type Service } from "@/core/schema";
  * A realistic small web/digital agency catalog, used only by the engine
  * benchmark. Prices are the ones a UK/CA-sized shop would actually quote.
  *
- * Three of these five services are reachable by today's engine, one per rule.
- * The other two are deliberately kept in the catalog and left unmatched: a real
- * agency sells more than the engine can detect, and the benchmark should
- * reflect that rather than pretending the catalog is fully covered.
+ * Three of these five services are directly reachable by today's engine. Two
+ * more are reachable through the conservative adjacent-capability mapping, so
+ * the benchmark can exercise the same pricing boundary as production. The two
+ * untagged services remain unmatched: a real agency sells more than the engine
+ * can detect, and the benchmark should reflect that rather than pretending the
+ * catalog is fully covered.
  * `UNREACHABLE_SERVICE_IDS` is asserted on, so adding a rule without updating
  * this file fails loudly.
  */

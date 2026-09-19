@@ -11,6 +11,13 @@ import {
   type Service,
 } from "@/core/schema";
 import { ANALYSIS_OUTCOMES, type AnalysisOutcome } from "@/core/analysisOutcome";
+import { InsightSnapshotSchema, type InsightSnapshot } from "@/core/insightSchema";
+import {
+  insightAccountingStatement,
+  insightSnapshotStatements,
+  normalizeInsightAccountingPersistence,
+  type InsightAccountingPersistenceInput,
+} from "@/db/insights";
 import { parseOfferingLabels } from "@/core/offeringDrift";
 import {
   ExternalBusinessClaimSchema,
@@ -18,7 +25,7 @@ import {
   type ExternalBusinessClaim,
 } from "@/core/externalBusinessEvidence";
 import { SCHEMA_SQL } from "@/db/schema";
-import type { SqlDb } from "@/db/sql";
+import type { SqlDb, SqlValue } from "@/db/sql";
 import { CrossWorkspaceError, existsInWorkspace, type TenantScope } from "@/db/tenant";
 
 /** Apply the canonical application schema (idempotent). Tests / local seeding. */
@@ -27,6 +34,64 @@ export function applySchema(db: SqlDb): Promise<void> {
 }
 
 const nowIso = () => new Date().toISOString();
+
+function stableJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(",")}]`;
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    return `{${Object.keys(record)
+      .sort()
+      .filter((key) => record[key] !== undefined)
+      .map((key) => `${JSON.stringify(key)}:${stableJson(record[key])}`)
+      .join(",")}}`;
+  }
+  return JSON.stringify(value) ?? "undefined";
+}
+
+function canonicalAccounting(accounting: InsightSnapshot["accounting"]): InsightSnapshot["accounting"] {
+  return {
+    ...accounting,
+    detectors: [...accounting.detectors].sort((left, right) => {
+      const leftJson = stableJson(left);
+      const rightJson = stableJson(right);
+      return leftJson < rightJson ? -1 : leftJson > rightJson ? 1 : 0;
+    }),
+    categories: [...accounting.categories].sort((left, right) => left.category.localeCompare(right.category)),
+  };
+}
+
+function canonicalPersistence(record: ReturnType<typeof normalizeInsightAccountingPersistence>) {
+  return {
+    accounting: canonicalAccounting(record.accounting),
+    shadowDrafts: record.shadowDrafts,
+    criticDecisions: record.criticDecisions,
+    stageDurations: record.stageDurations,
+  };
+}
+
+async function completionFingerprint(
+  input: SaveAnalysisCompletionInput,
+  persistence: ReturnType<typeof normalizeInsightAccountingPersistence>,
+): Promise<string> {
+  const opportunities = [...input.opportunities].sort((left, right) => {
+    const leftJson = stableJson(left);
+    const rightJson = stableJson(right);
+    return leftJson < rightJson ? -1 : leftJson > rightJson ? 1 : 0;
+  });
+  const canonicalSnapshot = {
+    ...input.insightSnapshot,
+    accounting: canonicalAccounting(input.insightSnapshot.accounting),
+  };
+  const canonical = stableJson({
+    evidence: input.evidence,
+    insightSnapshot: canonicalSnapshot,
+    opportunities,
+    run: input.run,
+    accounting: canonicalPersistence(persistence),
+  });
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(canonical));
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
 
 // ---------------------------------------------------------------------------
 // services
@@ -474,6 +539,23 @@ interface EvidenceByClientRow extends EvidenceRow {
   client_id: string;
 }
 
+function evidenceStatement(
+  t: TenantScope,
+  bundle: EvidenceBundle,
+): { sql: string; params: SqlValue[] } {
+  return {
+    sql: `INSERT INTO evidence_bundles (workspace_id, client_id, source, captured_at, bundle)
+          VALUES (?, ?, ?, ?, ?)`,
+    params: [
+      t.workspaceId,
+      bundle.clientId,
+      bundle.source,
+      bundle.capturedAt,
+      JSON.stringify(bundle),
+    ],
+  };
+}
+
 export async function saveEvidence(t: TenantScope, bundle: EvidenceBundle): Promise<void> {
   const b = EvidenceBundleSchema.parse(bundle);
   if (!(await existsInWorkspace(t, "clients", b.clientId))) {
@@ -712,6 +794,74 @@ async function upsertOpportunity(t: TenantScope, opp: Opportunity): Promise<void
     .run();
 }
 
+function opportunityStatement(
+  t: TenantScope,
+  opportunity: Opportunity,
+): { sql: string; params: SqlValue[] } {
+  const o = OpportunitySchema.parse(opportunity);
+  return {
+    sql: `INSERT INTO opportunities (
+             id, workspace_id, dedupe_key, client_id, rule_id, title, detected, evidence_refs, suppressed_evidence_refs, rationale,
+             suggested_service_id, suggested_scope, price_min, price_max, confidence,
+             billable_status, status, snooze_until, proposal_md, verification,
+             conversion_defect, sold_amount, sold_at,
+             accepted_at, proposal_prepared_at, pitched_at, lost_at, dismissed_at, updated_at
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           ON CONFLICT(client_id, dedupe_key) DO UPDATE SET
+             title = excluded.title, detected = excluded.detected,
+             evidence_refs = excluded.evidence_refs,
+             suppressed_evidence_refs = excluded.suppressed_evidence_refs,
+             rationale = excluded.rationale,
+             suggested_service_id = excluded.suggested_service_id,
+             suggested_scope = excluded.suggested_scope,
+             price_min = excluded.price_min, price_max = excluded.price_max,
+             confidence = excluded.confidence, billable_status = excluded.billable_status,
+             status = excluded.status, snooze_until = excluded.snooze_until,
+             proposal_md = excluded.proposal_md, verification = excluded.verification,
+             conversion_defect = excluded.conversion_defect,
+             sold_amount = excluded.sold_amount, sold_at = excluded.sold_at,
+             accepted_at = excluded.accepted_at,
+             proposal_prepared_at = excluded.proposal_prepared_at,
+             pitched_at = excluded.pitched_at,
+             lost_at = excluded.lost_at,
+             dismissed_at = excluded.dismissed_at,
+             updated_at = excluded.updated_at
+           WHERE opportunities.workspace_id = ? AND opportunities.status <> 'superseded'`,
+    params: [
+      o.id,
+      t.workspaceId,
+      o.dedupeKey,
+      o.clientId,
+      o.ruleId,
+      o.title,
+      o.detected,
+      JSON.stringify(o.evidenceRefs),
+      JSON.stringify(o.suppressedEvidenceRefs),
+      o.rationale,
+      o.suggestedServiceId,
+      JSON.stringify(o.suggestedScope),
+      o.priceMin,
+      o.priceMax,
+      o.confidence,
+      o.billableStatus,
+      o.status,
+      o.snoozeUntil ?? null,
+      o.proposalMd ?? null,
+      o.verification ? JSON.stringify(o.verification) : null,
+      o.conversionDefect ? JSON.stringify(o.conversionDefect) : null,
+      o.soldAmount ?? null,
+      o.soldAt ?? null,
+      o.acceptedAt ?? null,
+      o.proposalPreparedAt ?? null,
+      o.pitchedAt ?? null,
+      o.lostAt ?? null,
+      o.dismissedAt ?? null,
+      o.updatedAt,
+      t.workspaceId,
+    ],
+  };
+}
+
 /**
  * Persist the reconciled output of a pipeline run into this workspace. Rejects
  * the whole batch if any row references a client/service outside the workspace
@@ -910,6 +1060,321 @@ export type NewAnalysisRun = Omit<
   suggestedOfferings?: string[];
   offeringDrift?: string[];
 };
+
+export interface SaveAnalysisCompletionInput {
+  evidence: EvidenceBundle;
+  insightSnapshot: InsightSnapshot;
+  shadowDrafts?: readonly unknown[];
+  criticDecisions?: readonly unknown[];
+  stageDurations?: unknown;
+  opportunities: Opportunity[];
+  run: NewAnalysisRun;
+}
+
+function validateAnalysisRunInput(run: NewAnalysisRun): NewAnalysisRun {
+  if (!run || typeof run !== "object") throw new TypeError("Analysis run input is required.");
+  for (const field of ["clientId", "startedAt", "finishedAt", "source", "summary", "trigger"] as const) {
+    const value = run[field];
+    if (typeof value !== "string" || value.trim() === "") {
+      throw new TypeError(`Analysis run ${field} must be a non-empty string.`);
+    }
+  }
+  if (!(ANALYSIS_OUTCOMES as readonly string[]).includes(run.outcome)) {
+    throw new TypeError(`Analysis run outcome ${String(run.outcome)} is invalid.`);
+  }
+  if (!RUN_TRIGGERS.includes(run.trigger)) {
+    throw new TypeError(`Analysis run trigger ${String(run.trigger)} is invalid.`);
+  }
+  if (run.limitation !== null && typeof run.limitation !== "string") {
+    throw new TypeError("Analysis run limitation must be a string or null.");
+  }
+  if (!run.stats || typeof run.stats !== "object" || Array.isArray(run.stats)) {
+    throw new TypeError("Analysis run stats must be an object.");
+  }
+  for (const [key, value] of Object.entries(run.stats)) {
+    if (!key || typeof value !== "number" || !Number.isFinite(value)) {
+      throw new TypeError("Analysis run stats must contain finite numeric values.");
+    }
+  }
+  for (const field of [
+    "pagesRead",
+    "pagesFetched",
+    "blockedEvents",
+    "inconclusiveEvents",
+    "surfaced",
+    "newCount",
+    "resolvedCount",
+    "evaluatorCalls",
+    "evaluatorRejections",
+    "evaluatorErrors",
+  ] as const) {
+    if (!Number.isInteger(run[field]) || run[field] < 0) {
+      throw new TypeError(`Analysis run ${field} must be a non-negative integer.`);
+    }
+  }
+  if (run.crawlExhaustive !== undefined && typeof run.crawlExhaustive !== "boolean") {
+    throw new TypeError("Analysis run crawlExhaustive must be a boolean.");
+  }
+  if (run.suggestedOfferings !== undefined && !Array.isArray(run.suggestedOfferings)) {
+    throw new TypeError("Analysis run suggestedOfferings must be an array.");
+  }
+  if (run.offeringDrift !== undefined && !Array.isArray(run.offeringDrift)) {
+    throw new TypeError("Analysis run offeringDrift must be an array.");
+  }
+  return {
+    ...run,
+    crawlExhaustive: run.crawlExhaustive ?? false,
+    suggestedOfferings: run.suggestedOfferings ?? [],
+    offeringDrift: run.offeringDrift ?? [],
+  };
+}
+
+function analysisRunStatement(
+  t: TenantScope,
+  run: NewAnalysisRun,
+): { sql: string; params: SqlValue[] } {
+  const normalized = validateAnalysisRunInput(run);
+  return {
+    sql: `INSERT INTO analysis_runs (
+             workspace_id, client_id, started_at, finished_at, source, outcome, summary, limitation,
+             pages_read, pages_fetched, blocked_events, inconclusive_events, surfaced, stats,
+             trigger, new_count, resolved_count, evaluator_calls, evaluator_rejections, evaluator_errors,
+             crawl_exhaustive, suggested_offerings, offering_drift
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    params: [
+      t.workspaceId,
+      normalized.clientId,
+      normalized.startedAt,
+      normalized.finishedAt,
+      normalized.source,
+      normalized.outcome,
+      normalized.summary,
+      normalized.limitation ?? null,
+      normalized.pagesRead,
+      normalized.pagesFetched,
+      normalized.blockedEvents,
+      normalized.inconclusiveEvents,
+      normalized.surfaced,
+      JSON.stringify(normalized.stats),
+      normalized.trigger,
+      normalized.newCount,
+      normalized.resolvedCount,
+      normalized.evaluatorCalls,
+      normalized.evaluatorRejections,
+      normalized.evaluatorErrors,
+      normalized.crawlExhaustive ? 1 : 0,
+      JSON.stringify(normalized.suggestedOfferings ?? []),
+      JSON.stringify(normalized.offeringDrift ?? []),
+    ],
+  };
+}
+
+function linkCompletionReservationStatement(
+  t: TenantScope,
+  reservationId: number,
+  run: NewAnalysisRun,
+  fingerprint: string,
+): { sql: string; params: SqlValue[] } {
+  return {
+    sql: `UPDATE analysis_limit_reservations
+          SET analysis_run_id = (
+            SELECT id FROM analysis_runs
+            WHERE workspace_id = ? AND client_id = ? AND started_at = ?
+            ORDER BY id DESC LIMIT 1
+          ), completion_fingerprint = ?,
+          client_id = CASE
+            WHEN analysis_run_id IS NULL
+              AND finished_at IS NULL
+              AND failed = 0
+              AND stage NOT IN ('completed', 'completed_with_limitations', 'failed', 'unavailable', 'blocked')
+              AND EXISTS (
+                SELECT 1 FROM analysis_runs
+                WHERE workspace_id = ? AND client_id = ? AND started_at = ?
+              )
+            THEN client_id
+            ELSE NULL
+          END
+          WHERE workspace_id = ? AND id = ? AND client_id = ?`,
+    params: [
+      t.workspaceId,
+      run.clientId,
+      run.startedAt,
+      fingerprint,
+      t.workspaceId,
+      run.clientId,
+      run.startedAt,
+      t.workspaceId,
+      reservationId,
+      run.clientId,
+    ],
+  };
+}
+
+function assertCompletionIdentity(
+  t: TenantScope,
+  evidence: EvidenceBundle,
+  snapshot: InsightSnapshot,
+  opportunities: readonly Opportunity[],
+  run: NewAnalysisRun,
+): void {
+  if (evidence.clientId !== run.clientId || snapshot.clientId !== run.clientId) {
+    throw new CrossWorkspaceError("analysis completion inputs disagree on client identity");
+  }
+  if (snapshot.workspaceId !== t.workspaceId) {
+    throw new CrossWorkspaceError(`insight snapshot belongs to workspace ${snapshot.workspaceId}`);
+  }
+  if (snapshot.evidence.some((row) => row.runId !== snapshot.runId)) {
+    throw new Error("Insight snapshot evidence must use its accepted reservation runId.");
+  }
+  if (
+    snapshot.diagnostics.some(
+      (row) => row.workspaceId !== t.workspaceId || row.runId !== snapshot.runId || row.clientId !== run.clientId,
+    ) ||
+    snapshot.problems.some(
+      (row) => row.workspaceId !== t.workspaceId || row.runId !== snapshot.runId || row.clientId !== run.clientId,
+    )
+  ) {
+    throw new CrossWorkspaceError("insight snapshot child rows cross the completion identity boundary");
+  }
+  if (opportunities.some((row) => row.clientId !== run.clientId)) {
+    throw new CrossWorkspaceError("opportunity rows cross the completion client boundary");
+  }
+}
+
+/**
+ * Persist the evidence, typed insight snapshot, accounting, opportunities and
+ * run row in one idempotent D1 batch, then link the accepted reservation. The
+ * reservation id is the run identity used by all recovered insight children.
+ */
+export async function saveAnalysisCompletion(
+  t: TenantScope,
+  input: SaveAnalysisCompletionInput,
+): Promise<number> {
+  const evidence = EvidenceBundleSchema.parse(input.evidence);
+  const insightSnapshot = InsightSnapshotSchema.parse(input.insightSnapshot);
+  const opportunities = input.opportunities.map((row) => OpportunitySchema.parse(row));
+  const run = validateAnalysisRunInput(input.run);
+  assertCompletionIdentity(t, evidence, insightSnapshot, opportunities, run);
+  const persistence = normalizeInsightAccountingPersistence(insightSnapshot, {
+    shadowDrafts: input.shadowDrafts,
+    criticDecisions: input.criticDecisions,
+    stageDurations: input.stageDurations,
+  } satisfies InsightAccountingPersistenceInput);
+  const fingerprint = await completionFingerprint(
+    { ...input, evidence, insightSnapshot, opportunities, run },
+    persistence,
+  );
+  const reservationId = Number(insightSnapshot.runId);
+  if (
+    !Number.isSafeInteger(reservationId) ||
+    reservationId < 1 ||
+    String(reservationId) !== insightSnapshot.runId
+  ) {
+    throw new RangeError("Analysis completion runId must be its positive reservation id.");
+  }
+
+  const reservation = await t.db
+    .prepare(
+      `SELECT client_id, analysis_run_id, stage, finished_at, failed, completion_fingerprint
+         FROM analysis_limit_reservations
+        WHERE workspace_id = ? AND id = ?`,
+    )
+    .bind(t.workspaceId, reservationId)
+    .first<{
+      client_id: string;
+      analysis_run_id: number | null;
+      stage: string;
+      finished_at: string | null;
+      failed: number;
+      completion_fingerprint: string | null;
+    }>();
+  if (!reservation || reservation.client_id !== run.clientId) {
+    throw new CrossWorkspaceError(
+      `analysis completion reservation ${insightSnapshot.runId} is not owned by client ${run.clientId}`,
+    );
+  }
+  if (reservation.analysis_run_id !== null) {
+    if (reservation.completion_fingerprint !== fingerprint) {
+      throw new Error("Analysis completion retry conflicts with its accepted completion fingerprint.");
+    }
+    const linkedRun = await t.db
+      .prepare(
+        `SELECT id FROM analysis_runs
+           WHERE id = ? AND workspace_id = ? AND client_id = ?`,
+      )
+      .bind(reservation.analysis_run_id, t.workspaceId, run.clientId)
+      .first<{ id: number }>();
+    if (!linkedRun) throw new Error("Analysis completion reservation points to an unknown terminal run.");
+    return Number(linkedRun.id);
+  }
+  if (reservation.finished_at !== null || reservation.failed !== 0) {
+    throw new Error("Analysis completion reservation is already terminal without a linked run.");
+  }
+  if (!(await existsInWorkspace(t, "clients", run.clientId))) {
+    throw new CrossWorkspaceError(`analysis run for client ${run.clientId} not in this workspace`);
+  }
+  for (const row of opportunities) {
+    if (!(await existsInWorkspace(t, "services", row.suggestedServiceId))) {
+      throw new CrossWorkspaceError(
+        `opportunity maps to service ${row.suggestedServiceId} not in this workspace`,
+      );
+    }
+  }
+
+  const accountingStatement = insightAccountingStatement(insightSnapshot, persistence);
+  const statements = [
+    evidenceStatement(t, evidence),
+    ...insightSnapshotStatements(insightSnapshot).map((statement) => ({
+      ...statement,
+      params: statement.params as SqlValue[],
+    })),
+    { ...accountingStatement, params: accountingStatement.params as SqlValue[] },
+    ...opportunities.map((row) => opportunityStatement(t, row)),
+    analysisRunStatement(t, run),
+    linkCompletionReservationStatement(t, reservationId, run, fingerprint),
+  ];
+  let results;
+  try {
+    results = await t.db.batch(statements);
+  } catch (error) {
+    const linkedAfterFailure = await t.db
+      .prepare(
+        `SELECT analysis_run_id, completion_fingerprint
+           FROM analysis_limit_reservations
+          WHERE workspace_id = ? AND id = ? AND client_id = ?`,
+      )
+      .bind(t.workspaceId, reservationId, run.clientId)
+      .first<{ analysis_run_id: number | null; completion_fingerprint: string | null }>();
+    if (linkedAfterFailure?.analysis_run_id !== null && linkedAfterFailure?.analysis_run_id !== undefined) {
+      if (linkedAfterFailure.completion_fingerprint === fingerprint) return Number(linkedAfterFailure.analysis_run_id);
+      throw new Error("Analysis completion raced with a conflicting completion.", { cause: error });
+    }
+    throw error;
+  }
+  const analysisRunResult = results[results.length - 2];
+  const insertedRunId = analysisRunResult?.lastRowId && analysisRunResult.lastRowId > 0
+    ? analysisRunResult.lastRowId
+    : null;
+  const linked = await t.db
+    .prepare(
+      `SELECT analysis_run_id, completion_fingerprint
+         FROM analysis_limit_reservations
+        WHERE workspace_id = ? AND id = ? AND client_id = ?`,
+    )
+    .bind(t.workspaceId, reservationId, run.clientId)
+    .first<{ analysis_run_id: number | null; completion_fingerprint: string | null }>();
+  if (linked?.analysis_run_id !== null && linked?.analysis_run_id !== undefined) {
+    if (linked.completion_fingerprint !== fingerprint) {
+      throw new Error("Analysis completion link has a conflicting completion fingerprint.");
+    }
+    return Number(linked.analysis_run_id);
+  }
+  throw new Error(
+    insertedRunId === null
+      ? "Analysis completion was written but its terminal run id was unavailable."
+      : "Analysis completion was written but its reservation link could not be persisted.",
+  );
+}
 
 function toAnalysisRun(row: AnalysisRunRow): AnalysisRun {
   const outcome = (ANALYSIS_OUTCOMES as readonly string[]).includes(row.outcome)

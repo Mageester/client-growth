@@ -98,7 +98,7 @@ describe("recovered DeepSeek pricing", () => {
 describe("recovered rule identity", () => {
   it("retains the visual opportunity and production rule ordering", () => {
     expect(RULE_IDS[0]).toBe("visual-conversion-opportunity");
-    expect(RULE_IDS).toHaveLength(12);
+    expect(RULE_IDS).toHaveLength(13);
     expect(RuleIdSchema.parse("visual-conversion-opportunity")).toBe(
       "visual-conversion-opportunity",
     );

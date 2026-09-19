@@ -357,7 +357,7 @@ describe("rule end-to-end: verified absence only", () => {
     }),
   ];
 
-  it("suppresses offerings represented in nav, surfaces only the genuine gap", async () => {
+  it("suppresses represented offerings and keeps the remaining health finding", async () => {
     const client = ClientSchema.parse({
       id: "plumbco",
       name: "PlumbCo",
@@ -374,8 +374,9 @@ describe("rule end-to-end: verified absence only", () => {
     });
 
     const candidates = await runRules({ client, catalog, evidence });
-    expect(candidates.map((c) => c.subject)).toEqual(["pool line plumbing"]);
+    expect(candidates.map((c) => c.subject)).toEqual(["pool line plumbing", "plumbco.example"]);
     expect(candidates[0]?.verification?.conclusion).toBe("absent");
+    expect(candidates[1]?.ruleId).toBe("thin-service-page");
   });
 });
 

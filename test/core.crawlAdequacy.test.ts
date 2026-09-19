@@ -154,8 +154,9 @@ describe("crawl / service-coverage adequacy", () => {
       catalog: LANDING_CATALOG,
       evidence,
     });
-    expect(candidates.map((c) => c.subject)).toEqual(["pool heater installation"]);
+    expect(candidates.map((c) => c.subject)).toEqual(["pool heater installation", "hvacco.example"]);
     expect(candidates[0]?.verification?.conclusion).toBe("absent");
+    expect(candidates[1]?.ruleId).toBe("thin-service-page");
   });
 });
 
