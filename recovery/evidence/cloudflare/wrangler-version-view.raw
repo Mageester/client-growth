@@ -1,0 +1,143 @@
+{
+  "id": "529a96b3-f525-413f-90da-c32c20505baf",
+  "number": 57,
+  "metadata": {
+    "created_on": "2026-09-18T01:54:34.899862Z",
+    "source": "wrangler",
+    "author_id": "c6b7ce7642d6274c4f167bdf7233cb80",
+    "author_email": "aidan.magee2@icloud.com",
+    "has_preview": true
+  },
+  "annotations": {
+    "workers/triggered_by": "version_upload"
+  },
+  "resources": {
+    "script": {
+      "etag": "039bcf4d60830a6fb120a38763d6516dcf62721b54308f6b46b517d0598c55ab",
+      "handlers": [
+        "fetch",
+        "scheduled"
+      ],
+      "last_deployed_from": "wrangler"
+    },
+    "script_runtime": {
+      "assets": {
+        "serve_directly": true,
+        "raw_run_worker_first": false
+      },
+      "compatibility_date": "2026-08-31",
+      "compatibility_flags": [
+        "nodejs_compat"
+      ],
+      "usage_model": "standard"
+    },
+    "bindings": [
+      {
+        "name": "AI_PROVIDER",
+        "text": "deepseek",
+        "type": "plain_text"
+      },
+      {
+        "name": "ANALYSIS_PLATFORM_DAILY_LIMIT",
+        "text": "200",
+        "type": "plain_text"
+      },
+      {
+        "name": "ASSETS",
+        "type": "assets"
+      },
+      {
+        "name": "BETTER_AUTH_SECRET",
+        "type": "secret_text"
+      },
+      {
+        "name": "BETTER_AUTH_URL",
+        "text": "https://orbit.getaxiom.ca",
+        "type": "plain_text"
+      },
+      {
+        "name": "BROWSER",
+        "type": "browser",
+        "version": 2
+      },
+      {
+        "name": "CATALOG_AI_PLATFORM_DAILY_LIMIT",
+        "text": "200",
+        "type": "plain_text"
+      },
+      {
+        "name": "CATALOG_AI_WORKSPACE_DAILY_LIMIT",
+        "text": "10",
+        "type": "plain_text"
+      },
+      {
+        "database_id": "fcb0af15-ccef-446f-be77-01aafa5f5e50",
+        "id": "fcb0af15-ccef-446f-be77-01aafa5f5e50",
+        "name": "DB",
+        "type": "d1"
+      },
+      {
+        "name": "DEEPSEEK_API_KEY",
+        "type": "secret_text"
+      },
+      {
+        "name": "DEEPSEEK_BASE_URL",
+        "text": "https://api.deepseek.com",
+        "type": "plain_text"
+      },
+      {
+        "name": "DEEPSEEK_MODEL",
+        "text": "deepseek-flash",
+        "type": "plain_text"
+      },
+      {
+        "name": "DEEPSEEK_VISION_MODEL",
+        "text": "deepseek-flash",
+        "type": "plain_text"
+      },
+      {
+        "name": "MAX_AI_CALLS_PER_RUN",
+        "text": "10",
+        "type": "plain_text"
+      },
+      {
+        "name": "MONITOR_ALLOWLIST",
+        "text": "",
+        "type": "plain_text"
+      },
+      {
+        "name": "MONITOR_ENTITLEMENT_MODE",
+        "text": "off",
+        "type": "plain_text"
+      },
+      {
+        "name": "MONITORING_MAX_CLIENTS_PER_RUN",
+        "text": "3",
+        "type": "plain_text"
+      },
+      {
+        "name": "MONITORING_TRIGGER_TOKEN",
+        "type": "secret_text"
+      },
+      {
+        "name": "RESEND_API_KEY",
+        "type": "secret_text"
+      },
+      {
+        "name": "RESEND_FROM_EMAIL",
+        "text": "Axiom Orbit <noreply@getaxiom.ca>",
+        "type": "plain_text"
+      },
+      {
+        "name": "SIGNUP_ALLOWLIST",
+        "text": "",
+        "type": "plain_text"
+      },
+      {
+        "name": "SIGNUP_MODE",
+        "text": "invite",
+        "type": "plain_text"
+      }
+    ]
+  }
+}

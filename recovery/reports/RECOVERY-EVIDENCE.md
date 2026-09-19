@@ -46,11 +46,19 @@ The copied artifact manifest is `recovery/evidence/known/hashes.json`. The three
 | Known Cloudflare payload | Exact Worker bundle | Preserved/hash-verified | `recovery/evidence/known/worker-live.mjs` |
 | Extracted Worker script | Exact extracted `app.js` | Preserved/hash-verified | `recovery/evidence/known/extracted/app.js` |
 | Cloudflare version metadata | Version/runtime/bindings | Preserved from supplied artifact | `recovery/evidence/known/version-529a96b3.json` |
-| Cloudflare API forensics | Pending | Read-only only | `recovery/evidence/cloudflare/` |
+| Cloudflare API forensics | Complete for documented version/content surfaces | Read-only only | `recovery/evidence/cloudflare/` |
 | Public live assets | Pending | Same-origin/public only | `recovery/evidence/live-assets/` |
 | GitHub refs/objects | Pending | Read-only search | `recovery/evidence/github/` and `local-git/` |
 | Local caches/worktrees | Pending | Bounded search only | `recovery/evidence/caches/` |
 | D1 metadata | Pending | Read-only only | `recovery/evidence/database/` |
+
+## Cloudflare forensics result
+
+- `include=modules` returned HTTP 200 with one module, `app.js`, and no separate source-map module or `sourcesContent` field.
+- Multipart `content/v2` returned HTTP 200 with one `app.js` part and no `app.js.map` part.
+- The supplied bundle's trailing `sourceMappingURL=app.js.map` remains unresolved as an independently downloadable source map.
+- The legacy `content` GET path returned HTTP 405; the supported v2 path was preserved in full.
+- The complete endpoint log, redacted responses, and hashes are under `recovery/evidence/cloudflare/`.
 
 ## Safety log
 
