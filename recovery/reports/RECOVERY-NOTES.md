@@ -45,13 +45,10 @@ small persistence helpers whose contracts can be checked locally.
 
 ## Known production-region inconsistency
 
-The emitted `src/core/insightTaxonomy.ts` region assigns `duplicate-title` as
-the legacy rule for `duplicate_page_title`, while the emitted
-`src/core/ruleIds.ts` region does not include `duplicate-title`. The editable
-recovery keeps both facts: `RULE_IDS` follows the production rule-id region,
-and the taxonomy preserves the historical label as a compatibility value
-without throwing during module import. This is recorded as a medium-confidence
-compatibility discrepancy, not silently normalized away.
+The direct production `src/core/ruleIds.ts` region contains both
+`duplicate-title` and `visual-conversion-opportunity`. The older Git baseline
+schema/registry omitted the visual rule, so the editable recovery restores both
+production values at the candidate boundary and adds the visual catalog link.
 
 ## Reconstruction rules
 

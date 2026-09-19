@@ -28,6 +28,11 @@ export const EVIDENCE_REF_KINDS = [
   "nav",
   /** An owner-authorized external business-profile source. */
   "external",
+  "visual",
+  /** Typed-ledger aliases for observed link/form/probe records. */
+  "link",
+  "form",
+  "probe",
 ] as const;
 
 export type EvidenceRefKind = (typeof EVIDENCE_REF_KINDS)[number] | "unknown";
@@ -78,6 +83,26 @@ export function parseEvidenceRef(raw: string): ParsedEvidenceRef {
     return { kind: split[1] as EvidenceRefKind, value, url: httpUrl(value) };
   }
   return { kind: "unknown", value: ref, url: null };
+}
+
+export function wordCountRef(pageUrl: string, wordCount: number): string {
+  return `word-count:${pageUrl}=${wordCount}`;
+}
+
+export function parseWordCountRef(ref: string): { pageUrl: string; wordCount: number } | null {
+  const match = /^word-count:(.+)=(\d+)$/i.exec(ref.trim());
+  if (!match) return null;
+  return { pageUrl: match[1]!, wordCount: Number.parseInt(match[2]!, 10) };
+}
+
+export function imageAltCountRef(pageUrl: string, count: number): string {
+  return `images-without-alt:${pageUrl}=${count}`;
+}
+
+export function parseImageAltCountRef(ref: string): { pageUrl: string; count: number } | null {
+  const match = /^images-without-alt:(.+)=(\d+)$/i.exec(ref.trim());
+  if (!match) return null;
+  return { pageUrl: match[1]!, count: Number.parseInt(match[2]!, 10) };
 }
 
 function describeUnknownEvidenceRef(value: string): string {

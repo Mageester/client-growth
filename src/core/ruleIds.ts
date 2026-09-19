@@ -8,6 +8,7 @@ export const RULE_IDS = [
   "broken-conversion-path",
   "competitor-service-gap",
   "missing-title",
+  "duplicate-title",
   "thin-service-page",
   "missing-h1",
   "broken-internal-link",

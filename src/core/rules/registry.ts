@@ -42,6 +42,13 @@ export interface RuleServiceLink {
 
 export const RULE_SERVICE_LINKS: readonly RuleServiceLink[] = [
   {
+    ruleId: "visual-conversion-opportunity",
+    tier: "commercial",
+    tag: "visual-review",
+    label: "A visual or customer journey improvement",
+    hint: "Review desktop and mobile captures for substantial work that helps visitors understand, choose, and enquire.",
+  },
+  {
     ruleId: "missing-service-page",
     tier: "commercial",
     tag: "landing-page",
@@ -163,19 +170,41 @@ export function isCommercialRule(ruleId: RuleId): boolean {
   return tierForRule(ruleId) === "commercial";
 }
 
+const AUTOMATIC_ADJACENT_CAPABILITY_TAGS: Record<string, readonly string[]> = {
+  "landing-page": ["service-pages-build"],
+  "competitor-gap": ["landing-page", "service-pages-build"],
+  "thin-service-page": ["landing-page", "service-pages-build"],
+};
+
+export interface ServiceRuleMatch {
+  service: Service;
+  state: "direct" | "adjacent";
+}
+
+export function matchServiceForRule(catalog: Service[], tag: string): ServiceRuleMatch | null {
+  const active = catalog.filter((service) => service.active);
+  const direct = active.find((service) => service.tags.includes(tag));
+  if (direct) return { service: direct, state: "direct" };
+  const adjacentTags = AUTOMATIC_ADJACENT_CAPABILITY_TAGS[tag] ?? [];
+  const adjacent = active.find((service) => adjacentTags.some((candidate) => service.tags.includes(candidate)));
+  return adjacent ? { service: adjacent, state: "adjacent" } : null;
+}
+
 /** The active service a rule would price its findings from, or null. */
 export function serviceForRule(catalog: Service[], tag: string): Service | null {
-  return catalog.find((s) => s.active && s.tags.includes(tag)) ?? null;
+  return matchServiceForRule(catalog, tag)?.service ?? null;
 }
 
 export interface CatalogCoverage {
   /** One entry per rule, in the order the agency sees them. */
-  rules: Array<RuleServiceLink & { serviceId: string | null }>;
+  rules: Array<RuleServiceLink & { serviceId: string | null; matchState?: "direct" | "adjacent" | null }>;
   /** Rules that can actually run against this catalog. */
   matched: number;
   total: number;
   /** Human labels of the gaps nothing in the catalog is offered for. */
   unmatchedLabels: string[];
+  /** Human labels matched only through a conservative adjacent capability. */
+  adjacentLabels?: string[];
 }
 
 /**
@@ -189,12 +218,14 @@ export interface CatalogCoverage {
 export function assessCatalogCoverage(catalog: Service[]): CatalogCoverage {
   const rules = RULE_SERVICE_LINKS.map((link) => ({
     ...link,
-    serviceId: serviceForRule(catalog, link.tag)?.id ?? null,
+    serviceId: matchServiceForRule(catalog, link.tag)?.service.id ?? null,
+    matchState: matchServiceForRule(catalog, link.tag)?.state ?? null,
   }));
   return {
     rules,
     matched: rules.filter((r) => r.serviceId !== null).length,
     total: rules.length,
     unmatchedLabels: rules.filter((r) => r.serviceId === null).map((r) => r.label),
+    adjacentLabels: rules.filter((r) => r.matchState === "adjacent").map((r) => r.label),
   };
 }
