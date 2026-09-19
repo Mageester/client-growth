@@ -120,7 +120,7 @@ function buildNetworkEntry(entries: Map<string, EntryState>, runId: string, bund
 
 interface ExtendedScreenshot { id: string; pageUrl: string; viewport: "desktop" | "mobile"; width: number; height: number; capturedAt: string; label: string; }
 interface ExtendedRenderedPage { runId: string; screenshotId: string; pageUrl: string; viewport: "desktop" | "mobile"; width: number; height: number; capturedAt: string; source: "parsed" | "rendered"; elements: Array<{ runId: string; screenshotId: string; pageUrl: string; viewport: "desktop" | "mobile"; viewportWidth: number; viewportHeight: number; elementKey: string; kind: string; geometry: unknown; label: string; accessibleName: string; labelState: string; source: string }>; }
-interface ExtendedEvidenceBundle extends EvidenceBundle { visualReview?: { screenshots?: ExtendedScreenshot[] }; renderedPages?: ExtendedRenderedPage[]; site: EvidenceBundle["site"] & { nav: string[] }; }
+interface ExtendedEvidenceBundle extends EvidenceBundle { site: EvidenceBundle["site"] & { nav: string[] }; }
 
 export function buildEvidenceLedger(input: { runId: string; bundle: EvidenceBundle }): EvidenceRef[] {
   const bundle = input.bundle as ExtendedEvidenceBundle;

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { RenderedPageObservationSchema, VisualReviewSchema } from "@/core/visualSchema";
 
 /**
  * Every cross-boundary contract in the product is defined here as a Zod schema.
@@ -67,13 +68,81 @@ export type Coverage = z.infer<typeof CoverageSchema>;
 // ---------------------------------------------------------------------------
 // Website evidence (provenance preserved, no unsupported claims)
 // ---------------------------------------------------------------------------
+export const EvidenceTextSchema = z.string().trim().max(500);
+export const EvidenceElementKeySchema = z.string().trim().min(1).max(120);
+export const EvidenceRegionSchema = z.enum(["header", "hero", "nav", "main", "form", "proof", "footer", "page", "unknown"]);
+export const EvidenceGeometrySchema = z.object({
+  left: z.number().finite().nonnegative(),
+  top: z.number().finite().nonnegative(),
+  width: z.number().finite().nonnegative(),
+  height: z.number().finite().nonnegative(),
+  viewportWidth: z.number().int().positive(),
+  viewportHeight: z.number().int().positive(),
+  horizontallyClipped: z.boolean(),
+}).strict();
+
+function safeEvidenceHref(value: string): boolean {
+  if (value === "") return true;
+  try {
+    const parsed = new URL(value, "https://client-growth.invalid/");
+    if (!["http:", "https:", "tel:", "mailto:"].includes(parsed.protocol)) return false;
+    if (parsed.username || parsed.password) return false;
+    if ((parsed.protocol === "tel:" || parsed.protocol === "mailto:") && parsed.search) return false;
+    return ![...parsed.searchParams.keys()].some((key) => /pass(word)?|token|secret|api[-_]?key|auth|credential/i.test(key));
+  } catch { return false; }
+}
+
+function safeEvidenceFormAction(value: string): boolean {
+  if (value === "") return true;
+  try {
+    const parsed = new URL(value, "https://client-growth.invalid/");
+    if (!["http:", "https:"].includes(parsed.protocol)) return false;
+    if (parsed.username || parsed.password) return false;
+    return ![...parsed.searchParams.keys()].some((key) => /pass(word)?|token|secret|api[-_]?key|auth|credential/i.test(key));
+  } catch { return false; }
+}
+
+export const EvidenceAvailabilityKindSchema = z.enum(["page", "element", "link", "form", "screenshot", "performance", "accessibility", "contact-fact", "competitor", "probe"]);
+export const EvidenceAvailabilitySchema = z.object({ kind: EvidenceAvailabilityKindSchema, state: z.enum(["available", "partial", "unavailable"]), observedCount: z.number().int().nonnegative().max(10_000), reason: EvidenceTextSchema.optional() }).strict();
+
+export const EvidenceFormFieldSchema = z.object({
+  elementKey: EvidenceElementKeySchema,
+  controlType: z.string().trim().min(1).max(50),
+  name: z.string().trim().max(200).default(""),
+  required: z.boolean().default(false),
+  autocomplete: z.string().trim().max(100).optional(),
+  label: EvidenceTextSchema.default(""),
+  accessibleName: EvidenceTextSchema.default(""),
+  labelSource: z.enum(["label", "aria-label", "aria-labelledby", "placeholder", "name", "none"]).default("none"),
+}).strict();
+export const EvidenceCtaSchema = z.object({
+  elementKey: EvidenceElementKeySchema,
+  href: z.string().trim().max(2_000).refine(safeEvidenceHref, "CTA href must use a safe URL scheme").default(""),
+  label: EvidenceTextSchema.default(""),
+  accessibleName: EvidenceTextSchema.default(""),
+  actionKind: z.enum(["navigation", "contact", "submit", "button"]),
+  sourceRegion: EvidenceRegionSchema.default("page"),
+  geometry: EvidenceGeometrySchema.optional(),
+}).strict();
+export const EvidenceLandmarkSchema = z.object({ elementKey: EvidenceElementKeySchema, role: z.enum(["banner", "header", "navigation", "main", "complementary", "contentinfo", "search", "form", "region"]), label: EvidenceTextSchema.default("") }).strict();
+export const EvidenceContentSectionSchema = z.object({ elementKey: EvidenceElementKeySchema, kind: z.enum(["hero", "services", "proof", "contact", "faq", "pricing", "content", "unknown"]), heading: EvidenceTextSchema.default(""), textExcerpt: EvidenceTextSchema.default("") }).strict();
+export const EvidenceProofSignalSchema = z.object({ sourceKey: EvidenceElementKeySchema, kind: z.enum(["testimonial", "review", "case-study", "credential", "guarantee", "rating", "logo", "unknown"]), text: EvidenceTextSchema.default("") }).strict();
+export const EvidenceContactFactSchema = z.object({ sourceKey: EvidenceElementKeySchema, kind: z.enum(["phone", "email", "address", "hours", "social"]), value: EvidenceTextSchema, origin: z.enum(["visible_text", "action_target", "structured_data"]).optional() }).strict();
+export const EvidenceDateFactSchema = z.object({ sourceKey: EvidenceElementKeySchema, kind: z.enum(["published", "updated", "offer-expiry", "event", "copyright", "unknown"]), value: EvidenceTextSchema }).strict();
+export const EvidenceAccessibilityObservationSchema = z.object({ elementKey: EvidenceElementKeySchema, issue: z.enum(["missing-alt", "missing-accessible-name", "missing-label", "empty-label", "invalid-aria-reference"]), source: z.enum(["parsed", "rendered"]).default("parsed"), detail: EvidenceTextSchema.optional() }).strict();
+
 /** A <form> discovered on a page: how it submits and whether it has a submit control. */
 export const EvidenceFormSchema = z.object({
-  /** Raw `action` attribute (may be relative, absolute, "#", or ""). */
-  action: z.string().default(""),
+  /** Raw `action` attribute after credential redaction. */
+  action: z.string().trim().max(2_000).refine(safeEvidenceFormAction, "Form action must use a safe credential-free HTTP target").default(""),
   /** Uppercased method; defaults to GET per the HTML spec. */
   method: z.enum(["GET", "POST"]).default("GET"),
   hasSubmit: z.boolean().default(false),
+  fields: z.array(EvidenceFormFieldSchema).max(50).optional(),
+  submitLabel: EvidenceTextSchema.optional(),
+  actionTargetState: z.enum(["empty", "same-site", "off-site", "invalid", "redacted"]).optional(),
+  submitDisabled: z.boolean().optional(),
+  hasEnabledSubmitAlternative: z.boolean().optional(),
 });
 export type EvidenceForm = z.infer<typeof EvidenceFormSchema>;
 
@@ -107,6 +176,13 @@ export const EvidencePageSchema = z.object({
   /** Whether any JSON-LD, microdata, or RDFa structured data was observed. */
   structuredDataPresent: z.boolean().optional(),
   images: z.array(EvidenceImageSchema).optional(),
+  ctas: z.array(EvidenceCtaSchema).max(100).optional(),
+  landmarks: z.array(EvidenceLandmarkSchema).max(50).optional(),
+  sections: z.array(EvidenceContentSectionSchema).max(100).optional(),
+  proofSignals: z.array(EvidenceProofSignalSchema).max(100).optional(),
+  contactFacts: z.array(EvidenceContactFactSchema).max(100).optional(),
+  datedFacts: z.array(EvidenceDateFactSchema).max(100).optional(),
+  accessibility: z.array(EvidenceAccessibilityObservationSchema).max(200).optional(),
 });
 export type EvidencePage = z.infer<typeof EvidencePageSchema>;
 
@@ -171,7 +247,51 @@ export const EvidenceNetworkEventSchema = z.object({
 });
 export type EvidenceNetworkEvent = z.infer<typeof EvidenceNetworkEventSchema>;
 
+export const CrawlIgnoredReasonSchema = z.enum(["invalid-url", "off-site", "duplicate", "robots", "page-budget", "platform-path"]);
+export const CrawlCoverageSchema = z.object({
+  discoveredUrls: z.number().int().nonnegative(),
+  attemptedUrls: z.number().int().nonnegative(),
+  retrievedUrls: z.number().int().nonnegative(),
+  renderedUrls: z.number().int().nonnegative(),
+  failedUrls: z.number().int().nonnegative(),
+  ignoredUrls: z.array(z.object({ url: z.string().min(1), reason: CrawlIgnoredReasonSchema })).max(100),
+  redirectHops: z.number().int().nonnegative(),
+  canonicalPages: z.number().int().nonnegative(),
+  maxDepth: z.number().int().nonnegative(),
+  screenshotsCaptured: z.number().int().nonnegative(),
+});
+export const EvidenceObservedPageUrlSchema = z.string().max(2_000).url();
+export const EvidenceResourceFailureSchema = z.object({
+  pageUrl: EvidenceObservedPageUrlSchema,
+  url: EvidenceObservedPageUrlSchema,
+  resourceType: z.enum(["document", "stylesheet", "script", "image", "font", "xhr", "fetch", "other"]),
+  status: z.number().int().min(100).max(599).optional(),
+  reason: z.string().trim().min(1).max(500),
+  source: z.enum(["http", "rendered"]),
+  cause: z.enum(["site", "orbit-limit"]).optional(),
+  observedAt: z.string().trim().min(1).max(200).optional(),
+}).strict();
+export const EvidenceConsoleErrorSchema = z.object({
+  pageUrl: EvidenceObservedPageUrlSchema,
+  level: z.enum(["error", "warning"]),
+  message: z.string().trim().min(1).max(1_000),
+  source: z.literal("rendered"),
+  sourceUrl: EvidenceObservedPageUrlSchema.optional(),
+  lineNumber: z.number().int().nonnegative().max(10_000_000).optional(),
+  columnNumber: z.number().int().nonnegative().max(10_000_000).optional(),
+  observedAt: z.string().trim().min(1).max(200).optional(),
+}).strict();
+export const EvidencePerformanceObservationSchema = z.object({
+  pageUrl: EvidenceObservedPageUrlSchema,
+  status: z.number().int().min(100).max(599).optional(),
+  responseTimeMs: z.number().finite().nonnegative().max(120_000),
+  transferSizeBytes: z.number().int().nonnegative().max(20_000_000),
+  source: z.enum(["http", "rendered"]),
+  observedAt: z.string().trim().min(1).max(200).optional(),
+}).strict();
+
 export const EvidenceBundleSchema = z.object({
+  visualReview: VisualReviewSchema.optional(),
   clientId: z.string().min(1),
   source: z.enum(["fixture", "http"]),
   capturedAt: z.string().min(1), // ISO timestamp
@@ -195,9 +315,15 @@ export const EvidenceBundleSchema = z.object({
      * weaker claim rather than the stronger one.
      */
     crawlExhaustive: z.boolean().default(false),
+    coverage: CrawlCoverageSchema.optional(),
   }),
   /** Network-policy failures are evidence limitations, never website defects. */
   networkEvents: z.array(EvidenceNetworkEventSchema).default([]),
+  resourceFailures: z.array(EvidenceResourceFailureSchema).max(200).optional(),
+  consoleErrors: z.array(EvidenceConsoleErrorSchema).max(100).optional(),
+  performanceObservations: z.array(EvidencePerformanceObservationSchema).max(100).optional(),
+  renderedPages: z.array(RenderedPageObservationSchema).max(8).optional(),
+  evidenceAvailability: z.array(EvidenceAvailabilitySchema).max(20).optional(),
 });
 export type EvidenceBundle = z.infer<typeof EvidenceBundleSchema>;
 

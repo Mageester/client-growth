@@ -57,6 +57,20 @@ export function materializeDiagnostics(input: { workspaceId: string; runId: stri
   return materialized.sort((left, right) => compareStrings(left.id, right.id));
 }
 
+/** Convert internal evidence-key syntax into customer-readable prose. */
+export function sanitizeCustomerObservation(observation: string): string {
+  return observation
+    .replace(/\b(?:cta|input|form|accessibility|rendered-element|form-field|landmark|section):[^\s.,;)]+/gi, "the control")
+    .replace(/\bmissing-accessible-names?\b/gi, "no accessible name")
+    .replace(/\bmissing-labels?\b/gi, "no label")
+    .replace(/\bempty-labels?\b/gi, "an empty label")
+    .replace(/\bmissing-alts?\b/gi, "no text alternative")
+    .replace(/\binvalid-aria-references?\b/gi, "an invalid aria reference")
+    .replace(/\btyped accessibility observations?\b/gi, "accessibility evidence")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function rootKey(diagnostic: Diagnostic): string { const definition = definitionForProblemType(diagnostic.problemType); if (diagnostic.details?.kind === "conversion_defect") return diagnostic.details.conversionDefect.target ? `target:${canonicalSubjectLocator(diagnostic.details.conversionDefect.target)}` : `page:${canonicalSubjectLocator(diagnostic.details.conversionDefect.pageUrl)}`; if (definition.category === "technical_reliability" || definition.category === "accessibility_usability") return `rule:${diagnostic.detectorId.toLowerCase()}:${hostOf(diagnostic.subject.key)}`; return `${diagnostic.subject.kind}:${canonicalSubjectLocator(diagnostic.subject.key)}`; }
 export function compatibleGroupKey(diagnostic: Diagnostic): string { return [diagnostic.category, diagnostic.problemType, rootKey(diagnostic)].join("|"); }
 export function assertCompatibleDiagnostics(diagnostics: readonly Diagnostic[]): void { if (diagnostics.length === 0) return; const first = diagnostics[0]!; for (const diagnostic of diagnostics) { if (diagnostic.workspaceId !== first.workspaceId) throw new Error("Diagnostics cross workspace boundary."); if (diagnostic.runId !== first.runId) throw new Error("Diagnostics cross run boundary."); if (diagnostic.clientId !== first.clientId) throw new Error("Diagnostics cross client boundary."); } }
