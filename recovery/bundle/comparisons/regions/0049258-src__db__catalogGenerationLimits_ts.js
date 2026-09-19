@@ -1,0 +1,3 @@
+// src/db/catalogGenerationLimits.ts
+var CATALOG_AI_WORKSPACE_DAILY_LIMIT = 10;
+var CATALOG_AI_PLATFORM_DAILY_LIMIT = 200;
