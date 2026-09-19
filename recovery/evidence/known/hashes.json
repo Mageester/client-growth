@@ -1,0 +1,17 @@
+[
+  {
+    "path": "extracted\\app.js",
+    "bytes": 5833953,
+    "sha256": "e3b996cbc94bf72723866220852ea069fdea09d771de299f67a1aa3dfc0f0611"
+  },
+  {
+    "path": "version-529a96b3.json",
+    "bytes": 10388,
+    "sha256": "b61a3e4331f0d873b11db060dcdc39c4839336694c58f5a9d45f20357d40af41"
+  },
+  {
+    "path": "worker-live.mjs",
+    "bytes": 5834199,
+    "sha256": "7bc90e96d98abb00132bf6736ecad96afbf223afaddc8d162cabaea2e2783c40"
+  }
+]
