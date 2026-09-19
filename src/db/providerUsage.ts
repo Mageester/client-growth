@@ -76,7 +76,7 @@ export async function recordProviderUsage(
     )
     .run();
   const id = result.lastRowId;
-  if (!Number.isSafeInteger(id) || id <= 0) {
+  if (typeof id !== "number" || !Number.isSafeInteger(id) || id <= 0) {
     throw new Error("Provider usage insert did not return its assigned id.");
   }
   return id;
