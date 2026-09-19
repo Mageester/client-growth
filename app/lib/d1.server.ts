@@ -15,7 +15,9 @@ interface D1PreparedStatementLike {
   bind(...values: unknown[]): D1PreparedStatementLike;
   all<T>(): Promise<{ results?: T[] }>;
   first<T>(): Promise<T | null>;
-  run(): Promise<{ meta?: { changes?: number; rows_written?: number } }>;
+  run(): Promise<{
+    meta?: { changes?: number; rows_written?: number; last_row_id?: number };
+  }>;
 }
 
 interface D1DatabaseLike {
@@ -39,7 +41,10 @@ function wrap(stmt: D1PreparedStatementLike): SqlStatement {
     },
     async run(): Promise<RunResult> {
       const r = await stmt.run();
-      return { rowsAffected: r.meta?.changes ?? r.meta?.rows_written ?? 0 };
+      return {
+        rowsAffected: r.meta?.changes ?? r.meta?.rows_written ?? 0,
+        ...(typeof r.meta?.last_row_id === "number" ? { lastRowId: r.meta.last_row_id } : {}),
+      };
     },
   };
 }

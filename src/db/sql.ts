@@ -12,6 +12,8 @@ export type SqlValue = string | number | null;
 export interface RunResult {
   /** Rows inserted/updated/deleted by this statement. */
   rowsAffected: number;
+  /** Database-assigned row id when the statement inserted one. */
+  lastRowId?: number;
 }
 
 export interface SqlStatement {

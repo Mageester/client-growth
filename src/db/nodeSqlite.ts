@@ -32,7 +32,10 @@ function statement(db: DatabaseSync, sql: string, bound: SqlValue[]): SqlStateme
     },
     run(): Promise<RunResult> {
       const r = db.prepare(sql).run(...bound);
-      return Promise.resolve({ rowsAffected: Number(r.changes ?? 0) });
+      return Promise.resolve({
+        rowsAffected: Number(r.changes ?? 0),
+        lastRowId: Number(r.lastInsertRowid ?? 0),
+      });
     },
   };
 }
@@ -56,7 +59,10 @@ export function nodeSqliteDb(location = ":memory:"): NodeSqliteDb {
       try {
         const results = statements.map((s) => {
           const r = db.prepare(s.sql).run(...((s.params ?? []) as never[]));
-          return { rowsAffected: Number(r.changes ?? 0) } as RunResult;
+          return {
+            rowsAffected: Number(r.changes ?? 0),
+            lastRowId: Number(r.lastInsertRowid ?? 0),
+          } as RunResult;
         });
         db.exec("COMMIT");
         return results;
